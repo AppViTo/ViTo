@@ -1,0 +1,348 @@
+package com.vito.event.application.service;
+
+import com.vito.event.domain.exception.EventException;
+import com.vito.event.domain.model.Event;
+import com.vito.event.domain.model.Invitation;
+import com.vito.event.domain.model.RSVP;
+import com.vito.event.domain.port.inbound.EventService.*;
+import com.vito.event.domain.port.outbound.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class EventServiceImplTest {
+
+    @Mock
+    private EventRepository eventRepository;
+
+    @Mock
+    private RSVPRepository rsvpRepository;
+
+    @Mock
+    private InvitationRepository invitationRepository;
+
+    @Mock
+    private EventPublisherPort eventPublisher;
+
+    @Mock
+    private QRCodeGenerator qrCodeGenerator;
+
+    @InjectMocks
+    private EventServiceImpl eventService;
+
+    private Event testEvent;
+
+    @BeforeEach
+    void setUp() {
+        testEvent = Event.builder()
+                .id("event123")
+                .organizerId("organizer123")
+                .title("Test Event")
+                .description("Test Description")
+                .details(Event.EventDetails.builder()
+                        .startDate(LocalDateTime.now().plusDays(7))
+                        .location("Test Location")
+                        .build())
+                .settings(Event.EventSettings.builder()
+                        .isPublic(true)
+                        .maxAttendees(100)
+                        .build())
+                .stats(Event.EventStats.builder().build())
+                .status(Event.EventStatus.PUBLISHED)
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+    }
+
+    @Test
+    void createEvent_Success() {
+        // Arrange
+        CreateEventCommand command = CreateEventCommand.builder()
+                .organizerId("organizer123")
+                .title("Test Event")
+                .description("Test Description")
+                .build();
+
+        when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
+
+        // Act
+        Event result = eventService.createEvent(command);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("Test Event", result.getTitle());
+        assertEquals("organizer123", result.getOrganizerId());
+
+        verify(eventRepository).save(any(Event.class));
+        verify(eventPublisher).publishEventCreated("event123", "organizer123");
+    }
+
+    @Test
+    void updateEvent_Success() {
+        // Arrange
+        UpdateEventCommand command = UpdateEventCommand.builder()
+                .eventId("event123")
+                .userId("organizer123")
+                .title("Updated Title")
+                .build();
+
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+        when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
+
+        // Act
+        Event result = eventService.updateEvent(command);
+
+        // Assert
+        assertNotNull(result);
+
+        verify(eventRepository).findById("event123");
+        verify(eventRepository).save(any(Event.class));
+        verify(eventPublisher).publishEventUpdated("event123", "organizer123");
+    }
+
+    @Test
+    void updateEvent_NotAuthorized_ThrowsException() {
+        // Arrange
+        UpdateEventCommand command = UpdateEventCommand.builder()
+                .eventId("event123")
+                .userId("user456")
+                .title("Updated Title")
+                .build();
+
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+
+        // Act & Assert
+        EventException exception = assertThrows(
+                EventException.class,
+                () -> eventService.updateEvent(command)
+        );
+        assertEquals("You are not authorized to perform this action", exception.getMessage());
+    }
+
+    @Test
+    void cancelEvent_Success() {
+        // Arrange
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+        when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
+
+        // Act
+        eventService.cancelEvent("event123", "organizer123");
+
+        // Assert
+        verify(eventRepository).findById("event123");
+        verify(eventRepository).save(any(Event.class));
+        verify(eventPublisher).publishEventCancelled("event123", "organizer123");
+    }
+
+    @Test
+    void respondToRSVP_Success() {
+        // Arrange
+        RespondRSVPCommand command = RespondRSVPCommand.builder()
+                .eventId("event123")
+                .userId("user456")
+                .status(RSVP.RSVPStatus.ACCEPTED)
+                .build();
+
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+        when(rsvpRepository.existsByEventIdAndUserId("event123", "user456")).thenReturn(false);
+        when(rsvpRepository.countByEventIdAndStatus("event123", RSVP.RSVPStatus.ACCEPTED)).thenReturn(5L);
+        when(qrCodeGenerator.generateCheckInQR("event123", "user456")).thenReturn("qr_code_123");
+        when(rsvpRepository.save(any(RSVP.class))).thenReturn(RSVP.builder().build());
+
+        // Act
+        RSVP result = eventService.respondToRSVP(command);
+
+        // Assert
+        assertNotNull(result);
+
+        verify(eventRepository).findById("event123");
+        verify(rsvpRepository).existsByEventIdAndUserId("event123", "user456");
+        verify(rsvpRepository).save(any(RSVP.class));
+        verify(eventPublisher).publishRSVPChanged("event123", "user456", "ACCEPTED");
+    }
+
+    @Test
+    void respondToRSVP_CannotRSVPToOwnEvent_ThrowsException() {
+        // Arrange
+        RespondRSVPCommand command = RespondRSVPCommand.builder()
+                .eventId("event123")
+                .userId("organizer123")
+                .status(RSVP.RSVPStatus.ACCEPTED)
+                .build();
+
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+
+        // Act & Assert
+        EventException exception = assertThrows(
+                EventException.class,
+                () -> eventService.respondToRSVP(command)
+        );
+        assertEquals("Cannot RSVP to your own event", exception.getMessage());
+    }
+
+    @Test
+    void respondToRSVP_AlreadyRSVP_ThrowsException() {
+        // Arrange
+        RespondRSVPCommand command = RespondRSVPCommand.builder()
+                .eventId("event123")
+                .userId("user456")
+                .status(RSVP.RSVPStatus.ACCEPTED)
+                .build();
+
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+        when(rsvpRepository.existsByEventIdAndUserId("event123", "user456")).thenReturn(true);
+
+        // Act & Assert
+        EventException exception = assertThrows(
+                EventException.class,
+                () -> eventService.respondToRSVP(command)
+        );
+        assertEquals("You have already responded to this event", exception.getMessage());
+    }
+
+    @Test
+    void sendInvitation_Success() {
+        // Arrange
+        SendInvitationCommand command = SendInvitationCommand.builder()
+                .eventId("event123")
+                .inviterId("organizer123")
+                .inviteeId("user456")
+                .message("Come to my event!")
+                .build();
+
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+        when(invitationRepository.existsByEventIdAndInviteeId("event123", "user456")).thenReturn(false);
+        when(invitationRepository.save(any(Invitation.class))).thenReturn(Invitation.builder().build());
+
+        // Act
+        Invitation result = eventService.sendInvitation(command);
+
+        // Assert
+        assertNotNull(result);
+
+        verify(eventRepository).findById("event123");
+        verify(invitationRepository).existsByEventIdAndInviteeId("event123", "user456");
+        verify(invitationRepository).save(any(Invitation.class));
+        verify(eventPublisher).publishInvitationSent("event123", "organizer123", "user456");
+    }
+
+    @Test
+    void sendInvitation_NotAuthorized_ThrowsException() {
+        // Arrange
+        SendInvitationCommand command = SendInvitationCommand.builder()
+                .eventId("event123")
+                .inviterId("user456")
+                .inviteeId("user789")
+                .build();
+
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+
+        // Act & Assert
+        EventException exception = assertThrows(
+                EventException.class,
+                () -> eventService.sendInvitation(command)
+        );
+        assertEquals("You are not authorized to perform this action", exception.getMessage());
+    }
+
+    @Test
+    void checkIn_Success() {
+        // Arrange
+        CheckInCommand command = CheckInCommand.builder()
+                .eventId("event123")
+                .userId("user456")
+                .qrCode("valid_qr_code")
+                .build();
+
+        RSVP rsvp = RSVP.builder()
+                .eventId("event123")
+                .userId("user456")
+                .status(RSVP.RSVPStatus.ACCEPTED)
+                .checkInQrCode("valid_qr_code")
+                .build();
+
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+        when(rsvpRepository.findByEventIdAndUserId("event123", "user456")).thenReturn(Optional.of(rsvp));
+        when(qrCodeGenerator.validateCheckInQR("valid_qr_code", "event123", "user456")).thenReturn(true);
+        when(rsvpRepository.save(any(RSVP.class))).thenReturn(rsvp);
+
+        // Act
+        RSVP result = eventService.checkIn(command);
+
+        // Assert
+        assertNotNull(result);
+
+        verify(eventRepository).findById("event123");
+        verify(rsvpRepository).findByEventIdAndUserId("event123", "user456");
+        verify(qrCodeGenerator).validateCheckInQR("valid_qr_code", "event123", "user456");
+        verify(rsvpRepository).save(any(RSVP.class));
+        verify(eventPublisher).publishCheckIn("event123", "user456");
+    }
+
+    @Test
+    void checkIn_InvalidQR_ThrowsException() {
+        // Arrange
+        CheckInCommand command = CheckInCommand.builder()
+                .eventId("event123")
+                .userId("user456")
+                .qrCode("invalid_qr_code")
+                .build();
+
+        RSVP rsvp = RSVP.builder()
+                .eventId("event123")
+                .userId("user456")
+                .status(RSVP.RSVPStatus.ACCEPTED)
+                .checkInQrCode("valid_qr_code")
+                .build();
+
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+        when(rsvpRepository.findByEventIdAndUserId("event123", "user456")).thenReturn(Optional.of(rsvp));
+        when(qrCodeGenerator.validateCheckInQR("invalid_qr_code", "event123", "user456")).thenReturn(false);
+
+        // Act & Assert
+        EventException exception = assertThrows(
+                EventException.class,
+                () -> eventService.checkIn(command)
+        );
+        assertEquals("Invalid check-in code", exception.getMessage());
+    }
+
+    @Test
+    void checkIn_AlreadyCheckedIn_ThrowsException() {
+        // Arrange
+        CheckInCommand command = CheckInCommand.builder()
+                .eventId("event123")
+                .userId("user456")
+                .qrCode("valid_qr_code")
+                .build();
+
+        RSVP rsvp = RSVP.builder()
+                .eventId("event123")
+                .userId("user456")
+                .status(RSVP.RSVPStatus.ACCEPTED)
+                .checkInQrCode("valid_qr_code")
+                .checkedInAt(LocalDateTime.now())
+                .build();
+
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+        when(rsvpRepository.findByEventIdAndUserId("event123", "user456")).thenReturn(Optional.of(rsvp));
+
+        // Act & Assert
+        EventException exception = assertThrows(
+                EventException.class,
+                () -> eventService.checkIn(command)
+        );
+        assertEquals("You have already checked in to this event", exception.getMessage());
+    }
+}

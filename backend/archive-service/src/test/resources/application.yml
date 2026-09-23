@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: archive-service-test
+  
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/vito_archive_test
+  
+  redis:
+    host: localhost
+    port: 6379
+  
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+app:
+  share:
+    base-url: http://localhost:8080/archive
+
+jwt:
+  secret: test-secret-key-for-testing-only-123456789012345678901234567890
+
+logging:
+  level:
+    com.vito: DEBUG
+    org.springframework.security: DEBUG

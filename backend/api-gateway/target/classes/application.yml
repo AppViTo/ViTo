@@ -1,0 +1,289 @@
+spring:
+  application:
+    name: api-gateway
+  
+  profiles:
+    active: dev
+  
+  cloud:
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "http://localhost:3000,http://localhost:8080"
+            allowed-methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowed-headers: "*"
+            allow-credentials: true
+            max-age: 3600
+      
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 10s
+      
+      routes:
+        - id: auth-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/auth/**
+          filters:
+            - StripPrefix=0
+            - name: CircuitBreaker
+              args:
+                name: authServiceCircuitBreaker
+                fallbackUri: forward:/fallback/auth
+            - name: RequestRateLimiter
+              args:
+                deny-empty-key: false
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+        
+        - id: social-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/v1/social/**
+          filters:
+            - StripPrefix=0
+            - name: CircuitBreaker
+              args:
+                name: socialServiceCircuitBreaker
+                fallbackUri: forward:/fallback/social
+        
+        - id: event-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/v1/events/**
+          filters:
+            - StripPrefix=0
+            - name: CircuitBreaker
+              args:
+                name: eventServiceCircuitBreaker
+                fallbackUri: forward:/fallback/events
+            - name: RequestRateLimiter
+              args:
+                deny-empty-key: false
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+        
+        - id: checkin-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/v1/checkin/**
+          filters:
+            - StripPrefix=0
+            - name: CircuitBreaker
+              args:
+                name: checkinServiceCircuitBreaker
+                fallbackUri: forward:/fallback/checkin
+        
+        - id: mosaic-service
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/v1/mosaic/**
+          filters:
+            - StripPrefix=0
+            - name: CircuitBreaker
+              args:
+                name: mosaicServiceCircuitBreaker
+                fallbackUri: forward:/fallback/mosaic
+        
+        - id: streaming-service
+          uri: http://localhost:8086
+          predicates:
+            - Path=/api/v1/streaming/**
+          filters:
+            - StripPrefix=0
+            - name: CircuitBreaker
+              args:
+                name: streamingServiceCircuitBreaker
+                fallbackUri: forward:/fallback/streaming
+        
+        - id: archive-service
+          uri: http://localhost:8087
+          predicates:
+            - Path=/api/v1/archive/**
+          filters:
+            - StripPrefix=0
+            - name: CircuitBreaker
+              args:
+                name: archiveServiceCircuitBreaker
+                fallbackUri: forward:/fallback/archive
+        
+        - id: chat-service
+          uri: http://localhost:8088
+          predicates:
+            - Path=/api/v1/chat/**
+          filters:
+            - StripPrefix=0
+            - name: CircuitBreaker
+              args:
+                name: chatServiceCircuitBreaker
+                fallbackUri: forward:/fallback/chat
+        
+        - id: media-service
+          uri: http://localhost:8089
+          predicates:
+            - Path=/api/v1/media/**
+          filters:
+            - StripPrefix=0
+            - name: CircuitBreaker
+              args:
+                name: mediaServiceCircuitBreaker
+                fallbackUri: forward:/fallback/media
+        
+        - id: transcode-service
+          uri: http://localhost:8000
+          predicates:
+            - Path=/api/v1/transcode/**
+          filters:
+            - StripPrefix=0
+            - name: CircuitBreaker
+              args:
+                name: transcodeServiceCircuitBreaker
+                fallbackUri: forward:/fallback/transcode
+        
+        - id: recommendation-service
+          uri: http://localhost:8001
+          predicates:
+            - Path=/api/v1/recommendations/**
+          filters:
+            - StripPrefix=0
+            - name: CircuitBreaker
+              args:
+                name: recommendationServiceCircuitBreaker
+                fallbackUri: forward:/fallback/recommendations
+        
+        - id: moderation-service
+          uri: http://localhost:8002
+          predicates:
+            - Path=/api/v1/moderation/**
+          filters:
+            - StripPrefix=0
+            - name: CircuitBreaker
+              args:
+                name: moderationServiceCircuitBreaker
+                fallbackUri: forward:/fallback/moderation
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+server:
+  port: 8080
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:vito-super-secret-jwt-key-change-in-production-2024}
+
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    instances:
+      authServiceCircuitBreaker:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        event-consumer-buffer-size: 10
+      
+      socialServiceCircuitBreaker:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+      
+      eventServiceCircuitBreaker:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+      
+      checkinServiceCircuitBreaker:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+      
+      mosaicServiceCircuitBreaker:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+      
+      streamingServiceCircuitBreaker:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+
+  retry:
+    instances:
+      authServiceCircuitBreaker:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+      eventServiceCircuitBreaker:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+
+  ratelimiter:
+    instances:
+      default:
+        limit-for-period: 10
+        limit-refresh-period: 1s
+        timeout-duration: 0s
+      auth:
+        limit-for-period: 10
+        limit-refresh-period: 1s
+        timeout-duration: 0s
+      events:
+        limit-for-period: 20
+        limit-refresh-period: 1s
+        timeout-duration: 0s
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway,ratelimiters,circuitbreakers
+  endpoint:
+    gateway:
+      enabled: true
+    health:
+      show-details: always
+
+# Logging
+logging:
+  level:
+    com.vito.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG

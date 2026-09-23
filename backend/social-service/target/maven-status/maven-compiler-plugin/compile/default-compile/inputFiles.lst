@@ -1,0 +1,16 @@
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\infrastructure\config\SecurityConfig.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\infrastructure\adapter\outbound\persistence\UserProfileMongoAdapter.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\domain\model\FollowRelationship.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\domain\model\SocialProfile.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\infrastructure\security\JwtAuthenticationFilter.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\infrastructure\adapter\outbound\persistence\FollowMongoAdapter.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\domain\port\outbound\EventPublisherPort.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\infrastructure\adapter\inbound\rest\SocialController.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\domain\port\inbound\SocialService.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\SocialApplication.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\SocialServiceApplication.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\domain\exception\SocialException.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\application\service\SocialServiceImpl.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\infrastructure\adapter\outbound\messaging\KafkaEventPublisher.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\domain\port\outbound\FollowRepository.java
+C:\Users\villa\desarrollo\ViTo\backend\social-service\src\main\java\com\vito\social\domain\port\outbound\UserProfileRepository.java

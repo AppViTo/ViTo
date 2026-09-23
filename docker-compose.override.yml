@@ -1,0 +1,73 @@
+version: '3.8'
+
+# Development overrides
+# This file is automatically loaded by docker-compose
+
+services:
+  # MinIO for local S3-compatible storage
+  minio:
+    image: minio/minio:latest
+    container_name: vito-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - vito-network
+
+  # MongoDB Express for database management
+  mongo-express:
+    image: mongo-express:latest
+    container_name: vito-mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: vito_password
+      ME_CONFIG_MONGODB_URL: mongodb://admin:vito_password@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: vito
+    depends_on:
+      - mongodb
+    networks:
+      - vito-network
+
+  # Redis Commander for Redis management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: vito-redis-commander
+    ports:
+      - "8082:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    depends_on:
+      - redis
+    networks:
+      - vito-network
+
+  # Kafka UI for Kafka management
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: vito-kafka-ui
+    ports:
+      - "8083:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    depends_on:
+      - kafka
+    networks:
+      - vito-network
+
+volumes:
+  minio_data:
+
+networks:
+  vito-network:
+    driver: bridge

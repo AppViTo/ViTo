@@ -1,0 +1,728 @@
+openapi: 3.1.0
+info:
+  title: ViTo API
+  description: |
+    ViTo is a social event lifecycle platform that integrates event creation, 
+    digital invitations, RSVP, live mosaic, streaming, and post-event archiving.
+  version: 1.0.0
+  contact:
+    name: ViTo Team
+    email: api@vito.com
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: https://api.vito.com
+    description: Production
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Auth Schemas
+    RegisterRequest:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          example: 86400
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        profile:
+          $ref: '#/components/schemas/UserProfile'
+        stats:
+          $ref: '#/components/schemas/UserStats'
+
+    UserProfile:
+      type: object
+      properties:
+        displayName:
+          type: string
+        bio:
+          type: string
+        avatar:
+          type: string
+        coverImage:
+          type: string
+
+    UserStats:
+      type: object
+      properties:
+        followersCount:
+          type: integer
+        followingCount:
+          type: integer
+        postsCount:
+          type: integer
+        streamsCount:
+          type: integer
+
+    # Event Schemas
+    CreateEventRequest:
+      type: object
+      required: [name, date]
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 2000
+        date:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        location:
+          $ref: '#/components/schemas/EventLocation'
+        isPublic:
+          type: boolean
+          default: true
+        maxAttendees:
+          type: integer
+          minimum: 1
+        category:
+          type: string
+          enum: [music, sports, tech, art, food, business, other]
+
+    EventLocation:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        date:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        location:
+          $ref: '#/components/schemas/EventLocation'
+        organizerId:
+          type: string
+        isPublic:
+          type: boolean
+        maxAttendees:
+          type: integer
+        currentAttendees:
+          type: integer
+        category:
+          type: string
+        status:
+          type: string
+          enum: [ACTIVE, CANCELLED, COMPLETED]
+        createdAt:
+          type: string
+          format: date-time
+
+    # Chat Schemas
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        roomId:
+          type: string
+        senderId:
+          type: string
+        senderName:
+          type: string
+        content:
+          type: string
+        type:
+          type: string
+          enum: [TEXT, IMAGE, VIDEO, AUDIO, FILE, SYSTEM]
+        mediaUrl:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        deleted:
+          type: boolean
+
+    ChatRoom:
+      type: object
+      properties:
+        id:
+          type: string
+        eventId:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [EVENT_CHAT, PRIVATE, GROUP]
+        participantIds:
+          type: array
+          items:
+            type: string
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        lastMessageAt:
+          type: string
+          format: date-time
+        unreadCount:
+          type: integer
+
+    # Media Schemas
+    Media:
+      type: object
+      properties:
+        id:
+          type: string
+        eventId:
+          type: string
+        uploadedBy:
+          type: string
+        fileName:
+          type: string
+        originalFileName:
+          type: string
+        contentType:
+          type: string
+        fileSize:
+          type: integer
+        status:
+          type: string
+          enum: [UPLOADING, UPLOADED, PROCESSING, PROCESSED, FAILED]
+        metadata:
+          type: object
+          properties:
+            width:
+              type: integer
+            height:
+              type: integer
+            duration:
+              type: integer
+            format:
+              type: string
+        location:
+          type: object
+          properties:
+            bucket:
+              type: string
+            key:
+              type: string
+            url:
+              type: string
+            thumbnailUrl:
+              type: string
+        uploadedAt:
+          type: string
+          format: date-time
+
+    # Error Response
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+paths:
+  # Auth Endpoints
+  /api/v1/auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Invalid input
+        '409':
+          description: User already exists
+
+  /api/v1/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid refresh token
+
+  /api/v1/auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+
+  # Event Endpoints
+  /api/v1/events:
+    post:
+      tags: [Events]
+      summary: Create a new event
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '201':
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid input
+
+    get:
+      tags: [Events]
+      summary: List user events
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Event'
+                  total:
+                    type: integer
+
+  /api/v1/events/{eventId}:
+    get:
+      tags: [Events]
+      summary: Get event by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          description: Event not found
+
+  # Chat Endpoints
+  /api/v1/chat/rooms:
+    post:
+      tags: [Chat]
+      summary: Create a chat room
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [eventId]
+              properties:
+                eventId:
+                  type: string
+                name:
+                  type: string
+                type:
+                  type: string
+                  enum: [EVENT_CHAT, PRIVATE, GROUP]
+                participantIds:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatRoom'
+
+  /api/v1/chat/rooms/{roomId}/join:
+    post:
+      tags: [Chat]
+      summary: Join a chat room
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Joined room
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatRoom'
+
+  /api/v1/chat/messages:
+    post:
+      tags: [Chat]
+      summary: Send a message
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roomId, content]
+              properties:
+                roomId:
+                  type: string
+                content:
+                  type: string
+                  maxLength: 5000
+                type:
+                  type: string
+                  enum: [TEXT, IMAGE, VIDEO, AUDIO, FILE]
+                mediaUrl:
+                  type: string
+      responses:
+        '201':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+
+  /api/v1/chat/rooms/{roomId}/messages:
+    get:
+      tags: [Chat]
+      summary: Get room messages
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChatMessage'
+                  total:
+                    type: integer
+
+  # Media Endpoints
+  /api/v1/media/upload:
+    post:
+      tags: [Media]
+      summary: Upload media file
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, eventId]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                eventId:
+                  type: string
+      responses:
+        '201':
+          description: Media uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Media'
+
+  /api/v1/media/{mediaId}:
+    get:
+      tags: [Media]
+      summary: Get media by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Media details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Media'
+
+  # Recommendation Endpoints
+  /api/v1/recommendations/events:
+    post:
+      tags: [Recommendations]
+      summary: Get event recommendations
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: string
+                limit:
+                  type: integer
+                  default: 10
+      responses:
+        '200':
+          description: Event recommendations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    event_id:
+                      type: string
+                    event_name:
+                      type: string
+                    score:
+                      type: number
+                    reason:
+                      type: string
+
+  # Moderation Endpoints
+  /api/v1/moderation/check:
+    post:
+      tags: [Moderation]
+      summary: Check content for moderation
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content_id, content_type, user_id]
+              properties:
+                content_id:
+                  type: string
+                content_type:
+                  type: string
+                  enum: [text, image, video]
+                content_text:
+                  type: string
+                content_url:
+                  type: string
+                user_id:
+                  type: string
+      responses:
+        '200':
+          description: Moderation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content_id:
+                    type: string
+                  is_safe:
+                    type: boolean
+                  confidence:
+                    type: number
+                  flags:
+                    type: array
+                    items:
+                      type: string
+                  recommended_action:
+                    type: string
+                    enum: [approve, flag_for_review, reject]
+
+tags:
+  - name: Authentication
+    description: User registration and login
+  - name: Events
+    description: Event lifecycle management
+  - name: Chat
+    description: Real-time messaging
+  - name: Media
+    description: File upload and management
+  - name: Recommendations
+    description: AI-powered recommendations
+  - name: Moderation
+    description: Content moderation

@@ -1,0 +1,2 @@
+com\vito\gateway\config\SecurityConfig.class
+com\vito\gateway\security\JwtAuthenticationFilter.class

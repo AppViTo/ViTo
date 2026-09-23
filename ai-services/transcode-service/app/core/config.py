@@ -1,0 +1,41 @@
+from pydantic_settings import BaseSettings
+from typing import List
+import os
+
+class Settings(BaseSettings):
+    PROJECT_NAME: str = "ViTo Transcode Service"
+    VERSION: str = "1.0.0"
+    API_V1_PREFIX: str = "/api/v1"
+    
+    # CORS
+    CORS_ORIGINS: List[str] = ["*"]
+    
+    # MongoDB
+    MONGODB_URI: str = os.getenv("MONGODB_URI", "mongodb://admin:vito_password@localhost:27017/vito_db?authSource=admin")
+    MONGODB_DB_NAME: str = os.getenv("MONGODB_DB_NAME", "vito_db")
+    
+    # Redis
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
+    
+    # Kafka
+    KAFKA_BOOTSTRAP_SERVERS: str = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+    
+    # S3/MinIO
+    S3_ENDPOINT: str = os.getenv("S3_ENDPOINT", "http://localhost:9000")
+    S3_BUCKET: str = os.getenv("S3_BUCKET", "vito-media")
+    S3_ACCESS_KEY: str = os.getenv("S3_ACCESS_KEY", "minioadmin")
+    S3_SECRET_KEY: str = os.getenv("S3_SECRET_KEY", "minioadmin")
+    
+    # FFmpeg
+    FFMPEG_PATH: str = os.getenv("FFMPEG_PATH", "/usr/bin/ffmpeg")
+    FFPROBE_PATH: str = os.getenv("FFPROBE_PATH", "/usr/bin/ffprobe")
+    
+    # Transcoding
+    TRANSCODE_OUTPUT_DIR: str = "/tmp/transcode"
+    THUMBNAIL_OUTPUT_DIR: str = "/tmp/thumbnails"
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
+
+settings = Settings()

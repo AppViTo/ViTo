@@ -1,0 +1,33 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: streaming-service
+  
+  data:
+    mongodb:
+      uri: mongodb://admin:test_password@localhost:27017/vito_streaming?authSource=admin
+  
+  redis:
+    host: localhost
+    port: 6379
+  
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+srs:
+  api-url: http://localhost:1985
+  stream-url: rtmp://localhost:1935
+  playback-url: http://localhost:8080
+
+jwt:
+  secret: ${JWT_SECRET:your-256-bit-secret-key-for-jwt-token-validation}
+
+logging:
+  level:
+    com.vito: DEBUG
+    org.springframework.security: DEBUG

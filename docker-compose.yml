@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # MongoDB
+  mongodb:
+    image: mongo:7.0
+    container_name: vito-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: vito_password
+      MONGO_INITDB_DATABASE: vito_db
+    volumes:
+      - mongodb_data:/data/db
+      - ./infrastructure/docker/mongodb/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - vito-network
+
+  # Redis
+  redis:
+    image: redis:7.2-alpine
+    container_name: vito-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+      - ./infrastructure/docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - vito-network
+
+  # Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: vito-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - vito-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: vito-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - vito-network
+
+  # SRS Media Server
+  srs:
+    image: ossrs/srs:5
+    container_name: vito-srs
+    ports:
+      - "1935:1935"
+      - "1985:1985"
+      - "8080:8080"
+    volumes:
+      - ./infrastructure/docker/srs/srs.conf:/usr/local/srs/conf/docker.conf
+    networks:
+      - vito-network
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  vito-network:
+    driver: bridge

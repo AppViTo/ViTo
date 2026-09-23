@@ -1,0 +1,16 @@
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\domain\port\outbound\MosaicFeedRepository.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\infrastructure\security\JwtAuthenticationFilter.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\domain\port\inbound\MosaicService.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\domain\exception\MosaicException.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\infrastructure\adapter\outbound\persistence\MosaicFeedMongoAdapter.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\application\service\MosaicServiceImpl.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\infrastructure\config\SecurityConfig.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\domain\model\MosaicFeedItem.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\domain\model\MosaicItem.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\domain\port\outbound\MosaicEventPublisher.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\domain\port\outbound\MosaicGridRepository.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\domain\model\MosaicGrid.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\MosaicServiceApplication.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\infrastructure\adapter\inbound\rest\MosaicController.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\infrastructure\websocket\MosaicWebSocketHandler.java
+C:\Users\villa\desarrollo\ViTo\backend\mosaic-service\src\main\java\com\vito\mosaic\infrastructure\adapter\outbound\persistence\MosaicGridMongoAdapter.java

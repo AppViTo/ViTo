@@ -1,0 +1,5 @@
+C:\Users\villa\desarrollo\ViTo\backend\api-gateway\src\main\java\com\vito\gateway\config\SecurityConfig.java
+C:\Users\villa\desarrollo\ViTo\backend\api-gateway\src\main\java\com\vito\gateway\security\JwtAuthenticationFilter.java
+C:\Users\villa\desarrollo\ViTo\backend\api-gateway\src\main\java\com\vito\gateway\GatewayApplication.java
+C:\Users\villa\desarrollo\ViTo\backend\api-gateway\src\main\java\com\vito\gateway\config\RateLimiterConfig.java
+C:\Users\villa\desarrollo\ViTo\backend\api-gateway\src\main\java\com\vito\gateway\controller\FallbackController.java
