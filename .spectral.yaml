@@ -1,0 +1,43 @@
+# Reglas de lint del contrato REST — ViTo
+# Uso:  npx @stoplight/spectral-cli lint docs/api/openapi.yaml
+# Base: docs/api/CONVENTIONS.md · ADR-001..010 (docs/decisions/)
+extends:
+  - "spectral:oas"
+
+rules:
+  # ---------- Obligatorios por convención (CONVENTIONS §10) -------------
+  operation-operationId: error     # amarra fixtures, codegen y tests
+  operation-description: error
+  operation-tag-defined: error
+  path-params: error
+  typed-enum: error
+  oas3-api-servers: error
+
+  # ---------- Violaciones de nuestras decisiones de contrato ------------
+
+  # ADR-003: toda respuesta 4xx/5xx debe traer content/ con ErrorResponse
+  vito-error-envelope:
+    description: "4xx/5xx deben declarar content.application/schema (ADR-003: {error,message,status,timestamp})"
+    given: "$.paths[*][*].responses[?(@property >= '400' && @property < '600')]"
+    severity: error
+    then:
+      field: content
+      function: truthy
+
+  # CONVENTIONS §2.1 + ADR-004: register/login/refresh son públicos y deben
+  # declarar `security: []` explícito para anular el security global bearerAuth
+  vito-public-auth-paths:
+    description: "register/login/refresh deben declarar security: [] (públicos, CONVENTIONS §2.1)"
+    given: "$.paths[?(@property === '/api/v1/auth/register' || @property === '/api/v1/auth/login' || @property === '/api/v1/auth/refresh')].post"
+    severity: error
+    then:
+      - field: security
+        function: defined
+      - field: security
+        function: falsy
+
+  # ---------- Suavizados -------------------------------------------------
+  info-contact: off
+  oas3-unused-component: warn
+  # La paginación (ADR-008) se verifica por handoff/DoD y con schemathesis,
+  # no aquí: no toda operación GET es una lista.

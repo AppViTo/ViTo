@@ -34,8 +34,13 @@ ViTo es una plataforma de **ciclo de vida de eventos sociales** que integra:
 vito/
 ├── AGENTS.md
 ├── README.md
+├── CONTRIBUTING.md                    # Reglas de colaboración entre equipos
 ├── docker-compose.yml
 ├── .github/
+│   ├── CODEOWNERS                     # Dueños de cada área (docs/api = ambos leads)
+│   ├── pull_request_template.md
+│   ├── ISSUE_TEMPLATE/
+│   │   └── contract-change.md         # RFC para cambiar el contrato
 │   └── workflows/
 │       ├── ci.yml
 │       └── cd.yml
@@ -285,9 +290,34 @@ vito/
 │
 └── docs/
     ├── architecture.md
-    ├── api/
+    ├── api/                           # CONTRATO FUENTE DE VERDAD
+    │   ├── openapi.yaml               # REST — 100% de los endpoints que consume el frontend
+    │   ├── asyncapi.yaml              # WebSockets (chat, checkin, mosaic, streaming)
+    │   ├── CONVENTIONS.md             # Envelopes, errores, auth, enums, paginación
+    │   ├── fixtures/                  # Ejemplos ejecutables (mock + tests Dart)
+    │   └── README.md                  # OBSOLETO — ver CONVENTIONS.md
+    ├── decisions/                     # ADR — decisiones de contrato (vinculantes)
+    │   ├── README.md
+    │   └── adr-001..010
+    ├── handoff/                       # Instrucciones de implementación por feature
+    │   └── TEMPLATE.md
     └── diagrams/
 ```
+
+## REGLAS DE CONTRATO (OBLIGATORIAS PARA TODO AGENTE)
+
+Antes de escribir cualquier endpoint o modificar `docs/api/`, leer:
+
+1. **`CONTRIBUTING.md`** — ramas, commits, proceso RFC, cadencia.
+2. **`docs/api/CONVENTIONS.md`** — cómo se formatean las respuestas (array plano, envelope de error único, auth Bearer + headers `X-User-*`, enums, paginación).
+3. **`docs/decisions/README.md`** — los ADR ya aprobados; son vinculantes.
+
+Reglas inquebrables:
+
+- **Nadie implementa un endpoint que no esté en `docs/api/openapi.yaml`** (o `asyncapi.yaml` para WS).
+- Si falta algo → issue con template `contract-change` → PR al contrato **aprobado por ambos leads** → solo entonces se implementa.
+- Ante contradicción "el código dice X / el contrato dice Y" → **gana el contrato** (`docs/decisions/adr-010`: el backend existente es referencia, no fuente de verdad).
+- Todo endpoint nuevo lleva: `operationId`, ejemplos, `ErrorResponse` en 4xx/5xx y fixture en `docs/api/fixtures/`.
 
 ## PLAN DE TRABAJO - CRONOGRAMA
 

@@ -1,5 +1,19 @@
 # ViTo API Documentation
 
+> ## ⚠️ DOCUMENTO OBSOLETO — NO USAR COMO CONTRATO
+>
+> Este archivo tiene ~17 endpoints documentados que **no existen** con esos paths
+> (`/social/unfollow/{id}`, `/events/user`, `/mosaic/upload`, `/streaming/{id}/join`,
+> `/archive/events/{eventId}/share`, `/transcode/video`, …) y le faltan 6 dominios
+> completos (social, checkin, mosaic, streaming, archive, todos los WebSockets).
+>
+> **La fuente de verdad es [`docs/api/openapi.yaml`](./openapi.yaml)** (+ [`asyncapi.yaml`](./asyncapi.yaml)).
+> Las reglas de formato están en **[`CONVENTIONS.md`](./CONVENTIONS.md)**.
+> Las decisiones ya tomadas están en **[`../decisions/README.md`](../decisions/README.md)**.
+>
+> Se conserva **solo como referencia histórica** (puertos por servicio, ejemplos de
+> payloads y la sección de rate limiting). Ver `docs/decisions/adr-010`.
+
 ## Overview
 
 ViTo is a social event lifecycle platform that integrates event creation, digital invitations, RSVP, live mosaic, streaming, and post-event archiving. This documentation covers all API endpoints across the microservices architecture.

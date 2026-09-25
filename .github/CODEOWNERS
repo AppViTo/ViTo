@@ -1,0 +1,49 @@
+# CODEOWNERS — ViTo
+# Documentación: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Formato: <ruta>  <usuario-o-equipo>
+# Nota: los usuarios deben existir en el repositorio. Ajusta los handles
+# a los usuarios reales de GitHub de cada lead antes de activar la protección
+# de rama en Settings > Branches.
+
+# ------------------------------------------------------------------
+# CONTRATO DE API — requiere aprobación de AMBOS leads
+# ------------------------------------------------------------------
+/docs/api/                  @alexvilla01 @backend-lead
+/docs/decisions/            @alexvilla01 @backend-lead
+
+# ------------------------------------------------------------------
+# HANDOFFS — equipo frontend
+# ------------------------------------------------------------------
+/docs/handoff/              @alexvilla01
+
+# ------------------------------------------------------------------
+# FRONTEND — equipo frontend
+# ------------------------------------------------------------------
+/frontend/                  @alexvilla01
+
+# ------------------------------------------------------------------
+# BACKEND — equipo backend
+# ------------------------------------------------------------------
+/backend/                   @backend-lead
+/ai-services/               @backend-lead
+
+# ------------------------------------------------------------------
+# INFRAESTRUCTURA Y CI — requiere ambos
+# ------------------------------------------------------------------
+/.github/                   @alexvilla01 @backend-lead
+/infrastructure/            @alexvilla01 @backend-lead
+/docker-compose.yml         @alexvilla01 @backend-lead
+/docker-compose.override.yml @alexvilla01 @backend-lead
+
+# ------------------------------------------------------------------
+# DOCUMENTACIÓN COMPARTIDA — requiere ambos
+# ------------------------------------------------------------------
+/AGENTS.md                  @alexvilla01 @backend-lead
+/docs/architecture.md       @alexvilla01 @backend-lead
+/README.md                  @alexvilla01 @backend-lead
+
+# ------------------------------------------------------------------
+# Por defecto: el dueño del repo
+# ------------------------------------------------------------------
+*                           @alexvilla01
