@@ -91,6 +91,7 @@ class EventSettings extends Equatable {
   final bool allowGuestInvites;
   final bool enableLiveStreaming;
   final bool enableMosaic;
+  final bool hideAddressUntilAccepted;
   
   const EventSettings({
     this.isPublic = true,
@@ -99,6 +100,7 @@ class EventSettings extends Equatable {
     this.allowGuestInvites = true,
     this.enableLiveStreaming = true,
     this.enableMosaic = true,
+    this.hideAddressUntilAccepted = false,
   });
   
   @override
@@ -109,6 +111,7 @@ class EventSettings extends Equatable {
         allowGuestInvites,
         enableLiveStreaming,
         enableMosaic,
+        hideAddressUntilAccepted,
       ];
 }
 

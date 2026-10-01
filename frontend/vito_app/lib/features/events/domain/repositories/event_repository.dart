@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
@@ -71,4 +73,11 @@ abstract class EventRepository {
   });
   
   Future<Either<Failure, String>> generateCheckInQR(String eventId);
+
+  Future<Either<Failure, String>> uploadEventCover({
+    required String eventId,
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+  });
 }

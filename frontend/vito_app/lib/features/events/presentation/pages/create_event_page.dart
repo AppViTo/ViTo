@@ -171,7 +171,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
 
                 // Category
                 DropdownButtonFormField<String>(
-                  value: _category,
+                  initialValue: _category,
                   decoration: const InputDecoration(
                     labelText: 'Category',
                     prefixIcon: Icon(Icons.category),
@@ -215,7 +215,7 @@ class _CreateEventPageState extends State<CreateEventPage> {
                   title: const Text('Public Event'),
                   subtitle: Text(
                     _isPublic ? 'Anyone can see this event' : 'Invite only',
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: const TextStyle(color: AppColors.textSecondary),
                   ),
                   value: _isPublic,
                   onChanged: (value) {

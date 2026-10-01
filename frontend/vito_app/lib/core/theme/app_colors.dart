@@ -22,10 +22,13 @@ class AppColors {
   static const Color backgroundDark = grisCarbon;
   static const Color surfaceLight = blancoHielo;
   static const Color surfaceDark = Color(0xFF151A26);
+  static const Color surfaceElevated = Color(0xFF161D2F);
+  static const Color stepTrack = Color(0xFF222B38);
 
   // ── Text ──
   static const Color textPrimary = blancoHielo;
   static const Color textSecondary = Color(0xFF9CA3AF);
+  static const Color textMuted = Color(0xFF8E9AAC);
   static const Color textHint = Color(0xFF6B7280);
   static const Color textOnDark = blancoHielo;
   static const Color textOnLight = grisCarbon;

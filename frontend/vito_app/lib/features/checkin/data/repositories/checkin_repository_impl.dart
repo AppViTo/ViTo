@@ -145,7 +145,7 @@ class CheckInRepositoryImpl implements CheckInRepository {
   
   @override
   void connectToWebSocket(String eventId, String baseUrl) {
-    final wsUrl = baseUrl.replaceFirst('http', 'ws') + '/ws/checkin/$eventId';
+    final wsUrl = '${baseUrl.replaceFirst('http', 'ws')}/ws/checkin/$eventId';
     _webSocketChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
     
     _webSocketChannel!.stream.listen(

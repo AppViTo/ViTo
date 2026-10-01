@@ -58,9 +58,9 @@ class EventModel extends Event {
       'organizerId': organizerId,
       'title': title,
       'description': description,
-      'details': details != null ? (details as EventDetailsModel).toJson() : null,
-      'settings': settings != null ? (settings as EventSettingsModel).toJson() : null,
-      'stats': stats != null ? (stats as EventStatsModel).toJson() : null,
+      'details': details != null ? EventDetailsModel.fromEntity(details!).toJson() : null,
+      'settings': settings != null ? EventSettingsModel.fromEntity(settings!).toJson() : null,
+      'stats': stats != null ? EventStatsModel.fromEntity(stats!).toJson() : null,
       'status': status.name.toUpperCase(),
       'createdAt': createdAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
@@ -81,6 +81,21 @@ class EventDetailsModel extends EventDetails {
     super.category,
   });
   
+  factory EventDetailsModel.fromEntity(EventDetails entity) {
+    if (entity is EventDetailsModel) return entity;
+    return EventDetailsModel(
+      startDate: entity.startDate,
+      endDate: entity.endDate,
+      location: entity.location,
+      address: entity.address,
+      latitude: entity.latitude,
+      longitude: entity.longitude,
+      coverImages: entity.coverImages,
+      tags: entity.tags,
+      category: entity.category,
+    );
+  }
+
   factory EventDetailsModel.fromJson(Map<String, dynamic> json) {
     return EventDetailsModel(
       startDate: json['startDate'] != null 
@@ -105,8 +120,8 @@ class EventDetailsModel extends EventDetails {
   
   Map<String, dynamic> toJson() {
     return {
-      'startDate': startDate?.toIso8601String(),
-      'endDate': endDate?.toIso8601String(),
+      'startDate': startDate?.toUtc().toIso8601String(),
+      'endDate': endDate?.toUtc().toIso8601String(),
       'location': location,
       'address': address,
       'latitude': latitude,
@@ -126,8 +141,22 @@ class EventSettingsModel extends EventSettings {
     super.allowGuestInvites,
     super.enableLiveStreaming,
     super.enableMosaic,
+    super.hideAddressUntilAccepted,
   });
   
+  factory EventSettingsModel.fromEntity(EventSettings entity) {
+    if (entity is EventSettingsModel) return entity;
+    return EventSettingsModel(
+      isPublic: entity.isPublic,
+      requiresApproval: entity.requiresApproval,
+      maxAttendees: entity.maxAttendees,
+      allowGuestInvites: entity.allowGuestInvites,
+      enableLiveStreaming: entity.enableLiveStreaming,
+      enableMosaic: entity.enableMosaic,
+      hideAddressUntilAccepted: entity.hideAddressUntilAccepted,
+    );
+  }
+
   factory EventSettingsModel.fromJson(Map<String, dynamic> json) {
     return EventSettingsModel(
       isPublic: json['isPublic'] ?? true,
@@ -136,6 +165,7 @@ class EventSettingsModel extends EventSettings {
       allowGuestInvites: json['allowGuestInvites'] ?? true,
       enableLiveStreaming: json['enableLiveStreaming'] ?? true,
       enableMosaic: json['enableMosaic'] ?? true,
+      hideAddressUntilAccepted: json['hideAddressUntilAccepted'] ?? false,
     );
   }
   
@@ -147,6 +177,7 @@ class EventSettingsModel extends EventSettings {
       'allowGuestInvites': allowGuestInvites,
       'enableLiveStreaming': enableLiveStreaming,
       'enableMosaic': enableMosaic,
+      'hideAddressUntilAccepted': hideAddressUntilAccepted,
     };
   }
 }
@@ -162,6 +193,19 @@ class EventStatsModel extends EventStats {
     super.totalViewers,
   });
   
+  factory EventStatsModel.fromEntity(EventStats entity) {
+    if (entity is EventStatsModel) return entity;
+    return EventStatsModel(
+      totalInvited: entity.totalInvited,
+      totalAccepted: entity.totalAccepted,
+      totalDeclined: entity.totalDeclined,
+      totalMaybe: entity.totalMaybe,
+      totalWaitlisted: entity.totalWaitlisted,
+      totalCheckedIn: entity.totalCheckedIn,
+      totalViewers: entity.totalViewers,
+    );
+  }
+
   factory EventStatsModel.fromJson(Map<String, dynamic> json) {
     return EventStatsModel(
       totalInvited: json['totalInvited'] ?? 0,

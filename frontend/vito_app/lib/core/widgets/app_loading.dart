@@ -49,7 +49,7 @@ class AppLoading extends StatelessWidget {
     
     if (overlay) {
       return Container(
-        color: AppColors.black.withOpacity(0.5),
+        color: AppColors.black.withValues(alpha: 0.5),
         child: loadingWidget,
       );
     }
@@ -138,7 +138,7 @@ class _AppShimmerLoadingState extends State<AppShimmerLoading>
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(widget.borderRadius),
             gradient: LinearGradient(
-              colors: [
+              colors: const [
                 AppColors.grey200,
                 AppColors.grey100,
                 AppColors.grey200,

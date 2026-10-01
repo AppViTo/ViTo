@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 
-import '../../../../core/error/exceptions.dart';
+import '../../../../core/error/dio_error_handler.dart';
 import '../models/event_model.dart';
 import '../models/rsvp_model.dart';
 import '../models/invitation_model.dart';
@@ -144,7 +144,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   Future<List<EventModel>> getMyEvents({int page = 0, int size = 20}) async {
     try {
       final response = await dio.get(
-        '/events/my-events',
+        '/events',
         queryParameters: {'page': page, 'size': size},
       );
       
@@ -298,20 +298,5 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
     }
   }
   
-  Exception _handleError(DioException e) {
-    if (e.response != null) {
-      final statusCode = e.response!.statusCode;
-      final message = e.response!.data['message'] ?? 'Unknown error';
-      
-      if (statusCode == 401) {
-        throw AuthenticationException(message: message);
-      } else if (statusCode == 400) {
-        throw ValidationException(message: message);
-      } else {
-        throw ServerException(message: message, statusCode: statusCode);
-      }
-    }
-    
-    throw NetworkException(message: 'Network error. Please try again.');
-  }
+  Exception _handleError(DioException e) => handleDioError(e);
 }

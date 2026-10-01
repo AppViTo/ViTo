@@ -31,6 +31,7 @@ class UserModel extends User {
     );
   }
   
+  @override
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -65,6 +66,7 @@ class UserProfileModel extends UserProfile {
     );
   }
   
+  @override
   Map<String, dynamic> toJson() {
     return {
       'displayName': displayName,
@@ -95,6 +97,7 @@ class UserLocationModel extends UserLocation {
     );
   }
   
+  @override
   Map<String, dynamic> toJson() {
     return {
       'type': type,
@@ -122,6 +125,7 @@ class UserStatsModel extends UserStats {
     );
   }
   
+  @override
   Map<String, dynamic> toJson() {
     return {
       'followersCount': followersCount,

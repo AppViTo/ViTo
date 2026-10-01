@@ -1,8 +1,10 @@
 import 'package:dartz/dartz.dart';
+import 'dart:typed_data';
 
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
 import '../datasources/event_remote_datasource.dart';
+import '../datasources/media_remote_datasource.dart';
 import '../models/event_model.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/entities/rsvp.dart';
@@ -11,9 +13,28 @@ import '../../domain/repositories/event_repository.dart';
 
 class EventRepositoryImpl implements EventRepository {
   final EventRemoteDataSource remoteDataSource;
-  
-  EventRepositoryImpl({required this.remoteDataSource});
-  
+  final MediaRemoteDataSource mediaDataSource;
+
+  EventRepositoryImpl({
+    required this.remoteDataSource,
+    required this.mediaDataSource,
+  });
+
+  Failure _toFailure(Object error) {
+    if (error is ServerException) return ServerFailure(message: error.message);
+    if (error is ValidationException) {
+      return ValidationFailure(message: error.message);
+    }
+    if (error is AuthenticationException) {
+      return AuthenticationFailure(message: error.message);
+    }
+    if (error is AuthorizationException) {
+      return AuthorizationFailure(message: error.message);
+    }
+    if (error is NetworkException) return NetworkFailure(message: error.message);
+    return ServerFailure(message: error.toString());
+  }
+
   @override
   Future<Either<Failure, Event>> createEvent({
     required String title,
@@ -25,14 +46,14 @@ class EventRepositoryImpl implements EventRepository {
       final event = await remoteDataSource.createEvent(
         title: title,
         description: description,
-        details: details != null ? (details as EventDetailsModel).toJson() : null,
-        settings: settings != null ? (settings as EventSettingsModel).toJson() : null,
+        details:
+            details != null ? EventDetailsModel.fromEntity(details).toJson() : null,
+        settings:
+            settings != null ? EventSettingsModel.fromEntity(settings).toJson() : null,
       );
       return Right(event);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   
@@ -49,14 +70,14 @@ class EventRepositoryImpl implements EventRepository {
         eventId: eventId,
         title: title,
         description: description,
-        details: details != null ? (details as EventDetailsModel).toJson() : null,
-        settings: settings != null ? (settings as EventSettingsModel).toJson() : null,
+        details:
+            details != null ? EventDetailsModel.fromEntity(details).toJson() : null,
+        settings:
+            settings != null ? EventSettingsModel.fromEntity(settings).toJson() : null,
       );
       return Right(event);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   
@@ -65,10 +86,8 @@ class EventRepositoryImpl implements EventRepository {
     try {
       await remoteDataSource.cancelEvent(eventId);
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   
@@ -77,10 +96,8 @@ class EventRepositoryImpl implements EventRepository {
     try {
       final event = await remoteDataSource.getEvent(eventId);
       return Right(event);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   
@@ -92,10 +109,8 @@ class EventRepositoryImpl implements EventRepository {
     try {
       final events = await remoteDataSource.getMyEvents(page: page, size: size);
       return Right(events);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   
@@ -107,10 +122,8 @@ class EventRepositoryImpl implements EventRepository {
     try {
       final events = await remoteDataSource.getUpcomingEvents(page: page, size: size);
       return Right(events);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   
@@ -129,10 +142,8 @@ class EventRepositoryImpl implements EventRepository {
         guestsCount: guestsCount,
       );
       return Right(rsvp);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   
@@ -149,10 +160,8 @@ class EventRepositoryImpl implements EventRepository {
         size: size,
       );
       return Right(attendees);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   
@@ -169,10 +178,8 @@ class EventRepositoryImpl implements EventRepository {
         message: message,
       );
       return Right(invitation);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   
@@ -189,10 +196,8 @@ class EventRepositoryImpl implements EventRepository {
         size: size,
       );
       return Right(invitations);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   
@@ -207,10 +212,8 @@ class EventRepositoryImpl implements EventRepository {
         status: status.name.toUpperCase(),
       );
       return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   
@@ -225,10 +228,8 @@ class EventRepositoryImpl implements EventRepository {
         qrCode: qrCode,
       );
       return Right(rsvp);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   
@@ -237,10 +238,28 @@ class EventRepositoryImpl implements EventRepository {
     try {
       final qrCode = await remoteDataSource.generateCheckInQR(eventId);
       return Right(qrCode);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, String>> uploadEventCover({
+    required String eventId,
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+  }) async {
+    try {
+      final url = await mediaDataSource.uploadEventCover(
+        eventId: eventId,
+        bytes: bytes,
+        fileName: fileName,
+        mimeType: mimeType,
+      );
+      return Right(url);
+    } catch (e) {
+      return Left(_toFailure(e));
     }
   }
 }

@@ -258,7 +258,7 @@ class _ArchiveDetailPageState extends State<ArchiveDetailPage>
           Switch(
             value: value,
             onChanged: null,
-            activeColor: Colors.deepPurple,
+            activeThumbColor: Colors.deepPurple,
           ),
         ],
       ),

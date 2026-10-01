@@ -7,7 +7,7 @@ import 'archive_state.dart';
 class ArchiveBloc extends Bloc<ArchiveEvent, ArchiveState> {
   final ArchiveRepository repository;
   
-  ArchiveBloc({required this.repository}) : super(ArchiveInitial()) {
+  ArchiveBloc({required this.repository}) : super(const ArchiveInitial()) {
     on<CreateArchive>(_onCreateArchive);
     on<LoadArchive>(_onLoadArchive);
     on<LoadPublicArchives>(_onLoadPublicArchives);
@@ -26,7 +26,7 @@ class ArchiveBloc extends Bloc<ArchiveEvent, ArchiveState> {
     CreateArchive event,
     Emitter<ArchiveState> emit,
   ) async {
-    emit(ArchiveLoading());
+    emit(const ArchiveLoading());
     
     final result = await repository.createArchive(
       eventId: event.eventId,
@@ -44,7 +44,7 @@ class ArchiveBloc extends Bloc<ArchiveEvent, ArchiveState> {
     LoadArchive event,
     Emitter<ArchiveState> emit,
   ) async {
-    emit(ArchiveLoading());
+    emit(const ArchiveLoading());
     
     final result = await repository.getArchive(event.archiveId);
     
@@ -58,7 +58,7 @@ class ArchiveBloc extends Bloc<ArchiveEvent, ArchiveState> {
     LoadPublicArchives event,
     Emitter<ArchiveState> emit,
   ) async {
-    emit(ArchiveLoading());
+    emit(const ArchiveLoading());
     
     final result = await repository.getPublicArchives(
       page: event.page,
@@ -75,7 +75,7 @@ class ArchiveBloc extends Bloc<ArchiveEvent, ArchiveState> {
     LoadMyArchives event,
     Emitter<ArchiveState> emit,
   ) async {
-    emit(ArchiveLoading());
+    emit(const ArchiveLoading());
     
     final result = await repository.getUserArchives(
       page: event.page,
@@ -92,7 +92,7 @@ class ArchiveBloc extends Bloc<ArchiveEvent, ArchiveState> {
     UpdateArchive event,
     Emitter<ArchiveState> emit,
   ) async {
-    emit(ArchiveLoading());
+    emit(const ArchiveLoading());
     
     final result = await repository.updateArchive(
       archiveId: event.archiveId,
@@ -115,7 +115,7 @@ class ArchiveBloc extends Bloc<ArchiveEvent, ArchiveState> {
     UploadMedia event,
     Emitter<ArchiveState> emit,
   ) async {
-    emit(MediaUploading());
+    emit(const MediaUploading());
     
     final result = await repository.uploadMedia(
       archiveId: event.archiveId,
@@ -136,7 +136,7 @@ class ArchiveBloc extends Bloc<ArchiveEvent, ArchiveState> {
     LoadMedia event,
     Emitter<ArchiveState> emit,
   ) async {
-    emit(ArchiveLoading());
+    emit(const ArchiveLoading());
     
     final result = await repository.getMedia(
       archiveId: event.archiveId,
@@ -171,7 +171,7 @@ class ArchiveBloc extends Bloc<ArchiveEvent, ArchiveState> {
     LoadComments event,
     Emitter<ArchiveState> emit,
   ) async {
-    emit(ArchiveLoading());
+    emit(const ArchiveLoading());
     
     final result = await repository.getComments(
       archiveId: event.archiveId,

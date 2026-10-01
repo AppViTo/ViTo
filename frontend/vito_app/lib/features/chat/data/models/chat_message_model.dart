@@ -37,6 +37,7 @@ class ChatMessageModel extends ChatMessage {
     );
   }
   
+  @override
   Map<String, dynamic> toJson() {
     return {
       'id': id,

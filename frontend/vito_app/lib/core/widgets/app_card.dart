@@ -60,7 +60,7 @@ class AppCard extends StatelessWidget {
         bgColor = backgroundColor ?? AppColors.white;
         boxShadow = [
           BoxShadow(
-            color: AppColors.black.withOpacity(0.05),
+            color: AppColors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -81,7 +81,7 @@ class AppCard extends StatelessWidget {
       bColor = AppColors.primary;
       boxShadow = [
         BoxShadow(
-          color: AppColors.primary.withOpacity(0.2),
+          color: AppColors.primary.withValues(alpha: 0.2),
           blurRadius: 8,
           offset: const Offset(0, 2),
         ),

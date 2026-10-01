@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 
@@ -157,6 +159,23 @@ class GenerateCheckInQR extends EventEvent {
   List<Object?> get props => [eventId];
 }
 
+class UploadEventCover extends EventEvent {
+  final String eventId;
+  final Uint8List bytes;
+  final String fileName;
+  final String mimeType;
+  
+  const UploadEventCover({
+    required this.eventId,
+    required this.bytes,
+    required this.fileName,
+    required this.mimeType,
+  });
+  
+  @override
+  List<Object?> get props => [eventId, bytes, fileName, mimeType];
+}
+
 // States
 abstract class EventState extends Equatable {
   const EventState();
@@ -270,6 +289,26 @@ class CheckInQRGenerated extends EventState {
   List<Object?> get props => [qrCode];
 }
 
+class EventCoverUploading extends EventState {}
+
+class EventCoverUploaded extends EventState {
+  final String url;
+  
+  const EventCoverUploaded(this.url);
+  
+  @override
+  List<Object?> get props => [url];
+}
+
+class EventCoverUploadFailed extends EventState {
+  final String message;
+  
+  const EventCoverUploadFailed(this.message);
+  
+  @override
+  List<Object?> get props => [message];
+}
+
 class EventError extends EventState {
   final String message;
   
@@ -297,6 +336,7 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     on<RespondToInvitation>(_onRespondToInvitation);
     on<CheckIn>(_onCheckIn);
     on<GenerateCheckInQR>(_onGenerateCheckInQR);
+    on<UploadEventCover>(_onUploadEventCover);
   }
   
   Future<void> _onCreateEvent(CreateEvent event, Emitter<EventState> emit) async {
@@ -465,6 +505,22 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     result.fold(
       (failure) => emit(EventError(failure.message)),
       (qrCode) => emit(CheckInQRGenerated(qrCode)),
+    );
+  }
+  
+  Future<void> _onUploadEventCover(UploadEventCover event, Emitter<EventState> emit) async {
+    emit(EventCoverUploading());
+    
+    final result = await eventRepository.uploadEventCover(
+      eventId: event.eventId,
+      bytes: event.bytes,
+      fileName: event.fileName,
+      mimeType: event.mimeType,
+    );
+    
+    result.fold(
+      (failure) => emit(EventCoverUploadFailed(failure.message)),
+      (url) => emit(EventCoverUploaded(url)),
     );
   }
 }

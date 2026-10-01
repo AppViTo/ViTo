@@ -216,7 +216,7 @@ class _StreamHostPageState extends State<StreamHostPage> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.deepPurple,
+            activeThumbColor: Colors.deepPurple,
           ),
         ],
       ),

@@ -102,7 +102,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             const SizedBox(width: 4),
                             Text(
                               event.settings?.isPublic == true ? 'Public' : 'Private',
-                              style: TextStyle(color: AppColors.textSecondary),
+                              style: const TextStyle(color: AppColors.textSecondary),
                             ),
                           ],
                         ),
@@ -120,7 +120,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           const SizedBox(height: 8),
                           Text(
                             event.description!,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 15,
                               color: AppColors.textSecondary,
                               height: 1.5,
@@ -223,7 +223,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             children: [
               Text(
                 label,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
                   color: AppColors.textSecondary,
                 ),
@@ -273,7 +273,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ),
           Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 10,
               color: AppColors.textSecondary,
             ),
@@ -417,7 +417,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(

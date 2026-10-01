@@ -15,6 +15,7 @@ import '../../features/auth/domain/usecases/logout.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 
 import '../../features/events/data/datasources/event_remote_datasource.dart';
+import '../../features/events/data/datasources/media_remote_datasource.dart';
 import '../../features/events/data/repositories/event_repository_impl.dart';
 import '../../features/events/domain/repositories/event_repository.dart';
 import '../../features/events/domain/usecases/create_event.dart';
@@ -113,8 +114,14 @@ Future<void> init() async {
   sl.registerLazySingleton<EventRemoteDataSource>(
     () => EventRemoteDataSourceImpl(dio: sl()),
   );
+  sl.registerLazySingleton<MediaRemoteDataSource>(
+    () => MediaRemoteDataSourceImpl(dio: sl()),
+  );
   sl.registerLazySingleton<EventRepository>(
-    () => EventRepositoryImpl(remoteDataSource: sl()),
+    () => EventRepositoryImpl(
+      remoteDataSource: sl(),
+      mediaDataSource: sl(),
+    ),
   );
   sl.registerLazySingleton(() => CreateEventUseCase(sl()));
   sl.registerLazySingleton(() => RespondRSVPUseCase(sl()));

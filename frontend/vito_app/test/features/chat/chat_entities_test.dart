@@ -100,7 +100,7 @@ void main() {
         eventId: 'event1',
         name: 'Event Chat',
         type: RoomType.EVENT_CHAT,
-        participantIds: ['user1', 'user2'],
+        participantIds: const ['user1', 'user2'],
         createdBy: 'user1',
         createdAt: DateTime(2024, 1, 1),
         lastMessageAt: DateTime(2024, 1, 1, 12),

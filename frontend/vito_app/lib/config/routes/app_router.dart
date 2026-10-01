@@ -5,7 +5,7 @@ import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/main_wrapper_screen.dart';
 import '../../features/events/presentation/pages/event_list_page.dart';
-import '../../features/events/presentation/pages/create_event_page.dart';
+import '../../features/events/presentation/pages/create_event_screen.dart';
 import '../../features/events/presentation/pages/event_detail_page.dart';
 import '../../features/events/presentation/pages/qr_scanner_page.dart';
 import '../../features/mosaic/presentation/pages/mosaic_page.dart';
@@ -47,7 +47,7 @@ class AppRouter {
       case events:
         return MaterialPageRoute(builder: (_) => const EventListPage());
       case createEvent:
-        return MaterialPageRoute(builder: (_) => const CreateEventPage());
+        return MaterialPageRoute(builder: (_) => const CreateEventScreen());
       case eventDetail:
         final args = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(

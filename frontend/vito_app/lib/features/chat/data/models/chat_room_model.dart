@@ -38,6 +38,7 @@ class ChatRoomModel extends ChatRoom {
     );
   }
   
+  @override
   Map<String, dynamic> toJson() {
     return {
       'id': id,

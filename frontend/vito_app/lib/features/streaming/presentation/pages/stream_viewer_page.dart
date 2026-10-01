@@ -36,7 +36,7 @@ class _StreamViewerPageState extends State<StreamViewerPage> {
   
   @override
   void dispose() {
-    _streamingBloc.add(DisconnectFromStream());
+    _streamingBloc.add(const DisconnectFromStream());
     _streamingBloc.close();
     super.dispose();
   }
@@ -149,7 +149,7 @@ class _StreamViewerPageState extends State<StreamViewerPage> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6),
+        color: Colors.black.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -255,7 +255,7 @@ class _StreamViewerPageState extends State<StreamViewerPage> {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.2),
           shape: BoxShape.circle,
         ),
         child: Center(

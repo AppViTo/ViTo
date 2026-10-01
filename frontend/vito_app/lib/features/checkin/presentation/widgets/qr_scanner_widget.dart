@@ -39,7 +39,7 @@ class _QRScannerWidgetState extends State<QRScannerWidget> {
         title: const Text('Scan QR Code'),
         actions: [
           IconButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.flash_off,
             ),
             onPressed: () => controller?.toggleTorch(),

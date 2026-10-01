@@ -176,7 +176,7 @@ class MosaicRepositoryImpl implements MosaicRepository {
   
   @override
   void connectToWebSocket(String eventId, String baseUrl) {
-    final wsUrl = baseUrl.replaceFirst('http', 'ws') + '/ws/mosaic/$eventId';
+    final wsUrl = '${baseUrl.replaceFirst('http', 'ws')}/ws/mosaic/$eventId';
     _webSocketChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
     
     _webSocketChannel!.stream.listen(

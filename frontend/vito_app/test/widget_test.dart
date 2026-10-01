@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(const MaterialApp(
       home: Scaffold(body: Center(child: Text('ViTo'))),
     ));
 

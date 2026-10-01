@@ -80,20 +80,20 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_bubble_outline, size: 64, color: AppColors.grey400),
-          const SizedBox(height: 16),
-          const Text(
+          const Icon(Icons.chat_bubble_outline, size: 64, color: AppColors.grey400),
+          SizedBox(height: 16),
+          Text(
             'No chat rooms yet',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
           ),
-          const SizedBox(height: 8),
-          Text(
+          SizedBox(height: 8),
+          const Text(
             'Join an event to start chatting',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: const TextStyle(color: AppColors.textSecondary),
           ),
         ],
       ),
@@ -103,7 +103,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
   Widget _buildRoomTile(room) {
     return ListTile(
       leading: CircleAvatar(
-        backgroundColor: AppColors.primary.withOpacity(0.1),
+        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
         child: Text(
           (room.name ?? 'C').substring(0, 1).toUpperCase(),
           style: const TextStyle(
@@ -120,7 +120,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
         room.lastMessage ?? 'No messages yet',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(color: AppColors.textSecondary),
+        style: const TextStyle(color: AppColors.textSecondary),
       ),
       trailing: room.unreadCount > 0
           ? Container(

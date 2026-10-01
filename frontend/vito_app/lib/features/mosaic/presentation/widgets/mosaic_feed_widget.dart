@@ -145,7 +145,7 @@ class MosaicFeedWidget extends StatelessWidget {
                 // Comments button
                 Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.chat_bubble_outline,
                       color: Colors.grey,
                       size: 20,
@@ -153,7 +153,7 @@ class MosaicFeedWidget extends StatelessWidget {
                     const SizedBox(width: 4),
                     Text(
                       item.commentsCount.toString(),
-                      style: TextStyle(color: Colors.grey),
+                      style: const TextStyle(color: Colors.grey),
                     ),
                   ],
                 ),
@@ -211,9 +211,9 @@ class MosaicFeedWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

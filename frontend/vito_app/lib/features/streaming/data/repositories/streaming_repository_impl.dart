@@ -213,7 +213,7 @@ class StreamingRepositoryImpl implements StreamingRepository {
   
   @override
   void connectToWebSocket(String streamId, String baseUrl) {
-    final wsUrl = baseUrl.replaceFirst('http', 'ws') + '/ws/streaming/$streamId';
+    final wsUrl = '${baseUrl.replaceFirst('http', 'ws')}/ws/streaming/$streamId';
     _webSocketChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
     
     _webSocketChannel!.stream.listen(
