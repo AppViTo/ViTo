@@ -34,7 +34,11 @@ rules:
       - field: security
         function: defined
       - field: security
-        function: falsy
+        function: schema
+        functionOptions:
+          schema:
+            type: array
+            maxItems: 0
 
   # ---------- Suavizados -------------------------------------------------
   info-contact: off

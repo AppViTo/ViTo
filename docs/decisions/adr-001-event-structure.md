@@ -32,12 +32,38 @@ El contrato adopta la estructura anidada que espera el frontend. Ver `docs/api/C
 
 **No existen** `name`, `date`, `endDate`, `isPublic`, `maxAttendees`, `currentAttendees`, `category` en la raíz del objeto.
 
+`details.location` es un **string libre** ("Hacienda El Retiro"), no un objeto
+`{name, address, city, lat, lng}`. El `EventLocation` plano del YAML viejo se elimina.
+
 ## Consecuencias
 
 - El backend debe mapear sus modelos internos a esta forma (o ajustarlos; ya coinciden en `event-service`).
 - `POST /events` recibe `title`, `details`, `settings` como body.
 - Los enums de `status` dejan de incluir `ACTIVE`.
 - El frontend no cambia código de modelos.
+
+## Actualizaciones
+
+### 2026-10-02 — `settings.hideAddressUntilAccepted`
+
+El wizard de creación añadió el switch *"Mostrar solo el barrio hasta que acepten"*.
+`settings` incorpora el campo **`hideAddressUntilAccepted: boolean`**, default `false`.
+
+Comportamiento: cuando es `true`, un invitado cuyo RSVP no está en `ACCEPTED` solo ve
+el barrio, no la dirección exacta; el organizador siempre ve la dirección completa.
+Debe aplicarse al servir `GET /events/{eventId}`, no en el guardado.
+
+Alineación del contrato en la misma fecha:
+
+- `docs/api/openapi.yaml` — schemas `CreateEventRequest` y `Event` reescritos a esta
+  forma anidada; `EventLocation` eliminado; `GET /events` pasada a array plano (ADR-002);
+  `ErrorResponse` completado con `status` (ADR-003); `operationId`, `description` y
+  envelope de error en todas las operaciones. `npx @stoplight/spectral-cli lint`
+  pasa de **40 errores + 1 warning a 0**.
+- `docs/api/CONVENTIONS.md` §6 — ejemplo del evento actualizado con el campo nuevo.
+- `.spectral.yaml` — la regla `vito-public-auth-paths` usaba `function: falsy`, que en
+  Spectral no acepta arrays vacíos: `security: []` (la forma OpenAPI válida de marcar un
+  endpoint público) nunca podía pasar. Sustituida por `schema` con `maxItems: 0`.
 
 ## Alternativas consideradas
 

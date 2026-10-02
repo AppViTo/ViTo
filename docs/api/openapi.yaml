@@ -4,6 +4,9 @@ info:
   description: |
     ViTo is a social event lifecycle platform that integrates event creation, 
     digital invitations, RSVP, live mosaic, streaming, and post-event archiving.
+
+    El evento se modela con la estructura anidada de ADR-001
+    (`title` + `details` + `settings` + `stats`), no con campos planos.
   version: 1.0.0
   contact:
     name: ViTo Team
@@ -106,83 +109,170 @@ components:
         streamsCount:
           type: integer
 
-    # Event Schemas
-    CreateEventRequest:
+    # Event Schemas — ADR-001 (docs/decisions/adr-001-event-structure.md)
+    EventDetails:
       type: object
-      required: [name, date]
+      description: Fecha, lugar, geolocalización, imágenes y clasificación del evento.
       properties:
-        name:
-          type: string
-          minLength: 3
-          maxLength: 100
-        description:
-          type: string
-          maxLength: 2000
-        date:
+        startDate:
           type: string
           format: date-time
+          description: ISO-8601 UTC con sufijo Z.
+          example: '2026-10-12T23:00:00.000Z'
         endDate:
           type: string
           format: date-time
+          description: Debe ser estrictamente posterior a `startDate`.
+          example: '2026-10-13T07:00:00.000Z'
         location:
-          $ref: '#/components/schemas/EventLocation'
+          type: string
+          maxLength: 300
+          description: Nombre del lugar libre. No es un objeto anidado.
+          example: Hacienda El Retiro
+        address:
+          type: string
+          maxLength: 300
+          example: Km 5 vía Chía
+        latitude:
+          type: number
+          format: double
+          example: 4.711
+        longitude:
+          type: number
+          format: double
+          example: -74.0721
+        coverImages:
+          type: array
+          items:
+            type: string
+            format: uri
+          example: ['https://cdn.vito.com/evt_1/cover.jpg']
+        tags:
+          type: array
+          items:
+            type: string
+          example: [boda]
+        category:
+          type: string
+          description: Enum SCREAMING_SNAKE_CASE. Valores fuera de la lista ⇒ 400.
+          enum: [BIRTHDAY, MEETING, WEDDING, GRADUATION, TRAVEL, PARTY]
+          example: WEDDING
+
+    EventSettings:
+      type: object
+      description: Flags de visibilidad, capacidad y funcionalidad. Todos con default.
+      properties:
         isPublic:
           type: boolean
           default: true
+        requiresApproval:
+          type: boolean
+          default: false
         maxAttendees:
           type: integer
           minimum: 1
-        category:
-          type: string
-          enum: [music, sports, tech, art, food, business, other]
+          default: 100
+        allowGuestInvites:
+          type: boolean
+          default: true
+        enableLiveStreaming:
+          type: boolean
+          default: true
+        enableMosaic:
+          type: boolean
+          default: true
+        hideAddressUntilAccepted:
+          type: boolean
+          default: false
+          description: >
+            Si es `true`, un invitado cuyo RSVP no está `ACCEPTED` solo ve el
+            barrio, no la dirección exacta. El organizador siempre ve la
+            dirección completa.
 
-    EventLocation:
+    EventStats:
       type: object
+      description: Contadores derivados. **Solo lectura**, calculados por el backend.
       properties:
-        name:
+        totalInvited:
+          type: integer
+          default: 0
+        totalAccepted:
+          type: integer
+          default: 0
+        totalDeclined:
+          type: integer
+          default: 0
+        totalMaybe:
+          type: integer
+          default: 0
+        totalWaitlisted:
+          type: integer
+          default: 0
+        totalCheckedIn:
+          type: integer
+          default: 0
+        totalViewers:
+          type: integer
+          default: 0
+
+    CreateEventRequest:
+      type: object
+      required: [title]
+      description: Body de `POST /api/v1/events`. Sin campos planos en la raíz.
+      properties:
+        title:
           type: string
-        address:
+          minLength: 3
+          maxLength: 100
+          example: Los 30 de Marta
+        description:
           type: string
-        city:
-          type: string
-        lat:
-          type: number
-        lng:
-          type: number
+          maxLength: 2000
+          example: Te espero con toda el alma
+        details:
+          $ref: '#/components/schemas/EventDetails'
+        settings:
+          $ref: '#/components/schemas/EventSettings'
 
     Event:
       type: object
+      required: [id, organizerId, title, status]
+      description: |
+        Recurso Event según ADR-001. No existen `name`, `date`, `endDate`,
+        `location`, `isPublic`, `maxAttendees`, `currentAttendees` ni `category`
+        en la raíz: todo vive dentro de `details` / `settings` / `stats`.
       properties:
         id:
           type: string
-        name:
-          type: string
-        description:
-          type: string
-        date:
-          type: string
-          format: date-time
-        endDate:
-          type: string
-          format: date-time
-        location:
-          $ref: '#/components/schemas/EventLocation'
+          example: evt_01H8X2K4QJ
         organizerId:
           type: string
-        isPublic:
-          type: boolean
-        maxAttendees:
-          type: integer
-        currentAttendees:
-          type: integer
-        category:
+          example: usr_01H8X2K4QJ
+        title:
           type: string
+          example: Los 30 de Marta
+        description:
+          type: string
+          nullable: true
+        details:
+          $ref: '#/components/schemas/EventDetails'
+        settings:
+          $ref: '#/components/schemas/EventSettings'
+        stats:
+          $ref: '#/components/schemas/EventStats'
         status:
           type: string
-          enum: [ACTIVE, CANCELLED, COMPLETED]
+          description: Enum de CONVENTIONS §6. Un valor desconocido se trata como `DRAFT`.
+          enum: [DRAFT, PUBLISHED, CANCELLED, COMPLETED]
+          example: PUBLISHED
         createdAt:
           type: string
           format: date-time
+          example: '2026-09-01T10:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-09-01T10:00:00Z'
 
     # Chat Schemas
     ChatMessage:
@@ -200,7 +290,7 @@ components:
           type: string
         type:
           type: string
-          enum: [TEXT, IMAGE, VIDEO, AUDIO, FILE, SYSTEM]
+          enum: [TEXT, IMAGE, VIDEO, AUDIO, FILE, SYSTEM, TYPING, READ_RECEIPT]
         mediaUrl:
           type: string
         timestamp:
@@ -277,23 +367,44 @@ components:
               type: string
             url:
               type: string
+              example: https://cdn.vito.com/evt_1/cover.jpg
             thumbnailUrl:
               type: string
         uploadedAt:
           type: string
           format: date-time
 
-    # Error Response
+    # Error Response — ADR-003 (docs/decisions/adr-003-error-envelope.md)
     ErrorResponse:
       type: object
+      required: [error, message, status, timestamp]
+      description: >
+        Envelope único de todo 4xx/5xx. `message` es obligatorio en es-ES
+        porque el frontend lo muestra tal cual al usuario.
       properties:
         error:
           type: string
+          description: Código de máquina en SCREAMING_SNAKE_CASE.
+          example: VALIDATION_ERROR
         message:
           type: string
+          description: Mensaje legible para humanos, en es-ES.
+          example: El campo title es obligatorio
+        status:
+          type: integer
+          description: Espeljo del status line HTTP.
+          example: 400
         timestamp:
           type: string
           format: date-time
+          example: '2026-10-02T14:03:22Z'
+        details:
+          type: object
+          description: Solo en validación.
+          additionalProperties:
+            type: string
+          example:
+            title: Mínimo 3 caracteres
 
 paths:
   # Auth Endpoints
@@ -301,6 +412,11 @@ paths:
     post:
       tags: [Authentication]
       summary: Register a new user
+      description: >
+        Registra un usuario y devuelve los tokens del ciclo unificado (ADR-004).
+        Endpoint público: no requiere `Authorization`.
+      operationId: registerUser
+      security: []
       requestBody:
         required: true
         content:
@@ -315,14 +431,27 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
         '400':
-          description: Invalid input
+          description: Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '409':
-          description: User already exists
+          description: Usuario ya registrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/auth/login:
     post:
       tags: [Authentication]
       summary: Login with email and password
+      description: >
+        Autentica con email y contraseña. Endpoint público: no requiere
+        `Authorization`.
+      operationId: loginUser
+      security: []
       requestBody:
         required: true
         content:
@@ -331,18 +460,33 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: Login successful
+          description: Login exitoso
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
-          description: Invalid credentials
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/auth/refresh:
     post:
       tags: [Authentication]
       summary: Refresh access token
+      description: >
+        Intercambia un `refreshToken` válido por un nuevo par de tokens.
+        Endpoint público.
+      operationId: refreshToken
+      security: []
       requestBody:
         required: true
         content:
@@ -355,43 +499,68 @@ paths:
                   type: string
       responses:
         '200':
-          description: Token refreshed
+          description: Tokens renovados
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
         '401':
-          description: Invalid refresh token
-
-  /api/v1/auth/me:
-    get:
-      tags: [Authentication]
-      summary: Get current user profile
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: User profile
+          description: Refresh token inválido o revocado
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [Authentication]
+      summary: Logout
+      description: >
+        Revoca el token actual. Debe ir en la blacklist de Redis.
+      operationId: logoutUser
+      responses:
+        '200':
+          description: Sesión cerrada
         '401':
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  # Event Endpoints
+  # Event Endpoints — contrato ADR-001
   /api/v1/events:
     post:
       tags: [Events]
       summary: Create a new event
-      security:
-        - bearerAuth: []
+      description: >
+        Crea un evento con la estructura anidada de ADR-001. El `organizerId`
+        se toma del header `X-User-Id` inyectado por el gateway (ADR-007);
+        nunca del body. La portada se sube aparte con `POST /media/upload`
+        una vez creado el evento.
+      operationId: createEvent
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateEventRequest'
+            example:
+              title: Los 30 de Marta
+              description: Te espero con toda el alma
+              details:
+                startDate: '2026-08-23T01:00:00.000Z'
+                endDate: '2026-08-23T07:00:00.000Z'
+                address: Cra. 7 #63-14, Chapinero Alto
+                category: BIRTHDAY
+              settings:
+                isPublic: false
+                requiresApproval: false
+                maxAttendees: 100
+                allowGuestInvites: false
+                enableLiveStreaming: true
+                enableMosaic: true
+                hideAddressUntilAccepted: true
       responses:
         '201':
           description: Event created
@@ -399,46 +568,118 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
+              example:
+                id: evt_01H8X2K4QJ
+                organizerId: usr_01H8X2K4QJ
+                title: Los 30 de Marta
+                description: Te espero con toda el alma
+                details:
+                  startDate: '2026-08-23T01:00:00.000Z'
+                  endDate: '2026-08-23T07:00:00.000Z'
+                  address: Cra. 7 #63-14, Chapinero Alto
+                  category: BIRTHDAY
+                settings:
+                  isPublic: false
+                  requiresApproval: false
+                  maxAttendees: 100
+                  allowGuestInvites: false
+                  enableLiveStreaming: true
+                  enableMosaic: true
+                  hideAddressUntilAccepted: true
+                stats:
+                  totalInvited: 0
+                  totalAccepted: 0
+                  totalDeclined: 0
+                  totalMaybe: 0
+                  totalWaitlisted: 0
+                  totalCheckedIn: 0
+                  totalViewers: 0
+                status: PUBLISHED
+                createdAt: '2026-10-02T14:03:22Z'
+                updatedAt: '2026-10-02T14:03:22Z'
         '400':
-          description: Invalid input
+          description: Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: VALIDATION_ERROR
+                message: El campo title es obligatorio
+                status: 400
+                timestamp: '2026-10-02T14:03:22Z'
+                details:
+                  title: Mínimo 3 caracteres
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: "Rate limit superado (events: 20 req/s)"
+          headers:
+            Retry-After:
+              description: Segundos hasta poder reintentar.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
     get:
       tags: [Events]
       summary: List user events
-      security:
-        - bearerAuth: []
+      description: >
+        Lista los eventos del usuario autenticado. Devuelve **array plano**
+        (ADR-002), no un envelope `{events, total}`: el frontend parsea
+        `(response.data as List)`.
+      operationId: listEvents
       parameters:
         - name: page
           in: query
+          description: Base 0.
           schema:
             type: integer
             default: 0
         - name: size
           in: query
+          description: Máximo 100 (ADR-008).
           schema:
             type: integer
             default: 20
+            maximum: 100
       responses:
         '200':
-          description: List of events
+          description: Array plano de eventos, orden `createdAt` descendente
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  events:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Event'
-                  total:
-                    type: integer
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+              example:
+                - id: evt_01H8X2K4QJ
+                  organizerId: usr_01H8X2K4QJ
+                  title: Los 30 de Marta
+                  status: PUBLISHED
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/events/{eventId}:
     get:
       tags: [Events]
       summary: Get event by ID
-      security:
-        - bearerAuth: []
+      description: >
+        Detalle de un evento. Aplica `settings.hideAddressUntilAccepted`:
+        si el solicitante es un invitado sin RSVP `ACCEPTED`, la dirección
+        exacta se sustituye por el barrio.
+      operationId: getEvent
       parameters:
         - name: eventId
           in: path
@@ -452,16 +693,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: NOT_FOUND
+                message: El evento no existe
+                status: 404
+                timestamp: '2026-10-02T14:03:22Z'
 
   # Chat Endpoints
   /api/v1/chat/rooms:
     post:
       tags: [Chat]
       summary: Create a chat room
-      security:
-        - bearerAuth: []
+      description: Crea una sala de chat asociada a un evento.
+      operationId: createChatRoom
       requestBody:
         required: true
         content:
@@ -488,13 +744,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatRoom'
+        '400':
+          description: Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/chat/rooms/{roomId}/join:
     post:
       tags: [Chat]
       summary: Join a chat room
-      security:
-        - bearerAuth: []
+      description: Añade al usuario autenticado a la sala.
+      operationId: joinChatRoom
       parameters:
         - name: roomId
           in: path
@@ -508,13 +782,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatRoom'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/chat/messages:
     post:
       tags: [Chat]
       summary: Send a message
-      security:
-        - bearerAuth: []
+      description: Persiste un mensaje y lo retransmite por el WebSocket de la sala.
+      operationId: sendChatMessage
       requestBody:
         required: true
         content:
@@ -530,7 +816,7 @@ paths:
                   maxLength: 5000
                 type:
                   type: string
-                  enum: [TEXT, IMAGE, VIDEO, AUDIO, FILE]
+                  enum: [TEXT, IMAGE, VIDEO, AUDIO, FILE, SYSTEM, TYPING, READ_RECEIPT]
                 mediaUrl:
                   type: string
       responses:
@@ -540,13 +826,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatMessage'
+        '400':
+          description: Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/chat/rooms/{roomId}/messages:
     get:
       tags: [Chat]
       summary: Get room messages
-      security:
-        - bearerAuth: []
+      description: >
+        Mensajes de una sala. Devuelve **array plano** (ADR-002); no existe
+        `total` en la respuesta (ADR-008).
+      operationId: listChatMessages
       parameters:
         - name: roomId
           in: path
@@ -563,28 +863,41 @@ paths:
           schema:
             type: integer
             default: 50
+            maximum: 100
       responses:
         '200':
-          description: List of messages
+          description: Array plano de mensajes
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  messages:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/ChatMessage'
-                  total:
-                    type: integer
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatMessage'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # Media Endpoints
   /api/v1/media/upload:
     post:
       tags: [Media]
       summary: Upload media file
-      security:
-        - bearerAuth: []
+      description: >
+        Sube la portada de un evento. Multipart con `file` + `eventId`.
+        Tamaño máximo 10 MB; formatos `image/jpeg`, `image/png`,
+        `image/webp`, `video/mp4`. Toma la identidad del header
+        `X-User-Id` inyectado por el gateway (CONVENTIONS §2.2): sin ese
+        header devuelve 400.
+      operationId: uploadMedia
       requestBody:
         required: true
         content:
@@ -605,13 +918,45 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Media'
+              example:
+                id: med_01H8X2K4QJ
+                eventId: evt_01H8X2K4QJ
+                uploadedBy: usr_01H8X2K4QJ
+                fileName: portada.jpg
+                contentType: image/jpeg
+                fileSize: 482113
+                status: UPLOADED
+                location:
+                  bucket: vito-events
+                  key: evt_01H8X/portada.jpg
+                  url: https://cdn.vito.com/evt_01H8X/portada.jpg
+                  thumbnailUrl: https://cdn.vito.com/evt_01H8X/thumb_portada.jpg
+                uploadedAt: '2026-10-02T14:03:22Z'
+        '400':
+          description: Archivo ausente, tipo no permitido, > 10 MB o `eventId` vacío
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/media/{mediaId}:
     get:
       tags: [Media]
       summary: Get media by ID
-      security:
-        - bearerAuth: []
+      description: Devuelve los metadatos y la localización de un archivo ya subido.
+      operationId: getMedia
       parameters:
         - name: mediaId
           in: path
@@ -625,14 +970,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Media'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # Recommendation Endpoints
   /api/v1/recommendations/events:
     post:
       tags: [Recommendations]
       summary: Get event recommendations
-      security:
-        - bearerAuth: []
+      description: Devuelve eventos recomendados para el usuario, ordenados por score.
+      operationId: getEventRecommendations
       requestBody:
         required: true
         content:
@@ -664,14 +1021,28 @@ paths:
                       type: number
                     reason:
                       type: string
+        '400':
+          description: Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # Moderation Endpoints
   /api/v1/moderation/check:
     post:
       tags: [Moderation]
       summary: Check content for moderation
-      security:
-        - bearerAuth: []
+      description: >
+        Evalúa contenido contra el servicio de moderación y devuelve la
+        acción recomendada.
+      operationId: checkContentModeration
       requestBody:
         required: true
         content:
@@ -712,12 +1083,24 @@ paths:
                   recommended_action:
                     type: string
                     enum: [approve, flag_for_review, reject]
+        '400':
+          description: Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 tags:
   - name: Authentication
     description: User registration and login
   - name: Events
-    description: Event lifecycle management
+    description: Event lifecycle management (ADR-001)
   - name: Chat
     description: Real-time messaging
   - name: Media

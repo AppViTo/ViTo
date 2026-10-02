@@ -174,7 +174,8 @@ Códigos de error canónicos: `VALIDATION_ERROR`, `UNAUTHORIZED`, `FORBIDDEN`, `
     "maxAttendees": 150,
     "allowGuestInvites": true,
     "enableLiveStreaming": true,
-    "enableMosaic": true
+    "enableMosaic": true,
+    "hideAddressUntilAccepted": false
   },
   "stats": {
     "totalInvited": 120, "totalAccepted": 96, "totalDeclined": 4,
