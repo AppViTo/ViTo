@@ -9,8 +9,8 @@ on:
 env:
   JAVA_VERSION: '17'
   PYTHON_VERSION: '3.11'
-  # pubspec.lock exige Flutter >=3.44.0 (Dart >=3.12)
-  FLUTTER_VERSION: '3.44.x'
+  # pubspec.lock fija intl 0.20.3; Flutter 3.44 trae 0.20.2 y pub get falla
+  FLUTTER_VERSION: '3.47.x'
 
 jobs:
   # Servicios Spring Boot: compilación limpia + tests de cada uno
