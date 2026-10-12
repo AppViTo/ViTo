@@ -84,16 +84,16 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.chat_bubble_outline, size: 64, color: AppColors.grey400),
+          Icon(Icons.chat_bubble_outline, size: 64, color: AppColors.grey400),
           SizedBox(height: 16),
           Text(
             'No chat rooms yet',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
           ),
           SizedBox(height: 8),
-          const Text(
+          Text(
             'Join an event to start chatting',
-            style: const TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: AppColors.textSecondary),
           ),
         ],
       ),

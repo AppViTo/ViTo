@@ -218,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   width: 48,
                   height: 48,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     color: AppColors.surfaceDark,
                   ),
