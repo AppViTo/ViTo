@@ -13,7 +13,7 @@ class StreamingBloc extends Bloc<StreamingEvent, StreamingState> {
   StreamSubscription<ChatMessage>? _chatSubscription;
   StreamSubscription<int>? _viewerCountSubscription;
   
-  StreamingBloc({required this.repository}) : super(StreamingInitial()) {
+  StreamingBloc({required this.repository}) : super(const StreamingInitial()) {
     on<CreateStream>(_onCreateStream);
     on<StartStream>(_onStartStream);
     on<StopStream>(_onStopStream);
@@ -31,15 +31,15 @@ class StreamingBloc extends Bloc<StreamingEvent, StreamingState> {
   }
   
   void _listenToStreams() {
-    _reactionSubscription = repository.reactionStream?.listen((reaction) {
+    _reactionSubscription = repository.reactionStream.listen((reaction) {
       add(ReactionReceived(reaction: reaction));
     });
     
-    _chatSubscription = repository.chatStream?.listen((message) {
+    _chatSubscription = repository.chatStream.listen((message) {
       add(ChatMessageReceived(message: message));
     });
     
-    _viewerCountSubscription = repository.viewerCountStream?.listen((count) {
+    _viewerCountSubscription = repository.viewerCountStream.listen((count) {
       add(ViewerCountUpdated(count: count));
     });
   }
@@ -48,7 +48,7 @@ class StreamingBloc extends Bloc<StreamingEvent, StreamingState> {
     CreateStream event,
     Emitter<StreamingState> emit,
   ) async {
-    emit(StreamingLoading());
+    emit(const StreamingLoading());
     
     final result = await repository.createStream(
       eventId: event.eventId,
@@ -67,7 +67,7 @@ class StreamingBloc extends Bloc<StreamingEvent, StreamingState> {
     StartStream event,
     Emitter<StreamingState> emit,
   ) async {
-    emit(StreamingLoading());
+    emit(const StreamingLoading());
     
     final result = await repository.startStream(event.streamId);
     
@@ -81,7 +81,7 @@ class StreamingBloc extends Bloc<StreamingEvent, StreamingState> {
     StopStream event,
     Emitter<StreamingState> emit,
   ) async {
-    emit(StreamingLoading());
+    emit(const StreamingLoading());
     
     final result = await repository.stopStream(event.streamId);
     
@@ -95,7 +95,7 @@ class StreamingBloc extends Bloc<StreamingEvent, StreamingState> {
     LoadStream event,
     Emitter<StreamingState> emit,
   ) async {
-    emit(StreamingLoading());
+    emit(const StreamingLoading());
     
     final result = await repository.getStream(event.streamId);
     
@@ -109,7 +109,7 @@ class StreamingBloc extends Bloc<StreamingEvent, StreamingState> {
     LoadLiveStreams event,
     Emitter<StreamingState> emit,
   ) async {
-    emit(StreamingLoading());
+    emit(const StreamingLoading());
     
     final result = await repository.getLiveStreams(
       page: event.page,

@@ -1,3 +1,7 @@
+// Los nombres de los enums se serializan tal cual (`.name`) y deben coincidir
+// con los valores en MAYÚSCULAS del contrato (docs/api). No renombrar.
+// ignore_for_file: constant_identifier_names
+
 import 'package:equatable/equatable.dart';
 
 class ChatMessage extends Equatable {

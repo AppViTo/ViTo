@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
-import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/home/presentation/pages/main_wrapper_screen.dart';
 import '../../features/events/presentation/pages/event_list_page.dart';
 import '../../features/events/presentation/pages/create_event_screen.dart';
