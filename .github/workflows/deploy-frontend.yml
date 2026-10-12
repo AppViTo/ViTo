@@ -1,0 +1,64 @@
+name: Deploy Frontend (Vercel)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/vito_app/**'
+      - '.github/workflows/deploy-frontend.yml'
+  workflow_dispatch:
+
+# Un deploy a la vez; no cancelar el que está en vuelo
+concurrency:
+  group: vercel-deploy-production
+  cancel-in-progress: false
+
+env:
+  # Mismo pin que el job flutter-app de ci.yml (pubspec.lock lo exige)
+  FLUTTER_VERSION: '3.47.x'
+
+jobs:
+  deploy:
+    name: Build & Deploy Flutter Web
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        working-directory: frontend/vito_app
+        run: flutter pub get
+
+      - name: Build web
+        working-directory: frontend/vito_app
+        env:
+          # Repo variables (Settings → Variables); vacíos = defaults del código
+          API_BASE_URL: ${{ vars.VITO_API_BASE_URL }}
+          WS_BASE_URL: ${{ vars.VITO_WS_BASE_URL }}
+        run: |
+          FLAGS=""
+          [ -n "$API_BASE_URL" ] && FLAGS="$FLAGS --dart-define=API_BASE_URL=$API_BASE_URL"
+          [ -n "$WS_BASE_URL" ] && FLAGS="$FLAGS --dart-define=WS_BASE_URL=$WS_BASE_URL"
+          flutter build web --release $FLAGS
+
+      # Vercel lee vercel.json desde el directorio desplegado: copiarlo a build/web
+      - name: Copy vercel.json into build output
+        run: cp frontend/vito_app/vercel.json frontend/vito_app/build/web/vercel.json
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      # Despliega build/web como sitio estático en el proyecto vito-app (producción).
+      # Se corre desde dentro de build/web (misma forma que el deploy manual validado).
+      - name: Deploy to Vercel
+        working-directory: frontend/vito_app/build/web
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: vercel deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
