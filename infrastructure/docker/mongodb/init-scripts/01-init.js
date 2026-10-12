@@ -1,5 +1,5 @@
-# ViTo MongoDB Initialization Script
-# This script runs when the container starts for the first time
+// ViTo MongoDB Initialization Script
+// This script runs when the container starts for the first time
 
 // Create collections with schema validation
 db.createCollection("users", {

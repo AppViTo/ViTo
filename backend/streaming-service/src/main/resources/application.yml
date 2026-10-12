@@ -9,21 +9,23 @@ spring:
     mongodb:
       uri: ${MONGODB_URI}
       database: vito_streaming
-  
-  redis:
-    host: localhost
-    port: 6379
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        # Sin broker, send() bloquea hasta max.block.ms (60 s por defecto)
+        max.block.ms: ${KAFKA_MAX_BLOCK_MS:5000}
 
 srs:
-  api-url: http://localhost:1985
-  stream-url: rtmp://localhost:1935
-  playback-url: http://localhost:8080
+  api-url: ${SRS_API_URL:http://localhost:1985}
+  stream-url: ${SRS_STREAM_URL:rtmp://localhost:1935}
+  playback-url: ${SRS_PLAYBACK_URL:http://localhost:8080}
 
 jwt:
   secret: ${JWT_SECRET}
@@ -32,3 +34,14 @@ logging:
   level:
     com.vito: DEBUG
     org.springframework.security: DEBUG
+
+# Actuator: health para Docker/K8s (liveness/readiness)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
