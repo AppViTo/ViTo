@@ -93,7 +93,7 @@ public class ArchiveServiceImpl implements ArchiveService {
             archive.setCoverUrl(command.getCoverUrl());
         }
         if (command.getIsPublic() != null) {
-            archive.getSharing().setIsPublic(command.getIsPublic());
+            archive.getSharing().setPublic(command.getIsPublic());
         }
         if (command.getAllowComments() != null) {
             archive.getSharing().setAllowComments(command.getAllowComments());

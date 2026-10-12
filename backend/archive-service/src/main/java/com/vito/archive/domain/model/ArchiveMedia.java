@@ -19,8 +19,8 @@ public class ArchiveMedia {
     private String uploaderId;
     private MediaType type;
     private String url;
-    private String? thumbnailUrl;
-    private String? caption;
+    private String thumbnailUrl;
+    private String caption;
     private MediaMetadata metadata;
     private List<String> tags;
     private int likesCount;
@@ -44,7 +44,7 @@ public class ArchiveMedia {
         private Integer height;
         private Integer duration;
         private String mimeType;
-        private String? location;
-        private LocalDateTime? takenAt;
+        private String location;
+        private LocalDateTime takenAt;
     }
 }

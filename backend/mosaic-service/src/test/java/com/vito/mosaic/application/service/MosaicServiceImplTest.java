@@ -224,7 +224,7 @@ class MosaicServiceImplTest {
         // Assert
         verify(feedRepository).findById("item123");
         verify(feedRepository).save(any(MosaicFeedItem.class));
-        verify(eventPublisher).publishLikeUpdate("event123", "item123", anyInt());
+        verify(eventPublisher).publishLikeUpdate(eq("event123"), eq("item123"), anyInt());
     }
 
     @Test
@@ -253,6 +253,6 @@ class MosaicServiceImplTest {
         // Assert
         verify(feedRepository).findById("item123");
         verify(feedRepository).save(any(MosaicFeedItem.class));
-        verify(eventPublisher).publishLikeUpdate("event123", "item123", anyInt());
+        verify(eventPublisher).publishLikeUpdate(eq("event123"), eq("item123"), anyInt());
     }
 }

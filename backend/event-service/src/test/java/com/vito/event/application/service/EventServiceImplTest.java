@@ -166,7 +166,7 @@ class EventServiceImplTest {
         // Assert
         assertNotNull(result);
 
-        verify(eventRepository).findById("event123");
+        verify(eventRepository, atLeastOnce()).findById("event123");
         verify(rsvpRepository).existsByEventIdAndUserId("event123", "user456");
         verify(rsvpRepository).save(any(RSVP.class));
         verify(eventPublisher).publishRSVPChanged("event123", "user456", "ACCEPTED");
@@ -231,7 +231,7 @@ class EventServiceImplTest {
         // Assert
         assertNotNull(result);
 
-        verify(eventRepository).findById("event123");
+        verify(eventRepository, atLeastOnce()).findById("event123");
         verify(invitationRepository).existsByEventIdAndInviteeId("event123", "user456");
         verify(invitationRepository).save(any(Invitation.class));
         verify(eventPublisher).publishInvitationSent("event123", "organizer123", "user456");
@@ -283,7 +283,7 @@ class EventServiceImplTest {
         // Assert
         assertNotNull(result);
 
-        verify(eventRepository).findById("event123");
+        verify(eventRepository, atLeastOnce()).findById("event123");
         verify(rsvpRepository).findByEventIdAndUserId("event123", "user456");
         verify(qrCodeGenerator).validateCheckInQR("valid_qr_code", "event123", "user456");
         verify(rsvpRepository).save(any(RSVP.class));

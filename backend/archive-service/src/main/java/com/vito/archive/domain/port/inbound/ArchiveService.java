@@ -45,14 +45,14 @@ public interface ArchiveService {
         private String eventId;
         private String organizerId;
         private String title;
-        private String? description;
+        private String description;
     }
     
     @lombok.Data
     class UpdateArchiveCommand {
-        private String? title;
-        private String? description;
-        private String? coverUrl;
+        private String title;
+        private String description;
+        private String coverUrl;
         private Boolean isPublic;
         private Boolean allowComments;
         private Boolean allowReactions;
@@ -64,9 +64,9 @@ public interface ArchiveService {
         private String uploaderId;
         private ArchiveMedia.MediaType type;
         private String url;
-        private String? thumbnailUrl;
-        private String? caption;
-        private ArchiveMedia.MediaMetadata? metadata;
+        private String thumbnailUrl;
+        private String caption;
+        private ArchiveMedia.MediaMetadata metadata;
     }
     
     @lombok.Data
@@ -74,9 +74,9 @@ public interface ArchiveService {
         private String userId;
         private String username;
         private String displayName;
-        private String? avatar;
+        private String avatar;
         private String content;
-        private String? mediaId;
-        private String? parentId;
+        private String mediaId;
+        private String parentId;
     }
 }

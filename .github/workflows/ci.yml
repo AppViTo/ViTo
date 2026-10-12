@@ -9,18 +9,33 @@ on:
 env:
   JAVA_VERSION: '17'
   PYTHON_VERSION: '3.11'
-  FLUTTER_VERSION: '3.2.0'
+  # pubspec.lock exige Flutter >=3.44.0 (Dart >=3.12)
+  FLUTTER_VERSION: '3.44.x'
 
 jobs:
-  # Auth Service (Spring Boot)
-  auth-service:
-    name: Auth Service Tests
+  # Servicios Spring Boot: compilación limpia + tests de cada uno
+  backend:
+    name: Backend Tests (${{ matrix.service }})
     runs-on: ubuntu-latest
-    
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api-gateway
+          - auth-service
+          - social-service
+          - event-service
+          - checkin-service
+          - mosaic-service
+          - streaming-service
+          - archive-service
+          - chat-service
+          - media-service
+
     defaults:
       run:
-        working-directory: backend/auth-service
-    
+        working-directory: backend/${{ matrix.service }}
+
     services:
       mongodb:
         image: mongo:7.0
@@ -29,38 +44,34 @@ jobs:
         env:
           MONGO_INITDB_ROOT_USERNAME: admin
           MONGO_INITDB_ROOT_PASSWORD: test_password
-      
+
       redis:
         image: redis:7.2-alpine
         ports:
           - 6379:6379
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
           cache: maven
-      
-      - name: Build with Maven
-        run: mvn clean compile -DskipTests
-      
-      - name: Run tests
-        run: mvn test
+
+      - name: Build and test
+        run: ./mvnw -B clean verify
         env:
-          SPRING_DATA_MONGODB_URI: mongodb://admin:test_password@localhost:27017/test_db?authSource=admin
-          SPRING_REDIS_HOST: localhost
-          SPRING_REDIS_PORT: 6379
-      
-      - name: Upload coverage reports
-        if: always()
+          # Solo para los tests de contexto sin src/test/resources propio
+          MONGODB_URI: mongodb://admin:test_password@localhost:27017/test_db?authSource=admin
+
+      - name: Upload test reports
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: auth-service-coverage
-          path: backend/auth-service/target/site/jacoco/
+          name: ${{ matrix.service }}-surefire-reports
+          path: backend/${{ matrix.service }}/target/surefire-reports/
 
   # Transcode Service (FastAPI)
   transcode-service:
@@ -146,7 +157,7 @@ jobs:
   docker-build:
     name: Docker Build
     runs-on: ubuntu-latest
-    needs: [auth-service, transcode-service]
+    needs: [backend, transcode-service]
     
     steps:
       - uses: actions/checkout@v4
@@ -154,15 +165,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       
-      - name: Build Auth Service Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: backend/auth-service
-          push: false
-          tags: vito/auth-service:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      
+      # Los servicios Java aún no tienen Dockerfile: se añadirán junto con el despliegue.
       - name: Build Transcode Service Docker image
         uses: docker/build-push-action@v5
         with:

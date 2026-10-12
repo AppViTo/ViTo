@@ -43,7 +43,7 @@ public class KafkaArchiveEventPublisher implements ArchiveEventPublisher {
         event.put("archiveId", archive.getId());
         event.put("eventId", archive.getEventId());
         event.put("title", archive.getTitle());
-        event.put("isPublic", archive.getSharing().isIsPublic());
+        event.put("isPublic", archive.getSharing().isPublic());
         
         kafkaTemplate.send(TOPIC_ARCHIVE_EVENTS, archive.getId(), event);
         log.info("Published ARCHIVE_UPDATED event for archive: {}", archive.getId());
