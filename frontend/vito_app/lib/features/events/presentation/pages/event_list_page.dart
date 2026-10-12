@@ -43,7 +43,7 @@ class _EventListPageState extends State<EventListPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Mis Eventos',
                 style: TextStyle(
                   fontSize: 28,

@@ -32,13 +32,13 @@ class _MosaicPageState extends State<MosaicPage> {
     if (widget.eventId.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: const Text('Live Mosaic')),
-        body: Center(
+        body: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.grid_view, size: 64, color: AppColors.grey400),
-              const SizedBox(height: 16),
-              const Text(
+              SizedBox(height: 16),
+              Text(
                 'Select an event to view mosaic',
                 style: TextStyle(fontSize: 16),
               ),
@@ -201,7 +201,7 @@ class _MosaicPageState extends State<MosaicPage> {
                       const Spacer(),
                       Text(
                         item.displayName,
-                        style: TextStyle(color: AppColors.textSecondary),
+                        style: const TextStyle(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -227,14 +227,14 @@ class _MosaicPageState extends State<MosaicPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.grid_view, size: 64, color: AppColors.grey400),
+          const Icon(Icons.grid_view, size: 64, color: AppColors.grey400),
           const SizedBox(height: 16),
           const Text(
             'No content yet',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'Be the first to share a moment!',
             style: TextStyle(color: AppColors.textSecondary),
           ),

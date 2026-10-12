@@ -344,6 +344,6 @@ class ArchiveRemoteDataSourceImpl implements ArchiveRemoteDataSource {
       }
     }
     
-    throw NetworkException(message: 'Network error. Please try again.');
+    throw const NetworkException(message: 'Network error. Please try again.');
   }
 }

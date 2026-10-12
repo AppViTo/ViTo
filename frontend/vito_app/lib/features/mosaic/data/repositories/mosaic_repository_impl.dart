@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:dartz/dartz.dart';
@@ -194,10 +195,10 @@ class MosaicRepositoryImpl implements MosaicRepository {
         }
       },
       onError: (error) {
-        print('WebSocket error: $error');
+        debugPrint('WebSocket error: $error');
       },
       onDone: () {
-        print('WebSocket connection closed');
+        debugPrint('WebSocket connection closed');
       },
     );
   }
