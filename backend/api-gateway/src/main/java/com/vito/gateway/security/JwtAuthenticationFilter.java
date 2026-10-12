@@ -1,8 +1,10 @@
 package com.vito.gateway.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -19,8 +21,11 @@ import reactor.core.publisher.Mono;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
@@ -59,13 +64,28 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             ServerHttpRequest modifiedRequest = request.mutate()
                     .header("X-User-Id", claims.getSubject())
                     .header("X-User-Email", claims.get("email", String.class))
-                    .header("X-User-Roles", claims.get("roles", String.class))
+                    .header("X-User-Roles", rolesHeader(claims.get("roles")))
                     .build();
 
             return chain.filter(exchange.mutate().request(modifiedRequest).build());
-        } catch (Exception e) {
+        } catch (JwtException | IllegalArgumentException e) {
+            log.debug("Rejected token for {}: {}", path, e.getMessage());
             return unauthorizedResponse(exchange, "Invalid or expired token");
         }
+    }
+
+    /**
+     * auth-service emite "roles" como lista JSON (["USER"]); ADR-007 define X-User-Roles
+     * como valores separados por comas ("USER,ORGANIZER").
+     */
+    static String rolesHeader(Object roles) {
+        if (roles == null) {
+            return "";
+        }
+        if (roles instanceof Collection<?> values) {
+            return values.stream().map(String::valueOf).collect(Collectors.joining(","));
+        }
+        return roles.toString();
     }
 
     private boolean isPublicPath(String path) {
