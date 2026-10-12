@@ -6,19 +6,6 @@ metadata:
     name: vito
 ---
 apiVersion: v1
-kind: Secret
-metadata:
-  name: vito-secrets
-  namespace: vito
-type: Opaque
-stringData:
-  jwt-secret: "vito-super-secret-jwt-key-change-in-production-2024"
-  mongodb-uri: "mongodb://admin:vito_password@mongodb:27017/vito_db?authSource=admin"
-  s3-access-key: "minioadmin"
-  s3-secret-key: "minioadmin"
-  redis-password: ""
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: vito-config

@@ -7,7 +7,8 @@ spring:
   
   data:
     mongodb:
-      uri: mongodb://admin:vito_password@localhost:27017/vito_db?authSource=admin
+      uri: ${MONGODB_URI}
+      database: vito_db
   
   redis:
     host: localhost
@@ -27,7 +28,7 @@ server:
 
 # JWT Configuration
 jwt:
-  secret: your-256-bit-secret-key-here-change-in-production
+  secret: ${JWT_SECRET}
   expiration: 86400000  # 24 hours
   refresh-expiration: 604800000  # 7 days
 

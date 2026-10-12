@@ -8,6 +8,7 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.vito.checkin.domain.port.outbound.QRCodeService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
@@ -26,7 +27,8 @@ import java.util.UUID;
 @Component
 public class QRCodeServiceImpl implements QRCodeService {
     
-    private static final String SECRET_KEY = "vito-qr-secret-key-2024-secure";
+    @Value("${qr.secret}")
+    private String secretKey;
     private static final String ALGORITHM = "HmacSHA256";
     
     @Override
@@ -107,7 +109,7 @@ public class QRCodeServiceImpl implements QRCodeService {
     
     private String generateHMAC(String payload) throws NoSuchAlgorithmException, InvalidKeyException {
         SecretKeySpec secretKeySpec = new SecretKeySpec(
-                SECRET_KEY.getBytes(StandardCharsets.UTF_8), ALGORITHM);
+                secretKey.getBytes(StandardCharsets.UTF_8), ALGORITHM);
         
         Mac mac = Mac.getInstance(ALGORITHM);
         mac.init(secretKeySpec);

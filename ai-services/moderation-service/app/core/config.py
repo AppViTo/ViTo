@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     
     # MongoDB
-    MONGODB_URI: str = "mongodb://admin:vito_password@localhost:27017/vito_db?authSource=admin"
+    MONGODB_URI: str  # obligatorio (env)
     MONGODB_DB_NAME: str = "vito_db"
     
     # Redis
@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
     
     # JWT
-    JWT_SECRET: str = "vito-super-secret-jwt-key-change-in-production-2024"
+    JWT_SECRET: str  # obligatorio (env)
     
     # Moderation settings
     AUTO_MODERATE: bool = True

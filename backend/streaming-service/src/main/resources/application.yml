@@ -7,7 +7,8 @@ spring:
   
   data:
     mongodb:
-      uri: mongodb://admin:test_password@localhost:27017/vito_streaming?authSource=admin
+      uri: ${MONGODB_URI}
+      database: vito_streaming
   
   redis:
     host: localhost
@@ -25,7 +26,7 @@ srs:
   playback-url: http://localhost:8080
 
 jwt:
-  secret: ${JWT_SECRET:your-256-bit-secret-key-for-jwt-token-validation}
+  secret: ${JWT_SECRET}
 
 logging:
   level:

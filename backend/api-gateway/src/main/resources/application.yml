@@ -180,7 +180,7 @@ server:
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET:vito-super-secret-jwt-key-change-in-production-2024}
+  secret: ${JWT_SECRET}
 
 # Resilience4j Circuit Breaker
 resilience4j:
