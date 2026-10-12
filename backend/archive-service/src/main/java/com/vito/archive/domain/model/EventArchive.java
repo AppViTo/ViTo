@@ -16,13 +16,13 @@ public class EventArchive {
     private String eventId;
     private String organizerId;
     private String title;
-    private String? description;
-    private String? coverUrl;
+    private String description;
+    private String coverUrl;
     private ArchiveStatus status;
     private EventStatistics statistics;
     private SharingSettings sharing;
     private LocalDateTime eventDate;
-    private LocalDateTime? archivedAt;
+    private LocalDateTime archivedAt;
     private LocalDateTime createdAt;
     
     public enum ArchiveStatus {

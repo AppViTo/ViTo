@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,8 +46,8 @@ class StreamingServiceImplTest {
                 liveStreamRepository,
                 reactionRepository,
                 chatRepository,
-                eventPublisher,
-                mediaServerPort
+                mediaServerPort,
+                eventPublisher
         );
     }
     
@@ -97,8 +98,8 @@ class StreamingServiceImplTest {
                 .streamKey("key-123")
                 .build();
         
-        when(liveStreamRepository.findById(streamId)).thenReturn(mockStream);
-        when(mediaServerPort.startStream(anyString())).thenReturn(true);
+        when(liveStreamRepository.findById(streamId)).thenReturn(Optional.of(mockStream));
+        when(mediaServerPort.startStream(anyString())).thenReturn(mockStream);
         when(liveStreamRepository.save(any(LiveStream.class))).thenReturn(mockStream);
         
         LiveStream result = streamingService.startStream(streamId, organizerId);
@@ -109,7 +110,7 @@ class StreamingServiceImplTest {
         
         verify(mediaServerPort, times(1)).startStream(anyString());
         verify(liveStreamRepository, times(1)).save(any(LiveStream.class));
-        verify(eventPublisher, times(1)).publishStreamStarted(streamId, organizerId);
+        verify(eventPublisher, times(1)).publishStreamStarted(streamId, "event-123");
     }
     
     @Test
@@ -125,7 +126,7 @@ class StreamingServiceImplTest {
                 .status(LiveStream.StreamStatus.IDLE)
                 .build();
         
-        when(liveStreamRepository.findById(streamId)).thenReturn(mockStream);
+        when(liveStreamRepository.findById(streamId)).thenReturn(Optional.of(mockStream));
         
         assertThrows(RuntimeException.class, 
                 () -> streamingService.startStream(streamId, wrongUserId));
@@ -145,8 +146,8 @@ class StreamingServiceImplTest {
                 .streamKey("key-123")
                 .build();
         
-        when(liveStreamRepository.findById(streamId)).thenReturn(mockStream);
-        when(mediaServerPort.stopStream(anyString())).thenReturn(true);
+        when(liveStreamRepository.findById(streamId)).thenReturn(Optional.of(mockStream));
+        when(mediaServerPort.stopStream(anyString())).thenReturn(mockStream);
         when(liveStreamRepository.save(any(LiveStream.class))).thenReturn(mockStream);
         
         LiveStream result = streamingService.stopStream(streamId, organizerId);
@@ -157,7 +158,7 @@ class StreamingServiceImplTest {
         
         verify(mediaServerPort, times(1)).stopStream(anyString());
         verify(liveStreamRepository, times(1)).save(any(LiveStream.class));
-        verify(eventPublisher, times(1)).publishStreamEnded(streamId);
+        verify(eventPublisher, times(1)).publishStreamEnded(streamId, "event-123");
     }
     
     @Test
@@ -239,7 +240,7 @@ class StreamingServiceImplTest {
                 .status(LiveStream.StreamStatus.LIVE)
                 .build();
         
-        when(liveStreamRepository.findById(streamId)).thenReturn(mockStream);
+        when(liveStreamRepository.findById(streamId)).thenReturn(Optional.of(mockStream));
         
         LiveStream result = streamingService.getStream(streamId);
         
@@ -303,7 +304,7 @@ class StreamingServiceImplTest {
                 .status(LiveStream.StreamStatus.LIVE)
                 .build();
         
-        when(liveStreamRepository.findById(streamId)).thenReturn(mockStream);
+        when(liveStreamRepository.findById(streamId)).thenReturn(Optional.of(mockStream));
         when(reactionRepository.countByStreamId(streamId)).thenReturn(10L);
         when(chatRepository.countByStreamId(streamId)).thenReturn(5L);
         

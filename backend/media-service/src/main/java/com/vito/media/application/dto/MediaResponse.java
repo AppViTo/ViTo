@@ -5,11 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDateTime;
 
-public record UploadMediaRequest(
-        @NotBlank(message = "Event ID is required")
-        String eventId
-) {}
-
 public record MediaResponse(
         String id,
         String eventId,
@@ -41,8 +36,3 @@ public record MediaResponse(
         );
     }
 }
-
-public record PresignedUrlResponse(
-        String url,
-        long expirationMinutes
-) {}
