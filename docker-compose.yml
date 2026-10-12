@@ -8,8 +8,8 @@ services:
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: vito_password
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?definir en .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?definir en .env}
       MONGO_INITDB_DATABASE: vito_db
     volumes:
       - mongodb_data:/data/db

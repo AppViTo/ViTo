@@ -30,42 +30,20 @@ fi
 
 # Create .env file if it doesn't exist
 if [ ! -f .env ]; then
-    echo "📝 Creating .env file from template..."
-    cat > .env << EOF
-# ViTo Environment Variables
-
-# MongoDB
-MONGODB_URI=mongodb://admin:vito_password@localhost:27017/vito_db?authSource=admin
-MONGODB_DB_NAME=vito_db
-
-# Redis
-REDIS_URL=redis://localhost:6379
-
-# Kafka
-KAFKA_BOOTSTRAP_SERVERS=localhost:9092
-
-# JWT
-JWT_SECRET=vito-super-secret-jwt-key-change-in-production-2024
-JWT_EXPIRATION=86400
-JWT_REFRESH_EXPIRATION=604800
-
-# S3/MinIO
-S3_ENDPOINT=http://localhost:9000
-S3_BUCKET=vito-media
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadmin
-
-# SRS Media Server
-SRS_API_URL=http://localhost:1985
-WEBRTC_STUN_URL=stun:stun.l.google.com:19302
-
-# App URLs
-API_BASE_URL=http://localhost:8081
-STREAM_BASE_URL=http://localhost:1935
-
-# Debug
-LOG_LEVEL=DEBUG
-EOF
+    echo "📝 Creating .env from .env.example with random secrets..."
+    if ! command -v openssl &> /dev/null; then
+        echo "❌ openssl is required to generate secrets."
+        exit 1
+    fi
+    rand() { openssl rand -base64 "$1" | tr -d '\n/+='; }
+    MONGO_PASS=$(rand 24)
+    sed -e "s|^MONGO_ROOT_PASSWORD=.*|MONGO_ROOT_PASSWORD=${MONGO_PASS}|" \
+        -e "s|<MONGO_ROOT_PASSWORD>|${MONGO_PASS}|" \
+        -e "s|^JWT_SECRET=.*|JWT_SECRET=$(rand 48)|" \
+        -e "s|^QR_SECRET=.*|QR_SECRET=$(rand 48)|" \
+        -e "s|^S3_SECRET_KEY=.*|S3_SECRET_KEY=$(rand 24)|" \
+        -e "s|^MONGO_EXPRESS_PASSWORD=.*|MONGO_EXPRESS_PASSWORD=$(rand 18)|" \
+        .env.example > .env
 fi
 
 # Start infrastructure services

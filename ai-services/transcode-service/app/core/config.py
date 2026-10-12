@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = ["*"]
     
     # MongoDB
-    MONGODB_URI: str = os.getenv("MONGODB_URI", "mongodb://admin:vito_password@localhost:27017/vito_db?authSource=admin")
+    MONGODB_URI: str  # obligatorio (env)
     MONGODB_DB_NAME: str = os.getenv("MONGODB_DB_NAME", "vito_db")
     
     # Redis
@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     # S3/MinIO
     S3_ENDPOINT: str = os.getenv("S3_ENDPOINT", "http://localhost:9000")
     S3_BUCKET: str = os.getenv("S3_BUCKET", "vito-media")
-    S3_ACCESS_KEY: str = os.getenv("S3_ACCESS_KEY", "minioadmin")
-    S3_SECRET_KEY: str = os.getenv("S3_SECRET_KEY", "minioadmin")
+    S3_ACCESS_KEY: str  # obligatorio (env)
+    S3_SECRET_KEY: str  # obligatorio (env)
     
     # FFmpeg
     FFMPEG_PATH: str = os.getenv("FFMPEG_PATH", "/usr/bin/ffmpeg")
