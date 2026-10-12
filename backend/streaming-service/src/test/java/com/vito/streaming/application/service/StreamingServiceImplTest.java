@@ -51,6 +51,21 @@ class StreamingServiceImplTest {
         );
     }
     
+    private LiveStream liveStream(String streamId) {
+        return LiveStream.builder()
+                .id(streamId)
+                .eventId("event-123")
+                .organizerId("user-123")
+                .title("Test Stream")
+                .status(LiveStream.StreamStatus.LIVE)
+                .settings(LiveStream.StreamSettings.builder()
+                        .enableChat(true)
+                        .enableReactions(true)
+                        .build())
+                .stats(LiveStream.StreamStats.builder().build())
+                .build();
+    }
+
     @Test
     void createStream_Success() {
         String eventId = "event-123";
@@ -181,8 +196,8 @@ class StreamingServiceImplTest {
                 .timestamp(LocalDateTime.now())
                 .build();
         
+        when(liveStreamRepository.findById(streamId)).thenReturn(Optional.of(liveStream(streamId)));
         when(reactionRepository.save(any(Reaction.class))).thenReturn(mockReaction);
-        when(reactionRepository.countByStreamId(streamId)).thenReturn(10L);
         
         Reaction result = streamingService.addReaction(command);
         
@@ -215,6 +230,7 @@ class StreamingServiceImplTest {
                 .timestamp(LocalDateTime.now())
                 .build();
         
+        when(liveStreamRepository.findById(streamId)).thenReturn(Optional.of(liveStream(streamId)));
         when(chatRepository.save(any(ChatMessage.class))).thenReturn(mockMessage);
         
         ChatMessage result = streamingService.sendChatMessage(command);
@@ -296,13 +312,7 @@ class StreamingServiceImplTest {
     void getStreamInfo_Success() {
         String streamId = "stream-123";
         
-        LiveStream mockStream = LiveStream.builder()
-                .id(streamId)
-                .eventId("event-123")
-                .organizerId("user-123")
-                .title("Test Stream")
-                .status(LiveStream.StreamStatus.LIVE)
-                .build();
+        LiveStream mockStream = liveStream(streamId);
         
         when(liveStreamRepository.findById(streamId)).thenReturn(Optional.of(mockStream));
         when(reactionRepository.countByStreamId(streamId)).thenReturn(10L);

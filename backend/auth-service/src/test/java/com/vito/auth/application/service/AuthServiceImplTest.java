@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Duration;
@@ -48,6 +49,8 @@ class AuthServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        // @Value no se inyecta con @InjectMocks
+        ReflectionTestUtils.setField(authService, "jwtExpiration", 900_000L);
         testUser = User.builder()
                 .id("user123")
                 .username("testuser")
