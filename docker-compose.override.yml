@@ -1,25 +1,7 @@
-version: '3.8'
-
 # Development overrides
 # This file is automatically loaded by docker-compose
 
 services:
-  # MinIO for local S3-compatible storage
-  minio:
-    image: minio/minio:latest
-    container_name: vito-minio
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY:?definir en .env}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:?definir en .env}
-    volumes:
-      - minio_data:/data
-    command: server /data --console-address ":9001"
-    networks:
-      - vito-network
-
   # MongoDB Express for database management
   mongo-express:
     image: mongo-express:latest
@@ -64,9 +46,6 @@ services:
       - kafka
     networks:
       - vito-network
-
-volumes:
-  minio_data:
 
 networks:
   vito-network:
