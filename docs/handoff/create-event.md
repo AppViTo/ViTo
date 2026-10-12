@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **Equipo responsable** | Backend: `events-service` (creación) · `media-service` (portada) · Frontend: `CreateEventScreen` (`frontend/vito_app/lib/features/events/presentation/pages/create_event_screen.dart`) |
+| **Equipo responsable** | Backend: `event-service` (creación) · `media-service` (portada) · Frontend: `CreateEventScreen` (`frontend/vito_app/lib/features/events/presentation/pages/create_event_screen.dart`) |
 | **Contrato** | [`docs/api/openapi.yaml`](../api/openapi.yaml) (tag `Events`, tag `Media`) · `asyncapi.yaml` **no existe todavía** |
 | **Fixtures** | `docs/api/fixtures/create-event/` — 🔴 **no existe** (ver §6) |
 | **Convenciones generales** | [`docs/api/CONVENTIONS.md`](../api/CONVENTIONS.md) — leer antes de empezar |

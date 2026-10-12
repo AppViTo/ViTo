@@ -29,6 +29,16 @@ El monorepo contiene ya un backend considerable (~93 endpoints Spring + 15 FastA
 - Se pueden deprecar/mover a `backend/archive/` las carpetas sin build (`events-service`, `integration-tests` sin `pom.xml`) — decisión del equipo backend, no bloqueante.
 - Los 10 desajustes ya detectados se registran como ADR-001…009 (decisión de forma) y esta (decisión de gobierno).
 
+## Actualizaciones
+
+### 2026-10-12 — se elimina `backend/events-service/`
+
+Aplicando la consecuencia anterior, se borra `backend/events-service/`: solo contenía un
+`EventsApplication.java` sin `pom.xml` y no formaba parte de ningún build. El servicio de eventos
+es **`backend/event-service/`** (paquete `com.vito.event`), que es el que enruta el gateway
+(`/api/v1/events/**` → `event-service`). `AGENTS.md` y `docs/handoff/create-event.md` se corrigen
+para usar ese nombre.
+
 ## Alternativas consideradas
 
 | Alternativa | Por qué se descarta |
