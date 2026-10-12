@@ -45,8 +45,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
     return Scaffold(
       backgroundColor: AppColors.grisCarbon,
       body: BlocListener<AuthBloc, AuthState>(
@@ -188,11 +186,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         fillColor: AppColors.grisCarbon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.grey700),
+          borderSide: const BorderSide(color: AppColors.grey700),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.grey700),
+          borderSide: const BorderSide(color: AppColors.grey700),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -233,11 +231,11 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         fillColor: AppColors.grisCarbon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.grey700),
+          borderSide: const BorderSide(color: AppColors.grey700),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.grey700),
+          borderSide: const BorderSide(color: AppColors.grey700),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
@@ -314,7 +312,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   Widget _buildDivider() {
     return Row(
       children: [
-        Expanded(child: Divider(color: AppColors.grey700)),
+        const Expanded(child: Divider(color: AppColors.grey700)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
@@ -420,7 +418,7 @@ class _SocialButton extends StatelessWidget {
         ),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          side: BorderSide(color: AppColors.grey700),
+          side: const BorderSide(color: AppColors.grey700),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),

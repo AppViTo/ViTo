@@ -1,3 +1,7 @@
+// Los valores SCREAMING_CASE de los enums son el wire format de
+// docs/api/openapi.yaml y se serializan con `.name`; renombrarlos rompería el contrato.
+// ignore_for_file: constant_identifier_names
+
 import 'package:equatable/equatable.dart';
 
 class ChatRoom extends Equatable {

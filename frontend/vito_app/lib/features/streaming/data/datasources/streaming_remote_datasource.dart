@@ -234,6 +234,6 @@ class StreamingRemoteDataSourceImpl implements StreamingRemoteDataSource {
       }
     }
     
-    throw NetworkException(message: 'Network error. Please try again.');
+    throw const NetworkException(message: 'Network error. Please try again.');
   }
 }

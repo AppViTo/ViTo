@@ -128,9 +128,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
-      throw NetworkException(message: 'Connection timeout. Please check your internet connection.');
+      throw const NetworkException(message: 'Connection timeout. Please check your internet connection.');
     }
     
-    throw NetworkException(message: 'Network error. Please try again.');
+    throw const NetworkException(message: 'Network error. Please try again.');
   }
 }

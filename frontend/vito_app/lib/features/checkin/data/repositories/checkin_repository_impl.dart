@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../../../core/error/exceptions.dart';
@@ -163,10 +164,10 @@ class CheckInRepositoryImpl implements CheckInRepository {
         }
       },
       onError: (error) {
-        print('WebSocket error: $error');
+        debugPrint('WebSocket error: $error');
       },
       onDone: () {
-        print('WebSocket connection closed');
+        debugPrint('WebSocket connection closed');
       },
     );
   }
