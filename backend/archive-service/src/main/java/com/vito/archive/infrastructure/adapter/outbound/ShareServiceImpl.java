@@ -22,7 +22,7 @@ public class ShareServiceImpl implements ShareService {
     private String baseUrl;
     
     private static final String SHARE_CODE_PREFIX = "share:";
-    private static final String SHARE_CODE_TTL_DAYS = 365;
+    private static final long SHARE_CODE_TTL_DAYS = 365;
     
     public ShareServiceImpl(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;

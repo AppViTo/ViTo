@@ -1,5 +1,6 @@
 package com.vito.streaming.infrastructure.websocket;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vito.streaming.domain.model.ChatMessage;
 import com.vito.streaming.domain.model.Reaction;
@@ -18,7 +19,9 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class StreamingWebSocketHandler extends TextWebSocketHandler {
     
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .findAndRegisterModules()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     private final Map<String, Map<String, WebSocketSession>> streamSessions = new ConcurrentHashMap<>();
     
     @Override
@@ -65,10 +68,10 @@ public class StreamingWebSocketHandler extends TextWebSocketHandler {
             
             switch (type) {
                 case "REACTION":
-                    broadcastReaction(streamId, payload);
+                    broadcastReaction(streamId, toModel(payload, streamId, Reaction.class));
                     break;
                 case "CHAT":
-                    broadcastChatMessage(streamId, payload);
+                    broadcastChatMessage(streamId, toModel(payload, streamId, ChatMessage.class));
                     break;
                 case "PING":
                     session.sendMessage(new TextMessage("{\"type\":\"PONG\"}"));
@@ -79,6 +82,19 @@ public class StreamingWebSocketHandler extends TextWebSocketHandler {
         }
     }
     
+    /**
+     * Convierte el objeto "data" del mensaje entrante ({"type": "...", "data": {...}},
+     * mismo formato que se emite) al modelo de dominio. El streamId siempre se toma de
+     * la URL de la conexión, nunca del payload del cliente.
+     */
+    @SuppressWarnings("unchecked")
+    private <T> T toModel(Map<String, Object> payload, String streamId, Class<T> type) {
+        Map<String, Object> fields = new java.util.HashMap<>(
+                payload.get("data") instanceof Map<?, ?> data ? (Map<String, Object>) data : Map.of());
+        fields.put("streamId", streamId);
+        return objectMapper.convertValue(fields, type);
+    }
+
     public void broadcastReaction(String streamId, Reaction reaction) {
         Map<String, WebSocketSession> sessions = streamSessions.get(streamId);
         if (sessions == null || sessions.isEmpty()) {

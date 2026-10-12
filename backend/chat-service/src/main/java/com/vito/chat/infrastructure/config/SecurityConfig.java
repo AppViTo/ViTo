@@ -20,7 +20,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/chat/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
-                        .anyExchange().authenticated())
+                        .anyRequest().authenticated())
                 .build();
     }
 }

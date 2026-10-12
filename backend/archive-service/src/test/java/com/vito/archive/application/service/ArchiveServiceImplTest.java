@@ -144,7 +144,7 @@ class ArchiveServiceImplTest {
         
         assertNotNull(result);
         assertEquals("Updated Title", result.getTitle());
-        assertTrue(result.getSharing().isIsPublic());
+        assertTrue(result.getSharing().isPublic());
         
         verify(archiveRepository, times(1)).save(any(EventArchive.class));
         verify(eventPublisher, times(1)).publishArchiveUpdated(any(EventArchive.class));
