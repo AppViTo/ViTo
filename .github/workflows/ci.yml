@@ -97,6 +97,9 @@ jobs:
           pytest --cov=app --cov-report=xml --cov-report=html
         env:
           REDIS_URL: redis://localhost:6379
+          MONGODB_URI: mongodb://localhost:27017/test_db
+          S3_ACCESS_KEY: test
+          S3_SECRET_KEY: test
       
       - name: Upload coverage reports
         if: always()

@@ -7,7 +7,8 @@ spring:
   
   data:
     mongodb:
-      uri: mongodb://admin:test_password@localhost:27017/vito_events?authSource=admin
+      uri: ${MONGODB_URI}
+      database: vito_events
   
   redis:
     host: localhost
@@ -20,7 +21,10 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 jwt:
-  secret: ${JWT_SECRET:your-256-bit-secret-key-for-jwt-token-validation}
+  secret: ${JWT_SECRET}
+
+qr:
+  secret: ${QR_SECRET}
 
 logging:
   level:

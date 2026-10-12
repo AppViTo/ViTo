@@ -23,10 +23,10 @@ public class S3StorageAdapter implements StoragePort {
     @Value("${s3.endpoint:http://localhost:9000}")
     private String s3Endpoint;
 
-    @Value("${s3.access-key:minioadmin}")
+    @Value("${s3.access-key}")
     private String accessKey;
 
-    @Value("${s3.secret-key:minioadmin}")
+    @Value("${s3.secret-key}")
     private String secretKey;
 
     @Value("${s3.bucket:vito-media}")

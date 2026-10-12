@@ -2,6 +2,7 @@ package com.vito.event.infrastructure.adapter.outbound.qr;
 
 import com.vito.event.domain.port.outbound.QRCodeGenerator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.MessageDigest;
@@ -13,7 +14,8 @@ import java.util.UUID;
 @Component
 public class QRCodeGeneratorImpl implements QRCodeGenerator {
     
-    private static final String SECRET_KEY = "vito-qr-secret-key-2024";
+    @Value("${qr.secret}")
+    private String secretKey;
     
     @Override
     public String generateCheckInQR(String eventId, String userId) {
@@ -21,7 +23,7 @@ public class QRCodeGeneratorImpl implements QRCodeGenerator {
         
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest((payload + SECRET_KEY).getBytes());
+            byte[] hash = digest.digest((payload + secretKey).getBytes());
             
             String qrCode = Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
             
