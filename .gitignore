@@ -1,1 +1,53 @@
+# ── Secrets / entorno ─────────────────────────────────────────
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+
+# ── Java / Maven / Spring Boot ────────────────────────────────
+target/
+**/bin/
+*.class
+*.log
+hs_err_pid*
+.mvn/wrapper/maven-wrapper.jar
+
+# ── IDEs ──────────────────────────────────────────────────────
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ── Flutter / Dart (complementa frontend/vito_app/.gitignore) ─
+frontend/vito_app/build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# ── Node ──────────────────────────────────────────────────────
+node_modules/
+
+# ── SO ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*
