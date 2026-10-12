@@ -1,5 +1,5 @@
-// Los valores SCREAMING_CASE de los enums son el wire format de
-// docs/api/openapi.yaml y se serializan con `.name`; renombrarlos rompería el contrato.
+// Los nombres de los enums se serializan tal cual (`.name`) y deben coincidir
+// con los valores en MAYÚSCULAS del contrato (docs/api). No renombrar.
 // ignore_for_file: constant_identifier_names
 
 import 'package:equatable/equatable.dart';
