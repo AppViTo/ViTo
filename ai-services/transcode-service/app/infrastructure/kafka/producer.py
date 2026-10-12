@@ -13,7 +13,6 @@ class KafkaProducer:
             'client.id': 'transcode-service-producer',
             'acks': 'all'
         })
-        self._ensure_topics()
     
     def _ensure_topics(self):
         """Ensure required topics exist."""
@@ -35,8 +34,9 @@ class KafkaProducer:
             admin_client.create_topics(new_topics)
     
     async def start(self):
-        """Start the producer."""
-        pass
+        """Start the producer. Topics are ensured here (lifespan), not on import,
+        so importing the app never requires a reachable broker."""
+        self._ensure_topics()
     
     async def stop(self):
         """Stop the producer."""
