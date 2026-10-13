@@ -44,6 +44,13 @@
 /README.md                  @alexvilla01 @bamg359
 
 # ------------------------------------------------------------------
+# SPEC KIT (SDD) — artefactos compartidos vs. skills por agente
+# ------------------------------------------------------------------
+/.specify/                  @alexvilla01 @bamg359
+/.claude/                   @bamg359
+/.opencode/                 @alexvilla01
+
+# ------------------------------------------------------------------
 # Por defecto: el dueño del repo
 # ------------------------------------------------------------------
 *                           @alexvilla01
