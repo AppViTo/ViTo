@@ -16,6 +16,9 @@ concurrency:
 env:
   # Mismo pin que el job flutter-app de ci.yml (pubspec.lock lo exige)
   FLUTTER_VERSION: '3.47.x'
+  # CLI de Vercel fijada: un `npm install -g vercel` sin versión ejecuta en el deploy
+  # lo último que se publique en npm. Actualizar a propósito, no por accidente.
+  VERCEL_CLI_VERSION: '60.1.3'
 
 jobs:
   deploy:
@@ -35,6 +38,16 @@ jobs:
         working-directory: frontend/vito_app
         run: flutter pub get
 
+      # Puerta de calidad: este workflow corre en paralelo a ci.yml, así que sin
+      # estos pasos se publicaría a producción aunque el análisis o los tests fallen.
+      - name: Analyze
+        working-directory: frontend/vito_app
+        run: flutter analyze --fatal-infos
+
+      - name: Test
+        working-directory: frontend/vito_app
+        run: flutter test
+
       - name: Build web
         working-directory: frontend/vito_app
         env:
@@ -42,17 +55,18 @@ jobs:
           API_BASE_URL: ${{ vars.VITO_API_BASE_URL }}
           WS_BASE_URL: ${{ vars.VITO_WS_BASE_URL }}
         run: |
-          FLAGS=""
-          [ -n "$API_BASE_URL" ] && FLAGS="$FLAGS --dart-define=API_BASE_URL=$API_BASE_URL"
-          [ -n "$WS_BASE_URL" ] && FLAGS="$FLAGS --dart-define=WS_BASE_URL=$WS_BASE_URL"
-          flutter build web --release $FLAGS
+          # ENVIRONMENT=production activa Env.isProduction (por defecto es 'development')
+          FLAGS=(--dart-define=ENVIRONMENT=production)
+          [ -n "$API_BASE_URL" ] && FLAGS+=("--dart-define=API_BASE_URL=$API_BASE_URL")
+          [ -n "$WS_BASE_URL" ] && FLAGS+=("--dart-define=WS_BASE_URL=$WS_BASE_URL")
+          flutter build web --release "${FLAGS[@]}"
 
       # Vercel lee vercel.json desde el directorio desplegado: copiarlo a build/web
       - name: Copy vercel.json into build output
         run: cp frontend/vito_app/vercel.json frontend/vito_app/build/web/vercel.json
 
       - name: Install Vercel CLI
-        run: npm install -g vercel
+        run: npm install -g "vercel@${VERCEL_CLI_VERSION}"
 
       # Despliega build/web como sitio estático en el proyecto vito-app (producción).
       # Se corre desde dentro de build/web (misma forma que el deploy manual validado).
