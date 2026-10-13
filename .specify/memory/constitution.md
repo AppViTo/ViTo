@@ -281,7 +281,7 @@ en CI o staging.
 | O-21 | P1 | X | Spring Boot 3.2.1 y Java 17 en CI; la línea 3.2 ya no recibe soporte OSS. | Spring Boot en versión soportada, Java 21. |
 | O-22 | P1 | III/IX | Redis sin `requirepass` efectivo en compose (el `redis.conf` montado no se usa en `command`); Mongo y Kafka exponen puertos en el host. | Auth y red privada en todos los datastores. |
 | O-23 | P2 | II | `JwtAuthenticationFilter` duplicado en 7 servicios; `backend/java/` sin uso aparente. | Librería compartida; directorios huérfanos eliminados. |
-| O-24 | P1 | — | `.github/CODEOWNERS` usa `@backend-lead` (placeholder); `CONTRIBUTING.md` exige `develop` pero los PR recientes van a `main`. | Handles reales, protección de rama activa y flujo de ramas acordado. |
+| O-24 | P1 | — | `CONTRIBUTING.md` exige `develop` pero los PR recientes van a `main`. | Protección de rama activa con CODEOWNERS y flujo de ramas acordado. |
 | O-25 | P2 | IX | Documentos binarios (`*.docx`) versionados en la raíz; sin política de datos personales ni retención. | Documentos movidos a `docs/` o fuera del repo; política publicada. |
 
 ## Flujo de Desarrollo SDD y Puertas de Calidad
