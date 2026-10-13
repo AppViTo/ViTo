@@ -2,7 +2,7 @@
 
 Registro de las decisiones que afectan el contrato compartido entre el **equipo frontend** y el **equipo backend**. Son vinculantes para ambos.
 
-**Proceso:** una decisión nueva se propone por RFC (issue `contract-change`), se aprueba por ambos leads, y se registra aquí en una rama `contract/<nombre>`.
+**Proceso:** una decisión nueva se propone por RFC (issue `contract-change`), se aprueba por al menos 1 lead (CODEOWNER), y se registra aquí en una rama `contract/<nombre>`.
 
 | # | Título | Estado | Fecha |
 |---|--------|--------|-------|

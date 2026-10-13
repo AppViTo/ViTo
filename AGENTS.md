@@ -37,7 +37,7 @@ vito/
 ├── CONTRIBUTING.md                    # Reglas de colaboración entre equipos
 ├── docker-compose.yml
 ├── .github/
-│   ├── CODEOWNERS                     # Dueños de cada área (docs/api = ambos leads)
+│   ├── CODEOWNERS                     # Dueños de cada área (basta 1 aprobación de un dueño)
 │   ├── pull_request_template.md
 │   ├── ISSUE_TEMPLATE/
 │   │   └── contract-change.md         # RFC para cambiar el contrato
@@ -315,7 +315,7 @@ Antes de escribir cualquier endpoint o modificar `docs/api/`, leer:
 Reglas inquebrables:
 
 - **Nadie implementa un endpoint que no esté en `docs/api/openapi.yaml`** (o `asyncapi.yaml` para WS).
-- Si falta algo → issue con template `contract-change` → PR al contrato **aprobado por ambos leads** → solo entonces se implementa.
+- Si falta algo → issue con template `contract-change` → PR al contrato **aprobado por al menos 1 lead (CODEOWNER)** → solo entonces se implementa.
 - Ante contradicción "el código dice X / el contrato dice Y" → **gana el contrato** (`docs/decisions/adr-010`: el backend existente es referencia, no fuente de verdad).
 - Todo endpoint nuevo lleva: `operationId`, ejemplos, `ErrorResponse` en 4xx/5xx y fixture en `docs/api/fixtures/`.
 

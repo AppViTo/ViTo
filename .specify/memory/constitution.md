@@ -16,7 +16,7 @@ DEBE cumplirla. Usa las palabras clave MUST / SHOULD / MAY en el sentido de RFC 
   evento Kafka se implementa si no existe primero en el contrato (ADR-010: el código backend
   es referencia, no fuente de verdad).
 - Todo cambio de contrato sigue el proceso RFC de `CONTRIBUTING.md` §4: issue
-  `contract-change` → rama `contract/<nombre>` → aprobación de **ambos leads** → ADR si la
+  `contract-change` → rama `contract/<nombre>` → aprobación de **al menos 1 lead** (CODEOWNER, distinto del autor) → ADR si la
   decisión es relevante → implementación.
 - Cada operación DEBE tener `operationId`, ejemplos, `ErrorResponse` en 4xx/5xx y fixture
   en `docs/api/fixtures/`. Las convenciones de `docs/api/CONVENTIONS.md` y los ADR 001–010
@@ -225,7 +225,7 @@ servicio secundario.
   TODO) · Kafka (KRaft) · Spring Cloud Gateway · SRS para media · S3/MinIO · Docker ·
   Kubernetes + ArgoCD · GitHub Actions · OpenTelemetry + Prometheus + Grafana.
 - Añadir una tecnología, servicio o base de datos fuera del stack exige ADR aprobado por
-  ambos leads con justificación de por qué lo existente no basta.
+  al menos 1 lead (CODEOWNER) con justificación de por qué lo existente no basta.
 - Un servicio nuevo solo se crea si tiene datos propios y ciclo de despliegue
   independiente; si no, es un módulo de un servicio existente (YAGNI).
 - Las versiones de framework DEBEN estar dentro de soporte del proveedor; subir de versión
@@ -306,8 +306,9 @@ en CI o staging.
 - Compilación + tests + cobertura (IV) de los componentes tocados.
 - Lint de contrato (Spectral, AsyncAPI) y prueba de contrato (fixtures / schemathesis).
 - ArchUnit (II), escaneo de dependencias, imágenes y secretos (III).
-- Revisión aprobada por CODEOWNERS; `docs/api/**`, `docs/decisions/**`, infra y CI requieren
-  ambos leads.
+- Revisión aprobada por al menos 1 CODEOWNER de cada ruta tocada, distinto del autor del PR
+  (incluye `docs/api/**`, `docs/decisions/**`, infra y CI). Mientras el plan de GitHub no
+  permita protección de rama, esta puerta se cumple por acuerdo del equipo.
 
 **Definición de Done:** la de `CONTRIBUTING.md` §5 más: métricas y trazas visibles en
 staging, manifiestos/overlays actualizados, y escenario k6 en verde si toca un SLO.
@@ -324,7 +325,8 @@ de guardia.
   `CONTRIBUTING.md` > `AGENTS.md` > código existente.
 - **Enmiendas:** se proponen por PR a `.specify/memory/constitution.md` en rama
   `docs/constitution-<tema>`, con el Sync Impact Report actualizado; requieren aprobación de
-  ambos leads (frontend y backend) y, si afecta infraestructura, del rol DevOps.
+  al menos 1 lead (frontend o backend) distinto del autor; el otro lead DEBE quedar como
+  revisor solicitado para que esté informado.
 - **Versionado semántico:** MAJOR al eliminar o redefinir un principio de forma
   incompatible; MINOR al añadir un principio o sección o ampliar materialmente una regla;
   PATCH en aclaraciones y redacción.
@@ -337,4 +339,4 @@ de guardia.
 - Guía operativa en tiempo de desarrollo: `AGENTS.md`, `CONTRIBUTING.md` y
   `docs/api/CONVENTIONS.md`.
 
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): pendiente de aprobación por ambos leads | **Last Amended**: 2026-10-12
+**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): pendiente de aprobación por al menos 1 lead | **Last Amended**: 2026-10-12

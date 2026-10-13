@@ -11,15 +11,17 @@ Guía de colaboración para el **equipo frontend** y el **equipo backend** que t
 
 | Área | Ruta | Dueño | Quién aprueba |
 |------|------|-------|---------------|
-| Contrato de API | `docs/api/**` | Frontend (lead) | **Ambos leads** |
-| Decisiones de contrato | `docs/decisions/**` | Frontend (lead) | **Ambos leads** |
+| Contrato de API | `docs/api/**` | Frontend (lead) | **Al menos 1 lead** (CODEOWNER) |
+| Decisiones de contrato | `docs/decisions/**` | Frontend (lead) | **Al menos 1 lead** (CODEOWNER) |
 | Handoffs a backend | `docs/handoff/**` | Frontend | Frontend lead |
 | Frontend Flutter | `frontend/**` | Frontend | Frontend lead |
 | Backend Java/Python | `backend/**`, `ai-services/**` | Backend | Backend lead |
-| Infra y CI | `infrastructure/**`, `.github/workflows/**` | DevOps | Ambos leads |
-| Docs de arquitectura | `docs/architecture.md`, `AGENTS.md` | Ambos | Ambos leads |
+| Infra y CI | `infrastructure/**`, `.github/workflows/**` | DevOps | Al menos 1 lead (CODEOWNER) |
+| Docs de arquitectura | `docs/architecture.md`, `AGENTS.md` | Ambos | Al menos 1 lead (CODEOWNER) |
 
-Esto está codificado en `.github/CODEOWNERS`. Sin aprobación del dueño, el PR no se mergea.
+Esto está codificado en `.github/CODEOWNERS`. Cuando una ruta tiene varios dueños, **basta la aprobación de uno de ellos** (semántica nativa de GitHub). Sin al menos una aprobación de un dueño, el PR no se mergea.
+
+> Nota: la protección de rama no está disponible en el plan actual de la organización (repo privado en plan Free), así que esta regla hoy se cumple por acuerdo del equipo, no por GitHub. Al pasar a GitHub Team se activará en `main` y `develop`: aprobación requerida de CODEOWNERS, mínimo 1 aprobación, sin push directo y CI en verde.
 
 ---
 
@@ -47,7 +49,7 @@ Convenciones:
 1. Crear rama desde develop:     git checkout develop && git pull && git checkout -b frontend/<nombre>
 2. Trabajar y commitear          convención de commits abajo
 3. Push y abrir PR → develop     checklist del PR template
-4. Aprobación del CODEOWNERS     docs/api/** requiere aprobación de AMBOS leads
+4. Aprobación del CODEOWNERS     al menos 1 dueño de las rutas tocadas (el autor no cuenta)
 5. Merge (squash)                borrar la rama
 ```
 
@@ -86,7 +88,7 @@ Cualquier cambio a `docs/api/openapi.yaml` o `docs/api/asyncapi.yaml` sigue **si
    - actualizar openapi.yaml / asyncapi.yaml
    - actualizar o crear los fixtures en docs/api/fixtures/
    - registrar la decisión en docs/decisions/adr-NNN.md
-4. PR a develop → requiere aprobación de AMBOS leads
+4. PR a develop → requiere aprobación de al menos 1 lead (CODEOWNER), distinto del autor
 5. Los equipos actualizan su código en el mismo sprint
 ```
 
