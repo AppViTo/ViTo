@@ -9,8 +9,8 @@
 # ------------------------------------------------------------------
 # CONTRATO DE API — requiere aprobación de AMBOS leads
 # ------------------------------------------------------------------
-/docs/api/                  @alexvilla01 @backend-lead
-/docs/decisions/            @alexvilla01 @backend-lead
+/docs/api/                  @alexvilla01 @bamg359
+/docs/decisions/            @alexvilla01 @bamg359
 
 # ------------------------------------------------------------------
 # HANDOFFS — equipo frontend
@@ -25,23 +25,23 @@
 # ------------------------------------------------------------------
 # BACKEND — equipo backend
 # ------------------------------------------------------------------
-/backend/                   @backend-lead
-/ai-services/               @backend-lead
+/backend/                   @bamg359
+/ai-services/               @bamg359
 
 # ------------------------------------------------------------------
 # INFRAESTRUCTURA Y CI — requiere ambos
 # ------------------------------------------------------------------
-/.github/                   @alexvilla01 @backend-lead
-/infrastructure/            @alexvilla01 @backend-lead
-/docker-compose.yml         @alexvilla01 @backend-lead
-/docker-compose.override.yml @alexvilla01 @backend-lead
+/.github/                   @alexvilla01 @bamg359
+/infrastructure/            @alexvilla01 @bamg359
+/docker-compose.yml         @alexvilla01 @bamg359
+/docker-compose.override.yml @alexvilla01 @bamg359
 
 # ------------------------------------------------------------------
 # DOCUMENTACIÓN COMPARTIDA — requiere ambos
 # ------------------------------------------------------------------
-/AGENTS.md                  @alexvilla01 @backend-lead
-/docs/architecture.md       @alexvilla01 @backend-lead
-/README.md                  @alexvilla01 @backend-lead
+/AGENTS.md                  @alexvilla01 @bamg359
+/docs/architecture.md       @alexvilla01 @bamg359
+/README.md                  @alexvilla01 @bamg359
 
 # ------------------------------------------------------------------
 # Por defecto: el dueño del repo
