@@ -84,9 +84,9 @@ vito/
 │   │   ├── src/main/resources/
 │   │   └── pom.xml
 │   │
-│   ├── events-service/                  # Spring Boot - Eventos y QR
-│   │   ├── src/main/java/com/vito/events/
-│   │   │   ├── EventsApplication.java
+│   ├── event-service/                   # Spring Boot - Eventos, invitaciones y RSVP
+│   │   ├── src/main/java/com/vito/event/
+│   │   │   ├── EventServiceApplication.java
 │   │   │   ├── domain/
 │   │   │   │   ├── model/
 │   │   │   │   │   ├── Event.java

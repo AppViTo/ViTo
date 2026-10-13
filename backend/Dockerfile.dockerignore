@@ -1,0 +1,11 @@
+# Se aplica al contexto de cada servicio cuando se construye con backend/Dockerfile
+target/
+bin/
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+*.log
+.env
+.env.*
