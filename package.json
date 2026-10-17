@@ -1,0 +1,21 @@
+{
+  "name": "vito-contract-tooling",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tooling del contrato ejecutable de ViTo: lint OpenAPI/AsyncAPI y mock REST (Prism). No es un paquete de aplicación; solo existe para que el circuito contrato → mock → test funcione.",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "lint:api": "spectral lint docs/api/openapi.yaml",
+    "lint:async": "asyncapi validate docs/api/asyncapi.yaml",
+    "mock:api": "prism mock docs/api/openapi.yaml --dynamic --port 4010 --host 0.0.0.0",
+    "mock:ws": "node -e \"console.error('[T-C05] mock:ws pendiente: docs/api/asyncapi.yaml todavía no existe. Ver docs/roadmap/tasks.md (T-C05).'); process.exit(1)\""
+  },
+  "devDependencies": {
+    "@asyncapi/cli": "6.2.1",
+    "@stoplight/prism-cli": "5.16.0",
+    "@stoplight/spectral-cli": "6.17.0"
+  }
+}
