@@ -9,6 +9,21 @@ ViTo es una plataforma de **ciclo de vida de eventos sociales** que integra:
 - Streaming unidireccional con reacciones en tiempo real
 - Archivo post-evento con opción de compartir
 
+## LEER PRIMERO (todo agente, antes de escribir código)
+
+1. **`docs/handoff/AGENT-BRIEF.md`** — contexto completo, estado real del repo, reglas y ciclo de trabajo.
+2. **`docs/roadmap/tasks.md`** — backlog único. Solo se implementan tareas en estado 🟢 `READY`.
+3. **`.specify/memory/constitution.md`** — prevalece sobre este archivo. Jerarquía:
+   constitución > ADR > CONVENTIONS > contrato > CONTRIBUTING > `docs/roadmap/` > AGENTS > código.
+
+> **Aviso de vigencia (2026-10-16):** la tabla de stack y la estructura de carpetas de
+> abajo describen el **objetivo**, no el estado actual. Diferencias conocidas: el código
+> usa Redis 7.2 (no Dragonfly), rutas estáticas (no Eureka), SeaweedFS (no S3/MinIO) y
+> solo Docker Compose; existen además `checkin-service`, `mosaic-service` y
+> `archive-service`. Kubernetes/ArgoCD, Kafka, Atlas, almacenamiento y observabilidad
+> están **en revisión por costo** (decisión D-02 en `docs/roadmap/decisions-pending.md`).
+> El estado real está en la sección 6 del AGENT-BRIEF.
+
 ## STACK TECNOLÓGICO
 
 | Capa | Tecnología |
@@ -37,7 +52,7 @@ vito/
 ├── CONTRIBUTING.md                    # Reglas de colaboración entre equipos
 ├── docker-compose.yml
 ├── .github/
-│   ├── CODEOWNERS                     # Dueños de cada área (docs/api = ambos leads)
+│   ├── CODEOWNERS                     # Dueños de cada área (basta 1 aprobación de un dueño)
 │   ├── pull_request_template.md
 │   ├── ISSUE_TEMPLATE/
 │   │   └── contract-change.md         # RFC para cambiar el contrato
@@ -311,11 +326,12 @@ Antes de escribir cualquier endpoint o modificar `docs/api/`, leer:
 1. **`CONTRIBUTING.md`** — ramas, commits, proceso RFC, cadencia.
 2. **`docs/api/CONVENTIONS.md`** — cómo se formatean las respuestas (array plano, envelope de error único, auth Bearer + headers `X-User-*`, enums, paginación).
 3. **`docs/decisions/README.md`** — los ADR ya aprobados; son vinculantes.
+4. **`docs/roadmap/endpoint-inventory.md`** — decisión propuesta para cada endpoint del código y ola en la que entra al contrato.
 
 Reglas inquebrables:
 
 - **Nadie implementa un endpoint que no esté en `docs/api/openapi.yaml`** (o `asyncapi.yaml` para WS).
-- Si falta algo → issue con template `contract-change` → PR al contrato **aprobado por ambos leads** → solo entonces se implementa.
+- Si falta algo → issue con template `contract-change` → PR al contrato **aprobado por al menos 1 lead (CODEOWNER)** → solo entonces se implementa.
 - Ante contradicción "el código dice X / el contrato dice Y" → **gana el contrato** (`docs/decisions/adr-010`: el backend existente es referencia, no fuente de verdad).
 - Todo endpoint nuevo lleva: `operationId`, ejemplos, `ErrorResponse` en 4xx/5xx y fixture en `docs/api/fixtures/`.
 

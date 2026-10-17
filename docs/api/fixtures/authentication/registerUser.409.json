@@ -1,0 +1,6 @@
+{
+  "error": "CONFLICT",
+  "message": "El email ya está registrado",
+  "status": 409,
+  "timestamp": "2026-10-16T14:03:22Z"
+}

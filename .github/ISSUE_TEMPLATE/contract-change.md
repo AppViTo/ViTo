@@ -10,7 +10,7 @@ PROCESO OBLIGATORIO
 1. Rellenar este RFC.
 2. Discusión en este issue.
 3. Si se aprueba: rama contract/<nombre> → PR con el diff del contrato
-   (+ fixtures + ADR si aplica) → requiere aprobación de AMBOS leads.
+   (+ fixtures + ADR si aplica) → requiere aprobación de al menos 1 lead (CODEOWNER).
 4. Los equipos actualizan su código en el mismo sprint.
 Nunca se implementa primero y se documenta después.
 -->

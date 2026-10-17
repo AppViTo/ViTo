@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "El campo title es obligatorio",
+  "status": 400,
+  "timestamp": "2026-10-16T14:03:22Z",
+  "details": {
+    "title": "Mínimo 3 caracteres"
+  }
+}

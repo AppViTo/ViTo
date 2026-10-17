@@ -2,48 +2,63 @@
 # Documentación: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 #
 # Formato: <ruta>  <usuario-o-equipo>
-# Nota: los usuarios deben existir en el repositorio. Ajusta los handles
-# a los usuarios reales de GitHub de cada lead antes de activar la protección
-# de rama en Settings > Branches.
+# Nota: cuando una ruta lista varios dueños, basta la aprobación de UNO de
+# ellos (semántica de GitHub). La protección de rama no está disponible en el
+# plan actual (repo privado en Free); hoy la regla se cumple por acuerdo.
+#
+# Revisión cruzada: toda área de código tiene a los dos leads como dueños para
+# que siempre exista un CODEOWNER distinto del autor (GitHub no cuenta la
+# aprobación del autor). El lead del área va primero y es el revisor por
+# defecto; el otro lead aprueba cuando el autor es el propio lead del área.
 
 # ------------------------------------------------------------------
-# CONTRATO DE API — requiere aprobación de AMBOS leads
+# CONTRATO DE API — requiere aprobación de al menos 1 lead
 # ------------------------------------------------------------------
-/docs/api/                  @alexvilla01 @backend-lead
-/docs/decisions/            @alexvilla01 @backend-lead
+/docs/api/                  @alexvilla01 @bamg359
+/docs/decisions/            @alexvilla01 @bamg359
 
 # ------------------------------------------------------------------
-# HANDOFFS — equipo frontend
+# HANDOFFS Y HOJA DE RUTA — lead del área primero
 # ------------------------------------------------------------------
-/docs/handoff/              @alexvilla01
+/docs/handoff/              @alexvilla01 @bamg359
+/docs/roadmap/              @alexvilla01 @bamg359
 
 # ------------------------------------------------------------------
-# FRONTEND — equipo frontend
+# FRONTEND — lead frontend primero
 # ------------------------------------------------------------------
-/frontend/                  @alexvilla01
+/frontend/                  @alexvilla01 @bamg359
 
 # ------------------------------------------------------------------
-# BACKEND — equipo backend
+# BACKEND — lead backend primero
 # ------------------------------------------------------------------
-/backend/                   @backend-lead
-/ai-services/               @backend-lead
+/backend/                   @bamg359 @alexvilla01
+/ai-services/               @bamg359 @alexvilla01
 
 # ------------------------------------------------------------------
-# INFRAESTRUCTURA Y CI — requiere ambos
+# INFRAESTRUCTURA Y CI — requiere al menos 1 lead
 # ------------------------------------------------------------------
-/.github/                   @alexvilla01 @backend-lead
-/infrastructure/            @alexvilla01 @backend-lead
-/docker-compose.yml         @alexvilla01 @backend-lead
-/docker-compose.override.yml @alexvilla01 @backend-lead
+/.github/                   @alexvilla01 @bamg359
+/infrastructure/            @alexvilla01 @bamg359
+/docker-compose.yml         @alexvilla01 @bamg359
+/docker-compose.override.yml @alexvilla01 @bamg359
 
 # ------------------------------------------------------------------
-# DOCUMENTACIÓN COMPARTIDA — requiere ambos
+# DOCUMENTACIÓN COMPARTIDA — requiere al menos 1 lead
 # ------------------------------------------------------------------
-/AGENTS.md                  @alexvilla01 @backend-lead
-/docs/architecture.md       @alexvilla01 @backend-lead
-/README.md                  @alexvilla01 @backend-lead
+/AGENTS.md                  @alexvilla01 @bamg359
+/docs/architecture.md       @alexvilla01 @bamg359
+/README.md                  @alexvilla01 @bamg359
 
 # ------------------------------------------------------------------
-# Por defecto: el dueño del repo
+# SPEC KIT (SDD) — artefactos compartidos vs. skills por agente
+# (.claude/ y .opencode/ son la configuración del agente de cada lead: un
+# solo dueño a propósito.)
 # ------------------------------------------------------------------
-*                           @alexvilla01
+/.specify/                  @alexvilla01 @bamg359
+/.claude/                   @bamg359
+/.opencode/                 @alexvilla01
+
+# ------------------------------------------------------------------
+# Por defecto: ambos leads
+# ------------------------------------------------------------------
+*                           @alexvilla01 @bamg359

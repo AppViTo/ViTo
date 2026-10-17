@@ -2,7 +2,9 @@
 
 Registro de las decisiones que afectan el contrato compartido entre el **equipo frontend** y el **equipo backend**. Son vinculantes para ambos.
 
-**Proceso:** una decisión nueva se propone por RFC (issue `contract-change`), se aprueba por ambos leads, y se registra aquí en una rama `contract/<nombre>`.
+**Proceso:** una decisión nueva se propone por RFC (issue `contract-change`), se aprueba por al menos 1 lead (CODEOWNER), y se registra aquí en una rama `contract/<nombre>`.
+
+**Decisiones abiertas:** las pendientes (D-01..D-08) están en [`docs/roadmap/decisions-pending.md`](../roadmap/decisions-pending.md). Al cerrarse, cada una se convierte en el siguiente ADR (011 en adelante) y se marca allí con su número.
 
 | # | Título | Estado | Fecha |
 |---|--------|--------|-------|

@@ -53,7 +53,7 @@ public class EventController {
     
     @GetMapping("/{eventId}")
     public ResponseEntity<Event> getEvent(@PathVariable String eventId) {
-        Event event = eventService.getEvent(eventId);
+        Event event = eventService.getEvent(eventId, getCurrentUserId());
         return ResponseEntity.ok(event);
     }
     
@@ -70,7 +70,7 @@ public class EventController {
     public ResponseEntity<List<Event>> getUpcomingEvents(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        List<Event> events = eventService.getUpcomingEvents(page, size);
+        List<Event> events = eventService.getUpcomingEvents(page, size, getCurrentUserId());
         return ResponseEntity.ok(events);
     }
     

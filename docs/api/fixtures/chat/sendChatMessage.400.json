@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "El campo content supera los 5000 caracteres",
+  "status": 400,
+  "timestamp": "2026-10-16T14:03:22Z",
+  "details": {
+    "content": "Máximo 5000 caracteres"
+  }
+}
