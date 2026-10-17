@@ -36,7 +36,7 @@ public class MediaServiceImpl implements MediaService {
     @Value("${media.allowed-types:image/jpeg,image/png,image/gif,video/mp4,video/webm,audio/mpeg}")
     private String allowedTypes;
 
-    @Value("${media.s3.bucket:vito-media}")
+    @Value("${s3.bucket}")
     private String bucketName;
 
     @Override

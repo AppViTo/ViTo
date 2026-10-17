@@ -15,9 +15,9 @@ Las opciones listadas son las que salieron del análisis del 2026-10-16. **La co
 | D-04 | Mensajería durable del MVP (Kafka vs alternativa) | Ola 3, O-16/O-17 | ver §D-02.b | ✅ ADR-011 (Kafka KRaft, 1 broker) |
 | D-05 | Estrategia de código compartido Java (`shared-*`) | T-B03, O-23 | ver §D-05 | ⏳ |
 | D-06 | Identidad en el WS de chat (`?userId=`) | T-B06, T-F04 (parte chat) | ver §D-06 | ⏳ |
-| D-07 | Estrategia de ramas (`develop` vs `main`) | O-24, **T-I08 (deploy)** | ver §D-07 | ⏳ **prioritaria** |
+| D-07 | Estrategia de ramas (`develop` vs `main`) | O-24, **T-I08 (deploy)** | ver §D-07 | ✅ [ADR-012](../decisions/adr-012-branching-and-release.md) |
 | D-08 | Aprobación del triage de `endpoint-inventory.md` | Olas 1–6 | aprobar por ola | ⏳ |
-| D-09 | Titularidad de cuentas y medio de pago de la infraestructura | T-I06 (aprovisionar) | ver §D-09 | ⏳ **prioritaria** |
+| D-09 | Titularidad de cuentas y medio de pago de la infraestructura | T-I06 (aprovisionar) | ver §D-09 | ✅ [ADR-013](../decisions/adr-013-account-ownership.md) |
 | D-10 | Tipo de cuenta de Google Play (personal u organización) | Publicación Android | ver §D-10 | ⏳ **prioritaria** |
 | D-11 | Modelo de monetización (qué se cobra y a quién) | Ola de pagos (nueva), primeros ingresos | ver §D-11 | ⏳ |
 | D-12 | Política de privacidad, términos y transferencia de datos (Ley 1581) | Publicación en tiendas, lanzamiento | ver §D-12 | ⏳ |
@@ -95,6 +95,10 @@ contrato → RFC.
 
 ## D-07 — Ramas
 
+> ✅ **Cerrada el 2026-10-17 por [ADR-012](../decisions/adr-012-branching-and-release.md):**
+> PR de feature a `develop`; release semanal (viernes) de `develop` a `main` con merge
+> commit; esa aprobación es la aprobación de producción.
+
 > **Impacto de ADR-011:** el despliegue a producción sale de `main`, y la aprobación
 > manual es la aprobación del PR que entra a `main`. Esta decisión define si ese PR es un
 > release semanal desde `develop` (propuesta) o cada PR de feature directo a `main`.
@@ -110,6 +114,8 @@ Aprobar (o corregir) la columna "Decisión propuesta" de `endpoint-inventory.md`
 por ola**. Aprobar la ola N desbloquea su rama `contract/<ola>`.
 
 ## D-09 — Titularidad de cuentas y medio de pago
+
+> ✅ **Cerrada el 2026-10-17 por [ADR-013](../decisions/adr-013-account-ownership.md).**
 
 ADR-011 requiere abrir cuentas en Contabo, Cloudflare (R2, Pages, dominio), Grafana Cloud,
 Brevo/Resend y Google Play, y pagarlas con tarjeta en moneda extranjera.

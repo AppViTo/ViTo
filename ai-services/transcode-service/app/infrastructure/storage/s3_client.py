@@ -1,4 +1,5 @@
 import boto3
+from botocore.config import Config
 from botocore.exceptions import ClientError
 from typing import Optional
 import os
@@ -6,7 +7,7 @@ import os
 from app.core.config import settings
 
 class S3Client:
-    def __init__(self):
+    def __init__(self, settings=settings):
         self.endpoint_url = settings.S3_ENDPOINT
         self.bucket_name = settings.S3_BUCKET
         self.access_key = settings.S3_ACCESS_KEY
@@ -17,7 +18,12 @@ class S3Client:
             endpoint_url=self.endpoint_url,
             aws_access_key_id=self.access_key,
             aws_secret_access_key=self.secret_key,
-            region_name='us-east-1'
+            region_name=settings.S3_REGION,
+            # Mismo estilo de URL para operaciones y URLs firmadas (SeaweedFS exige path)
+            config=Config(
+                signature_version='s3v4',
+                s3={'addressing_style': 'path' if settings.S3_PATH_STYLE else 'virtual'},
+            ),
         )
     
     async def upload_file(self, file_path: str, key: str) -> bool:

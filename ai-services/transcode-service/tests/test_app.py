@@ -15,6 +15,13 @@ def test_health():
     assert response.json() == {"status": "healthy", "service": "transcode-service"}
 
 
+def test_metrics_endpoint_exposes_http_metrics():
+    client.get("/health")
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "http_requests_total" in response.text
+
+
 def test_root_exposes_service_info():
     response = client.get("/")
     assert response.status_code == 200

@@ -320,7 +320,7 @@ services:
       - chat-service
       - media-service
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:9080/actuator/health/readiness"]
       interval: 15s
       timeout: 5s
       start_period: 180s   # 10 JVM arrancando a la vez en un portátil

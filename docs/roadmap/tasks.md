@@ -55,18 +55,18 @@
 | T-I01 | Higiene: `.gitignore` `backend/out/`, borrar `backend/java/` huérfano | I | P2 | 🟢 READY |
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
 | T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
-| T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | 🟢 READY |
+| T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | ✅ HECHA (#33) |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | 🟢 READY |
-| T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) |
-| T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | 🟢 READY |
+| T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | 🟢 READY |
+| T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) |
 | T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY |
-| T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | 🔴 BLOQUEADA (D-09) |
-| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔴 BLOQUEADA (D-07, T-I06, T-I07) |
-| T-I11 | Frontend web en Cloudflare Pages | I/F | P1 | 🔴 BLOQUEADA (D-09) |
-| T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (D-09, T-B14) |
+| T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | 🟢 READY (manual, leads) |
+| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔴 BLOQUEADA (T-I06, T-I07) |
+| T-I11 | Frontend web en Cloudflare Pages | I/F | P1 | 🔴 BLOQUEADA (T-I06) |
+| T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (T-I06, T-B14) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔴 BLOQUEADA (T-I07, T-I09) |
 
-Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T-B10, T-B13, T-I06, T-I08, T-I11, T-I13, T-I14.
+Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T-B10, T-B13, T-I08, T-I11, T-I13, T-I14.
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
 
 ---
@@ -287,7 +287,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - Los manifiestos de `infrastructure/kubernetes/` no se mantienen en Fase Tracción. No
   borrarlos: se retoman al cumplir el disparador de ADR-011.
 
-### T-B14 · Actuator, health y métricas en todos los servicios — 🟢 READY · P0 · O-11, Principio VI
+### T-B14 · Actuator, health y métricas en todos los servicios — ✅ HECHA (#33) · P0 · O-11, Principio VI
 - **Qué:** `spring-boot-starter-actuator` + `micrometer-registry-prometheus` en los 10
   servicios Java, con `/actuator/health/liveness`, `/actuator/health/readiness` y
   `/actuator/prometheus` (no expuestos por el gateway). En transcode y moderation, endpoint
@@ -297,9 +297,10 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** test por servicio que verifica `200` en liveness/readiness y que
   `/actuator/prometheus` responde.
 
-### T-I06 · Aprovisionar cuentas y VPS — 🔴 BLOQUEADA por D-09 · P0 · ADR-011
+### T-I06 · Aprovisionar cuentas y VPS — 🟢 READY (manual, leads) · P0 · ADR-011, ADR-013
 - **Tarea manual de los leads** (no la ejecuta un agente):
-  1. Correo de equipo y gestor de contraseñas con 2FA (D-09).
+  0. En GitHub, cambiar la rama por defecto a `develop` (ADR-012).
+  1. Correo de equipo, gestor de contraseñas con 2FA, tarjeta y hoja de gastos (ADR-013).
   2. Contabo Cloud VPS 12 GB en EE. UU.; acceso solo por llave SSH, sin login de root por
      contraseña; firewall con 22 (restringido), 80, 443, 1935 (RTMP) y los puertos UDP de
      WebRTC de SRS.
@@ -307,6 +308,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
      limitado a esos buckets.
   4. GitHub Environment `production` con `SSH_HOST`, `SSH_USER`, `SSH_KEY` y los secretos de
      `.env.example`.
+  5. Completar el inventario de cuentas de ADR-013.
 - **Cierre:** `ssh` con llave funciona, `docker compose version` en el VPS, buckets creados
   y secretos cargados en GitHub. Registrar el gasto en la hoja de D-09.
 
@@ -325,7 +327,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `docker compose ... up` en local con un `.env` de prueba levanta todo dentro de 12 GB
   (`docker stats` en el PR).
 
-### T-I08 · Pipeline de despliegue — 🔴 BLOQUEADA por D-07, T-I06, T-I07 · P0 · O-12, ADR-011
+### T-I08 · Pipeline de despliegue — 🔴 BLOQUEADA por T-I06, T-I07 · P0 · O-12, ADR-011, ADR-012
 - **Qué:** rehacer `cd.yml`: al entrar un commit a `main`, construir solo las imágenes de
   los servicios cambiados (tag = SHA), copiarlas al VPS con `docker save | ssh docker load`,
   ejecutar `docker compose up -d` con el nuevo `IMAGE_TAG` y verificar los healthchecks.
@@ -340,14 +342,14 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** el backup se genera y sube; la restauración en una base vacía recupera los
   datos (pasos y salida en el PR).
 
-### T-I10 · media-service con endpoint S3 configurable — 🟢 READY · P0 · O-32, ADR-011
+### T-I10 · media-service con endpoint S3 configurable — ✅ HECHA (#34) · P0 · O-32, ADR-011
 - **Qué:** endpoint, región, bucket y credenciales S3 por variables de entorno, con
   path-style configurable. Sin cambios de contrato. Igual para transcode y archive si
   acceden al almacenamiento.
 - **Cierre:** test de integración contra SeaweedFS local; documentación de las variables
   para R2 en `.env.example`.
 
-### T-I11 · Frontend web en Cloudflare Pages — 🔴 BLOQUEADA por D-09 · P1 · ADR-011
+### T-I11 · Frontend web en Cloudflare Pages — 🔴 BLOQUEADA por T-I06 · P1 · ADR-011
 - **Qué:** reemplazar el deploy a Vercel de `deploy-frontend.yml` por Cloudflare Pages
   (`wrangler pages deploy`), con las mismas puertas de calidad y el build estricto de T-F06.
 - **Cierre:** un merge a `main` publica la web en Pages con `API_BASE_URL`/`WS_BASE_URL` de
@@ -359,7 +361,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   GitHub Actions da 2.000 minutos al mes en repos privados.
 - **Cierre:** un PR que solo toca `frontend/` no ejecuta jobs de backend, y viceversa.
 
-### T-I13 · Observabilidad con Grafana Cloud — 🔴 BLOQUEADA por D-09, T-B14 · P1 · Principio VI
+### T-I13 · Observabilidad con Grafana Cloud — 🔴 BLOQUEADA por T-I06, T-B14 · P1 · Principio VI
 - **Qué:** Grafana Alloy (u OTel Collector) en el VPS que envía métricas, logs y trazas a
   Grafana Cloud free; dashboard RED del gateway; alertas de caída y de disco/RAM > 80 % a
   ambos leads; monitor de uptime externo.
