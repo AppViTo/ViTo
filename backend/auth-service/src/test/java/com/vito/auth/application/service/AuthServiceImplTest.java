@@ -3,6 +3,7 @@ package com.vito.auth.application.service;
 import com.vito.auth.domain.exception.AuthenticationException;
 import com.vito.auth.domain.model.User;
 import com.vito.auth.domain.port.inbound.AuthService.LoginCommand;
+import com.vito.auth.domain.port.inbound.AuthService.RefreshTokenCommand;
 import com.vito.auth.domain.port.inbound.AuthService.RegisterCommand;
 import com.vito.auth.domain.port.inbound.AuthService.AuthResult;
 import com.vito.auth.domain.port.outbound.CachePort;
@@ -91,6 +92,7 @@ class AuthServiceImplTest {
         assertEquals("access_token", result.getAccessToken());
         assertEquals("refresh_token", result.getRefreshToken());
         assertEquals(testUser, result.getUser());
+        assertEquals(900L, result.getExpiresIn(), "ADR-004: segundos (jwt.expiration = 900000 ms)");
 
         verify(userRepository).existsByUsername("newuser");
         verify(userRepository).existsByEmail("new@example.com");
@@ -168,10 +170,28 @@ class AuthServiceImplTest {
         assertEquals("access_token", result.getAccessToken());
         assertEquals("refresh_token", result.getRefreshToken());
         assertEquals(testUser, result.getUser());
+        assertEquals(900L, result.getExpiresIn());
 
         verify(userRepository).findByEmail("test@example.com");
         verify(passwordEncoder).matches("Password123", testUser.getPasswordHash());
         verify(cachePort).set(eq("refresh_token:user123"), eq("refresh_token"), any(Duration.class));
+    }
+
+    @Test
+    void refreshToken_Success_ExpiresInSeconds() {
+        when(tokenProvider.validateRefreshToken("old_refresh")).thenReturn("user123");
+        when(userRepository.findById("user123")).thenReturn(Optional.of(testUser));
+        when(cachePort.isBlacklisted("old_refresh")).thenReturn(false);
+        when(tokenProvider.generateAccessToken(any())).thenReturn("access_token");
+        when(tokenProvider.generateRefreshToken(any())).thenReturn("refresh_token");
+
+        AuthResult result = authService.refreshToken(RefreshTokenCommand.builder()
+                .refreshToken("old_refresh")
+                .build());
+
+        assertEquals("access_token", result.getAccessToken());
+        assertEquals(900L, result.getExpiresIn());
+        verify(cachePort).addToBlacklist(eq("old_refresh"), any(Duration.class));
     }
 
     @Test
