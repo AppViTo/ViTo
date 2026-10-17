@@ -5,6 +5,10 @@ Guía de colaboración para el **equipo frontend** y el **equipo backend** que t
 > **Regla de oro:** nadie implementa un endpoint que no esté en `docs/api/openapi.yaml`.
 > Si necesitas algo que no existe en el contrato, abre un RFC (issue `contract-change`), haz merge del contrato, y luego implementa.
 
+> **¿Qué hago ahora?** El trabajo se toma de [`docs/roadmap/tasks.md`](docs/roadmap/tasks.md)
+> (solo tareas 🟢 `READY`). Agentes de IA: leer primero
+> [`docs/handoff/AGENT-BRIEF.md`](docs/handoff/AGENT-BRIEF.md).
+
 ---
 
 ## 1. Estructura del repositorio y propiedad de áreas
@@ -46,12 +50,16 @@ Convenciones:
 ### Flujo
 
 ```
-1. Crear rama desde develop:     git checkout develop && git pull && git checkout -b frontend/<nombre>
+0. Tomar una tarea READY         docs/roadmap/tasks.md → marcarla 🔵 EN CURSO (<rama>)
+1. Crear rama desde develop:     git checkout develop && git pull && git checkout -b frontend/<id>-<nombre>
 2. Trabajar y commitear          convención de commits abajo
-3. Push y abrir PR → develop     checklist del PR template
+3. Push y abrir PR → develop     checklist del PR template + "Closes T-xx"
 4. Aprobación del CODEOWNERS     al menos 1 dueño de las rutas tocadas (el autor no cuenta)
-5. Merge (squash)                borrar la rama
+5. Merge (squash)                tarea ✅ HECHA (#PR) en tasks.md; borrar la rama
 ```
+
+> La estrategia `develop` → `main` está en revisión (D-07 en `docs/roadmap/decisions-pending.md`).
+> Hasta que se cierre, los PR de feature apuntan a `develop`.
 
 ---
 
@@ -100,7 +108,7 @@ Si el backend necesita variar un detalle por una limitación técnica, se discut
 
 ## 5. Definición de Done por feature
 
-La feature está terminada solo cuando **ambas** columnas están en verde:
+La feature está terminada solo cuando **las tres** columnas están en verde:
 
 | Contrato | Frontend | Backend |
 |----------|----------|---------|
@@ -145,6 +153,6 @@ cd backend/event-service && mvn clean test
 |--------|-----|
 | **Lunes, 30 min** | Kickoff de la feature de la semana. Si toca contrato → RFC ese mismo día. |
 | **Miércoles** | Sync de blockers (issues con label `blocked-by-backend` / `blocked-by-frontend`). |
-| **Viernes** | Review de integración: mocks actualizados, fixtures verificados, PRs de contrato mergeados. |
+| **Viernes** | Review de integración: mocks actualizados, fixtures verificados, PRs de contrato mergeados, revisión de `docs/roadmap/tasks.md` y `decisions-pending.md`. |
 
 Labels disponibles: `contract`, `feat:auth`, `feat:events`, `feat:checkin`, `feat:social`, `feat:mosaic`, `feat:streaming`, `feat:chat`, `feat:archive`, `feat:media`, `blocked-by-backend`, `blocked-by-frontend`, `bug:contract`.

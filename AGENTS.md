@@ -9,6 +9,21 @@ ViTo es una plataforma de **ciclo de vida de eventos sociales** que integra:
 - Streaming unidireccional con reacciones en tiempo real
 - Archivo post-evento con opción de compartir
 
+## LEER PRIMERO (todo agente, antes de escribir código)
+
+1. **`docs/handoff/AGENT-BRIEF.md`** — contexto completo, estado real del repo, reglas y ciclo de trabajo.
+2. **`docs/roadmap/tasks.md`** — backlog único. Solo se implementan tareas en estado 🟢 `READY`.
+3. **`.specify/memory/constitution.md`** — prevalece sobre este archivo. Jerarquía:
+   constitución > ADR > CONVENTIONS > contrato > CONTRIBUTING > `docs/roadmap/` > AGENTS > código.
+
+> **Aviso de vigencia (2026-10-16):** la tabla de stack y la estructura de carpetas de
+> abajo describen el **objetivo**, no el estado actual. Diferencias conocidas: el código
+> usa Redis 7.2 (no Dragonfly), rutas estáticas (no Eureka), SeaweedFS (no S3/MinIO) y
+> solo Docker Compose; existen además `checkin-service`, `mosaic-service` y
+> `archive-service`. Kubernetes/ArgoCD, Kafka, Atlas, almacenamiento y observabilidad
+> están **en revisión por costo** (decisión D-02 en `docs/roadmap/decisions-pending.md`).
+> El estado real está en la sección 6 del AGENT-BRIEF.
+
 ## STACK TECNOLÓGICO
 
 | Capa | Tecnología |
@@ -311,6 +326,7 @@ Antes de escribir cualquier endpoint o modificar `docs/api/`, leer:
 1. **`CONTRIBUTING.md`** — ramas, commits, proceso RFC, cadencia.
 2. **`docs/api/CONVENTIONS.md`** — cómo se formatean las respuestas (array plano, envelope de error único, auth Bearer + headers `X-User-*`, enums, paginación).
 3. **`docs/decisions/README.md`** — los ADR ya aprobados; son vinculantes.
+4. **`docs/roadmap/endpoint-inventory.md`** — decisión propuesta para cada endpoint del código y ola en la que entra al contrato.
 
 Reglas inquebrables:
 

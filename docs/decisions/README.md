@@ -4,6 +4,8 @@ Registro de las decisiones que afectan el contrato compartido entre el **equipo 
 
 **Proceso:** una decisión nueva se propone por RFC (issue `contract-change`), se aprueba por al menos 1 lead (CODEOWNER), y se registra aquí en una rama `contract/<nombre>`.
 
+**Decisiones abiertas:** las pendientes (D-01..D-08) están en [`docs/roadmap/decisions-pending.md`](../roadmap/decisions-pending.md). Al cerrarse, cada una se convierte en el siguiente ADR (011 en adelante) y se marca allí con su número.
+
 | # | Título | Estado | Fecha |
 |---|--------|--------|-------|
 | [001](./adr-001-event-structure.md) | Estructura del recurso Event: `title` + `details` + `settings` + `stats` | Aceptada | 2026-09-25 |
