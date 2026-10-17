@@ -44,7 +44,7 @@
 | T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | 🟢 READY |
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | 🟢 READY |
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) |
-| T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | 🔵 EN CURSO (backend/t-b02-gateway-error-envelope) |
+| T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | ✅ HECHA (#38) |
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) |
 | T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | ✅ HECHA (#25) |
 | T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | ✅ HECHA (#26) |
@@ -180,7 +180,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** tests: (1) petición pública con `X-User-Id: x` llega al servicio sin ese
   header; (2) dos logins con distintos `X-User-Id` falsos comparten bucket de rate limit.
 
-### T-B02 · Gateway: envelope ADR-003 — 🔵 EN CURSO (backend/t-b02-gateway-error-envelope) · P1 · O-10
+### T-B02 · Gateway: envelope ADR-003 — ✅ HECHA (#38) · P1 · O-10
 - **Qué:** el 401 del filtro y `FallbackController` devuelven
   `{error, message, status, timestamp}` (`UNAUTHORIZED`, `SERVICE_UNAVAILABLE`).
 - **Cierre:** test de cada respuesta comparada con el schema `ErrorResponse`.
