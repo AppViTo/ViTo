@@ -48,6 +48,7 @@
 | T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | 🟢 READY |
 | T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | 🟢 READY |
 | T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | 🟢 READY |
+| T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | 🟢 READY |
 | T-I01 | Higiene: `.gitignore` `backend/out/`, borrar `backend/java/` huérfano | I | P2 | 🟢 READY |
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
 | T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
@@ -205,6 +206,18 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
   `docker-compose.yml` en los puertos que espera el gateway (8000/8001/8002), con
   healthcheck.
 - **Cierre:** `docker compose --profile app up` levanta los 3 y el gateway los alcanza.
+
+### T-B11 · Rate limiter y circuit breaker activos en todos los perfiles — 🟢 READY · P0 · O-14, O-27
+- **Hallazgo (T-B01):** `application-dev.yml` y `application-docker.yml` redefinen
+  `spring.cloud.gateway.routes` completas sin filtros. Spring reemplaza la lista entera, así
+  que `RequestRateLimiter` y `CircuitBreaker` de `application.yml` **no se aplican** en
+  ningún perfil real (`spring.profiles.active: dev` por defecto; compose usa `docker`).
+  Verificado en el log de arranque: cada ruta solo aplica `DedupeResponseHeader`.
+- **Qué:** una sola definición de rutas en `application.yml` con URIs parametrizadas
+  (`${AUTH_SERVICE_URI:http://localhost:8081}`, …) y los perfiles solo fijan esas variables
+  (compose las pasa por entorno). Cierra también los `localhost` del perfil base (O-14).
+- **Cierre:** test de contexto que verifica que la ruta `auth-service` tiene
+  `RequestRateLimiter` y `CircuitBreaker` con los perfiles `dev` y `docker`.
 
 ### T-B10 · Spring Boot y Java unificados — 🔴 BLOQUEADA: requiere spec propio (Principio X) · P1 · O-21, O-35
 - 10 poms en 3.2.1, 2 en 3.5.3, Java 17. Planificar con `/speckit-specify`.
