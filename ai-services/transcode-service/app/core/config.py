@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     
     # Kafka
     KAFKA_BOOTSTRAP_SERVERS: str = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+    # Producción (docker-compose.prod.yml): SASL_PLAINTEXT + PLAIN. En local, sin auth.
+    KAFKA_SECURITY_PROTOCOL: str = "PLAINTEXT"
+    KAFKA_SASL_MECHANISM: str = "PLAIN"
+    KAFKA_SASL_USERNAME: str = ""
+    KAFKA_SASL_PASSWORD: str = ""
     
     # S3 (ADR-011): SeaweedFS en local, Cloudflare R2 en producción (región "auto")
     S3_ENDPOINT: str = os.getenv("S3_ENDPOINT", "http://localhost:9000")

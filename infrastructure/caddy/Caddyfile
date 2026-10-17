@@ -1,0 +1,40 @@
+# Borde de producción (ADR-011): TLS automático con Let's Encrypt.
+# DOMAIN y ACME_EMAIL llegan por entorno desde docker-compose.prod.yml.
+# Validar: docker run --rm -e DOMAIN=x.com -e ACME_EMAIL=a@x.com -v ./Caddyfile:/etc/caddy/Caddyfile caddy:2.8.4-alpine caddy validate --config /etc/caddy/Caddyfile
+{
+	email {$ACME_EMAIL}
+}
+
+# API REST y WebSocket (/ws/**). reverse_proxy reenvía el Upgrade de WebSocket sin
+# configuración extra; flush_interval -1 para que los frames no se queden en búfer.
+api.{$DOMAIN} {
+	encode zstd gzip
+
+	# El actuator del gateway está en el puerto de gestión 9080 (T-B14); por si acaso
+	@actuator path /actuator /actuator/*
+	respond @actuator 404
+
+	reverse_proxy api-gateway:8080 {
+		flush_interval -1
+	}
+}
+
+# Streaming: lista blanca. Solo señalización WebRTC (WHIP/WHEP) y archivos de reproducción
+# HLS/HTTP-FLV. El servidor HTTP de SRS también responde su API de gestión (/api/v1/...)
+# y la consola: nada de eso se expone.
+live.{$DOMAIN} {
+	handle /rtc/* {
+		reverse_proxy srs:1985
+	}
+
+	@playback path *.m3u8 *.ts *.flv
+	handle @playback {
+		reverse_proxy srs:8080 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		respond 404
+	}
+}

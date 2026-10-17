@@ -5,20 +5,19 @@ from typing import Any
 import os
 
 from app.core.config import settings
+from app.infrastructure.kafka.client_config import kafka_client_config
 
 class KafkaProducer:
     def __init__(self):
         self.producer = Producer({
-            'bootstrap.servers': settings.KAFKA_BOOTSTRAP_SERVERS,
+            **kafka_client_config(settings),
             'client.id': 'transcode-service-producer',
             'acks': 'all'
         })
     
     def _ensure_topics(self):
         """Ensure required topics exist."""
-        admin_client = AdminClient({
-            'bootstrap.servers': settings.KAFKA_BOOTSTRAP_SERVERS
-        })
+        admin_client = AdminClient(kafka_client_config(settings))
         
         topics = ['media-events', 'user-events', 'chat-events']
         

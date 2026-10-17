@@ -4,11 +4,12 @@ import asyncio
 from typing import Callable, Dict
 
 from app.core.config import settings
+from app.infrastructure.kafka.client_config import kafka_client_config
 
 class KafkaConsumer:
     def __init__(self):
         self.consumer = Consumer({
-            'bootstrap.servers': settings.KAFKA_BOOTSTRAP_SERVERS,
+            **kafka_client_config(settings),
             'group.id': 'transcode-service-consumer',
             'auto.offset.reset': 'earliest',
             'enable.auto.commit': True

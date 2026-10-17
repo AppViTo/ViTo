@@ -312,7 +312,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** `ssh` con llave funciona, `docker compose version` en el VPS, buckets creados
   y secretos cargados en GitHub. Registrar el gasto en la hoja de D-09.
 
-### T-I07 · `docker-compose.prod.yml` — 🟢 READY · P0 · O-13, ADR-011
+### T-I07 · `docker-compose.prod.yml` — ✅ HECHA (#36) · P0 · O-13, ADR-011
 - **Qué:** archivo Compose de producción, separado del de desarrollo:
   - los servicios de ADR-011 (10 Java, transcode, moderation, Mongo, Redis, Kafka KRaft de un
     broker, SRS, Caddy); **sin** recommendation ni SeaweedFS;

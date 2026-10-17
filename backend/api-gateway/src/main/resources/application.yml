@@ -12,7 +12,8 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-            allowed-origins: "http://localhost:3000,http://localhost:8080"
+            # Producción: origen de la web en Cloudflare Pages (docker-compose.prod.yml)
+            allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}"
             allowed-methods:
               - GET
               - POST
