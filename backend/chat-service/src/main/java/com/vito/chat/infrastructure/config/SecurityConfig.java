@@ -21,6 +21,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/chat/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/actuator/health/**").permitAll()
+                        .requestMatchers("/actuator/prometheus").permitAll()
                         .anyRequest().authenticated())
                 .build();
     }
