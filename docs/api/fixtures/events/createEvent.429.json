@@ -1,0 +1,6 @@
+{
+  "error": "RATE_LIMITED",
+  "message": "Has superado el límite de peticiones (20 req/s). Reintenta en 1 segundo",
+  "status": 429,
+  "timestamp": "2026-10-16T14:03:22Z"
+}

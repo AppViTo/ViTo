@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "El campo content_type debe ser text, image o video",
+  "status": 400,
+  "timestamp": "2026-10-16T14:03:22Z",
+  "details": {
+    "content_type": "Valor fuera del enum"
+  }
+}

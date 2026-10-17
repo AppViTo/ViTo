@@ -32,7 +32,7 @@
 
 | ID | Tarea | Pista | Prioridad | Estado |
 |----|-------|-------|-----------|--------|
-| T-C01 | Fixtures de las 15 operaciones existentes | C | P0 | 🟢 READY |
+| T-C01 | Fixtures de las 15 operaciones existentes | C | P0 | ✅ HECHA (#21) |
 | T-C02 | `package.json` + mock REST con Prism | C | P0 | 🟢 READY (tras T-C01 para ejemplos ricos) |
 | T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | 🟢 READY |
 | T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | 🟢 READY (tras T-C01) |
@@ -59,7 +59,7 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
 
 ## Pista C — Contrato y tooling
 
-### T-C01 · Fixtures de las 15 operaciones existentes — 🟢 READY · P0 · O-01
+### T-C01 · Fixtures de las 15 operaciones existentes — ✅ HECHA (#21) · P0 · O-01
 - **Qué:** crear `docs/api/fixtures/<tag>/<operationId>.<status>.json` (request y
   response) para cada operación de `openapi.yaml`, incluidos los errores 400/401/404/409
   declarados. Añadir `docs/api/fixtures/README.md` con la convención de nombres.
