@@ -44,7 +44,7 @@
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | 🟢 READY |
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) |
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | 🟢 READY |
-| T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#20) |
+| T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) |
 | T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | 🟢 READY |
 | T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | 🟢 READY |
 | T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | 🟢 READY |
@@ -175,7 +175,7 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
 - Servicios sin `@RestControllerAdvice`: social, event, checkin, mosaic, streaming, archive.
 - Si D-05 = opción C, pasa a READY copiando el handler de `auth-service`.
 
-### T-B04 · Gateway: ruta `/ws/**` — ✅ HECHA (#20) · P0 · O-08, O-28, ADR-006
+### T-B04 · Gateway: ruta `/ws/**` — ✅ HECHA (#22, re-entrega de #20) · P0 · O-08, O-28, ADR-006
 - **Qué:** rutas `ws://` en el gateway para `/ws/checkin/**`, `/ws/mosaic/**`,
   `/ws/streaming/**`, `/ws/chat/**` hacia cada servicio; validar `?token=` con la misma
   lógica JWT, inyectar `X-User-*` y cerrar con `4401` si es inválido.
