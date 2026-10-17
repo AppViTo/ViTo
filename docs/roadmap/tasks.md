@@ -42,12 +42,13 @@
 | T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming) | F | P0 | 🟢 READY |
 | T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | 🟢 READY |
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | 🟢 READY |
-| T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | 🟢 READY |
+| T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) |
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | 🟢 READY |
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | 🟢 READY |
 | T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | 🟢 READY |
 | T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | 🟢 READY |
 | T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | 🟢 READY |
+| T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | 🟢 READY |
 | T-I01 | Higiene: `.gitignore` `backend/out/`, borrar `backend/java/` huérfano | I | P2 | 🟢 READY |
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
 | T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
@@ -157,7 +158,7 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
 
 ## Pista B — Backend
 
-### T-B01 · Gateway: higiene de `X-User-*` y rate limit — 🟢 READY · P0 · O-05, O-27, ADR-007
+### T-B01 · Gateway: higiene de `X-User-*` y rate limit — ✅ HECHA (#19) · P0 · O-05, O-27, ADR-007
 - **Qué:** en `JwtAuthenticationFilter` (o un `GlobalFilter` previo) eliminar
   `X-User-Id`, `X-User-Email`, `X-User-Roles` de **toda** petición entrante, también en
   rutas públicas, antes de inyectar los propios. `RateLimiterConfig` usa el usuario
@@ -205,6 +206,18 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
   `docker-compose.yml` en los puertos que espera el gateway (8000/8001/8002), con
   healthcheck.
 - **Cierre:** `docker compose --profile app up` levanta los 3 y el gateway los alcanza.
+
+### T-B11 · Rate limiter y circuit breaker activos en todos los perfiles — 🟢 READY · P0 · O-14, O-27
+- **Hallazgo (T-B01):** `application-dev.yml` y `application-docker.yml` redefinen
+  `spring.cloud.gateway.routes` completas sin filtros. Spring reemplaza la lista entera, así
+  que `RequestRateLimiter` y `CircuitBreaker` de `application.yml` **no se aplican** en
+  ningún perfil real (`spring.profiles.active: dev` por defecto; compose usa `docker`).
+  Verificado en el log de arranque: cada ruta solo aplica `DedupeResponseHeader`.
+- **Qué:** una sola definición de rutas en `application.yml` con URIs parametrizadas
+  (`${AUTH_SERVICE_URI:http://localhost:8081}`, …) y los perfiles solo fijan esas variables
+  (compose las pasa por entorno). Cierra también los `localhost` del perfil base (O-14).
+- **Cierre:** test de contexto que verifica que la ruta `auth-service` tiene
+  `RequestRateLimiter` y `CircuitBreaker` con los perfiles `dev` y `docker`.
 
 ### T-B10 · Spring Boot y Java unificados — 🔴 BLOQUEADA: requiere spec propio (Principio X) · P1 · O-21, O-35
 - 10 poms en 3.2.1, 2 en 3.5.3, Java 17. Planificar con `/speckit-specify`.
