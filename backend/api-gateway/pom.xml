@@ -67,10 +67,10 @@
             <scope>runtime</scope>
         </dependency>
         
-        <!-- Resilience4j Circuit Breaker -->
+        <!-- Resilience4j Circuit Breaker (variante reactiva: la exige el filtro CircuitBreaker del gateway) -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-circuitbreaker-resilience4j</artifactId>
+            <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
         </dependency>
         
         <!-- Actuator -->

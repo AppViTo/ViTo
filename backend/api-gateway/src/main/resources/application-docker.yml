@@ -1,95 +1,20 @@
+# Perfil docker-compose: los servicios se resuelven por nombre en la red de compose.
+# Solo se fijan las URIs; las rutas y sus filtros viven en application.yml (T-B11).
+AUTH_SERVICE_URI: http://auth-service:8081
+SOCIAL_SERVICE_URI: http://social-service:8082
+EVENT_SERVICE_URI: http://event-service:8083
+CHECKIN_SERVICE_URI: http://checkin-service:8084
+MOSAIC_SERVICE_URI: http://mosaic-service:8085
+STREAMING_SERVICE_URI: http://streaming-service:8086
+ARCHIVE_SERVICE_URI: http://archive-service:8087
+CHAT_SERVICE_URI: http://chat-service:8088
+MEDIA_SERVICE_URI: http://media-service:8089
+TRANSCODE_SERVICE_URI: http://transcode-service:8000
+RECOMMENDATION_SERVICE_URI: http://recommendation-service:8001
+MODERATION_SERVICE_URI: http://moderation-service:8002
+
 spring:
-  cloud:
-    gateway:
-      routes:
-        - id: auth-service
-          uri: http://auth-service:8081
-          predicates:
-            - Path=/api/v1/auth/**
-        
-        - id: social-service
-          uri: http://social-service:8082
-          predicates:
-            - Path=/api/v1/social/**
-        
-        - id: event-service
-          uri: http://event-service:8083
-          predicates:
-            - Path=/api/v1/events/**
-        
-        - id: checkin-service
-          uri: http://checkin-service:8084
-          predicates:
-            - Path=/api/v1/checkin/**
-        
-        - id: mosaic-service
-          uri: http://mosaic-service:8085
-          predicates:
-            - Path=/api/v1/mosaic/**
-        
-        - id: streaming-service
-          uri: http://streaming-service:8086
-          predicates:
-            - Path=/api/v1/streaming/**
-        
-        - id: archive-service
-          uri: http://archive-service:8087
-          predicates:
-            - Path=/api/v1/archive/**
-        
-        - id: chat-service
-          uri: http://chat-service:8088
-          predicates:
-            - Path=/api/v1/chat/**
-        
-        - id: media-service
-          uri: http://media-service:8089
-          predicates:
-            - Path=/api/v1/media/**
-        
-        - id: transcode-service
-          uri: http://transcode-service:8000
-          predicates:
-            - Path=/api/v1/transcode/**
-        
-        - id: recommendation-service
-          uri: http://recommendation-service:8001
-          predicates:
-            - Path=/api/v1/recommendations/**
-        
-        - id: moderation-service
-          uri: http://moderation-service:8002
-          predicates:
-            - Path=/api/v1/moderation/**
-
-        # WebSocket crudo (ADR-006). JwtAuthenticationFilter valida ?token= y cierra con 4401.
-        - id: checkin-ws
-          uri: ws://checkin-service:8084
-          predicates:
-            - Path=/ws/checkin/**
-
-        - id: mosaic-ws
-          uri: ws://mosaic-service:8085
-          predicates:
-            - Path=/ws/mosaic/**
-
-        - id: streaming-ws
-          uri: ws://streaming-service:8086
-          predicates:
-            - Path=/ws/streaming/**
-
-        - id: chat-ws
-          uri: ws://chat-service:8088
-          predicates:
-            - Path=/ws/chat/**
-
   data:
     redis:
       host: ${REDIS_HOST:redis}
       port: ${REDIS_PORT:6379}
-
-server:
-  port: 8080
-
-jwt:
-  secret: ${JWT_SECRET}
