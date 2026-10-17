@@ -25,9 +25,11 @@ class Settings(BaseSettings):
     KAFKA_SASL_USERNAME: str = ""
     KAFKA_SASL_PASSWORD: str = ""
     
-    # S3/MinIO
+    # S3 (ADR-011): SeaweedFS en local, Cloudflare R2 en producción (región "auto")
     S3_ENDPOINT: str = os.getenv("S3_ENDPOINT", "http://localhost:9000")
+    S3_REGION: str = os.getenv("S3_REGION", "us-east-1")
     S3_BUCKET: str = os.getenv("S3_BUCKET", "vito-media")
+    S3_PATH_STYLE: bool = True
     S3_ACCESS_KEY: str  # obligatorio (env)
     S3_SECRET_KEY: str  # obligatorio (env)
     

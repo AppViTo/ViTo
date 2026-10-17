@@ -19,6 +19,8 @@
     
     <properties>
         <java.version>17</java.version>
+        <!-- La 1.19 de Spring Boot 3.2 no habla con Docker Engine 29 (API mínima 1.44) -->
+        <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
     
     <dependencies>
@@ -26,6 +28,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -104,6 +110,12 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- S3StorageAdapterIT: SeaweedFS real (T-I10) -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
