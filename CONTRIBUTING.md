@@ -17,13 +17,16 @@ Guía de colaboración para el **equipo frontend** y el **equipo backend** que t
 |------|------|-------|---------------|
 | Contrato de API | `docs/api/**` | Frontend (lead) | **Al menos 1 lead** (CODEOWNER) |
 | Decisiones de contrato | `docs/decisions/**` | Frontend (lead) | **Al menos 1 lead** (CODEOWNER) |
-| Handoffs a backend | `docs/handoff/**` | Frontend | Frontend lead |
-| Frontend Flutter | `frontend/**` | Frontend | Frontend lead |
-| Backend Java/Python | `backend/**`, `ai-services/**` | Backend | Backend lead |
+| Handoffs a backend | `docs/handoff/**` | Frontend | Frontend lead (o backend lead si el autor es el frontend lead) |
+| Hoja de ruta | `docs/roadmap/**` | Ambos | Al menos 1 lead (CODEOWNER) |
+| Frontend Flutter | `frontend/**` | Frontend | Frontend lead (o backend lead si el autor es el frontend lead) |
+| Backend Java/Python | `backend/**`, `ai-services/**` | Backend | Backend lead (o frontend lead si el autor es el backend lead) |
 | Infra y CI | `infrastructure/**`, `.github/workflows/**` | DevOps | Al menos 1 lead (CODEOWNER) |
 | Docs de arquitectura | `docs/architecture.md`, `AGENTS.md` | Ambos | Al menos 1 lead (CODEOWNER) |
 
 Esto está codificado en `.github/CODEOWNERS`. Cuando una ruta tiene varios dueños, **basta la aprobación de uno de ellos** (semántica nativa de GitHub). Sin al menos una aprobación de un dueño, el PR no se mergea.
+
+**Revisión cruzada:** ambos leads figuran como dueños de todas las áreas de código, porque GitHub no cuenta la aprobación del autor y un área con un solo dueño dejaría sin revisor posible los PR de ese mismo lead. El lead del área sigue siendo el revisor por defecto. La aprobación se registra con **"Approve" en GitHub** antes del merge; el merge por sí solo no cuenta como aprobación.
 
 > Nota: la protección de rama no está disponible en el plan actual de la organización (repo privado en plan Free), así que esta regla hoy se cumple por acuerdo del equipo, no por GitHub. Al pasar a GitHub Team se activará en `main` y `develop`: aprobación requerida de CODEOWNERS, mínimo 1 aprobación, sin push directo y CI en verde.
 
@@ -46,6 +49,7 @@ Convenciones:
 - Nombre corto y descriptivo: `frontend/fix-auth-token-persistence`, `backend/add-mosaic-ws`.
 - Rama vive **7 días o menos**; si se alarga, rebasea contra `develop` y avisa en el canal.
 - Un feature = una rama. Un PR = un feature.
+- **PR dependientes:** todo PR apunta a `develop`, nunca a la rama de otro PR. Si un PR depende de otro, se abre igualmente contra `develop` y se indica "mergear después de #N" en la descripción. Un PR apilado (con base en otra rama de feature) que se mergea después de su base deja su código fuera de `develop` (pasó con #20, re-entregado en #22).
 
 ### Flujo
 
