@@ -7,7 +7,7 @@ Sync Impact Report — v1.0.0 → v1.1.0 (MINOR) · 2026-10-16
 - Modificado: Principio X remite a la sección de revisión por costo.
 - Modificado: Flujo SDD y Governance incorporan docs/roadmap/ como guía operativa.
 - Plantillas: .specify/templates/* sin cambios requeridos.
-- Pendiente: fecha de ratificación (se fija al mergear el PR de v1.1.0).
+- Ratificada el 2026-10-16 (America/Bogota): PR #17 aprobado y mergeado por @alexvilla01.
 -->
 
 # ViTo (VibeTogether) Constitution
@@ -401,4 +401,4 @@ de guardia.
 - Guía operativa en tiempo de desarrollo: `AGENTS.md`, `CONTRIBUTING.md` y
   `docs/api/CONVENTIONS.md`.
 
-**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE): se fija con la fecha de merge del PR que aprueba v1.1.0 (1 lead distinto del autor) | **Last Amended**: 2026-10-16
+**Version**: 1.1.0 | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-16
