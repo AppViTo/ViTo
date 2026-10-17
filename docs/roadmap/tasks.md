@@ -56,7 +56,7 @@
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
 | T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
 | T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | 🟢 READY |
-| T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | 🔵 EN CURSO (backend/t-i07-compose-prod) |
+| T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | 🟢 READY |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | 🟢 READY |
 | T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY |
@@ -310,7 +310,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** `ssh` con llave funciona, `docker compose version` en el VPS, buckets creados
   y secretos cargados en GitHub. Registrar el gasto en la hoja de D-09.
 
-### T-I07 · `docker-compose.prod.yml` — 🔵 EN CURSO (backend/t-i07-compose-prod) · P0 · O-13, ADR-011
+### T-I07 · `docker-compose.prod.yml` — ✅ HECHA (#36) · P0 · O-13, ADR-011
 - **Qué:** archivo Compose de producción, separado del de desarrollo:
   - los servicios de ADR-011 (10 Java, transcode, moderation, Mongo, Redis, Kafka KRaft de un
     broker, SRS, Caddy); **sin** recommendation ni SeaweedFS;
