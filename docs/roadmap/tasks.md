@@ -58,7 +58,7 @@
 | T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | 🟢 READY |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | 🟢 READY |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | 🟢 READY |
-| T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | 🟢 READY |
+| T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | 🔵 EN CURSO (backend/t-i10-s3-endpoint) |
 | T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY |
 | T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | 🔴 BLOQUEADA (D-09) |
 | T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔴 BLOQUEADA (D-07, T-I06, T-I07) |
@@ -340,7 +340,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** el backup se genera y sube; la restauración en una base vacía recupera los
   datos (pasos y salida en el PR).
 
-### T-I10 · media-service con endpoint S3 configurable — 🟢 READY · P0 · O-32, ADR-011
+### T-I10 · media-service con endpoint S3 configurable — 🔵 EN CURSO (backend/t-i10-s3-endpoint) · P0 · O-32, ADR-011
 - **Qué:** endpoint, región, bucket y credenciales S3 por variables de entorno, con
   path-style configurable. Sin cambios de contrato. Igual para transcode y archive si
   acceden al almacenamiento.
