@@ -38,6 +38,7 @@
 | T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | 🟢 READY |
 | T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | ✅ HECHA (#31) |
 | T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC |
+| T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | 🟡 RFC |
 | T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | 🟢 READY |
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | 🟢 READY |
 | T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming) | F | P0 | 🟢 READY |
@@ -57,6 +58,7 @@
 | T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
 | T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | 🟢 READY |
 | T-B15 | auth-service y `createEvent`: códigos HTTP y envelope de error iguales a los fixtures | B | P0 | 🟢 READY |
+| T-B16 | auth-service: `expiresIn` en segundos y forma de `AuthResponse` fijada por test (ADR-004) | B | P0 | 🟢 READY |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | 🟢 READY |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | 🟢 READY |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | 🟢 READY |
@@ -112,6 +114,23 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   ola (no en v0). Fixtures de frames en `docs/api/fixtures/ws/`.
 - **Cierre:** `npx @asyncapi/cli validate docs/api/asyncapi.yaml` verde; PR aprobado por
   1 CODEOWNER; `mock:ws` de T-C02 sirve los frames.
+
+### T-C08 · Contrato de auth alineado con ADR-004 — 🟡 RFC · P0 · ADR-004, Principio I
+- **Hallazgo (T-B15/T-B16):** ADR-004 (aceptada) fija la respuesta de `register`/`login`/
+  `refresh` con `user` **plano** (`id, username, email, displayName, avatar`), **sin**
+  `tokenType`, y `logout` → `204`; sus consecuencias pedían corregir `openapi.yaml`, pero no
+  se hizo. T-C01 (fixtures) y T-C04 (tests Dart) siguieron al openapi sin corregir: `user`
+  con `profile`/`stats`, `tokenType` y `logoutUser` `200`. El backend ya devuelve la forma
+  de ADR-004, así que Flutter pierde `displayName`/`avatar` (los busca en `profile`).
+  **Decisión de leads (2026-10-17): se mantiene ADR-004.**
+- **Qué:** issue `contract-change` y PR `contract/auth-adr-004`:
+  - `openapi.yaml`: `AuthResponse` sin `tokenType` y con `user` = nuevo schema `AuthUser`
+    plano (el schema `User` completo queda para social); `logoutUser` → `204`.
+  - Fixtures `authentication/*` 2xx con esa forma; `logoutUser.200.json` → `logoutUser.204`.
+  - Flutter: modelo de usuario de auth que lea la forma plana; tests de T-C04 actualizados.
+- **Desbloquea:** que T-F01 muestre nombre y avatar tras el login contra el backend real.
+- **Cierre:** Spectral verde; tests Dart de contrato verdes con los fixtures nuevos; PR
+  aprobado por 1 CODEOWNER.
 
 ### T-C06 · Resolver `GET /events` (O-26) — 🔴 BLOQUEADA por D-03 · P0
 - **Qué:** según la opción elegida en D-03, PR `contract/events-listing` + fixture.
@@ -278,6 +297,21 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** tests MockMvc de `registerUser` (201, 400, 409), `loginUser` (200, 401) y
   `createEvent` (201) comparados con sus fixtures de `docs/api/fixtures/` (mismas claves,
   mismos `status` y `error`).
+- **Nota (decisión de leads, 2026-10-17):** donde `openapi.yaml` contradice a ADR-004
+  (respuesta 2xx de auth y `logoutUser`), manda ADR-004: logout sigue en `204`. El
+  contrato se corrige en T-C08.
+
+### T-B16 · `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 — 🟢 READY · P0 · ADR-004, Principio I
+- **Hallazgo (T-B15):** `expiresIn` sale en **milisegundos** (`86400000`, el valor de
+  `jwt.expiration`); ADR-004 y `openapi.yaml` lo definen en **segundos**.
+  La forma de la respuesta (`user` plano, sin `tokenType`) ya cumple ADR-004, pero ningún
+  test la fija.
+- **Qué:** `expiresIn` en segundos en `register`, `login` y `refresh`; test que fije la forma
+  de ADR-004: `{accessToken, refreshToken, expiresIn, user{id, username, email,
+  displayName, avatar}}`, sin `tokenType`.
+- **No hacer:** cambiar la forma de la respuesta ni `openapi.yaml` (eso es T-C08).
+- **Cierre:** test de la respuesta de las tres operaciones con `expiresIn` igual a
+  `jwt.expiration / 1000`.
 
 ---
 
