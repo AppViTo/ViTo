@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class Event {
@@ -34,6 +34,27 @@ public class Event {
     
     private LocalDateTime updatedAt;
     
+    /**
+     * ADR-001 / Principio IX: con {@code hideAddressUntilAccepted}, la dirección exacta solo
+     * la ven el organizador y quien tiene RSVP {@code ACCEPTED}.
+     */
+    public boolean revealsExactAddressTo(String viewerId, boolean viewerAccepted) {
+        if (settings == null || !settings.isHideAddressUntilAccepted()) {
+            return true;
+        }
+        return viewerAccepted || (viewerId != null && viewerId.equals(organizerId));
+    }
+    
+    /** Copia sin {@code address}, {@code latitude} ni {@code longitude}; se conserva {@code location}. */
+    public Event withoutExactAddress() {
+        if (details == null) {
+            return this;
+        }
+        return toBuilder()
+                .details(details.toBuilder().address(null).latitude(null).longitude(null).build())
+                .build();
+    }
+    
     public enum EventStatus {
         DRAFT,
         PUBLISHED,
@@ -42,7 +63,7 @@ public class Event {
     }
     
     @Data
-    @Builder
+    @Builder(toBuilder = true)
     @NoArgsConstructor
     @AllArgsConstructor
     public static class EventDetails {
@@ -68,6 +89,7 @@ public class Event {
         private boolean allowGuestInvites;
         private boolean enableLiveStreaming;
         private boolean enableMosaic;
+        private boolean hideAddressUntilAccepted;
     }
     
     @Data

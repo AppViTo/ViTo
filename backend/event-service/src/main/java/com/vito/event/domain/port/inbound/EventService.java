@@ -18,11 +18,13 @@ public interface EventService {
     
     void cancelEvent(String eventId, String userId);
     
-    Event getEvent(String eventId);
+    /** Aplica {@code hideAddressUntilAccepted} según quién consulta ({@code viewerId}). */
+    Event getEvent(String eventId, String viewerId);
     
     List<Event> getUserEvents(String userId, int page, int size);
     
-    List<Event> getUpcomingEvents(int page, int size);
+    /** Aplica {@code hideAddressUntilAccepted} a cada evento según quién consulta ({@code viewerId}). */
+    List<Event> getUpcomingEvents(int page, int size, String viewerId);
     
     RSVP respondToRSVP(RespondRSVPCommand command);
     

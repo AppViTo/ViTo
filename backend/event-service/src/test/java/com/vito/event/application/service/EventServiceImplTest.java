@@ -345,4 +345,89 @@ class EventServiceImplTest {
         );
         assertEquals("You have already checked in to this event", exception.getMessage());
     }
+
+    // ---- hideAddressUntilAccepted (ADR-001, Principio IX) ----------------------------
+
+    private Event eventHidingAddress() {
+        return testEvent.toBuilder()
+                .details(testEvent.getDetails().toBuilder()
+                        .address("Km 5 vía Chía")
+                        .latitude(4.711)
+                        .longitude(-74.0721)
+                        .build())
+                .settings(Event.EventSettings.builder()
+                        .isPublic(true)
+                        .maxAttendees(100)
+                        .hideAddressUntilAccepted(true)
+                        .build())
+                .build();
+    }
+
+    private void givenRsvp(String userId, RSVP.RSVPStatus status) {
+        when(rsvpRepository.findByEventIdAndUserId("event123", userId)).thenReturn(Optional.of(
+                RSVP.builder().eventId("event123").userId(userId).status(status).build()));
+    }
+
+    private static void assertAddressVisible(Event event) {
+        assertEquals("Km 5 vía Chía", event.getDetails().getAddress());
+        assertEquals(4.711, event.getDetails().getLatitude());
+        assertEquals(-74.0721, event.getDetails().getLongitude());
+    }
+
+    private static void assertAddressHidden(Event event) {
+        assertNull(event.getDetails().getAddress());
+        assertNull(event.getDetails().getLatitude());
+        assertNull(event.getDetails().getLongitude());
+        assertEquals("Test Location", event.getDetails().getLocation());
+    }
+
+    @Test
+    void getEvent_HideAddress_OrganizerSeesExactAddress() {
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(eventHidingAddress()));
+
+        assertAddressVisible(eventService.getEvent("event123", "organizer123"));
+        verifyNoInteractions(rsvpRepository);
+    }
+
+    @Test
+    void getEvent_HideAddress_AcceptedGuestSeesExactAddress() {
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(eventHidingAddress()));
+        givenRsvp("guest1", RSVP.RSVPStatus.ACCEPTED);
+
+        assertAddressVisible(eventService.getEvent("event123", "guest1"));
+    }
+
+    @Test
+    void getEvent_HideAddress_GuestWithoutAcceptedRsvpGetsNoExactAddress() {
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(eventHidingAddress()));
+        givenRsvp("guest1", RSVP.RSVPStatus.MAYBE);
+
+        assertAddressHidden(eventService.getEvent("event123", "guest1"));
+    }
+
+    @Test
+    void getEvent_HideAddress_UserWithoutRsvpGetsNoExactAddress() {
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(eventHidingAddress()));
+        when(rsvpRepository.findByEventIdAndUserId("event123", "stranger")).thenReturn(Optional.empty());
+
+        assertAddressHidden(eventService.getEvent("event123", "stranger"));
+    }
+
+    @Test
+    void getEvent_AddressNotHidden_EveryoneSeesItWithoutRsvpLookup() {
+        Event visible = eventHidingAddress();
+        visible.getSettings().setHideAddressUntilAccepted(false);
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(visible));
+
+        assertAddressVisible(eventService.getEvent("event123", "stranger"));
+        verifyNoInteractions(rsvpRepository);
+    }
+
+    @Test
+    void getUpcomingEvents_HideAddress_RedactsForNonAcceptedViewer() {
+        when(eventRepository.findUpcomingEvents(0, 20)).thenReturn(java.util.List.of(eventHidingAddress()));
+        when(rsvpRepository.findByEventIdAndUserId("event123", "stranger")).thenReturn(Optional.empty());
+
+        assertAddressHidden(eventService.getUpcomingEvents(0, 20, "stranger").get(0));
+    }
 }

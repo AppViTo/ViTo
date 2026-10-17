@@ -106,9 +106,10 @@ public class EventServiceImpl implements EventService {
     }
     
     @Override
-    public Event getEvent(String eventId) {
-        return eventRepository.findById(eventId)
+    public Event getEvent(String eventId, String viewerId) {
+        Event event = eventRepository.findById(eventId)
                 .orElseThrow(EventException::eventNotFound);
+        return forViewer(event, viewerId);
     }
     
     @Override
@@ -117,8 +118,22 @@ public class EventServiceImpl implements EventService {
     }
     
     @Override
-    public List<Event> getUpcomingEvents(int page, int size) {
-        return eventRepository.findUpcomingEvents(page, size);
+    public List<Event> getUpcomingEvents(int page, int size, String viewerId) {
+        return eventRepository.findUpcomingEvents(page, size).stream()
+                .map(event -> forViewer(event, viewerId))
+                .toList();
+    }
+    
+    /** Oculta la dirección exacta si el evento lo pide y quien consulta no puede verla. */
+    private Event forViewer(Event event, String viewerId) {
+        // Solo se consulta el RSVP cuando el evento oculta la dirección y el viewer no es el organizador
+        if (event.revealsExactAddressTo(viewerId, false)) {
+            return event;
+        }
+        boolean accepted = viewerId != null && rsvpRepository.findByEventIdAndUserId(event.getId(), viewerId)
+                .map(rsvp -> rsvp.getStatus() == RSVP.RSVPStatus.ACCEPTED)
+                .orElse(false);
+        return accepted ? event : event.withoutExactAddress();
     }
     
     @Override
