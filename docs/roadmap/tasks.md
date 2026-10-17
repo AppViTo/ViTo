@@ -56,6 +56,7 @@
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
 | T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
 | T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | 🟢 READY |
+| T-B15 | auth-service y `createEvent`: códigos HTTP y envelope de error iguales a los fixtures | B | P0 | 🟢 READY |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | 🟢 READY |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | 🟢 READY |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | 🟢 READY |
@@ -65,6 +66,7 @@
 | T-I11 | Frontend web en Cloudflare Pages | I/F | P1 | 🔴 BLOQUEADA (D-09) |
 | T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (D-09, T-B14) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔴 BLOQUEADA (T-I07, T-I09) |
+| T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY |
 
 Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T-B10, T-B13, T-I06, T-I08, T-I11, T-I13, T-I14.
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
@@ -258,6 +260,25 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   (`@JsonMixin` en `infrastructure`) con el nombre que fije el contrato.
 - **Cierre:** test `@JsonTest` por servicio contra el fixture de su ola.
 
+### T-B15 · Códigos y errores de auth-service y `createEvent` según los fixtures — 🟢 READY · P0 · ADR-003, ADR-005, ADR-009, Principio I
+- **Hallazgo (T-I07):** probando el stack de producción, `POST /events` respondió `200`
+  (contrato: `201`) y un registro duplicado respondió `400 "Validation Error"`
+  (contrato: `409 CONFLICT`). El `GlobalExceptionHandler` de auth-service, citado en el
+  AGENT-BRIEF como referencia, no sigue ADR-003: `error` en texto libre ("Validation Error",
+  "Authorization Error"…), mensajes en inglés y `timestamp` `LocalDateTime` sin zona.
+  T-B03 no lo cubre (solo trata los servicios **sin** handler).
+- **Qué:**
+  - event-service: `createEvent` → `201 Created`.
+  - auth-service: duplicado de email o username → `409` `CONFLICT` (excepción de dominio
+    propia, no `IllegalArgumentException`); validación → `400` `VALIDATION_ERROR` con
+    `details` por campo; resto de códigos `SCREAMING_SNAKE` de CONVENTIONS; mensajes es-ES;
+    `timestamp` ISO-8601 UTC (`Instant`).
+- **No hacer:** tocar los servicios de T-B03 (bloqueada por D-05) ni cambiar el contrato.
+- **Desbloquea:** que T-F01 pruebe 400/409/401 contra el backend real y no solo contra Prism.
+- **Cierre:** tests MockMvc de `registerUser` (201, 400, 409), `loginUser` (200, 401) y
+  `createEvent` (201) comparados con sus fixtures de `docs/api/fixtures/` (mismas claves,
+  mismos `status` y `error`).
+
 ---
 
 ## Pista I — Infra, CI/CD e higiene
@@ -370,3 +391,20 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   backup de R2) y `docs/runbooks/incident.md` (qué mirar, cómo hacer rollback, a quién avisar).
 - **Cierre:** un ensayo de restauración completo en una máquina limpia, con tiempos medidos
   (RTO ≤ 4 h).
+
+### T-I15 · Protocolo de bloqueos entre agentes — 🟢 READY · P1 · CONTRIBUTING (cadencia)
+- **Por qué:** el agente frontend y el backend/infra trabajan en paralelo. Ya existen las
+  etiquetas `blocked-by-backend` / `blocked-by-frontend` y el sync de los miércoles, pero
+  ningún documento le dice a un agente cuándo y cómo usarlas, ni cómo pedir que se adelante
+  una tarea de la otra pista.
+- **Qué:**
+  - AGENT-BRIEF §9: si una tarea depende de otra pista, el agente abre un issue con la
+    etiqueta `blocked-by-<pista>` que cita la tarea bloqueada y la que propone adelantar
+    (T-xx), el impacto y si hay un rodeo temporal (p. ej. Prism). No implementa la otra pista.
+  - Plantilla de issue `.github/ISSUE_TEMPLATE/blocked.md` con esos campos.
+  - AGENT-BRIEF §7: al tomar una tarea, revisar primero los issues `blocked-by-<mi pista>`
+    abiertos; atenderlos tiene prioridad sobre las tareas P1/P2 de la propia pista.
+  - Los leads repriorizan en `tasks.md` en el sync del miércoles; el agente no cambia la
+    prioridad de tareas ajenas.
+- **Cierre:** la plantilla aparece al crear un issue en GitHub; AGENT-BRIEF y CONTRIBUTING
+  enlazan el flujo; un issue de ejemplo (T-F01 ← T-B02/T-B15) creado con la plantilla.
