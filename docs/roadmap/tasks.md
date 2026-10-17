@@ -335,7 +335,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** un merge a `main` despliega sin intervención; el rollback a un SHA anterior
   funciona y queda documentado en el runbook.
 
-### T-I09 · Backup de Mongo a R2 — 🟢 READY · P0 · Principio IX, ADR-011
+### T-I09 · Backup de Mongo a R2 — ✅ HECHA (#35) · P0 · Principio IX, ADR-011
 - **Qué:** contenedor o cron que corre `mongodump --gzip` diario y sube el archivo a un
   bucket S3 (R2 en producción) con retención de 14 días. Script de restauración.
 - **Verificación local:** contra SeaweedFS (API S3) en el compose de desarrollo.

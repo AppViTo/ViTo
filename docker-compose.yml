@@ -101,6 +101,8 @@ services:
   # ── Object storage (S3 compatible) ─────────────────────────────
   # MinIO ya no publica imágenes comunitarias (minio/minio pide login). SeaweedFS (Apache-2.0)
   # expone una API S3; las credenciales salen de S3_ACCESS_KEY / S3_SECRET_KEY del .env.
+  # Cada bucket reserva 7 volúmenes: con el máximo por defecto (8) solo cabe uno, así que
+  # -volume.max=0 los calcula según el disco libre (vito-media + vito-backups).
   object-storage:
     image: chrislusf/seaweedfs:3.97
     container_name: vito-object-storage
@@ -114,9 +116,33 @@ services:
       - >
         printf '{"identities":[{"name":"vito","credentials":[{"accessKey":"%s","secretKey":"%s"}],"actions":["Admin","Read","Write","List","Tagging"]}]}'
         "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY" > /tmp/s3.json
-        && exec weed server -dir=/data -s3 -s3.port=8333 -s3.config=/tmp/s3.json
+        && exec weed server -dir=/data -volume.max=0 -master.volumeSizeLimitMB=1024
+        -s3 -s3.port=8333 -s3.config=/tmp/s3.json
     volumes:
       - object_storage_data:/data
+    networks:
+      - vito-network
+
+  # ── Backup de Mongo (perfil "backup", T-I09) ──────────────────
+  # Local contra SeaweedFS:  docker compose --profile backup run --rm mongo-backup backup
+  #                          docker compose --profile backup run --rm mongo-backup restore --yes
+  mongo-backup:
+    profiles: ["backup"]
+    build: ./infrastructure/backup
+    image: vito/mongo-backup:local
+    container_name: vito-mongo-backup
+    environment:
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:?definir en .env}:${MONGO_ROOT_PASSWORD:?definir en .env}@mongodb:27017/?authSource=admin
+      S3_ENDPOINT: http://object-storage:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?definir en .env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?definir en .env}
+      S3_CREATE_BUCKET: "true"
+      BACKUP_BUCKET: ${BACKUP_BUCKET:-vito-backups}
+      BACKUP_AT: ${BACKUP_AT:-03:00}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    depends_on:
+      - mongodb
+      - object-storage
     networks:
       - vito-network
 
