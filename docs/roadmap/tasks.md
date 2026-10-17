@@ -55,7 +55,7 @@
 | T-I01 | Higiene: `.gitignore` `backend/out/`, borrar `backend/java/` huérfano | I | P2 | 🟢 READY |
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
 | T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
-| T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | 🔵 EN CURSO (backend/t-b14-actuator-metrics) |
+| T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | ✅ HECHA (#33) |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | 🟢 READY |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | 🟢 READY |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | 🟢 READY |
@@ -287,7 +287,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - Los manifiestos de `infrastructure/kubernetes/` no se mantienen en Fase Tracción. No
   borrarlos: se retoman al cumplir el disparador de ADR-011.
 
-### T-B14 · Actuator, health y métricas en todos los servicios — 🔵 EN CURSO (backend/t-b14-actuator-metrics) · P0 · O-11, Principio VI
+### T-B14 · Actuator, health y métricas en todos los servicios — ✅ HECHA (#33) · P0 · O-11, Principio VI
 - **Qué:** `spring-boot-starter-actuator` + `micrometer-registry-prometheus` en los 10
   servicios Java, con `/actuator/health/liveness`, `/actuator/health/readiness` y
   `/actuator/prometheus` (no expuestos por el gateway). En transcode y moderation, endpoint
