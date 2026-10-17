@@ -170,6 +170,27 @@ spring:
                 name: moderationServiceCircuitBreaker
                 fallbackUri: forward:/fallback/moderation
 
+        # WebSocket crudo (ADR-006). JwtAuthenticationFilter valida ?token= y cierra con 4401.
+        - id: checkin-ws
+          uri: ws://localhost:8084
+          predicates:
+            - Path=/ws/checkin/**
+
+        - id: mosaic-ws
+          uri: ws://localhost:8085
+          predicates:
+            - Path=/ws/mosaic/**
+
+        - id: streaming-ws
+          uri: ws://localhost:8086
+          predicates:
+            - Path=/ws/streaming/**
+
+        - id: chat-ws
+          uri: ws://localhost:8088
+          predicates:
+            - Path=/ws/chat/**
+
   data:
     redis:
       host: ${REDIS_HOST:localhost}
