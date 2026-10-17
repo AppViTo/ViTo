@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "El campo user_id es obligatorio",
+  "status": 400,
+  "timestamp": "2026-10-16T14:03:22Z",
+  "details": {
+    "user_id": "No puede estar vacío"
+  }
+}

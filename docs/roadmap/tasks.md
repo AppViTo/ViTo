@@ -32,7 +32,7 @@
 
 | ID | Tarea | Pista | Prioridad | Estado |
 |----|-------|-------|-----------|--------|
-| T-C01 | Fixtures de las 15 operaciones existentes | C | P0 | 🟢 READY |
+| T-C01 | Fixtures de las 15 operaciones existentes | C | P0 | ✅ HECHA (#21) |
 | T-C02 | `package.json` + mock REST con Prism | C | P0 | ✅ HECHA (#27) |
 | T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | 🟢 READY |
 | T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | 🟢 READY (tras T-C01) |
@@ -44,11 +44,11 @@
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | 🟢 READY |
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) |
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | 🟢 READY |
-| T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | 🟢 READY |
-| T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | 🟢 READY |
+| T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) |
+| T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | ✅ HECHA (#25) |
 | T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | 🟢 READY |
 | T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | 🟢 READY |
-| T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | 🟢 READY |
+| T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | ✅ HECHA (#24) |
 | T-I01 | Higiene: `.gitignore` `backend/out/`, borrar `backend/java/` huérfano | I | P2 | 🟢 READY |
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
 | T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
@@ -59,7 +59,7 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
 
 ## Pista C — Contrato y tooling
 
-### T-C01 · Fixtures de las 15 operaciones existentes — 🟢 READY · P0 · O-01
+### T-C01 · Fixtures de las 15 operaciones existentes — ✅ HECHA (#21) · P0 · O-01
 - **Qué:** crear `docs/api/fixtures/<tag>/<operationId>.<status>.json` (request y
   response) para cada operación de `openapi.yaml`, incluidos los errores 400/401/404/409
   declarados. Añadir `docs/api/fixtures/README.md` con la convención de nombres.
@@ -175,13 +175,13 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
 - Servicios sin `@RestControllerAdvice`: social, event, checkin, mosaic, streaming, archive.
 - Si D-05 = opción C, pasa a READY copiando el handler de `auth-service`.
 
-### T-B04 · Gateway: ruta `/ws/**` — 🟢 READY · P0 · O-08, O-28, ADR-006
+### T-B04 · Gateway: ruta `/ws/**` — ✅ HECHA (#22, re-entrega de #20) · P0 · O-08, O-28, ADR-006
 - **Qué:** rutas `ws://` en el gateway para `/ws/checkin/**`, `/ws/mosaic/**`,
   `/ws/streaming/**`, `/ws/chat/**` hacia cada servicio; validar `?token=` con la misma
   lógica JWT, inyectar `X-User-*` y cerrar con `4401` si es inválido.
 - **Cierre:** test de handshake válido / inválido; el frontend conecta vía :8080.
 
-### T-B05 · WebSocketConfig en mosaic y streaming — 🟢 READY · P0 · ADR-006, O-28
+### T-B05 · WebSocketConfig en mosaic y streaming — ✅ HECHA (#25) · P0 · ADR-006, O-28
 - **Qué:** registrar `MosaicWebSocketHandler` en `/ws/mosaic/{eventId}` y
   `StreamingWebSocketHandler` en `/ws/streaming/{streamId}` como WS crudo (igual que
   checkin). Sin cambiar los `type` de frame existentes (se documentan en T-C05).
@@ -207,7 +207,7 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
   healthcheck.
 - **Cierre:** `docker compose --profile app up` levanta los 3 y el gateway los alcanza.
 
-### T-B11 · Rate limiter y circuit breaker activos en todos los perfiles — 🟢 READY · P0 · O-14, O-27
+### T-B11 · Rate limiter y circuit breaker activos en todos los perfiles — ✅ HECHA (#24) · P0 · O-14, O-27
 - **Hallazgo (T-B01):** `application-dev.yml` y `application-docker.yml` redefinen
   `spring.cloud.gateway.routes` completas sin filtros. Spring reemplaza la lista entera, así
   que `RequestRateLimiter` y `CircuitBreaker` de `application.yml` **no se aplican** en

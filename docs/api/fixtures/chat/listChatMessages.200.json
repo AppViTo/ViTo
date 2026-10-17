@@ -1,0 +1,23 @@
+[
+  {
+    "id": "msg_01H8X2K4QJ",
+    "roomId": "room_01H8X2K4QJ",
+    "senderId": "usr_01H8X2K4QJ",
+    "senderName": "Alex Villa",
+    "content": "¡Nos vemos el sábado!",
+    "type": "TEXT",
+    "timestamp": "2026-10-16T14:05:10Z",
+    "deleted": false
+  },
+  {
+    "id": "msg_01H8X2K5TL",
+    "roomId": "room_01H8X2K4QJ",
+    "senderId": "usr_01H9ZP5RKM",
+    "senderName": "Andrea Gómez",
+    "content": "Adjunto la lista de canciones",
+    "type": "IMAGE",
+    "mediaUrl": "https://cdn.vito.com/evt_01H8X/lista.jpg",
+    "timestamp": "2026-10-16T14:07:44Z",
+    "deleted": false
+  }
+]

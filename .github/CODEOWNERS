@@ -5,6 +5,11 @@
 # Nota: cuando una ruta lista varios dueños, basta la aprobación de UNO de
 # ellos (semántica de GitHub). La protección de rama no está disponible en el
 # plan actual (repo privado en Free); hoy la regla se cumple por acuerdo.
+#
+# Revisión cruzada: toda área de código tiene a los dos leads como dueños para
+# que siempre exista un CODEOWNER distinto del autor (GitHub no cuenta la
+# aprobación del autor). El lead del área va primero y es el revisor por
+# defecto; el otro lead aprueba cuando el autor es el propio lead del área.
 
 # ------------------------------------------------------------------
 # CONTRATO DE API — requiere aprobación de al menos 1 lead
@@ -13,20 +18,21 @@
 /docs/decisions/            @alexvilla01 @bamg359
 
 # ------------------------------------------------------------------
-# HANDOFFS — equipo frontend
+# HANDOFFS Y HOJA DE RUTA — lead del área primero
 # ------------------------------------------------------------------
-/docs/handoff/              @alexvilla01
+/docs/handoff/              @alexvilla01 @bamg359
+/docs/roadmap/              @alexvilla01 @bamg359
 
 # ------------------------------------------------------------------
-# FRONTEND — equipo frontend
+# FRONTEND — lead frontend primero
 # ------------------------------------------------------------------
-/frontend/                  @alexvilla01
+/frontend/                  @alexvilla01 @bamg359
 
 # ------------------------------------------------------------------
-# BACKEND — equipo backend
+# BACKEND — lead backend primero
 # ------------------------------------------------------------------
-/backend/                   @bamg359
-/ai-services/               @bamg359
+/backend/                   @bamg359 @alexvilla01
+/ai-services/               @bamg359 @alexvilla01
 
 # ------------------------------------------------------------------
 # INFRAESTRUCTURA Y CI — requiere al menos 1 lead
@@ -45,12 +51,14 @@
 
 # ------------------------------------------------------------------
 # SPEC KIT (SDD) — artefactos compartidos vs. skills por agente
+# (.claude/ y .opencode/ son la configuración del agente de cada lead: un
+# solo dueño a propósito.)
 # ------------------------------------------------------------------
 /.specify/                  @alexvilla01 @bamg359
 /.claude/                   @bamg359
 /.opencode/                 @alexvilla01
 
 # ------------------------------------------------------------------
-# Por defecto: el dueño del repo
+# Por defecto: ambos leads
 # ------------------------------------------------------------------
-*                           @alexvilla01
+*                           @alexvilla01 @bamg359

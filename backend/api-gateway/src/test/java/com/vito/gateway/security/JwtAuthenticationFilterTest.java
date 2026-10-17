@@ -8,20 +8,37 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.web.reactive.socket.WebSocketHandler;
+import org.springframework.web.reactive.socket.WebSocketSession;
+import org.springframework.web.reactive.socket.server.WebSocketService;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class JwtAuthenticationFilterTest {
 
     static final String SECRET = "test-secret-key-for-unit-tests-only-256-bits-long";
 
-    private final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(SECRET);
+    /** Registra el handler con el que el filtro respondería un handshake rechazado. */
+    private final AtomicReference<WebSocketHandler> rejectedHandshake = new AtomicReference<>();
+
+    private final WebSocketService webSocketService = (exchange, handler) -> {
+        rejectedHandshake.set(handler);
+        return Mono.empty();
+    };
+
+    private final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(SECRET, webSocketService);
 
     static String token(String userId) {
         return Jwts.builder()
@@ -98,6 +115,60 @@ class JwtAuthenticationFilterTest {
                 .header("X-User-Id", "victim"));
 
         assertNull(forwarded(exchange));
+        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+    }
+
+    private static MockServerHttpRequest.BaseBuilder<?> handshake(String uri) {
+        return MockServerHttpRequest.get(uri)
+                .header(HttpHeaders.UPGRADE, "websocket")
+                .header(HttpHeaders.CONNECTION, "Upgrade");
+    }
+
+    @Test
+    void webSocketHandshakeWithValidQueryTokenIsForwardedWithIdentityAndWithoutToken() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                handshake("/ws/checkin/evt_1?token=" + token("usr_real") + "&lang=es")
+                        .header("X-User-Id", "victim"));
+
+        ServerWebExchange downstream = forwarded(exchange);
+
+        assertNotNull(downstream);
+        assertEquals(List.of("usr_real"), downstream.getRequest().getHeaders().get("X-User-Id"));
+        assertNull(downstream.getRequest().getQueryParams().getFirst("token"));
+        assertEquals("es", downstream.getRequest().getQueryParams().getFirst("lang"));
+        assertEquals("/ws/checkin/evt_1", downstream.getRequest().getURI().getPath());
+        assertNull(rejectedHandshake.get());
+    }
+
+    @Test
+    void webSocketHandshakeWithInvalidTokenIsClosedWith4401() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(handshake("/ws/mosaic/evt_1?token=not-a-jwt"));
+
+        assertNull(forwarded(exchange));
+
+        WebSocketHandler handler = rejectedHandshake.get();
+        assertNotNull(handler, "el handshake debe aceptarse para poder cerrar con 4401");
+        WebSocketSession session = mock(WebSocketSession.class);
+        when(session.close(any())).thenReturn(Mono.empty());
+        handler.handle(session).block();
+        verify(session).close(JwtAuthenticationFilter.WS_UNAUTHORIZED);
+        assertEquals(4401, JwtAuthenticationFilter.WS_UNAUTHORIZED.getCode());
+    }
+
+    @Test
+    void webSocketHandshakeWithoutTokenIsClosedWith4401() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(handshake("/ws/streaming/str_1"));
+
+        assertNull(forwarded(exchange));
+        assertNotNull(rejectedHandshake.get());
+    }
+
+    @Test
+    void plainHttpRequestToWebSocketPathWithoutTokenGets401() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest.get("/ws/chat"));
+
+        assertNull(forwarded(exchange));
+        assertNull(rejectedHandshake.get());
         assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
     }
 }

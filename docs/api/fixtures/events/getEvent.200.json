@@ -1,0 +1,43 @@
+{
+  "id": "evt_01H9ZP5RKM",
+  "organizerId": "usr_01H8X2K4QJ",
+  "title": "Boda Andrea & Luis",
+  "description": "Ceremonia en la hacienda, fiesta hasta el amanecer",
+  "details": {
+    "startDate": "2026-10-12T23:00:00Z",
+    "endDate": "2026-10-13T07:00:00Z",
+    "location": "Hacienda El Retiro",
+    "address": "Km 5 vía Chía",
+    "latitude": 4.711,
+    "longitude": -74.0721,
+    "coverImages": [
+      "https://cdn.vito.com/evt_01H9ZP5RKM/cover.jpg"
+    ],
+    "tags": [
+      "boda",
+      "familia"
+    ],
+    "category": "WEDDING"
+  },
+  "settings": {
+    "isPublic": true,
+    "requiresApproval": false,
+    "maxAttendees": 150,
+    "allowGuestInvites": true,
+    "enableLiveStreaming": true,
+    "enableMosaic": true,
+    "hideAddressUntilAccepted": false
+  },
+  "stats": {
+    "totalInvited": 120,
+    "totalAccepted": 96,
+    "totalDeclined": 4,
+    "totalMaybe": 10,
+    "totalWaitlisted": 3,
+    "totalCheckedIn": 80,
+    "totalViewers": 0
+  },
+  "status": "PUBLISHED",
+  "createdAt": "2026-09-01T10:00:00Z",
+  "updatedAt": "2026-09-01T10:00:00Z"
+}

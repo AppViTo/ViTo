@@ -1,0 +1,14 @@
+[
+  {
+    "event_id": "evt_01H8X2K4QJ",
+    "event_name": "Los 30 de Marta",
+    "score": 0.92,
+    "reason": "Asististe a un evento del mismo organizador"
+  },
+  {
+    "event_id": "evt_01H9ZP5RKM",
+    "event_name": "Boda Andrea & Luis",
+    "score": 0.81,
+    "reason": "Tres de tus amigos confirmaron asistencia"
+  }
+]

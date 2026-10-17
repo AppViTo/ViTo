@@ -1,0 +1,6 @@
+{
+  "error": "UNAUTHORIZED",
+  "message": "Debes iniciar sesión para enviar mensajes",
+  "status": 401,
+  "timestamp": "2026-10-16T14:03:22Z"
+}

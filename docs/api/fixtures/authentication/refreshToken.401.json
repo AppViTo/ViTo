@@ -1,0 +1,6 @@
+{
+  "error": "UNAUTHORIZED",
+  "message": "El refresh token es inválido o ha expirado",
+  "status": 401,
+  "timestamp": "2026-10-16T14:03:22Z"
+}

@@ -27,9 +27,11 @@ spring:
         connect-timeout: 5000
         response-timeout: 10s
       
+      # Única definición de rutas (T-B11). Los perfiles solo cambian las *_SERVICE_URI;
+      # si redefinen la lista, Spring la reemplaza entera y se pierden los filtros.
       routes:
         - id: auth-service
-          uri: http://localhost:8081
+          uri: ${AUTH_SERVICE_URI:http://localhost:8081}
           predicates:
             - Path=/api/v1/auth/**
           filters:
@@ -45,7 +47,7 @@ spring:
                 redis-rate-limiter.burstCapacity: 20
         
         - id: social-service
-          uri: http://localhost:8082
+          uri: ${SOCIAL_SERVICE_URI:http://localhost:8082}
           predicates:
             - Path=/api/v1/social/**
           filters:
@@ -56,7 +58,7 @@ spring:
                 fallbackUri: forward:/fallback/social
         
         - id: event-service
-          uri: http://localhost:8083
+          uri: ${EVENT_SERVICE_URI:http://localhost:8083}
           predicates:
             - Path=/api/v1/events/**
           filters:
@@ -72,7 +74,7 @@ spring:
                 redis-rate-limiter.burstCapacity: 40
         
         - id: checkin-service
-          uri: http://localhost:8084
+          uri: ${CHECKIN_SERVICE_URI:http://localhost:8084}
           predicates:
             - Path=/api/v1/checkin/**
           filters:
@@ -83,7 +85,7 @@ spring:
                 fallbackUri: forward:/fallback/checkin
         
         - id: mosaic-service
-          uri: http://localhost:8085
+          uri: ${MOSAIC_SERVICE_URI:http://localhost:8085}
           predicates:
             - Path=/api/v1/mosaic/**
           filters:
@@ -94,7 +96,7 @@ spring:
                 fallbackUri: forward:/fallback/mosaic
         
         - id: streaming-service
-          uri: http://localhost:8086
+          uri: ${STREAMING_SERVICE_URI:http://localhost:8086}
           predicates:
             - Path=/api/v1/streaming/**
           filters:
@@ -105,7 +107,7 @@ spring:
                 fallbackUri: forward:/fallback/streaming
         
         - id: archive-service
-          uri: http://localhost:8087
+          uri: ${ARCHIVE_SERVICE_URI:http://localhost:8087}
           predicates:
             - Path=/api/v1/archive/**
           filters:
@@ -116,7 +118,7 @@ spring:
                 fallbackUri: forward:/fallback/archive
         
         - id: chat-service
-          uri: http://localhost:8088
+          uri: ${CHAT_SERVICE_URI:http://localhost:8088}
           predicates:
             - Path=/api/v1/chat/**
           filters:
@@ -127,7 +129,7 @@ spring:
                 fallbackUri: forward:/fallback/chat
         
         - id: media-service
-          uri: http://localhost:8089
+          uri: ${MEDIA_SERVICE_URI:http://localhost:8089}
           predicates:
             - Path=/api/v1/media/**
           filters:
@@ -138,7 +140,7 @@ spring:
                 fallbackUri: forward:/fallback/media
         
         - id: transcode-service
-          uri: http://localhost:8000
+          uri: ${TRANSCODE_SERVICE_URI:http://localhost:8000}
           predicates:
             - Path=/api/v1/transcode/**
           filters:
@@ -149,7 +151,7 @@ spring:
                 fallbackUri: forward:/fallback/transcode
         
         - id: recommendation-service
-          uri: http://localhost:8001
+          uri: ${RECOMMENDATION_SERVICE_URI:http://localhost:8001}
           predicates:
             - Path=/api/v1/recommendations/**
           filters:
@@ -160,7 +162,7 @@ spring:
                 fallbackUri: forward:/fallback/recommendations
         
         - id: moderation-service
-          uri: http://localhost:8002
+          uri: ${MODERATION_SERVICE_URI:http://localhost:8002}
           predicates:
             - Path=/api/v1/moderation/**
           filters:
@@ -169,6 +171,28 @@ spring:
               args:
                 name: moderationServiceCircuitBreaker
                 fallbackUri: forward:/fallback/moderation
+
+        # WebSocket crudo (ADR-006). JwtAuthenticationFilter valida ?token= y cierra con 4401.
+        # La URI es http: el gateway la convierte a ws:// cuando el request trae Upgrade: websocket.
+        - id: checkin-ws
+          uri: ${CHECKIN_SERVICE_URI:http://localhost:8084}
+          predicates:
+            - Path=/ws/checkin/**
+
+        - id: mosaic-ws
+          uri: ${MOSAIC_SERVICE_URI:http://localhost:8085}
+          predicates:
+            - Path=/ws/mosaic/**
+
+        - id: streaming-ws
+          uri: ${STREAMING_SERVICE_URI:http://localhost:8086}
+          predicates:
+            - Path=/ws/streaming/**
+
+        - id: chat-ws
+          uri: ${CHAT_SERVICE_URI:http://localhost:8088}
+          predicates:
+            - Path=/ws/chat/**
 
   data:
     redis:
