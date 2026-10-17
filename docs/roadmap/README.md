@@ -25,13 +25,14 @@ define qué puede implementarse **ya** y qué espera una decisión.
 
 ```
 Etapa 0  Gobierno         constitución v1.1.0 · hoja de ruta · brief        ✅ este PR
-Etapa 1  Decisiones       D-01..D-08 resueltas por leads → ADR-011+         ⏳ leads
+Etapa 1  Decisiones       D-02/D-04 ✅ (ADR-011); quedan D-01, D-03, D-05..D-12 ⏳ leads
 Etapa 2  Circuito cerrado fixtures + Prism + Spectral/AsyncAPI en CI          🟢 se puede empezar ya
          + tests Dart de fixtures, sobre las 15 operaciones existentes
 Etapa 3  Endurecimiento   gateway (X-User-*, /ws/**, ADR-003), WS crudos,    🟢 se puede empezar ya
          sin cambio de contrato  errores ADR-003, hideAddressUntilAccepted
 Etapa 4  Contrato por ola contract/<ola> → handoff → back + front mismo sprint 🔴 tras D-01/D-03/D-08
-Etapa 5  Infra / CD       depende de D-02 (costo)                            🔴 tras D-02
+Etapa 5  Infra / CD       Fase Tracción (ADR-011): VPS + Compose + R2        🟡 T-B14, T-I07, T-I09,
+                          T-I10, T-I12 listas; el resto tras D-07 y D-09
 ```
 
 ### Olas de contrato (Etapa 4)

@@ -81,9 +81,9 @@ a través del contrato**.
 | Todos los WS son crudos | chat usa STOMP/SockJS; mosaic y streaming tienen handler pero **no** están registrados (T-B05, T-B06) |
 | Todo error sigue ADR-003 | Solo auth, chat y media tienen handler; el gateway responde `{error,status}` (T-B02, T-B03) |
 | `GET /api/v1/events` existe | Está en el contrato y el front lo llama, pero el backend no lo implementa → 405 (D-03) |
-| Stack: Dragonfly, Eureka, S3/MinIO, Kubernetes+ArgoCD | Redis 7.2, rutas estáticas, SeaweedFS, solo compose. **En revisión por costo (D-02).** |
+| Stack: Dragonfly, Eureka, S3/MinIO, Kubernetes+ArgoCD | **Resuelto por ADR-011 (Fase Tracción):** VPS + Docker Compose, Redis, DNS de Compose, Kafka de 1 broker, R2 en producción y SeaweedFS en local. Kubernetes/ArgoCD quedan para la Fase Crecimiento: no trabajar en `infrastructure/kubernetes/`. |
 | Java 21 / Spring Boot soportado | Java 17; Spring Boot 3.2.1 (10 poms) y 3.5.3 (2) |
-| CD despliega | `cd.yml` solo construye 2 imágenes (una rota) y el deploy es `echo` |
+| CD despliega | `cd.yml` solo construye 2 imágenes (una rota) y el deploy es `echo`; se rehace en T-I08 |
 
 **Lo que sí funciona:** CI (`ci.yml`) con `mvn clean verify` ×10, pytest de transcode,
 `flutter analyze --fatal-infos` + `flutter test`, build de 11 imágenes con

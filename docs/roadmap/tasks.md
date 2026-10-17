@@ -16,6 +16,7 @@
 | 🔴 `BLOQUEADA` | Espera una decisión (D-xx en `decisions-pending.md`) u otra tarea (T-xx). |
 | 🔵 `EN CURSO` | Alguien la tomó (indicar rama). |
 | ✅ `HECHA` | Mergeada con su criterio de cierre verificado. |
+| ⚪ `REEMPLAZADA` / `DIFERIDA` | Ya no aplica en la fase actual (se indica qué la reemplaza o cuándo vuelve). |
 
 ## Pistas y dueño sugerido
 
@@ -54,8 +55,19 @@
 | T-I01 | Higiene: `.gitignore` `backend/out/`, borrar `backend/java/` huérfano | I | P2 | 🟢 READY |
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
 | T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
+| T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | 🟢 READY |
+| T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | 🟢 READY |
+| T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | 🟢 READY |
+| T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | 🟢 READY |
+| T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY |
+| T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | 🔴 BLOQUEADA (D-09) |
+| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔴 BLOQUEADA (D-07, T-I06, T-I07) |
+| T-I11 | Frontend web en Cloudflare Pages | I/F | P1 | 🔴 BLOQUEADA (D-09) |
+| T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (D-09, T-B14) |
+| T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔴 BLOQUEADA (T-I07, T-I09) |
 
-Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T-B10, T-I04, T-I05.
+Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T-B10, T-B13, T-I06, T-I08, T-I11, T-I13, T-I14.
+Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
 
 ---
 
@@ -266,8 +278,95 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
   ADR-001 eliminó; faltan checkin/mosaic/archive en los diagramas. Alinearlo con ADR-001,
   `endpoint-inventory.md` y marcar Dragonfly/Eureka/S3 como "en revisión (D-02)".
 
-### T-I04 · CD por servicio — 🔴 BLOQUEADA por D-02 (registro y destino) · P0 · O-12, O-13
-- `cd.yml` construye auth sin `file: backend/Dockerfile` y con el mismo nombre de imagen
-  que transcode; los deploy son `echo`. Se rehace cuando se decida destino y registro.
+### T-I04 · CD por servicio — ⚪ REEMPLAZADA por T-I08 (ADR-011)
+- `cd.yml` construye auth sin `file: backend/Dockerfile`, con el mismo nombre de imagen que
+  transcode, y los deploy son `echo`. ADR-011 elimina el registro de imágenes: se rehace
+  completo en T-I08.
 
-### T-I05 · Kubernetes / despliegue — 🔴 BLOQUEADA por D-02 · P0 · O-13
+### T-I05 · Kubernetes / despliegue — ⚪ DIFERIDA a Fase Crecimiento (ADR-011)
+- Los manifiestos de `infrastructure/kubernetes/` no se mantienen en Fase Tracción. No
+  borrarlos: se retoman al cumplir el disparador de ADR-011.
+
+### T-B14 · Actuator, health y métricas en todos los servicios — 🟢 READY · P0 · O-11, Principio VI
+- **Qué:** `spring-boot-starter-actuator` + `micrometer-registry-prometheus` en los 10
+  servicios Java, con `/actuator/health/liveness`, `/actuator/health/readiness` y
+  `/actuator/prometheus` (no expuestos por el gateway). En transcode y moderation, endpoint
+  `/health` y métricas con `prometheus-client`.
+- **Por qué ahora:** los healthchecks de `docker-compose.prod.yml` (T-I07) y Grafana Cloud
+  (T-I13) dependen de esto.
+- **Cierre:** test por servicio que verifica `200` en liveness/readiness y que
+  `/actuator/prometheus` responde.
+
+### T-I06 · Aprovisionar cuentas y VPS — 🔴 BLOQUEADA por D-09 · P0 · ADR-011
+- **Tarea manual de los leads** (no la ejecuta un agente):
+  1. Correo de equipo y gestor de contraseñas con 2FA (D-09).
+  2. Contabo Cloud VPS 12 GB en EE. UU.; acceso solo por llave SSH, sin login de root por
+     contraseña; firewall con 22 (restringido), 80, 443, 1935 (RTMP) y los puertos UDP de
+     WebRTC de SRS.
+  3. Cloudflare: dominio, DNS, bucket R2 (`vito-media`, `vito-backups`) y token de API
+     limitado a esos buckets.
+  4. GitHub Environment `production` con `SSH_HOST`, `SSH_USER`, `SSH_KEY` y los secretos de
+     `.env.example`.
+- **Cierre:** `ssh` con llave funciona, `docker compose version` en el VPS, buckets creados
+  y secretos cargados en GitHub. Registrar el gasto en la hoja de D-09.
+
+### T-I07 · `docker-compose.prod.yml` — 🟢 READY · P0 · O-13, ADR-011
+- **Qué:** archivo Compose de producción, separado del de desarrollo:
+  - los servicios de ADR-011 (10 Java, transcode, moderation, Mongo, Redis, Kafka KRaft de un
+    broker, SRS, Caddy); **sin** recommendation ni SeaweedFS;
+  - `mem_limit` por servicio y `JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75` (o equivalente)
+    para que el total quepa en 12 GB con margen; documentar la tabla de memoria;
+  - imágenes con tag `${IMAGE_TAG}` (SHA), nunca `:latest`;
+  - solo Caddy (80/443) y SRS publican puertos; Mongo, Redis y Kafka con autenticación y
+    sin puertos en el host;
+  - `Caddyfile`: TLS automático, `api.<dominio>` → gateway (incluido WebSocket);
+  - healthchecks usando T-B14.
+- **Cierre:** `docker compose -f docker-compose.prod.yml config` válido;
+  `docker compose ... up` en local con un `.env` de prueba levanta todo dentro de 12 GB
+  (`docker stats` en el PR).
+
+### T-I08 · Pipeline de despliegue — 🔴 BLOQUEADA por D-07, T-I06, T-I07 · P0 · O-12, ADR-011
+- **Qué:** rehacer `cd.yml`: al entrar un commit a `main`, construir solo las imágenes de
+  los servicios cambiados (tag = SHA), copiarlas al VPS con `docker save | ssh docker load`,
+  ejecutar `docker compose up -d` con el nuevo `IMAGE_TAG` y verificar los healthchecks.
+  Rollback manual con `workflow_dispatch` indicando un SHA anterior.
+- **Cierre:** un merge a `main` despliega sin intervención; el rollback a un SHA anterior
+  funciona y queda documentado en el runbook.
+
+### T-I09 · Backup de Mongo a R2 — 🟢 READY · P0 · Principio IX, ADR-011
+- **Qué:** contenedor o cron que corre `mongodump --gzip` diario y sube el archivo a un
+  bucket S3 (R2 en producción) con retención de 14 días. Script de restauración.
+- **Verificación local:** contra SeaweedFS (API S3) en el compose de desarrollo.
+- **Cierre:** el backup se genera y sube; la restauración en una base vacía recupera los
+  datos (pasos y salida en el PR).
+
+### T-I10 · media-service con endpoint S3 configurable — 🟢 READY · P0 · O-32, ADR-011
+- **Qué:** endpoint, región, bucket y credenciales S3 por variables de entorno, con
+  path-style configurable. Sin cambios de contrato. Igual para transcode y archive si
+  acceden al almacenamiento.
+- **Cierre:** test de integración contra SeaweedFS local; documentación de las variables
+  para R2 en `.env.example`.
+
+### T-I11 · Frontend web en Cloudflare Pages — 🔴 BLOQUEADA por D-09 · P1 · ADR-011
+- **Qué:** reemplazar el deploy a Vercel de `deploy-frontend.yml` por Cloudflare Pages
+  (`wrangler pages deploy`), con las mismas puertas de calidad y el build estricto de T-F06.
+- **Cierre:** un merge a `main` publica la web en Pages con `API_BASE_URL`/`WS_BASE_URL` de
+  producción.
+
+### T-I12 · CI incremental — 🟢 READY · P1 · ADR-011
+- **Qué:** que `ci.yml` construya y pruebe solo los servicios cuyos archivos cambiaron
+  (filtros `paths` o `dorny/paths-filter`), más un job semanal completo. El plan gratuito de
+  GitHub Actions da 2.000 minutos al mes en repos privados.
+- **Cierre:** un PR que solo toca `frontend/` no ejecuta jobs de backend, y viceversa.
+
+### T-I13 · Observabilidad con Grafana Cloud — 🔴 BLOQUEADA por D-09, T-B14 · P1 · Principio VI
+- **Qué:** Grafana Alloy (u OTel Collector) en el VPS que envía métricas, logs y trazas a
+  Grafana Cloud free; dashboard RED del gateway; alertas de caída y de disco/RAM > 80 % a
+  ambos leads; monitor de uptime externo.
+- **Cierre:** dashboard con datos reales y una alerta de prueba recibida.
+
+### T-I14 · Runbooks — 🔴 BLOQUEADA por T-I07, T-I09 · P1 · Principio IX
+- **Qué:** `docs/runbooks/restore.md` (reconstruir el VPS desde cero con Compose + `.env` +
+  backup de R2) y `docs/runbooks/incident.md` (qué mirar, cómo hacer rollback, a quién avisar).
+- **Cierre:** un ensayo de restauración completo en una máquina limpia, con tiempos medidos
+  (RTO ≤ 4 h).

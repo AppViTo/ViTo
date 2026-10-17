@@ -16,13 +16,13 @@ ViTo es una plataforma de **ciclo de vida de eventos sociales** que integra:
 3. **`.specify/memory/constitution.md`** — prevalece sobre este archivo. Jerarquía:
    constitución > ADR > CONVENTIONS > contrato > CONTRIBUTING > `docs/roadmap/` > AGENTS > código.
 
-> **Aviso de vigencia (2026-10-16):** la tabla de stack y la estructura de carpetas de
-> abajo describen el **objetivo**, no el estado actual. Diferencias conocidas: el código
-> usa Redis 7.2 (no Dragonfly), rutas estáticas (no Eureka), SeaweedFS (no S3/MinIO) y
-> solo Docker Compose; existen además `checkin-service`, `mosaic-service` y
-> `archive-service`. Kubernetes/ArgoCD, Kafka, Atlas, almacenamiento y observabilidad
-> están **en revisión por costo** (decisión D-02 en `docs/roadmap/decisions-pending.md`).
-> El estado real está en la sección 6 del AGENT-BRIEF.
+> **Aviso de vigencia (2026-10-17):** la tabla de stack y la estructura de carpetas de
+> abajo describen el diseño original. **El despliegue vigente es el de la Fase Tracción**
+> ([ADR-011](docs/decisions/adr-011-traction-stack.md)): un VPS con Docker Compose, Redis
+> (no Dragonfly), DNS de Compose (no Eureka), Kafka de un broker, Mongo autoalojado con
+> backup a Cloudflare R2, Grafana Cloud y frontend web en Cloudflare Pages. Kubernetes/ArgoCD
+> quedan para la Fase Crecimiento. Existen además `checkin-service`, `mosaic-service` y
+> `archive-service`. El estado real está en la sección 6 del AGENT-BRIEF.
 
 ## STACK TECNOLÓGICO
 
