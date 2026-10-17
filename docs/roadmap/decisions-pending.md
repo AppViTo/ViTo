@@ -10,13 +10,17 @@ Las opciones listadas son las que salieron del análisis del 2026-10-16. **La co
 | ID | Decisión | Bloquea | Propuesta | Estado |
 |----|----------|---------|-----------|--------|
 | D-01 | Dueño de cada dominio duplicado | Olas 1–4 | ver §D-01 | ⏳ |
-| D-02 | Stack de despliegue y herramientas por costo | Etapa 5, O-11/12/13/17 | ver §D-02 | ⏳ |
+| D-02 | Stack de despliegue y herramientas por costo | Etapa 5, O-11/12/13/17 | ver §D-02 | ✅ [ADR-011](../decisions/adr-011-traction-stack.md) |
 | D-03 | Semántica del listado de eventos (`GET /events`) | T-C06, T-B07, T-F08 | ver §D-03 | ⏳ |
-| D-04 | Mensajería durable del MVP (Kafka vs alternativa) | Ola 3, O-16/O-17 | ver §D-02.b | ⏳ |
+| D-04 | Mensajería durable del MVP (Kafka vs alternativa) | Ola 3, O-16/O-17 | ver §D-02.b | ✅ ADR-011 (Kafka KRaft, 1 broker) |
 | D-05 | Estrategia de código compartido Java (`shared-*`) | T-B03, O-23 | ver §D-05 | ⏳ |
 | D-06 | Identidad en el WS de chat (`?userId=`) | T-B06, T-F04 (parte chat) | ver §D-06 | ⏳ |
-| D-07 | Estrategia de ramas (`develop` vs `main`) | O-24 | ver §D-07 | ⏳ |
+| D-07 | Estrategia de ramas (`develop` vs `main`) | O-24, **T-I08 (deploy)** | ver §D-07 | ⏳ **prioritaria** |
 | D-08 | Aprobación del triage de `endpoint-inventory.md` | Olas 1–6 | aprobar por ola | ⏳ |
+| D-09 | Titularidad de cuentas y medio de pago de la infraestructura | T-I06 (aprovisionar) | ver §D-09 | ⏳ **prioritaria** |
+| D-10 | Tipo de cuenta de Google Play (personal u organización) | Publicación Android | ver §D-10 | ⏳ **prioritaria** |
+| D-11 | Modelo de monetización (qué se cobra y a quién) | Ola de pagos (nueva), primeros ingresos | ver §D-11 | ⏳ |
+| D-12 | Política de privacidad, términos y transferencia de datos (Ley 1581) | Publicación en tiendas, lanzamiento | ver §D-12 | ⏳ |
 
 ---
 
@@ -34,6 +38,9 @@ Hoy la misma capacidad vive en dos servicios:
 | Invitación vs RSVP | `POST /events/{id}/invitations/respond` | `POST /events/{id}/rsvp` | Mantener ambos solo si la semántica difiere (aceptar invitación privada vs RSVP público). Definir en Ola 1. |
 
 ## D-02 — Stack de despliegue y costo
+
+> ✅ **Cerrada el 2026-10-17 por [ADR-011](../decisions/adr-011-traction-stack.md)** (Fase
+> Tracción, 100.000 COP/mes). Las opciones de abajo se conservan como historial.
 
 La constitución v1.1.0 marca estas reglas como **en revisión** (no se implementan ni se
 eliminan hasta cerrar esta decisión). Sub-decisiones:
@@ -88,6 +95,10 @@ contrato → RFC.
 
 ## D-07 — Ramas
 
+> **Impacto de ADR-011:** el despliegue a producción sale de `main`, y la aprobación
+> manual es la aprobación del PR que entra a `main`. Esta decisión define si ese PR es un
+> release semanal desde `develop` (propuesta) o cada PR de feature directo a `main`.
+
 `CONTRIBUTING.md` define `develop` como integración, pero los PR recientes (#12, #13)
 van a `main` y `deploy-frontend.yml` despliega desde `main`. **Propuesta:** mantener
 `develop` como destino de PR de feature y promover a `main` con un PR de release
@@ -97,3 +108,58 @@ semanal (viernes), que dispara el deploy.
 
 Aprobar (o corregir) la columna "Decisión propuesta" de `endpoint-inventory.md`, **ola
 por ola**. Aprobar la ola N desbloquea su rama `contract/<ola>`.
+
+## D-09 — Titularidad de cuentas y medio de pago
+
+ADR-011 requiere abrir cuentas en Contabo, Cloudflare (R2, Pages, dominio), Grafana Cloud,
+Brevo/Resend y Google Play, y pagarlas con tarjeta en moneda extranjera.
+
+| Pregunta | Propuesta |
+|----------|-----------|
+| ¿A nombre de quién? | Un correo de equipo (p. ej. `infra@<dominio>`) como dueño de cada cuenta, **no** el personal de un lead. Ambos leads como administradores donde el proveedor lo permita. |
+| ¿Con qué tarjeta? | Una sola tarjeta (idealmente virtual o de la futura empresa), con el gasto registrado mes a mes en una hoja compartida. |
+| ¿Credenciales? | Gestor de contraseñas compartido con 2FA obligatorio; códigos de recuperación guardados fuera del gestor. |
+| ¿Quién recibe alertas de cobro y de caída? | Ambos leads. |
+
+## D-10 — Cuenta de Google Play: personal u organización
+
+| Opción | Efecto |
+|--------|--------|
+| Personal | Se abre rápido. Las cuentas personales nuevas deben hacer una **prueba cerrada con al menos 12 testers durante 14 días** antes de publicar en producción (requisito de Google; verificar vigente). Queda a nombre de una persona. |
+| Organización | Requiere número **D-U-N-S** de una empresa constituida; sin el requisito de testers. La app queda a nombre de la empresa. |
+
+**Propuesta:** si la empresa no está constituida, cuenta personal de un lead y **empezar ya
+la prueba cerrada** con 12+ testers (amigos, primeros organizadores), porque esos 14 días
+están en la ruta crítica del lanzamiento Android. Migrar la app a una cuenta de organización
+cuando exista la empresa.
+
+## D-11 — Modelo de monetización
+
+El roadmap actual no tiene ninguna funcionalidad de pago: ni endpoints en el contrato ni
+pantallas. Sin esta decisión no hay "primeros ingresos" posibles.
+
+| Opción | Ejemplo | Efecto técnico |
+|--------|---------|----------------|
+| A. Plan para organizadores (freemium) | Gratis hasta N invitados; plan pago por evento con streaming, mosaico ampliado y más invitados | Flags por plan en `event-service` + checkout por evento |
+| B. Pago por evento premium | Pago único al publicar un evento con funciones premium | Igual que A, sin suscripción |
+| C. Entradas pagas (ticketing) | El organizador cobra la entrada; ViTo toma una comisión | Split de pagos en la pasarela, conciliación, más obligaciones legales y fiscales |
+| D. Suscripción de usuarios | Suscripción mensual | Billing recurrente; si se cobra dentro de la app Android aplica Google Play Billing y su comisión |
+
+**Propuesta:** **A o B con checkout alojado de Wompi o Mercado Pago, pagado desde la web.**
+Es lo más simple, la app nunca toca datos de tarjeta y, si el pago se hace en la web (no
+dentro de la app Android), en principio no aplica la comisión de Google Play. Verificar
+con las políticas vigentes de Google Play antes de implementar. Implica una nueva ola de
+contrato ("Ola P: pagos").
+
+## D-12 — Privacidad, términos y transferencia de datos
+
+ADR-011 aloja los datos en EE. UU. (Contabo) y en Cloudflare. El Principio IX exige
+cumplir la Ley 1581 de 2012. Google Play exige una URL de política de privacidad para
+publicar.
+
+| Pregunta | Propuesta |
+|----------|-----------|
+| Política de privacidad y términos | Redactar y publicar en la web antes de la prueba cerrada de Google Play. Revisión por un abogado cuando haya ingresos. |
+| Transferencia internacional | Verificar que EE. UU. esté en la lista de países con nivel adecuado de protección de la SIC o, si no, obtener autorización expresa del titular. Declararlo en la política. |
+| Responsable del tratamiento | Persona natural (lead) o la empresa, según D-09 y D-10. |
+| Borrado de cuenta | Google Play exige un mecanismo de eliminación de cuenta; coincide con el flujo `USER_DELETED` del Principio IX. Planificarlo en la Ola 1. |
