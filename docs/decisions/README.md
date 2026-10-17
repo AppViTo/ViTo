@@ -19,5 +19,7 @@ Registro de las decisiones que afectan el contrato compartido entre el **equipo 
 | [009](./adr-009-conflict-vs-validation.md) | `409` para duplicados, `400` para validación | Aceptada | 2026-09-25 |
 | [010](./adr-010-backend-is-reference.md) | El código backend existente es referencia, no fuente de verdad | Aceptada | 2026-09-25 |
 | [011](./adr-011-traction-stack.md) | Stack de despliegue de la Fase Tracción (100.000 COP/mes) | Aceptada | 2026-10-17 |
+| [012](./adr-012-branching-and-release.md) | Ramas, release semanal y promoción a producción | Aceptada | 2026-10-17 |
+| [013](./adr-013-account-ownership.md) | Titularidad de cuentas, credenciales y medio de pago | Aceptada | 2026-10-17 |
 
 **Convención de formato:** estilo [MADR](https://adr.github.io/madr/) simplificado — Estado / Contexto / Decisión / Consecuencias / Alternativas.
