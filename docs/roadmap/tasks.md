@@ -48,7 +48,8 @@
 | T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | ✅ HECHA (#25) |
 | T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | ✅ HECHA (#26) |
 | T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | 🟢 READY |
-| T-B12 | event-service: `settings.isPublic` se serializa como `"public"` y se ignora al recibir | B | P0 | 🟢 READY |
+| T-B12 | event-service: `settings.isPublic` se serializa como `"public"` y se ignora al recibir | B | P0 | ✅ HECHA (#28) |
+| T-B13 | `boolean is*` serializado sin `is` en archive, mosaic, social y streaming | B | P1 | 🔴 BLOQUEADA (olas 2–5) |
 | T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | ✅ HECHA (#24) |
 | T-I01 | Higiene: `.gitignore` `backend/out/`, borrar `backend/java/` huérfano | I | P2 | 🟢 READY |
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
@@ -223,7 +224,7 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
 ### T-B10 · Spring Boot y Java unificados — 🔴 BLOQUEADA: requiere spec propio (Principio X) · P1 · O-21, O-35
 - 10 poms en 3.2.1, 2 en 3.5.3, Java 17. Planificar con `/speckit-specify`.
 
-### T-B12 · `isPublic` con el nombre del contrato — 🟢 READY · P0 · Principio I, ADR-001
+### T-B12 · `isPublic` con el nombre del contrato — ✅ HECHA (#28) · P0 · Principio I, ADR-001
 - **Hallazgo (T-B08):** `Event.EventSettings` declara `boolean isPublic` con Lombok, que
   genera `isPublic()`/`setPublic()`; Jackson lo expone como **`"public"`**. El contrato
   (ADR-001, CONVENTIONS §6) y Flutter usan `"isPublic"`. Al recibir, Spring Boot ignora la
@@ -234,6 +235,16 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
   `boolean is*` en otros servicios.
 - **Cierre:** test que serializa y deserializa `{"settings":{"isPublic":true}}` y fixture
   `createEvent` de T-C01 aceptado tal cual.
+
+### T-B13 · Mismo defecto de `is*` en otros servicios — 🔴 BLOQUEADA por T-C07 (olas 2–5) · P1 · Principio I
+- **Hallazgo (T-B12):** los mismos `boolean is*` primitivos con Lombok salen sin el prefijo
+  `is` en JSON y se ignoran al recibirlos. El frontend espera el nombre con `is`:
+  `EventArchive.EventArchiveSettings.isPublic` (archive), `MosaicFeedItem.isLiked` (mosaic),
+  `SocialProfile.isFollowing` / `isFollowedBy` (social), `ChatMessage.isDeleted` (streaming).
+  Los `Boolean` envueltos (p. ej. `ArchiveService.*Command.isPublic`) no tienen el problema.
+- **Qué:** al contractualizar cada servicio en su ola, aplicar el mismo patrón de T-B12
+  (`@JsonMixin` en `infrastructure`) con el nombre que fije el contrato.
+- **Cierre:** test `@JsonTest` por servicio contra el fixture de su ola.
 
 ---
 
