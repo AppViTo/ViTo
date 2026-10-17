@@ -78,8 +78,7 @@ public class AuthController {
     public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authorization) {
         String token = authorization.replace("Bearer ", "");
         authService.logout(token);
-        // logoutUser: 200 sin cuerpo (contrato), no 204
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
     
     @GetMapping("/me")

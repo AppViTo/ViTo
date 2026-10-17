@@ -166,10 +166,11 @@ class AuthControllerContractTest {
 
     // ── logoutUser ──────────────────────────────────────────────
 
+    /** ADR-004 y CONVENTIONS §4: 204. openapi dice 200 y se corrige en T-C08 (manda el ADR). */
     @Test
-    void logoutUser200WithoutBody() throws Exception {
+    void logoutUser204WithoutBody() throws Exception {
         MvcResult result = mvc.perform(post("/api/v1/auth/logout").header("Authorization", "Bearer access"))
-                .andExpect(status().isOk())
+                .andExpect(status().isNoContent())
                 .andReturn();
 
         assertEquals("", result.getResponse().getContentAsString());
