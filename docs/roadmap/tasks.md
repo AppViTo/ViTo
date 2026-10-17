@@ -48,7 +48,7 @@
 | T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | 🟢 READY |
 | T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | 🟢 READY |
 | T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | 🟢 READY |
-| T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | 🟢 READY |
+| T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | 🔵 EN CURSO (backend/t-b11-gateway-route-filters) |
 | T-I01 | Higiene: `.gitignore` `backend/out/`, borrar `backend/java/` huérfano | I | P2 | 🟢 READY |
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
 | T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
@@ -207,7 +207,7 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
   healthcheck.
 - **Cierre:** `docker compose --profile app up` levanta los 3 y el gateway los alcanza.
 
-### T-B11 · Rate limiter y circuit breaker activos en todos los perfiles — 🟢 READY · P0 · O-14, O-27
+### T-B11 · Rate limiter y circuit breaker activos en todos los perfiles — 🔵 EN CURSO (backend/t-b11-gateway-route-filters) · P0 · O-14, O-27
 - **Hallazgo (T-B01):** `application-dev.yml` y `application-docker.yml` redefinen
   `spring.cloud.gateway.routes` completas sin filtros. Spring reemplaza la lista entera, así
   que `RequestRateLimiter` y `CircuitBreaker` de `application.yml` **no se aplican** en
