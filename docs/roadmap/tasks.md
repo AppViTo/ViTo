@@ -33,7 +33,7 @@
 | ID | Tarea | Pista | Prioridad | Estado |
 |----|-------|-------|-----------|--------|
 | T-C01 | Fixtures de las 15 operaciones existentes | C | P0 | 🟢 READY |
-| T-C02 | `package.json` + mock REST con Prism | C | P0 | 🟢 READY (tras T-C01 para ejemplos ricos) |
+| T-C02 | `package.json` + mock REST con Prism | C | P0 | 🔵 EN CURSO (docs/t-c02-prism-mock) |
 | T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | 🟢 READY |
 | T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | 🟢 READY (tras T-C01) |
 | T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC |
@@ -69,7 +69,7 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
 - **Cierre:** cada `operationId` tiene al menos un fixture 2xx y uno de error; T-C03
   los valida contra el schema.
 
-### T-C02 · `package.json` + mock REST (Prism) — 🟢 READY · P0 · O-04
+### T-C02 · `package.json` + mock REST (Prism) — 🔵 EN CURSO (docs/t-c02-prism-mock) · P0 · O-04
 - **Qué:** `package.json` en la raíz con `@stoplight/prism-cli`, `@stoplight/spectral-cli`,
   `@asyncapi/cli` fijados y scripts `lint:api`, `lint:async`, `mock:api` (Prism en :4010).
   `mock:ws` queda como script que falla con mensaje "pendiente de T-C05".
