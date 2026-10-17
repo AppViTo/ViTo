@@ -29,8 +29,20 @@ import java.util.stream.Collectors;
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+    /**
+     * Atributo del exchange con el userId que el gateway autenticó. Lo usa el rate limiter:
+     * nunca debe leerse la identidad de un header que pudo mandar el cliente.
+     */
+    public static final String AUTHENTICATED_USER_ATTR = "vito.authenticatedUserId";
+
+    /** Headers de identidad de ADR-007: solo el gateway puede ponerlos. */
+    static final List<String> USER_HEADERS = List.of("X-User-Id", "X-User-Email", "X-User-Roles");
+
+    private final String jwtSecret;
+
+    public JwtAuthenticationFilter(@Value("${jwt.secret}") String jwtSecret) {
+        this.jwtSecret = jwtSecret;
+    }
 
     private static final List<String> PUBLIC_PATHS = List.of(
             "/api/v1/auth/login",
@@ -42,10 +54,13 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        ServerHttpRequest request = exchange.getRequest();
+        // Los X-User-* que manda el cliente se descartan en todas las rutas, públicas incluidas
+        ServerHttpRequest request = exchange.getRequest().mutate()
+                .headers(headers -> USER_HEADERS.forEach(headers::remove))
+                .build();
+        exchange = exchange.mutate().request(request).build();
         String path = request.getURI().getPath();
 
-        // Allow public paths without authentication
         if (isPublicPath(path)) {
             return chain.filter(exchange);
         }
@@ -59,7 +74,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String token = authHeader.substring(7);
         try {
             Claims claims = validateToken(token);
-            
+            exchange.getAttributes().put(AUTHENTICATED_USER_ATTR, claims.getSubject());
+
             // Add user info to headers for downstream services
             ServerHttpRequest modifiedRequest = request.mutate()
                     .header("X-User-Id", claims.getSubject())

@@ -42,7 +42,7 @@
 | T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming) | F | P0 | 🟢 READY |
 | T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | 🟢 READY |
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | 🟢 READY |
-| T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | 🟢 READY |
+| T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | 🔵 EN CURSO (backend/t-b01-strip-user-headers) |
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | 🟢 READY |
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | 🟢 READY |
 | T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | 🟢 READY |
@@ -157,7 +157,7 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
 
 ## Pista B — Backend
 
-### T-B01 · Gateway: higiene de `X-User-*` y rate limit — 🟢 READY · P0 · O-05, O-27, ADR-007
+### T-B01 · Gateway: higiene de `X-User-*` y rate limit — 🔵 EN CURSO (backend/t-b01-strip-user-headers) · P0 · O-05, O-27, ADR-007
 - **Qué:** en `JwtAuthenticationFilter` (o un `GlobalFilter` previo) eliminar
   `X-User-Id`, `X-User-Email`, `X-User-Roles` de **toda** petición entrante, también en
   rutas públicas, antes de inyectar los propios. `RateLimiterConfig` usa el usuario
