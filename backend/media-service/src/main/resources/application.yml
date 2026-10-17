@@ -38,12 +38,17 @@ server:
 jwt:
   secret: ${JWT_SECRET}
 
-# S3/MinIO Configuration
+# Almacenamiento S3 (ADR-011): SeaweedFS en local, Cloudflare R2 en producción.
+# Valores de R2 en .env.example.
 s3:
   endpoint: ${S3_ENDPOINT:http://localhost:9000}
+  region: ${S3_REGION:us-east-1}
   access-key: ${S3_ACCESS_KEY}
   secret-key: ${S3_SECRET_KEY}
   bucket: ${S3_BUCKET:vito-media}
+  path-style: ${S3_PATH_STYLE:true}
+  create-bucket: ${S3_CREATE_BUCKET:true}
+  public-url: ${S3_PUBLIC_URL:}
 
 # Media Configuration
 media:
