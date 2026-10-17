@@ -1,3 +1,15 @@
+<!--
+Sync Impact Report — v1.0.0 → v1.1.0 (MINOR) · 2026-10-16
+- Añadido: sección "Reglas en Revisión por Costo" (D-02) — reglas congeladas, no eliminadas.
+- Añadido: observaciones O-26..O-36 (validación cruzada con el análisis del agente frontend).
+- Modificado: inventario actual (Dockerfile compartido, SeaweedFS, versiones reales);
+  O-12 marcado como parcialmente cerrado; O-03 amplía a almacenamiento de objetos.
+- Modificado: Principio X remite a la sección de revisión por costo.
+- Modificado: Flujo SDD y Governance incorporan docs/roadmap/ como guía operativa.
+- Plantillas: .specify/templates/* sin cambios requeridos.
+- Pendiente: fecha de ratificación (se fija al mergear el PR de v1.1.0).
+-->
+
 # ViTo (VibeTogether) Constitution
 
 Constitución técnica de ViTo, plataforma de ciclo de vida de eventos sociales (eventos,
@@ -16,7 +28,7 @@ DEBE cumplirla. Usa las palabras clave MUST / SHOULD / MAY en el sentido de RFC 
   evento Kafka se implementa si no existe primero en el contrato (ADR-010: el código backend
   es referencia, no fuente de verdad).
 - Todo cambio de contrato sigue el proceso RFC de `CONTRIBUTING.md` §4: issue
-  `contract-change` → rama `contract/<nombre>` → aprobación de **ambos leads** → ADR si la
+  `contract-change` → rama `contract/<nombre>` → aprobación de **al menos 1 lead** (CODEOWNER, distinto del autor) → ADR si la
   decisión es relevante → implementación.
 - Cada operación DEBE tener `operationId`, ejemplos, `ErrorResponse` en 4xx/5xx y fixture
   en `docs/api/fixtures/`. Las convenciones de `docs/api/CONVENTIONS.md` y los ADR 001–010
@@ -224,8 +236,10 @@ servicio secundario.
   Java 21 · FastAPI (Python 3.11+) · MongoDB · Redis-compatible (Dragonfly o Redis, ver
   TODO) · Kafka (KRaft) · Spring Cloud Gateway · SRS para media · S3/MinIO · Docker ·
   Kubernetes + ArgoCD · GitHub Actions · OpenTelemetry + Prometheus + Grafana.
+  Los componentes marcados en la sección *Reglas en Revisión por Costo* están en revisión
+  (D-02) y pueden sustituirse por ADR sin enmienda MAJOR.
 - Añadir una tecnología, servicio o base de datos fuera del stack exige ADR aprobado por
-  ambos leads con justificación de por qué lo existente no basta.
+  al menos 1 lead (CODEOWNER) con justificación de por qué lo existente no basta.
 - Un servicio nuevo solo se crea si tiene datos propios y ciclo de despliegue
   independiente; si no, es un módulo de un servicio existente (YAGNI).
 - Las versiones de framework DEBEN estar dentro de soporte del proveedor; subir de versión
@@ -247,12 +261,14 @@ en CI o staging.
 
 | Componente | Estado observado |
 |-----------|------------------|
-| Backend Java | 10 servicios (gateway, auth, social, event, checkin, mosaic, streaming, archive, chat, media) en Spring Boot 3.2.1, Java 17; 1–2 clases de test por servicio; `integration-tests` (6) y `load-tests` k6 (2) |
-| AI services | transcode (con 3 tests), moderation y recommendation (sin tests ni job de CI) |
-| Frontend | Flutter, 140 archivos Dart, 8 tests, BLoC + Dio + get_it; despliegue web en Vercel |
-| Contrato | `openapi.yaml` con 14 rutas / 15 `operationId`; 10 ADR aceptados |
-| Infra | docker-compose (Mongo, Redis, Kafka+ZooKeeper, SRS); 4 manifiestos K8s base sin overlays |
-| CI/CD | CI de 10 servicios Java + transcode + Flutter; CD con pasos de deploy vacíos |
+| Backend Java | 10 servicios (gateway, auth, social, event, checkin, mosaic, streaming, archive, chat, media); Java 17; Spring Boot 3.2.1 (10 poms) y 3.5.3 (2); 1–2 clases de test por servicio; `integration-tests` (sin `pom.xml`) y `load-tests` k6 (2); `backend/Dockerfile` multi-stage compartido |
+| AI services | transcode (con 3 tests), moderation y recommendation (sin tests ni job de CI); ninguno en `docker-compose.yml` |
+| Frontend | Flutter, 10 features, 7 archivos de test (2 sin casos), BLoC + Dio + get_it; despliegue web en Vercel |
+| Contrato | `openapi.yaml` con 14 rutas / 15 `operationId` frente a 100 operaciones en código (87 Java + 13 FastAPI, ver `docs/roadmap/endpoint-inventory.md`); 10 ADR aceptados |
+| Infra | docker-compose (Mongo, Redis 7.2, Kafka+ZooKeeper, SRS, SeaweedFS, 10 servicios Java en profile `app`); 4 manifiestos K8s base sin overlays |
+| CI/CD | CI de 10 servicios Java + transcode + Flutter + build de 11 imágenes; CD con pasos de deploy vacíos; deploy web a Vercel desde `main` |
+
+*(Inventario actualizado el 2026-10-16, commit `1e80ac4`.)*
 
 ### Observaciones
 
@@ -269,7 +285,7 @@ en CI o staging.
 | O-09 | P1 | III | CORS limitado a `localhost`; blacklist de tokens, lockout de cuenta, validación de archivos y escaneo de dependencias aparecen como TODO en `SECURITY_CHECKLIST.md`. | Checklist sin TODO de severidad alta. |
 | O-10 | P1 | I/III | El 401 del gateway devuelve `{"error":"<mensaje>","status":401}` sin `message` ni `timestamp` (viola ADR-003). | Envelope ADR-003 en todas las respuestas del gateway y fallbacks. |
 | O-11 | P0 | VI | Solo `api-gateway` incluye Actuator; los manifiestos K8s sondean `/actuator/health/*` en servicios que no lo exponen (los pods nunca estarán Ready). Sin Micrometer/Prometheus ni OpenTelemetry. | Actuator + Prometheus + OTel en todos los servicios; probes verdes en staging. |
-| O-12 | P0 | VIII | Ningún servicio Java tiene Dockerfile; el CD publica auth y transcode con **el mismo nombre de imagen**; los jobs de deploy son `echo`. | Dockerfile por servicio, imagen por servicio, pipeline GitOps funcional. |
+| O-12 | P0 | VIII | ~~Ningún servicio Java tiene Dockerfile~~ (**parcialmente cerrado** 2026-10-16: `backend/Dockerfile` compartido, CI construye 11 imágenes). Sigue abierto: el CD publica auth y transcode con **el mismo nombre de imagen**, construye auth sin `file: backend/Dockerfile` y los jobs de deploy son `echo`. | Imagen por servicio publicada con tag inmutable y pipeline de despliegue funcional (destino según D-02). |
 | O-13 | P0 | VIII | Kubernetes: solo 4 de 13 servicios, imágenes `:latest`, sin overlays, sin Ingress, HPA, PDB ni NetworkPolicy; ArgoCD no configurado. | Kustomize base+overlays completos sincronizados por ArgoCD. |
 | O-14 | P1 | VIII | Rutas del gateway con `localhost:808x` en el perfil base; SRS publica el puerto 8080 en compose (colisiona con el gateway). | URLs por DNS de servicio; puertos sin conflicto. |
 | O-15 | P1 | VIII | El build web cae a `http://localhost:8080` si faltan `VITO_API_BASE_URL`/`VITO_WS_BASE_URL`. | Build de producción falla si faltan. |
@@ -283,8 +299,53 @@ en CI o staging.
 | O-23 | P2 | II | `JwtAuthenticationFilter` duplicado en 7 servicios; `backend/java/` sin uso aparente. | Librería compartida; directorios huérfanos eliminados. |
 | O-24 | P1 | — | `CONTRIBUTING.md` exige `develop` pero los PR recientes van a `main`. | Protección de rama activa con CODEOWNERS y flujo de ramas acordado. |
 | O-25 | P2 | IX | Documentos binarios (`*.docx`) versionados en la raíz; sin política de datos personales ni retención. | Documentos movidos a `docs/` o fuera del repo; política publicada. |
+| O-26 | P0 | I | `GET /api/v1/events` (`listEvents`) está en el contrato y lo consume el frontend, pero el backend no lo implementa (solo `/my-events` y `/upcoming`) → 405. | Contrato y backend coinciden (D-03) con fixture y test. |
+| O-27 | P0 | III | El rate limiter del gateway toma `X-User-Id` del cliente como clave; en rutas públicas (`/auth/**`) basta rotar el header para evadir el límite de login. | Clave = usuario autenticado por el gateway o IP; test de evasión. |
+| O-28 | P0 | III | El WS de chat identifica al usuario por `?userId=` elegido por el cliente; ningún cliente WS envía `?token=`; el chat es STOMP en backend y crudo en frontend (incompatibles). | Identidad tomada del token (D-06); WS crudo en los 4 recursos; handshake vía gateway. |
+| O-29 | P1 | I/III | Solo 3 de 9 servicios (auth, chat, media) tienen `@RestControllerAdvice`; los demás devuelven el error por defecto de Spring (viola ADR-003). | Envelope ADR-003 en todos los servicios (D-05). |
+| O-30 | P0 | I/II | Dominios duplicados entre servicios: QR/check-in (event vs checkin), subida (media vs mosaic `/photo`), chat (chat vs streaming), info de stream duplicada. | Dueño único por capacidad (D-01, ADR) y rutas sobrantes retiradas. |
+| O-31 | P1 | IV/VIII | El gateway rutea recommendation (:8001), moderation (:8002) y transcode (:8000), pero ninguno está en `docker-compose.yml`. | Los 3 en compose con healthcheck, o rutas retiradas. |
+| O-32 | P2 | X | Almacenamiento de objetos real = SeaweedFS; constitución y AGENTS dicen S3/MinIO, sin ADR. | ADR de almacenamiento (D-02.e) y docs alineados. |
+| O-33 | P1 | IX | `settings.hideAddressUntilAccepted` está en contrato, ADR-001 y Flutter, pero no en el modelo de event-service: la dirección se envía a cualquiera. | Campo persistido y dirección omitida para no aceptados; test. |
+| O-34 | P2 | — | Artefactos y archivos sueltos: `backend/out/` sin ignorar, `backend/java/` huérfano, `serve.js`, `Creación`, `img/` en la raíz; README raíz con cola UTF-16. | Repo limpio tras build; README en UTF-8. |
+| O-35 | P1 | X | Versiones de Spring Boot mezcladas (3.2.1 ×10, 3.5.3 ×2) sobre Java 17. | Una versión soportada en todos los servicios (amplía O-21). |
+| O-36 | P2 | I | `docs/architecture.md` describe `events` en forma plana (contradice ADR-001) y omite checkin/mosaic/archive. | Documento alineado con ADR-001 y el inventario. |
+
+El backlog ejecutable de estas observaciones vive en `docs/roadmap/tasks.md` (cada tarea
+cita sus O-xx) y las decisiones abiertas en `docs/roadmap/decisions-pending.md`.
+
+### Reglas en Revisión por Costo
+
+Las reglas siguientes quedan **congeladas** hasta que los leads cierren la decisión D-02
+(`docs/roadmap/decisions-pending.md`) con uno o varios ADR. Mientras estén congeladas:
+**no se invierte trabajo de implementación en ellas, no bloquean merges y no cuentan para
+la Production Readiness Review**; tampoco se eliminan. Cada ADR que las resuelva se refleja
+aquí con una enmienda PATCH (si confirma la regla) o MINOR (si la sustituye).
+
+| Regla | Principio | Sub-decisión D-02 |
+|-------|-----------|-------------------|
+| Kubernetes + ArgoCD, Kustomize `base` + `overlays/{dev,staging,production}`, HPA, PDB, NetworkPolicy | VIII | a |
+| Kafka KRaft con replicación ≥ 3 en producción | V, X | b (D-04) |
+| MongoDB replica set gestionado, backups diarios, RPO ≤ 24 h / RTO ≤ 4 h | IX | c |
+| Número de servicios desplegables independientes | X | d |
+| S3/MinIO como almacenamiento de objetos | IX, X | e |
+| Dragonfly vs Redis; Eureka vs DNS | X | f, g |
+| Stack de observabilidad (Prometheus + Grafana + alertas como código) — **health checks, métricas y logs JSON siguen vigentes** | VI | h |
+| Gestor de secretos concreto — **la prohibición de secretos en repo/imágenes sigue vigente** | III | i |
+| Registro de imágenes GHCR | VIII | j |
+| Ant Media Server | X | k |
+
+No entran en revisión (siguen plenamente vigentes): Principios I, II, III (salvo el gestor
+concreto), IV y VII, y en VIII la imagen por servicio con tag inmutable, sin `:latest`, sin
+`localhost` en perfiles de producción y build web estricto.
 
 ## Flujo de Desarrollo SDD y Puertas de Calidad
+
+**Backlog y priorización:** `docs/roadmap/` (hoja de ruta, `tasks.md`, inventario de
+endpoints y decisiones pendientes) es la guía operativa que traduce las observaciones en
+trabajo. Un agente solo implementa tareas en estado `READY` y sigue
+`docs/handoff/AGENT-BRIEF.md`. Las tareas atómicas (≤ 1 día, sin contrato nuevo) se
+implementan directamente; las olas de contrato siguen el ciclo Spec Kit.
 
 **Ciclo por feature (Spec Kit):**
 
@@ -306,8 +367,9 @@ en CI o staging.
 - Compilación + tests + cobertura (IV) de los componentes tocados.
 - Lint de contrato (Spectral, AsyncAPI) y prueba de contrato (fixtures / schemathesis).
 - ArchUnit (II), escaneo de dependencias, imágenes y secretos (III).
-- Revisión aprobada por CODEOWNERS; `docs/api/**`, `docs/decisions/**`, infra y CI requieren
-  ambos leads.
+- Revisión aprobada por al menos 1 CODEOWNER de cada ruta tocada, distinto del autor del PR
+  (incluye `docs/api/**`, `docs/decisions/**`, infra y CI). Mientras el plan de GitHub no
+  permita protección de rama, esta puerta se cumple por acuerdo del equipo.
 
 **Definición de Done:** la de `CONTRIBUTING.md` §5 más: métricas y trazas visibles en
 staging, manifiestos/overlays actualizados, y escenario k6 en verde si toca un SLO.
@@ -321,10 +383,12 @@ de guardia.
 
 - Esta constitución prevalece sobre cualquier otra práctica, plantilla o instrucción de
   agente del repositorio. En caso de conflicto: constitución > ADR > `CONVENTIONS.md` >
-  `CONTRIBUTING.md` > `AGENTS.md` > código existente.
+  contrato (`openapi.yaml` / `asyncapi.yaml`) > `CONTRIBUTING.md` > `docs/roadmap/` >
+  `AGENTS.md` > código existente.
 - **Enmiendas:** se proponen por PR a `.specify/memory/constitution.md` en rama
   `docs/constitution-<tema>`, con el Sync Impact Report actualizado; requieren aprobación de
-  ambos leads (frontend y backend) y, si afecta infraestructura, del rol DevOps.
+  al menos 1 lead (frontend o backend) distinto del autor; el otro lead DEBE quedar como
+  revisor solicitado para que esté informado.
 - **Versionado semántico:** MAJOR al eliminar o redefinir un principio de forma
   incompatible; MINOR al añadir un principio o sección o ampliar materialmente una regla;
   PATCH en aclaraciones y redacción.
@@ -337,4 +401,4 @@ de guardia.
 - Guía operativa en tiempo de desarrollo: `AGENTS.md`, `CONTRIBUTING.md` y
   `docs/api/CONVENTIONS.md`.
 
-**Version**: 1.0.0 | **Ratified**: TODO(RATIFICATION_DATE): pendiente de aprobación por ambos leads | **Last Amended**: 2026-10-12
+**Version**: 1.1.0 | **Ratified**: TODO(RATIFICATION_DATE): se fija con la fecha de merge del PR que aprueba v1.1.0 (1 lead distinto del autor) | **Last Amended**: 2026-10-16

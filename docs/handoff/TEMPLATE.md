@@ -10,6 +10,8 @@
 | **Fixtures** | `docs/api/fixtures/<feature>/` |
 | **Convenciones generales** | [`docs/api/CONVENTIONS.md`](../api/CONVENTIONS.md) — leer antes de empezar |
 | **Estado** | 🔴 No iniciado · 🟡 En progreso · 🟢 Completo |
+| **Ola / tareas** | Ola `<N>` de [`docs/roadmap/README.md`](../roadmap/README.md) · tareas `T-xx` de [`tasks.md`](../roadmap/tasks.md) |
+| **Contexto de agente** | [`AGENT-BRIEF.md`](./AGENT-BRIEF.md) — leer antes de empezar |
 
 ---
 

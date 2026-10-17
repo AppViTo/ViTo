@@ -2,12 +2,12 @@
 # Documentación: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 #
 # Formato: <ruta>  <usuario-o-equipo>
-# Nota: los usuarios deben existir en el repositorio. Ajusta los handles
-# a los usuarios reales de GitHub de cada lead antes de activar la protección
-# de rama en Settings > Branches.
+# Nota: cuando una ruta lista varios dueños, basta la aprobación de UNO de
+# ellos (semántica de GitHub). La protección de rama no está disponible en el
+# plan actual (repo privado en Free); hoy la regla se cumple por acuerdo.
 
 # ------------------------------------------------------------------
-# CONTRATO DE API — requiere aprobación de AMBOS leads
+# CONTRATO DE API — requiere aprobación de al menos 1 lead
 # ------------------------------------------------------------------
 /docs/api/                  @alexvilla01 @bamg359
 /docs/decisions/            @alexvilla01 @bamg359
@@ -29,7 +29,7 @@
 /ai-services/               @bamg359
 
 # ------------------------------------------------------------------
-# INFRAESTRUCTURA Y CI — requiere ambos
+# INFRAESTRUCTURA Y CI — requiere al menos 1 lead
 # ------------------------------------------------------------------
 /.github/                   @alexvilla01 @bamg359
 /infrastructure/            @alexvilla01 @bamg359
@@ -37,7 +37,7 @@
 /docker-compose.override.yml @alexvilla01 @bamg359
 
 # ------------------------------------------------------------------
-# DOCUMENTACIÓN COMPARTIDA — requiere ambos
+# DOCUMENTACIÓN COMPARTIDA — requiere al menos 1 lead
 # ------------------------------------------------------------------
 /AGENTS.md                  @alexvilla01 @bamg359
 /docs/architecture.md       @alexvilla01 @bamg359
