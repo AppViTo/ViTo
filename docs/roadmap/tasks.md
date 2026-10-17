@@ -57,7 +57,7 @@
 | T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
 | T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | 🟢 READY |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | 🟢 READY |
-| T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | 🟢 READY |
+| T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | 🔵 EN CURSO (backend/t-i09-mongo-backup) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | 🟢 READY |
 | T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY |
 | T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | 🔴 BLOQUEADA (D-09) |
@@ -333,7 +333,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** un merge a `main` despliega sin intervención; el rollback a un SHA anterior
   funciona y queda documentado en el runbook.
 
-### T-I09 · Backup de Mongo a R2 — 🟢 READY · P0 · Principio IX, ADR-011
+### T-I09 · Backup de Mongo a R2 — 🔵 EN CURSO (backend/t-i09-mongo-backup) · P0 · Principio IX, ADR-011
 - **Qué:** contenedor o cron que corre `mongodump --gzip` diario y sube el archivo a un
   bucket S3 (R2 en producción) con retención de 14 días. Script de restauración.
 - **Verificación local:** contra SeaweedFS (API S3) en el compose de desarrollo.
