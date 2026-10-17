@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "El campo password es obligatorio",
+  "status": 400,
+  "timestamp": "2026-10-16T14:03:22Z",
+  "details": {
+    "password": "Mínimo 8 caracteres"
+  }
+}

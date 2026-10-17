@@ -1,0 +1,8 @@
+{
+  "eventId": "evt_01H8X2K4QJ",
+  "name": "Chat de Los 30 de Marta",
+  "type": "EVENT_CHAT",
+  "participantIds": [
+    "usr_01H8X2K4QJ"
+  ]
+}

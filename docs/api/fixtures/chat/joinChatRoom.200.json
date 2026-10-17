@@ -1,0 +1,14 @@
+{
+  "id": "room_01H8X2K4QJ",
+  "eventId": "evt_01H8X2K4QJ",
+  "name": "Chat de Los 30 de Marta",
+  "type": "EVENT_CHAT",
+  "participantIds": [
+    "usr_01H8X2K4QJ",
+    "usr_01H9ZP5RKM"
+  ],
+  "createdBy": "usr_01H8X2K4QJ",
+  "createdAt": "2026-10-16T14:03:22Z",
+  "lastMessageAt": "2026-10-16T14:05:10Z",
+  "unreadCount": 0
+}

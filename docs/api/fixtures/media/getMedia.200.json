@@ -1,0 +1,16 @@
+{
+  "id": "med_01H8X2K4QJ",
+  "eventId": "evt_01H8X2K4QJ",
+  "uploadedBy": "usr_01H8X2K4QJ",
+  "fileName": "portada.jpg",
+  "contentType": "image/jpeg",
+  "fileSize": 482113,
+  "status": "UPLOADED",
+  "location": {
+    "bucket": "vito-events",
+    "key": "evt_01H8X/portada.jpg",
+    "url": "https://cdn.vito.com/evt_01H8X/portada.jpg",
+    "thumbnailUrl": "https://cdn.vito.com/evt_01H8X/thumb_portada.jpg"
+  },
+  "uploadedAt": "2026-10-16T14:03:22Z"
+}

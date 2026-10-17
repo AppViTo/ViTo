@@ -1,0 +1,35 @@
+[
+  {
+    "id": "evt_01H8X2K4QJ",
+    "organizerId": "usr_01H8X2K4QJ",
+    "title": "Los 30 de Marta",
+    "description": "Te espero con toda el alma",
+    "details": {
+      "startDate": "2026-08-23T01:00:00.000Z",
+      "endDate": "2026-08-23T07:00:00.000Z",
+      "address": "Cra. 7 #63-14, Chapinero Alto",
+      "category": "BIRTHDAY"
+    },
+    "settings": {
+      "isPublic": false,
+      "requiresApproval": false,
+      "maxAttendees": 100,
+      "allowGuestInvites": false,
+      "enableLiveStreaming": true,
+      "enableMosaic": true,
+      "hideAddressUntilAccepted": true
+    },
+    "stats": {
+      "totalInvited": 0,
+      "totalAccepted": 0,
+      "totalDeclined": 0,
+      "totalMaybe": 0,
+      "totalWaitlisted": 0,
+      "totalCheckedIn": 0,
+      "totalViewers": 0
+    },
+    "status": "PUBLISHED",
+    "createdAt": "2026-10-16T14:03:22Z",
+    "updatedAt": "2026-10-16T14:03:22Z"
+  }
+]
