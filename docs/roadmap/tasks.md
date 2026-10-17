@@ -45,7 +45,7 @@
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) |
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | 🟢 READY |
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) |
-| T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | 🟢 READY |
+| T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | ✅ HECHA (#25) |
 | T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | 🟢 READY |
 | T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | 🟢 READY |
 | T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | ✅ HECHA (#24) |
@@ -181,7 +181,7 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
   lógica JWT, inyectar `X-User-*` y cerrar con `4401` si es inválido.
 - **Cierre:** test de handshake válido / inválido; el frontend conecta vía :8080.
 
-### T-B05 · WebSocketConfig en mosaic y streaming — 🟢 READY · P0 · ADR-006, O-28
+### T-B05 · WebSocketConfig en mosaic y streaming — ✅ HECHA (#25) · P0 · ADR-006, O-28
 - **Qué:** registrar `MosaicWebSocketHandler` en `/ws/mosaic/{eventId}` y
   `StreamingWebSocketHandler` en `/ws/streaming/{streamId}` como WS crudo (igual que
   checkin). Sin cambiar los `type` de frame existentes (se documentan en T-C05).
