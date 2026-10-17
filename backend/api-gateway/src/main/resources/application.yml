@@ -294,16 +294,23 @@ resilience4j:
         timeout-duration: 0s
 
 # Actuator
+# Actuator en un puerto propio que no se publica (T-B14): el 8080 es el borde público y
+# no debe servir /actuator. Se quita el endpoint "gateway", que permite crear y borrar
+# rutas por POST.
 management:
+  server:
+    port: ${MANAGEMENT_PORT:9080}
   endpoints:
     web:
       exposure:
-        include: health,info,gateway,ratelimiters,circuitbreakers
+        include: health,info,prometheus,circuitbreakers
   endpoint:
     gateway:
-      enabled: true
+      enabled: false
     health:
       show-details: always
+      probes:
+        enabled: true
 
 # Logging
 logging:
