@@ -46,7 +46,7 @@
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | 🟢 READY |
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) |
 | T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | ✅ HECHA (#25) |
-| T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | 🟢 READY |
+| T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | ✅ HECHA (#26) |
 | T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | 🟢 READY |
 | T-B12 | event-service: `settings.isPublic` se serializa como `"public"` y se ignora al recibir | B | P0 | 🟢 READY |
 | T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | ✅ HECHA (#24) |
@@ -194,7 +194,7 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
 
 ### T-B07 · Implementar listado de eventos — 🔴 BLOQUEADA por D-03 (T-C06) · P0 · O-26
 
-### T-B08 · `hideAddressUntilAccepted` — 🟢 READY · P1 · ADR-001, Principio IX, O-33
+### T-B08 · `hideAddressUntilAccepted` — ✅ HECHA (#26) · P1 · ADR-001, Principio IX, O-33
 - **Qué:** el campo existe en contrato, ADR-001 y Flutter, pero no en
   `Event.EventSettings` de event-service. Agregarlo, persistirlo y, en `GET /events/{id}`,
   omitir `details.address`/`latitude`/`longitude` si es `true` y quien consulta no es
