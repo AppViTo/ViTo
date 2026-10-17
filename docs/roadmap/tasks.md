@@ -35,7 +35,7 @@
 | T-C01 | Fixtures de las 15 operaciones existentes | C | P0 | ✅ HECHA (#21) |
 | T-C02 | `package.json` + mock REST con Prism | C | P0 | 🟢 READY (tras T-C01 para ejemplos ricos) |
 | T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | 🟢 READY |
-| T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | 🔵 EN CURSO (frontend/t-c04-contract-tests) |
+| T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | ✅ HECHA (#31) |
 | T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC |
 | T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | 🟢 READY |
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | 🟢 READY |
@@ -82,7 +82,7 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
   `lint:async` se activa cuando exista `asyncapi.yaml`.
 - **Cierre:** el job es requerido en los PR que tocan `docs/api/**` y está verde.
 
-### T-C04 · Tests Dart contra fixtures — 🔵 EN CURSO (frontend/t-c04-contract-tests) · P0 · Principio IV
+### T-C04 · Tests Dart contra fixtures — ✅ HECHA (#31) · P0 · Principio IV
 - **Qué:** en `frontend/vito_app/test/contract/`, un test por fixture 2xx: carga el JSON
   de `docs/api/fixtures/`, hace `Model.fromJson` y `toJson` y compara campos.
   Modelos: `AuthResponse`/`User`, `EventModel`, chat (`ChatRoom`, `ChatMessage`), `Media`.
