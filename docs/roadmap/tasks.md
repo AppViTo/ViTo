@@ -46,8 +46,9 @@
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | 🟢 READY |
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) |
 | T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | ✅ HECHA (#25) |
-| T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | 🟢 READY |
+| T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | ✅ HECHA (#26) |
 | T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | 🟢 READY |
+| T-B12 | event-service: `settings.isPublic` se serializa como `"public"` y se ignora al recibir | B | P0 | 🟢 READY |
 | T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | ✅ HECHA (#24) |
 | T-I01 | Higiene: `.gitignore` `backend/out/`, borrar `backend/java/` huérfano | I | P2 | 🟢 READY |
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
@@ -193,7 +194,7 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
 
 ### T-B07 · Implementar listado de eventos — 🔴 BLOQUEADA por D-03 (T-C06) · P0 · O-26
 
-### T-B08 · `hideAddressUntilAccepted` — 🟢 READY · P1 · ADR-001, Principio IX, O-33
+### T-B08 · `hideAddressUntilAccepted` — ✅ HECHA (#26) · P1 · ADR-001, Principio IX, O-33
 - **Qué:** el campo existe en contrato, ADR-001 y Flutter, pero no en
   `Event.EventSettings` de event-service. Agregarlo, persistirlo y, en `GET /events/{id}`,
   omitir `details.address`/`latitude`/`longitude` si es `true` y quien consulta no es
@@ -221,6 +222,18 @@ Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T
 
 ### T-B10 · Spring Boot y Java unificados — 🔴 BLOQUEADA: requiere spec propio (Principio X) · P1 · O-21, O-35
 - 10 poms en 3.2.1, 2 en 3.5.3, Java 17. Planificar con `/speckit-specify`.
+
+### T-B12 · `isPublic` con el nombre del contrato — 🟢 READY · P0 · Principio I, ADR-001
+- **Hallazgo (T-B08):** `Event.EventSettings` declara `boolean isPublic` con Lombok, que
+  genera `isPublic()`/`setPublic()`; Jackson lo expone como **`"public"`**. El contrato
+  (ADR-001, CONVENTIONS §6) y Flutter usan `"isPublic"`. Al recibir, Spring Boot ignora la
+  propiedad desconocida: **todo evento creado desde la app queda `isPublic=false`** y las
+  respuestas traen `"public"`. Verificado con un test de serialización.
+- **Qué:** que REST lea y escriba `isPublic` sin acoplar el dominio a Jackson (DTO/mapper
+  en `infrastructure`, o mixin de Jackson registrado en config). Revisar el mismo patrón
+  `boolean is*` en otros servicios.
+- **Cierre:** test que serializa y deserializa `{"settings":{"isPublic":true}}` y fixture
+  `createEvent` de T-C01 aceptado tal cual.
 
 ---
 
