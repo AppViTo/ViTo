@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from contextlib import asynccontextmanager
 import logging
 
@@ -42,6 +43,9 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api/v1")
+
+# Métricas Prometheus en /metrics para Grafana Cloud (T-B14); no se enruta en el gateway
+Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
 
 @app.get("/health")
 async def health_check():

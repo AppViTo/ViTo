@@ -119,6 +119,37 @@ jobs:
           name: transcode-service-coverage
           path: ai-services/transcode-service/htmlcov/
 
+  # Moderation Service (FastAPI) — ADR-011 lo despliega, así que entra a CI (T-B14)
+  moderation-service:
+    name: Moderation Service Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ai-services/moderation-service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests
+        run: |
+          pytest --cov=app --cov-report=xml
+        env:
+          MONGODB_URI: mongodb://localhost:27017/test_db
+          JWT_SECRET: test-secret-key-for-unit-tests-only-256-bits-long
+
   # Flutter App
   flutter-app:
     name: Flutter App Tests

@@ -62,8 +62,17 @@ Convenciones:
 5. Merge (squash)                tarea ✅ HECHA (#PR) en tasks.md; borrar la rama
 ```
 
-> La estrategia `develop` → `main` está en revisión (D-07 en `docs/roadmap/decisions-pending.md`).
-> Hasta que se cierre, los PR de feature apuntan a `develop`.
+### Release y hotfix (ADR-012)
+
+```
+Release semanal (viernes)    PR "release: AAAA-MM-DD"  develop → main
+                             CI verde + Approve de 1 CODEOWNER distinto del autor
+                             merge commit (no squash) → tag v0.MINOR.PATCH → despliegue (ADR-011)
+Hotfix                       hotfix/<nombre> desde main → PR a main → PR main → develop
+```
+
+La aprobación del PR de release es la aprobación manual de producción. Nadie hace push
+directo a `main` ni a `develop`.
 
 ---
 
