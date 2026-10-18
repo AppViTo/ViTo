@@ -1,5 +1,6 @@
 package com.vito.gateway.security;
 
+import com.vito.gateway.error.ErrorResponses;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -9,12 +10,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
-import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.server.WebSocketService;
@@ -47,6 +45,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     static final String WS_TOKEN_PARAM = "token";
     static final CloseStatus WS_UNAUTHORIZED = new CloseStatus(4401, "Unauthorized");
 
+    static final String MISSING_TOKEN_MESSAGE = "Debes iniciar sesión para acceder a este recurso";
+    static final String INVALID_TOKEN_MESSAGE = "Tu sesión no es válida o expiró. Inicia sesión de nuevo";
+
     private final String jwtSecret;
     private final WebSocketService webSocketService;
 
@@ -77,7 +78,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         boolean webSocket = path.startsWith(WS_PATH_PREFIX);
         String token = webSocket ? webSocketToken(request) : bearerToken(request);
         if (token == null) {
-            return reject(exchange, webSocket, "Missing or invalid Authorization header");
+            return reject(exchange, webSocket, MISSING_TOKEN_MESSAGE);
         }
 
         try {
@@ -97,7 +98,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange.mutate().request(modifiedRequest.build()).build());
         } catch (JwtException | IllegalArgumentException e) {
             log.debug("Rejected token for {}: {}", path, e.getMessage());
-            return reject(exchange, webSocket, "Invalid or expired token");
+            return reject(exchange, webSocket, INVALID_TOKEN_MESSAGE);
         }
     }
 
@@ -121,7 +122,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             // El navegador no expone el status HTTP de un handshake fallido: se acepta y se cierra con 4401
             return webSocketService.handleRequest(exchange, session -> session.close(WS_UNAUTHORIZED));
         }
-        return unauthorizedResponse(exchange, message);
+        return ErrorResponses.write(exchange.getResponse(), HttpStatus.UNAUTHORIZED, ErrorResponses.UNAUTHORIZED, message);
     }
 
     /**
@@ -149,16 +150,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-    }
-
-    private Mono<Void> unauthorizedResponse(ServerWebExchange exchange, String message) {
-        ServerHttpResponse response = exchange.getResponse();
-        response.setStatusCode(HttpStatus.UNAUTHORIZED);
-        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        
-        String body = String.format("{\"error\":\"%s\",\"status\":401}", message);
-        DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
-        return response.writeWith(Mono.just(buffer));
     }
 
     @Override

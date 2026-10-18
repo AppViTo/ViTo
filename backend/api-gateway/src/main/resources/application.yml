@@ -279,6 +279,14 @@ resilience4j:
         enable-exponential-backoff: true
         exponential-backoff-multiplier: 2
 
+  # Sin esto el CircuitBreaker usa el TimeLimiter por defecto de Resilience4j (1 s): una
+  # petición lenta que el servicio sí completa (p. ej. el primer registro tras arrancar)
+  # recibía el fallback. Igual que spring.cloud.gateway.httpclient.response-timeout.
+  timelimiter:
+    configs:
+      default:
+        timeout-duration: 10s
+
   ratelimiter:
     instances:
       default:

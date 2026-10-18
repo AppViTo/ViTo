@@ -1,5 +1,6 @@
 package com.vito.gateway.security;
 
+import com.vito.gateway.error.ErrorResponseContract;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
@@ -26,9 +27,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class JwtAuthenticationFilterTest {
+public class JwtAuthenticationFilterTest {
 
-    static final String SECRET = "test-secret-key-for-unit-tests-only-256-bits-long";
+    public static final String SECRET = "test-secret-key-for-unit-tests-only-256-bits-long";
 
     /** Registra el handler con el que el filtro respondería un handshake rechazado. */
     private final AtomicReference<WebSocketHandler> rejectedHandshake = new AtomicReference<>();
@@ -40,7 +41,7 @@ class JwtAuthenticationFilterTest {
 
     private final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(SECRET, webSocketService);
 
-    static String token(String userId) {
+    public static String token(String userId) {
         return Jwts.builder()
                 .subject(userId)
                 .claim("email", userId + "@vito.test")
@@ -116,6 +117,25 @@ class JwtAuthenticationFilterTest {
 
         assertNull(forwarded(exchange));
         assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+        assertUnauthorizedEnvelope(exchange, JwtAuthenticationFilter.MISSING_TOKEN_MESSAGE);
+    }
+
+    @Test
+    void protectedPathWithInvalidTokenGetsUnauthorizedEnvelope() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
+                .post("/api/v1/events")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer forged.token.value"));
+
+        assertNull(forwarded(exchange));
+        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+        assertUnauthorizedEnvelope(exchange, JwtAuthenticationFilter.INVALID_TOKEN_MESSAGE);
+    }
+
+    /** ADR-003: el 401 del gateway es el mismo envelope que el de los servicios. */
+    private static void assertUnauthorizedEnvelope(MockServerWebExchange exchange, String message) {
+        String body = exchange.getResponse().getBodyAsString().block();
+        ErrorResponseContract.assertMatches(body, 401, "UNAUTHORIZED");
+        assertEquals(message, ErrorResponseContract.parse(body).get("message"));
     }
 
     private static MockServerHttpRequest.BaseBuilder<?> handshake(String uri) {
@@ -170,5 +190,6 @@ class JwtAuthenticationFilterTest {
         assertNull(forwarded(exchange));
         assertNull(rejectedHandshake.get());
         assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+        assertUnauthorizedEnvelope(exchange, JwtAuthenticationFilter.MISSING_TOKEN_MESSAGE);
     }
 }
