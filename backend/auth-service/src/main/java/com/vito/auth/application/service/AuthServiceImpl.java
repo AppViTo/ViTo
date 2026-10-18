@@ -81,7 +81,7 @@ public class AuthServiceImpl implements AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .user(savedUser)
-                .expiresIn(jwtExpiration)
+                .expiresIn(expiresInSeconds())
                 .build();
     }
     
@@ -110,7 +110,7 @@ public class AuthServiceImpl implements AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .user(user)
-                .expiresIn(jwtExpiration)
+                .expiresIn(expiresInSeconds())
                 .build();
     }
     
@@ -143,7 +143,7 @@ public class AuthServiceImpl implements AuthService {
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)
                 .user(user)
-                .expiresIn(jwtExpiration)
+                .expiresIn(expiresInSeconds())
                 .build();
     }
     
@@ -171,6 +171,11 @@ public class AuthServiceImpl implements AuthService {
     public User getUserById(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(AuthenticationException::userNotFound);
+    }
+    
+    /** ADR-004: segundos hasta que expira el access token; jwt.expiration está en milisegundos. */
+    private long expiresInSeconds() {
+        return Duration.ofMillis(jwtExpiration).toSeconds();
     }
     
     public record UserRegisteredEvent(String userId, String email) {}
