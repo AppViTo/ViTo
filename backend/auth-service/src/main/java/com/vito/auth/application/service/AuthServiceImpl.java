@@ -1,6 +1,7 @@
 package com.vito.auth.application.service;
 
 import com.vito.auth.domain.exception.AuthenticationException;
+import com.vito.auth.domain.exception.UserAlreadyExistsException;
 import com.vito.auth.domain.model.User;
 import com.vito.auth.domain.port.inbound.AuthService;
 import com.vito.auth.domain.port.outbound.CachePort;
@@ -36,11 +37,11 @@ public class AuthServiceImpl implements AuthService {
         
         // Validate unique constraints
         if (userRepository.existsByUsername(command.getUsername())) {
-            throw new IllegalArgumentException("Username already exists");
+            throw UserAlreadyExistsException.usernameTaken();
         }
         
         if (userRepository.existsByEmail(command.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
+            throw UserAlreadyExistsException.emailTaken();
         }
         
         // Create user
@@ -120,11 +121,11 @@ public class AuthServiceImpl implements AuthService {
         String userId = tokenProvider.validateRefreshToken(command.getRefreshToken());
         
         User user = userRepository.findById(userId)
-                .orElseThrow(AuthenticationException::userNotFound);
+                .orElseThrow(AuthenticationException::invalidRefreshToken);
         
         // Check if refresh token is blacklisted
         if (cachePort.isBlacklisted(command.getRefreshToken())) {
-            throw AuthenticationException.tokenExpired();
+            throw AuthenticationException.invalidRefreshToken();
         }
         
         // Blacklist old refresh token

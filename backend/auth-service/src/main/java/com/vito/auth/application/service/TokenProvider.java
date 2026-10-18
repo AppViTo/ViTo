@@ -64,14 +64,13 @@ public class TokenProvider {
             
             // Check if it's an access token (not refresh)
             if (claims.containsKey("type") && "refresh".equals(claims.get("type"))) {
-                throw AuthenticationException.invalidToken();
+                throw AuthenticationException.invalidAccessToken();
             }
             
             return claims.getSubject();
-        } catch (ExpiredJwtException e) {
-            throw AuthenticationException.tokenExpired();
-        } catch (JwtException e) {
-            throw AuthenticationException.invalidToken();
+        } catch (JwtException | IllegalArgumentException e) {
+            // IllegalArgumentException: token vacío ("Bearer " sin valor)
+            throw AuthenticationException.invalidAccessToken();
         }
     }
     
@@ -81,14 +80,12 @@ public class TokenProvider {
             
             // Check if it's a refresh token
             if (!claims.containsKey("type") || !"refresh".equals(claims.get("type"))) {
-                throw AuthenticationException.invalidToken();
+                throw AuthenticationException.invalidRefreshToken();
             }
             
             return claims.getSubject();
-        } catch (ExpiredJwtException e) {
-            throw AuthenticationException.tokenExpired();
-        } catch (JwtException e) {
-            throw AuthenticationException.invalidToken();
+        } catch (JwtException | IllegalArgumentException e) {
+            throw AuthenticationException.invalidRefreshToken();
         }
     }
     

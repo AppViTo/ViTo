@@ -11,10 +11,10 @@ public class AuthorizationException extends RuntimeException {
     }
     
     public static AuthorizationException insufficientPermissions() {
-        return new AuthorizationException("Insufficient permissions");
+        return new AuthorizationException("No tienes permisos para realizar esta acción");
     }
     
     public static AuthorizationException accessDenied() {
-        return new AuthorizationException("Access denied");
+        return new AuthorizationException("Acceso denegado");
     }
 }

@@ -6,6 +6,7 @@ import com.vito.event.domain.model.RSVP;
 import com.vito.event.domain.port.inbound.EventService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,7 +29,8 @@ public class EventController {
         
         Event event = eventService.createEvent(command);
         
-        return ResponseEntity.ok(event);
+        // createEvent: 201 Created (CONVENTIONS §4, ADR-005)
+        return ResponseEntity.status(HttpStatus.CREATED).body(event);
     }
     
     @PutMapping("/{eventId}")

@@ -1,6 +1,7 @@
 package com.vito.auth.application.service;
 
 import com.vito.auth.domain.exception.AuthenticationException;
+import com.vito.auth.domain.exception.UserAlreadyExistsException;
 import com.vito.auth.domain.model.User;
 import com.vito.auth.domain.port.inbound.AuthService.LoginCommand;
 import com.vito.auth.domain.port.inbound.AuthService.RegisterCommand;
@@ -112,11 +113,11 @@ class AuthServiceImplTest {
         when(userRepository.existsByUsername("existinguser")).thenReturn(true);
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        UserAlreadyExistsException exception = assertThrows(
+                UserAlreadyExistsException.class,
                 () -> authService.register(command)
         );
-        assertEquals("Username already exists", exception.getMessage());
+        assertEquals("El nombre de usuario ya está en uso", exception.getMessage());
 
         verify(userRepository).existsByUsername("existinguser");
         verify(userRepository, never()).existsByEmail(any());
@@ -136,11 +137,11 @@ class AuthServiceImplTest {
         when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        UserAlreadyExistsException exception = assertThrows(
+                UserAlreadyExistsException.class,
                 () -> authService.register(command)
         );
-        assertEquals("Email already exists", exception.getMessage());
+        assertEquals("El email ya está registrado", exception.getMessage());
 
         verify(userRepository).existsByUsername("newuser");
         verify(userRepository).existsByEmail("existing@example.com");
