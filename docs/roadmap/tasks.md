@@ -38,6 +38,7 @@
 | T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | 🟢 READY |
 | T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | ✅ HECHA (#31) |
 | T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC |
+| T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | 🟡 RFC |
 | T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | 🟢 READY |
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | 🟢 READY |
 | T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming) | F | P0 | 🟢 READY |
@@ -65,6 +66,7 @@
 | T-I11 | Frontend web en Cloudflare Pages | I/F | P1 | 🔴 BLOQUEADA (T-I06) |
 | T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (T-I06, T-B14) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔴 BLOQUEADA (T-I07, T-I09) |
+| T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY |
 
 Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T-B10, T-B13, T-I08, T-I11, T-I13, T-I14.
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
@@ -110,6 +112,23 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   ola (no en v0). Fixtures de frames en `docs/api/fixtures/ws/`.
 - **Cierre:** `npx @asyncapi/cli validate docs/api/asyncapi.yaml` verde; PR aprobado por
   1 CODEOWNER; `mock:ws` de T-C02 sirve los frames.
+
+### T-C08 · Contrato de auth alineado con ADR-004 — 🟡 RFC · P0 · ADR-004, Principio I
+- **Hallazgo (T-B15/T-B16):** ADR-004 (aceptada) fija la respuesta de `register`/`login`/
+  `refresh` con `user` **plano** (`id, username, email, displayName, avatar`), **sin**
+  `tokenType`, y `logout` → `204`; sus consecuencias pedían corregir `openapi.yaml`, pero no
+  se hizo. T-C01 (fixtures) y T-C04 (tests Dart) siguieron al openapi sin corregir: `user`
+  con `profile`/`stats`, `tokenType` y `logoutUser` `200`. El backend ya devuelve la forma
+  de ADR-004, así que Flutter pierde `displayName`/`avatar` (los busca en `profile`).
+  **Decisión de leads (2026-10-17): se mantiene ADR-004.**
+- **Qué:** issue `contract-change` y PR `contract/auth-adr-004`:
+  - `openapi.yaml`: `AuthResponse` sin `tokenType` y con `user` = nuevo schema `AuthUser`
+    plano (el schema `User` completo queda para social); `logoutUser` → `204`.
+  - Fixtures `authentication/*` 2xx con esa forma; `logoutUser.200.json` → `logoutUser.204`.
+  - Flutter: modelo de usuario de auth que lea la forma plana; tests de T-C04 actualizados.
+- **Desbloquea:** que T-F01 muestre nombre y avatar tras el login contra el backend real.
+- **Cierre:** Spectral verde; tests Dart de contrato verdes con los fixtures nuevos; PR
+  aprobado por 1 CODEOWNER.
 
 ### T-C06 · Resolver `GET /events` (O-26) — 🔴 BLOQUEADA por D-03 · P0
 - **Qué:** según la opción elegida en D-03, PR `contract/events-listing` + fixture.
@@ -258,6 +277,40 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   (`@JsonMixin` en `infrastructure`) con el nombre que fije el contrato.
 - **Cierre:** test `@JsonTest` por servicio contra el fixture de su ola.
 
+### T-B15 · Códigos y errores de auth-service y `createEvent` según los fixtures — 🟢 READY · P0 · ADR-003, ADR-005, ADR-009, Principio I
+- **Hallazgo (T-I07):** probando el stack de producción, `POST /events` respondió `200`
+  (contrato: `201`) y un registro duplicado respondió `400 "Validation Error"`
+  (contrato: `409 CONFLICT`). El `GlobalExceptionHandler` de auth-service, citado en el
+  AGENT-BRIEF como referencia, no sigue ADR-003: `error` en texto libre ("Validation Error",
+  "Authorization Error"…), mensajes en inglés y `timestamp` `LocalDateTime` sin zona.
+  T-B03 no lo cubre (solo trata los servicios **sin** handler).
+- **Qué:**
+  - event-service: `createEvent` → `201 Created`.
+  - auth-service: duplicado de email o username → `409` `CONFLICT` (excepción de dominio
+    propia, no `IllegalArgumentException`); validación → `400` `VALIDATION_ERROR` con
+    `details` por campo; resto de códigos `SCREAMING_SNAKE` de CONVENTIONS; mensajes es-ES;
+    `timestamp` ISO-8601 UTC (`Instant`).
+- **No hacer:** tocar los servicios de T-B03 (bloqueada por D-05) ni cambiar el contrato.
+- **Desbloquea:** que T-F01 pruebe 400/409/401 contra el backend real y no solo contra Prism.
+- **Cierre:** tests MockMvc de `registerUser` (201, 400, 409), `loginUser` (200, 401) y
+  `createEvent` (201) comparados con sus fixtures de `docs/api/fixtures/` (mismas claves,
+  mismos `status` y `error`).
+- **Nota (decisión de leads, 2026-10-17):** donde `openapi.yaml` contradice a ADR-004
+  (respuesta 2xx de auth y `logoutUser`), manda ADR-004: logout sigue en `204`. El
+  contrato se corrige en T-C08.
+
+### T-B16 · `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 — 🟢 READY · P0 · ADR-004, Principio I
+- **Hallazgo (T-B15):** `expiresIn` sale en **milisegundos** (`86400000`, el valor de
+  `jwt.expiration`); ADR-004 y `openapi.yaml` lo definen en **segundos**.
+  La forma de la respuesta (`user` plano, sin `tokenType`) ya cumple ADR-004, pero ningún
+  test la fija.
+- **Qué:** `expiresIn` en segundos en `register`, `login` y `refresh`; test que fije la forma
+  de ADR-004: `{accessToken, refreshToken, expiresIn, user{id, username, email,
+  displayName, avatar}}`, sin `tokenType`.
+- **No hacer:** cambiar la forma de la respuesta ni `openapi.yaml` (eso es T-C08).
+- **Cierre:** test de la respuesta de las tres operaciones con `expiresIn` igual a
+  `jwt.expiration / 1000`.
+
 ---
 
 ## Pista I — Infra, CI/CD e higiene
@@ -372,3 +425,20 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   backup de R2) y `docs/runbooks/incident.md` (qué mirar, cómo hacer rollback, a quién avisar).
 - **Cierre:** un ensayo de restauración completo en una máquina limpia, con tiempos medidos
   (RTO ≤ 4 h).
+
+### T-I15 · Protocolo de bloqueos entre agentes — 🟢 READY · P1 · CONTRIBUTING (cadencia)
+- **Por qué:** el agente frontend y el backend/infra trabajan en paralelo. Ya existen las
+  etiquetas `blocked-by-backend` / `blocked-by-frontend` y el sync de los miércoles, pero
+  ningún documento le dice a un agente cuándo y cómo usarlas, ni cómo pedir que se adelante
+  una tarea de la otra pista.
+- **Qué:**
+  - AGENT-BRIEF §9: si una tarea depende de otra pista, el agente abre un issue con la
+    etiqueta `blocked-by-<pista>` que cita la tarea bloqueada y la que propone adelantar
+    (T-xx), el impacto y si hay un rodeo temporal (p. ej. Prism). No implementa la otra pista.
+  - Plantilla de issue `.github/ISSUE_TEMPLATE/blocked.md` con esos campos.
+  - AGENT-BRIEF §7: al tomar una tarea, revisar primero los issues `blocked-by-<mi pista>`
+    abiertos; atenderlos tiene prioridad sobre las tareas P1/P2 de la propia pista.
+  - Los leads repriorizan en `tasks.md` en el sync del miércoles; el agente no cambia la
+    prioridad de tareas ajenas.
+- **Cierre:** la plantilla aparece al crear un issue en GitHub; AGENT-BRIEF y CONTRIBUTING
+  enlazan el flujo; un issue de ejemplo (T-F01 ← T-B02/T-B15) creado con la plantilla.
