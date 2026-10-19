@@ -39,7 +39,7 @@
 | T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | ✅ HECHA (#31) |
 | T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC |
 | T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | ✅ HECHA (#45) |
-| T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | 🟢 READY |
+| T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | 🔵 EN CURSO (frontend/t-f01-auth-bloc-real) |
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | 🟢 READY |
 | T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming) | F | P0 | 🟢 READY |
 | T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | 🟢 READY |
@@ -144,7 +144,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 
 ## Pista F — Frontend Flutter
 
-### T-F01 · AuthBloc real — 🟢 READY · P0 · O-20
+### T-F01 · AuthBloc real — 🔵 EN CURSO (frontend/t-f01-auth-bloc-real) · P0 · O-20
 - **Qué:** quitar el `// MOCK` de `auth_bloc.dart` (`_onLoginRequested`, `_onAuthCheckRequested`)
   y usar `LoginUseCase`/`RegisterUseCase`/`LogoutUseCase` + persistencia de tokens y
   refresh automático en el interceptor Dio (ADR-004). Solo operaciones del contrato:
