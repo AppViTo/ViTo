@@ -57,18 +57,20 @@
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
 | T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
 | T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | ✅ HECHA (#33) |
-| T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | 🟢 READY |
-| T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | 🟢 READY |
+| T-B15 | Códigos y errores de auth-service y `createEvent` según los fixtures | B | P0 | ✅ HECHA (#39) |
+| T-B16 | `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 | B | P0 | ✅ HECHA (#40) |
+| T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) |
+| T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) |
 | T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY |
 | T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | 🟢 READY (manual, leads) |
-| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔴 BLOQUEADA (T-I06, T-I07) |
+| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔴 BLOQUEADA (T-I06) |
 | T-I11 | Frontend web en Cloudflare Pages | I/F | P1 | 🔴 BLOQUEADA (T-I06) |
-| T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (T-I06, T-B14) |
-| T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔴 BLOQUEADA (T-I07, T-I09) |
+| T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (T-I06) |
+| T-I14 | Runbook de restauración y de incidentes | I | P1 | 🟢 READY |
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY |
 
-Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T-B10, T-B13, T-I08, T-I11, T-I13, T-I14.
+Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T-B10, T-B13, T-I08, T-I11, T-I13.
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
 
 ---
@@ -277,7 +279,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   (`@JsonMixin` en `infrastructure`) con el nombre que fije el contrato.
 - **Cierre:** test `@JsonTest` por servicio contra el fixture de su ola.
 
-### T-B15 · Códigos y errores de auth-service y `createEvent` según los fixtures — 🟢 READY · P0 · ADR-003, ADR-005, ADR-009, Principio I
+### T-B15 · Códigos y errores de auth-service y `createEvent` según los fixtures — ✅ HECHA (#39) · P0 · ADR-003, ADR-005, ADR-009, Principio I
 - **Hallazgo (T-I07):** probando el stack de producción, `POST /events` respondió `200`
   (contrato: `201`) y un registro duplicado respondió `400 "Validation Error"`
   (contrato: `409 CONFLICT`). El `GlobalExceptionHandler` de auth-service, citado en el
@@ -299,7 +301,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   (respuesta 2xx de auth y `logoutUser`), manda ADR-004: logout sigue en `204`. El
   contrato se corrige en T-C08.
 
-### T-B16 · `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 — 🟢 READY · P0 · ADR-004, Principio I
+### T-B16 · `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 — ✅ HECHA (#40) · P0 · ADR-004, Principio I
 - **Hallazgo (T-B15):** `expiresIn` sale en **milisegundos** (`86400000`, el valor de
   `jwt.expiration`); ADR-004 y `openapi.yaml` lo definen en **segundos**.
   La forma de la respuesta (`user` plano, sin `tokenType`) ya cumple ADR-004, pero ningún
@@ -380,7 +382,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `docker compose ... up` en local con un `.env` de prueba levanta todo dentro de 12 GB
   (`docker stats` en el PR).
 
-### T-I08 · Pipeline de despliegue — 🔴 BLOQUEADA por T-I06, T-I07 · P0 · O-12, ADR-011, ADR-012
+### T-I08 · Pipeline de despliegue — 🔴 BLOQUEADA por T-I06 · P0 · O-12, ADR-011, ADR-012
 - **Qué:** rehacer `cd.yml`: al entrar un commit a `main`, construir solo las imágenes de
   los servicios cambiados (tag = SHA), copiarlas al VPS con `docker save | ssh docker load`,
   ejecutar `docker compose up -d` con el nuevo `IMAGE_TAG` y verificar los healthchecks.
@@ -414,13 +416,13 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   GitHub Actions da 2.000 minutos al mes en repos privados.
 - **Cierre:** un PR que solo toca `frontend/` no ejecuta jobs de backend, y viceversa.
 
-### T-I13 · Observabilidad con Grafana Cloud — 🔴 BLOQUEADA por T-I06, T-B14 · P1 · Principio VI
+### T-I13 · Observabilidad con Grafana Cloud — 🔴 BLOQUEADA por T-I06 · P1 · Principio VI
 - **Qué:** Grafana Alloy (u OTel Collector) en el VPS que envía métricas, logs y trazas a
   Grafana Cloud free; dashboard RED del gateway; alertas de caída y de disco/RAM > 80 % a
   ambos leads; monitor de uptime externo.
 - **Cierre:** dashboard con datos reales y una alerta de prueba recibida.
 
-### T-I14 · Runbooks — 🔴 BLOQUEADA por T-I07, T-I09 · P1 · Principio IX
+### T-I14 · Runbooks — 🟢 READY · P1 · Principio IX
 - **Qué:** `docs/runbooks/restore.md` (reconstruir el VPS desde cero con Compose + `.env` +
   backup de R2) y `docs/runbooks/incident.md` (qué mirar, cómo hacer rollback, a quién avisar).
 - **Cierre:** un ensayo de restauración completo en una máquina limpia, con tiempos medidos
