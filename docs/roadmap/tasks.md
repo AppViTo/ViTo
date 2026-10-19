@@ -4,7 +4,7 @@
 > [`../handoff/AGENT-BRIEF.md`](../handoff/AGENT-BRIEF.md).
 >
 > Al tomar una tarea: cambiar su estado a `🔵 EN CURSO (<rama>)` en el mismo PR.
-> Al cerrar: `✅ HECHA (#PR)`. Si al implementar descubres que la tarea toca el contrato
+> Al cerrar: `✅ HECHA (#44)`. Si al implementar descubres que la tarea toca el contrato
 > o una decisión pendiente, **detente**, márcala `⛔ BLOQUEADA (motivo)` y avisa.
 
 ## Estados
@@ -35,7 +35,7 @@
 |----|-------|-------|-----------|--------|
 | T-C01 | Fixtures de las 15 operaciones existentes | C | P0 | ✅ HECHA (#21) |
 | T-C02 | `package.json` + mock REST con Prism | C | P0 | ✅ HECHA (#27) |
-| T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | ✅ HECHA (#PR) |
+| T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | ✅ HECHA (#44) |
 | T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | ✅ HECHA (#31) |
 | T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC |
 | T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | 🟡 RFC |
@@ -92,7 +92,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** `npm ci && npm run mock:api` sirve las 15 operaciones; Flutter corre contra
   `http://localhost:4010/api/v1` (comando ya documentado en CONTRIBUTING §6).
 
-### T-C03 · Job de CI "contract" — ✅ HECHA (#PR) · P0 · Principio I
+### T-C03 · Job de CI "contract" — ✅ HECHA (#44) · P0 · Principio I
 - **Qué:** job en `.github/workflows/ci.yml` que corre `npm run lint:api` y un script que
   valida cada fixture contra su schema (p. ej. `ajv` sobre los schemas de OpenAPI).
   `lint:async` se activa cuando exista `asyncapi.yaml`.
