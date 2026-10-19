@@ -31,6 +31,32 @@ class UserModel extends User {
     );
   }
   
+  /// `AuthUser` plano de register/login/refresh (ADR-004):
+  /// `{id, username, email, displayName, avatar}`. `displayName` y `avatar`
+  /// se guardan en [profile] para que la UI los lea igual que en social.
+  factory UserModel.fromAuthJson(Map<String, dynamic> json) {
+    final displayName = json['displayName'] as String?;
+    final avatar = json['avatar'] as String?;
+    return UserModel(
+      id: json['id'] ?? '',
+      username: json['username'] ?? '',
+      email: json['email'] ?? '',
+      profile: displayName != null || avatar != null
+          ? UserProfileModel(displayName: displayName, avatar: avatar)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toAuthJson() {
+    return {
+      'id': id,
+      'username': username,
+      'email': email,
+      'displayName': profile?.displayName,
+      'avatar': profile?.avatar,
+    };
+  }
+
   @override
   Map<String, dynamic> toJson() {
     return {

@@ -56,13 +56,13 @@ events/listEvents.200.json                  → array plano (ADR-002)
 
 ## Respuestas sin cuerpo
 
-Cuando el YAML declara un status **sin `content`** (p. ej. `logoutUser.200`),
+Cuando el YAML declara un status **sin `content`** (p. ej. `logoutUser.204`),
 el fixture existe y contiene el literal JSON `null`. Así se mantiene la regla
 «todo status declarado tiene fixture» y el validador sabe, por el propio YAML,
 que ahí **no** hay schema que aplicar.
 
 ```
-authentication/logoutUser.200.json   → null
+authentication/logoutUser.204.json   → null
 ```
 
 ## Requests multipart
