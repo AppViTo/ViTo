@@ -10,12 +10,17 @@
   "scripts": {
     "lint:api": "spectral lint docs/api/openapi.yaml",
     "lint:async": "asyncapi validate docs/api/asyncapi.yaml",
+    "validate:fixtures": "node scripts/validate-fixtures.mjs",
+    "contract": "npm run lint:api && npm run validate:fixtures",
     "mock:api": "prism mock docs/api/openapi.yaml --dynamic --port 4010 --host 0.0.0.0",
     "mock:ws": "node -e \"console.error('[T-C05] mock:ws pendiente: docs/api/asyncapi.yaml todavía no existe. Ver docs/roadmap/tasks.md (T-C05).'); process.exit(1)\""
   },
   "devDependencies": {
     "@asyncapi/cli": "6.2.1",
     "@stoplight/prism-cli": "5.16.0",
-    "@stoplight/spectral-cli": "6.17.0"
+    "@stoplight/spectral-cli": "6.17.0",
+    "ajv": "8.20.0",
+    "ajv-formats": "2.1.1",
+    "yaml": "2.9.1"
   }
 }

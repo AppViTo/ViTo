@@ -141,9 +141,10 @@ docker compose --profile app up -d --build
 cd frontend/vito_app && flutter pub get && flutter analyze --fatal-infos && flutter test
 
 # Contrato
-npx @stoplight/spectral-cli lint docs/api/openapi.yaml      # hoy: 0 problemas
-npx @asyncapi/cli validate docs/api/asyncapi.yaml            # cuando exista
-npm run mock:api                                             # cuando exista (T-C02)
+npm ci
+npm run contract            # Spectral + fixtures contra su schema (= job "Contract" de CI)
+npm run lint:async          # cuando exista asyncapi.yaml (T-C05)
+npm run mock:api            # Prism en :4010
 
 # Python
 cd ai-services/transcode-service && pytest
