@@ -38,7 +38,7 @@
 | T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | 🟢 READY |
 | T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | ✅ HECHA (#31) |
 | T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC |
-| T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | 🔵 EN CURSO (contract/auth-adr-004) |
+| T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | ✅ HECHA (#PR) |
 | T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | 🟢 READY |
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | 🟢 READY |
 | T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming) | F | P0 | 🟢 READY |
@@ -113,7 +113,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** `npx @asyncapi/cli validate docs/api/asyncapi.yaml` verde; PR aprobado por
   1 CODEOWNER; `mock:ws` de T-C02 sirve los frames.
 
-### T-C08 · Contrato de auth alineado con ADR-004 — 🔵 EN CURSO (contract/auth-adr-004) · P0 · ADR-004, Principio I
+### T-C08 · Contrato de auth alineado con ADR-004 — ✅ HECHA (#PR) · P0 · ADR-004, Principio I
 - **Hallazgo (T-B15/T-B16):** ADR-004 (aceptada) fija la respuesta de `register`/`login`/
   `refresh` con `user` **plano** (`id, username, email, displayName, avatar`), **sin**
   `tokenType`, y `logout` → `204`; sus consecuencias pedían corregir `openapi.yaml`, pero no
