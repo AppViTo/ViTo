@@ -44,6 +44,9 @@ components:
         password:
           type: string
           minLength: 8
+        displayName:
+          type: string
+          description: Nombre visible. Opcional (ADR-004).
 
     LoginRequest:
       type: object
@@ -55,21 +58,39 @@ components:
         password:
           type: string
 
+    # ADR-004: misma forma en register, login y refresh. Sin `tokenType`
+    # (el cliente siempre usa Bearer).
     AuthResponse:
       type: object
+      required: [accessToken, refreshToken, expiresIn, user]
       properties:
         accessToken:
           type: string
         refreshToken:
           type: string
-        tokenType:
-          type: string
-          example: Bearer
         expiresIn:
           type: integer
+          description: Segundos hasta que expira el access token (ADR-004).
           example: 86400
         user:
-          $ref: '#/components/schemas/User'
+          $ref: '#/components/schemas/AuthUser'
+
+    # Usuario de auth (ADR-004), plano. El perfil completo con stats es `User`
+    # y lo sirve social-service (Ola 2).
+    AuthUser:
+      type: object
+      required: [id, username, email]
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: [string, 'null']
+        avatar:
+          type: [string, 'null']
 
     User:
       type: object
@@ -519,8 +540,8 @@ paths:
         Revoca el token actual. Debe ir en la blacklist de Redis.
       operationId: logoutUser
       responses:
-        '200':
-          description: Sesión cerrada
+        '204':
+          description: Sesión cerrada (sin cuerpo, ADR-004)
         '401':
           description: Unauthorized
           content:

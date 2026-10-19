@@ -44,7 +44,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         },
       );
       
-      return UserModel.fromJson(response.data['user']);
+      return UserModel.fromAuthJson(response.data['user']);
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -68,7 +68,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         },
       );
       
-      return UserModel.fromJson(response.data['user']);
+      return UserModel.fromAuthJson(response.data['user']);
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -95,7 +95,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         },
       );
       
-      return UserModel.fromJson(response.data['user']);
+      return UserModel.fromAuthJson(response.data['user']);
     } on DioException catch (e) {
       throw _handleError(e);
     }
