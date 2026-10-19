@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../config/env/env.dart';
+import '../../core/network/session_expired_notifier.dart';
 import '../../core/network/token_interceptor.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/datasources/auth_local_datasource.dart';
@@ -12,6 +13,7 @@ import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/login.dart';
 import '../../features/auth/domain/usecases/register.dart';
 import '../../features/auth/domain/usecases/logout.dart';
+import '../../features/auth/domain/usecases/restore_session.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 
 import '../../features/events/data/datasources/event_remote_datasource.dart';
@@ -81,9 +83,11 @@ Future<void> init() async {
   );
   
   // Add token interceptor
+  sl.registerLazySingleton(() => SessionExpiredNotifier());
   dio.interceptors.add(TokenInterceptor(
     localDataSource: sl(),
     dio: dio,
+    sessionExpiredNotifier: sl(),
   ));
   
   sl.registerLazySingleton(() => dio);
@@ -101,12 +105,14 @@ Future<void> init() async {
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => RegisterUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
+  sl.registerLazySingleton(() => RestoreSessionUseCase(sl()));
   sl.registerFactory(
     () => AuthBloc(
       loginUseCase: sl(),
       registerUseCase: sl(),
       logoutUseCase: sl(),
-      authRepository: sl(),
+      restoreSessionUseCase: sl(),
+      sessionExpiredNotifier: sl(),
     ),
   );
   

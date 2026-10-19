@@ -29,6 +29,10 @@ class AuthenticationFailure extends Failure {
   const AuthenticationFailure({super.message = 'Authentication failed'});
 }
 
+class ConflictFailure extends Failure {
+  const ConflictFailure({super.message = 'Conflict'});
+}
+
 class AuthorizationFailure extends Failure {
   const AuthorizationFailure({super.message = 'Authorization failed'});
 }
