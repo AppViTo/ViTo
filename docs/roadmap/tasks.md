@@ -57,6 +57,8 @@
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
 | T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
 | T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | ✅ HECHA (#33) |
+| T-B15 | Códigos y errores de auth-service y `createEvent` según los fixtures | B | P0 | ✅ HECHA (#39) |
+| T-B16 | `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 | B | P0 | ✅ HECHA (#40) |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | 🟢 READY |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | 🟢 READY |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) |
@@ -277,7 +279,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   (`@JsonMixin` en `infrastructure`) con el nombre que fije el contrato.
 - **Cierre:** test `@JsonTest` por servicio contra el fixture de su ola.
 
-### T-B15 · Códigos y errores de auth-service y `createEvent` según los fixtures — 🟢 READY · P0 · ADR-003, ADR-005, ADR-009, Principio I
+### T-B15 · Códigos y errores de auth-service y `createEvent` según los fixtures — ✅ HECHA (#39) · P0 · ADR-003, ADR-005, ADR-009, Principio I
 - **Hallazgo (T-I07):** probando el stack de producción, `POST /events` respondió `200`
   (contrato: `201`) y un registro duplicado respondió `400 "Validation Error"`
   (contrato: `409 CONFLICT`). El `GlobalExceptionHandler` de auth-service, citado en el
@@ -299,7 +301,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   (respuesta 2xx de auth y `logoutUser`), manda ADR-004: logout sigue en `204`. El
   contrato se corrige en T-C08.
 
-### T-B16 · `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 — 🟢 READY · P0 · ADR-004, Principio I
+### T-B16 · `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 — ✅ HECHA (#40) · P0 · ADR-004, Principio I
 - **Hallazgo (T-B15):** `expiresIn` sale en **milisegundos** (`86400000`, el valor de
   `jwt.expiration`); ADR-004 y `openapi.yaml` lo definen en **segundos**.
   La forma de la respuesta (`user` plano, sin `tokenType`) ya cumple ADR-004, pero ningún
