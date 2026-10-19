@@ -13,6 +13,35 @@ env:
   FLUTTER_VERSION: '3.47.x'
 
 jobs:
+  # Contrato (T-C03): Spectral sobre openapi.yaml + fixtures validados contra su schema.
+  # Corre en todos los PR (es barato) para poder marcarlo como check requerido.
+  contract:
+    name: Contract
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install contract tooling
+        run: npm ci
+
+      - name: Lint openapi.yaml (Spectral)
+        run: npm run lint:api
+
+      - name: Validate fixtures against openapi.yaml
+        run: npm run validate:fixtures
+
+      # Se activa sola cuando T-C05 cree el archivo
+      - name: Validate asyncapi.yaml
+        if: hashFiles('docs/api/asyncapi.yaml') != ''
+        run: npm run lint:async
+
   # Servicios Spring Boot: compilación limpia + tests de cada uno
   backend:
     name: Backend Tests (${{ matrix.service }})

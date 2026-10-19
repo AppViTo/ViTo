@@ -79,10 +79,20 @@ Las **15 operaciones** de `openapi.yaml` están cubiertas: 8 requests (las 7 con
 body JSON + los casos ya citados) y 45 responses. Verificación:
 
 ```bash
-# que cada operationId del YAML tenga al menos un 2xx y un 4xx
-# y que cada fixture valide contra su schema → T-C03 (job "contract" de CI)
-npm run lint:api
+npm ci
+npm run contract            # = lint:api (Spectral) + validate:fixtures
 ```
+
+`validate:fixtures` ([`scripts/validate-fixtures.mjs`](../../../scripts/validate-fixtures.mjs))
+es el mismo paso del job **Contract** de CI y falla si:
+
+- falta el fixture de un status o de un `requestBody` JSON que el YAML declara;
+- hay un fixture **huérfano** (operación o status que el YAML no declara);
+- un fixture no valida contra su schema, **incluidas propiedades que el schema no
+  declara** (el validador trata todo objeto con `properties` como cerrado, salvo
+  que el YAML diga `additionalProperties`);
+- un status sin `content` tiene un fixture distinto de `null`;
+- una operación no tiene al menos un fixture 2xx y uno de error.
 
 ## Cómo añadir un fixture
 
