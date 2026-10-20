@@ -32,14 +32,12 @@ class AuthRepositoryImpl implements AuthRepository {
     required String username,
     required String email,
     required String password,
-    String? displayName,
   }) {
     return _authenticate(
       () => remoteDataSource.register(
         username: username,
         email: email,
         password: password,
-        displayName: displayName,
       ),
     );
   }

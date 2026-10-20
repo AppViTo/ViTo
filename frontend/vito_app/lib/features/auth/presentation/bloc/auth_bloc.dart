@@ -37,17 +37,15 @@ class RegisterRequested extends AuthEvent {
   final String username;
   final String email;
   final String password;
-  final String? displayName;
   
   const RegisterRequested({
     required this.username,
     required this.email,
     required this.password,
-    this.displayName,
   });
   
   @override
-  List<Object> get props => [username, email, password, displayName ?? ''];
+  List<Object> get props => [username, email, password];
 }
 
 class LogoutRequested extends AuthEvent {
@@ -154,7 +152,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         username: event.username,
         email: event.email,
         password: event.password,
-        displayName: event.displayName,
       ),
     );
     

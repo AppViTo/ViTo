@@ -131,7 +131,7 @@ void main() {
 
   group('register', () {
     blocTest<AuthBloc, AuthState>(
-      'éxito: envía displayName y guarda los tokens',
+      'éxito: guarda los tokens y autentica',
       setUp: () =>
           adapter.on('POST /auth/register', [StubResponse(201, register201)]),
       build: buildBloc,
@@ -140,7 +140,6 @@ void main() {
         username: 'alex_villa',
         email: 'alex@vito.com',
         password: 'vito-dev-2026',
-        displayName: 'Alex Villa',
       )),
       expect: () => [const AuthLoading(), isA<AuthAuthenticated>()],
       verify: (_) {
@@ -151,7 +150,7 @@ void main() {
     );
 
     blocTest<AuthBloc, AuthState>(
-      'sin displayName no lo envía (el contrato no admite null)',
+      'no envía displayName: RegisterRequest no lo declara',
       setUp: () =>
           adapter.on('POST /auth/register', [StubResponse(201, register201)]),
       build: buildBloc,

@@ -10,11 +10,12 @@ abstract class AuthRemoteDataSource {
     required String password,
   });
 
+  /// `RegisterRequest` del contrato solo declara `username`, `email` y
+  /// `password`: no se envía `displayName`.
   Future<AuthResponseModel> register({
     required String username,
     required String email,
     required String password,
-    String? displayName,
   });
 
   Future<void> logout();
@@ -57,7 +58,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String username,
     required String email,
     required String password,
-    String? displayName,
   }) async {
     try {
       final response = await dio.post(
@@ -66,8 +66,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'username': username,
           'email': email,
           'password': password,
-          if (displayName != null && displayName.isNotEmpty)
-            'displayName': displayName,
         },
       );
 
