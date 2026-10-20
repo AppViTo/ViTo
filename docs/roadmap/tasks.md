@@ -40,7 +40,7 @@
 | T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC | [VITO-14](https://bernardo-mira.atlassian.net/browse/VITO-14) |
 | T-C06 | `listEvents` con `scope=mine\|upcoming` según ADR-014 | C | P0 | 🟡 RFC | [VITO-15](https://bernardo-mira.atlassian.net/browse/VITO-15) |
 | T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | ✅ HECHA (#45) | [VITO-17](https://bernardo-mira.atlassian.net/browse/VITO-17) |
-| T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | ✅ HECHA (#46) | [VITO-18](https://bernardo-mira.atlassian.net/browse/VITO-18) |
+| T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | ✅ HECHA (#46, #56) | [VITO-18](https://bernardo-mira.atlassian.net/browse/VITO-18) |
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | 🟢 READY | [VITO-20](https://bernardo-mira.atlassian.net/browse/VITO-20) |
 | T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming) | F | P0 | 🟢 READY | [VITO-21](https://bernardo-mira.atlassian.net/browse/VITO-21) |
 | T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | 🟢 READY | [VITO-23](https://bernardo-mira.atlassian.net/browse/VITO-23) |
@@ -157,7 +157,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 
 ## Pista F — Frontend Flutter
 
-### T-F01 · AuthBloc real — ✅ HECHA (#46) · P0 · O-20
+### T-F01 · AuthBloc real — ✅ HECHA (#46, #56) · P0 · O-20
 - **Qué:** quitar el `// MOCK` de `auth_bloc.dart` (`_onLoginRequested`, `_onAuthCheckRequested`)
   y usar `LoginUseCase`/`RegisterUseCase`/`LogoutUseCase` + persistencia de tokens y
   refresh automático en el interceptor Dio (ADR-004). Solo operaciones del contrato:
@@ -167,6 +167,9 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   hasta la Ola 1.
 - **Cierre:** sin datos hardcodeados en `features/auth`; tests de bloc para éxito, 401,
   400 y refresh; funciona contra `npm run mock:api`.
+- **Complemento (#56):** el splash decidía a ciegas; ahora navega según la sesión
+  restaurada, `POST /auth/register` deja de enviar `displayName` (fuera de
+  `RegisterRequest`; hallazgo para RFC) y los flujos se verifican contra el mock.
 
 ### T-F02 · Retirar `MockApiService` (home, people) — 🔴 BLOQUEADA por T-C07 (Olas 1–2)
 - Home necesita eventos (`GET /events` → D-03) y people necesita `social/search` (Ola 2).
