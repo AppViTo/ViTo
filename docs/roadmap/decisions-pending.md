@@ -11,7 +11,7 @@ Las opciones listadas son las que salieron del análisis del 2026-10-16. **La co
 |----|----------|---------|-----------|--------|
 | D-01 | Dueño de cada dominio duplicado | Olas 1–4 | ver §D-01 | ⏳ |
 | D-02 | Stack de despliegue y herramientas por costo | Etapa 5, O-11/12/13/17 | ver §D-02 | ✅ [ADR-011](../decisions/adr-011-traction-stack.md) |
-| D-03 | Semántica del listado de eventos (`GET /events`) | T-C06, T-B07, T-F08 | ver §D-03 | ⏳ |
+| D-03 | Semántica del listado de eventos (`GET /events`) | T-C06, T-B07, T-F08 | ver §D-03 | ✅ [ADR-014](../decisions/adr-014-events-listing-scope.md) (opción A, `scope=mine\|upcoming`) |
 | D-04 | Mensajería durable del MVP (Kafka vs alternativa) | Ola 3, O-16/O-17 | ver §D-02.b | ✅ ADR-011 (Kafka KRaft, 1 broker) |
 | D-05 | Estrategia de código compartido Java (`shared-*`) | T-B03, O-23 | ver §D-05 | ⏳ |
 | D-06 | Identidad en el WS de chat (`?userId=`) | T-B06, T-F04 (parte chat) | ver §D-06 | ⏳ |
@@ -63,6 +63,10 @@ eliminan hasta cerrar esta decisión). Sub-decisiones:
 producción del MVP.
 
 ## D-03 — Listado de eventos
+
+> ✅ **Cerrada el 2026-10-19 por [ADR-014](../decisions/adr-014-events-listing-scope.md):**
+> opción A con `scope=mine|upcoming` (sin `public`) y `mine` por defecto. Las opciones de
+> abajo se conservan como historial.
 
 El contrato publica `GET /api/v1/events` (`listEvents`) y el frontend lo usa como
 "mis eventos" (`event_remote_datasource.dart:147`). El backend no lo implementa: solo
