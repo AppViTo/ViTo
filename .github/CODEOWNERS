@@ -3,8 +3,8 @@
 #
 # Formato: <ruta>  <usuario-o-equipo>
 # Nota: cuando una ruta lista varios dueños, basta la aprobación de UNO de
-# ellos (semántica de GitHub). La protección de rama no está disponible en el
-# plan actual (repo privado en Free); hoy la regla se cumple por acuerdo.
+# ellos (semántica de GitHub). La protección de rama de `main` y `develop`
+# exige esa aprobación (CONTRIBUTING.md §1).
 #
 # Revisión cruzada: toda área de código tiene a los dos leads como dueños para
 # que siempre exista un CODEOWNER distinto del autor (GitHub no cuenta la
