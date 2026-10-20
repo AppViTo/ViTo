@@ -49,7 +49,7 @@
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) |
 | T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | ✅ HECHA (#25) |
 | T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | ✅ HECHA (#26) |
-| T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | 🔵 EN CURSO (backend/t-b09-fastapi-compose) |
+| T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | ✅ HECHA (#43) |
 | T-B12 | event-service: `settings.isPublic` se serializa como `"public"` y se ignora al recibir | B | P0 | ✅ HECHA (#28) |
 | T-B13 | `boolean is*` serializado sin `is` en archive, mosaic, social y streaming | B | P1 | 🔴 BLOQUEADA (olas 2–5) |
 | T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | ✅ HECHA (#24) |
@@ -236,7 +236,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** tests de dominio para organizador / aceptado / no aceptado; respuesta igual
   al fixture `getEvent` de T-C01.
 
-### T-B09 · FastAPI en compose — 🔵 EN CURSO (backend/t-b09-fastapi-compose) · P1 · O-31
+### T-B09 · FastAPI en compose — ✅ HECHA (#43) · P1 · O-31
 - **Qué:** agregar transcode, moderation y recommendation al profile `app` de
   `docker-compose.yml` en los puertos que espera el gateway (8000/8001/8002), con
   healthcheck.
