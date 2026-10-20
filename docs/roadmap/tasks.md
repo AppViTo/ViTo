@@ -42,7 +42,7 @@
 | T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | ✅ HECHA (#45) | [VITO-17](https://bernardo-mira.atlassian.net/browse/VITO-17) |
 | T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | ✅ HECHA (#46) | [VITO-18](https://bernardo-mira.atlassian.net/browse/VITO-18) |
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | 🟢 READY | [VITO-20](https://bernardo-mira.atlassian.net/browse/VITO-20) |
-| T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming) | F | P0 | 🟢 READY | [VITO-21](https://bernardo-mira.atlassian.net/browse/VITO-21) |
+| T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming, chat sin `?userId=`) | F | P0 | 🟢 READY | [VITO-21](https://bernardo-mira.atlassian.net/browse/VITO-21) |
 | T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | 🟢 READY | [VITO-23](https://bernardo-mira.atlassian.net/browse/VITO-23) |
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | 🟢 READY | [VITO-24](https://bernardo-mira.atlassian.net/browse/VITO-24) |
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) | [VITO-26](https://bernardo-mira.atlassian.net/browse/VITO-26) |
@@ -183,7 +183,8 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `streaming_repository_impl.dart` construyen la URL desde `Env.wsBaseUrl` (no
   `baseUrl.replaceFirst('http','ws')`) y agregan `?token=<accessToken>`. Manejar cierre
   `4401` → refresh + reconexión una vez.
-- **Chat:** no tocar `?userId=` hasta D-06.
+- **Chat (ADR-015):** `chat_remote_datasource.dart` hace lo mismo y **retira `?userId=`**;
+  `connect` deja de recibir el `userId`.
 - **Cierre:** test unitario que verifica la URL generada y el manejo de 4401.
 
 ### T-F05 · Subida al mosaico — 🔴 BLOQUEADA por D-01 + Ola 3
@@ -236,9 +237,12 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   checkin). Sin cambiar los `type` de frame existentes (se documentan en T-C05).
 - **Cierre:** test de integración que conecta y recibe un frame.
 
-### T-B06 · Chat a WS crudo — 🔴 BLOQUEADA por T-C05 + D-06 · P1 · ADR-006, O-28
+### T-B06 · Chat a WS crudo — 🔴 BLOQUEADA por T-C05 · P1 · ADR-006, ADR-015, O-28
 - Reemplazar STOMP/SockJS de `chat-service` por handler crudo con los frames de
   `asyncapi.yaml`.
+- Identidad según ADR-015: `HandshakeInterceptor` que copia `X-User-Id` a la sesión y
+  cierra con `4401` si falta; se ignora `userId` en query y frames; cada frame de sala
+  verifica que el usuario participe en ella.
 
 ### T-B07 · Implementar listado de eventos — 🔴 BLOQUEADA por T-C06 · P0 · O-26, ADR-014
 - **Qué:** `GET /events?scope=mine|upcoming` en event-service según ADR-014:

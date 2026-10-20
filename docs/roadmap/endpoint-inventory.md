@@ -178,7 +178,7 @@ Columna **Front**: ✔ = el código Flutter ya lo llama (`lib/**/datasources`, `
 | `/ws/checkin/{eventId}` | checkin | WS crudo registrado ✔ | conecta sin `?token=` | 2 |
 | `/ws/mosaic/{eventId}` | mosaic | handler **sin** `WebSocketConfig` | conecta sin `?token=` | 3 |
 | `/ws/streaming/{streamId}` | streaming | handler **sin** `WebSocketConfig` | conecta sin `?token=` | 4 |
-| `/ws/chat` | chat | **STOMP/SockJS** (viola ADR-006) | WS crudo con `?userId=` (D-06) | 6 |
+| `/ws/chat` | chat | **STOMP/SockJS** (viola ADR-006) | WS crudo con `?userId=` (ADR-015 lo retira; T-F04) | 6 |
 
 Ninguna ruta WS pasa por el gateway: falta la ruta `/ws/**` (O-08, T-B04).
 

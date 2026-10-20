@@ -22,5 +22,6 @@ Registro de las decisiones que afectan el contrato compartido entre el **equipo 
 | [012](./adr-012-branching-and-release.md) | Ramas, release semanal y promoción a producción | Aceptada | 2026-10-17 |
 | [013](./adr-013-account-ownership.md) | Titularidad de cuentas, credenciales y medio de pago | Aceptada | 2026-10-17 |
 | [014](./adr-014-events-listing-scope.md) | Listado de eventos con `GET /events?scope=mine\|upcoming` | Aceptada | 2026-10-19 |
+| [015](./adr-015-chat-ws-identity.md) | Identidad en el WS de chat sin `?userId=` | Aceptada | 2026-10-20 |
 
 **Convención de formato:** estilo [MADR](https://adr.github.io/madr/) simplificado — Estado / Contexto / Decisión / Consecuencias / Alternativas.

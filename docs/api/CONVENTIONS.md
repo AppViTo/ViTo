@@ -197,10 +197,11 @@ No existen `name`, `date`, `endDate`, `isPublic`, `maxAttendees`, `currentAttend
 - Todas las rutas WS se exponen **a través del gateway** (`ws://localhost:8080/ws/...`). El gateway debe tener ruta `/ws/**`; sin ella el handshake da 404 (RFC pendiente del equipo backend).
 - Autenticación: query param `?token=<accessToken>` en el handshake. El gateway lo valida y rechaza con `4401` si es inválido.
 - El cliente conecta con `Env.wsBaseUrl`; **nunca** se hardcodea un host o puerto.
+- **El cliente nunca envía su identidad** (`userId`, `senderId`) ni en la query ni en los frames: el servicio la toma de `X-User-Id`, que inyecta el gateway al validar el token (ADR-007, ADR-015).
 
 | Recurso | Ruta |
 |---------|------|
-| Chat | `/ws/chat?userId=<id>&token=<jwt>` |
+| Chat | `/ws/chat?token=<jwt>` |
 | Check-in | `/ws/checkin/{eventId}?token=<jwt>` |
 | Mosaico | `/ws/mosaic/{eventId}?token=<jwt>` |
 | Streaming | `/ws/streaming/{streamId}?token=<jwt>` |
