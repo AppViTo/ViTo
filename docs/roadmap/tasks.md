@@ -60,7 +60,7 @@
 | T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | ✅ HECHA (#33) | [VITO-39](https://bernardo-mira.atlassian.net/browse/VITO-39) |
 | T-B15 | Códigos y errores de auth-service y `createEvent` según los fixtures | B | P0 | ✅ HECHA (#39) | [VITO-40](https://bernardo-mira.atlassian.net/browse/VITO-40) |
 | T-B16 | `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 | B | P0 | ✅ HECHA (#40) | [VITO-41](https://bernardo-mira.atlassian.net/browse/VITO-41) |
-| T-B17 | `/events/upcoming` lista eventos privados ajenos (filtro `settings.isPublic`) | B | P0 | 🟢 READY | (pendiente) |
+| T-B17 | `/events/upcoming` lista eventos privados ajenos (filtro `settings.isPublic`) | B | P0 | 🟢 READY | [VITO-56](https://bernardo-mira.atlassian.net/browse/VITO-56) |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
@@ -71,7 +71,7 @@
 | T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (T-I06) | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🟢 READY | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
-| T-I16 | Protección de rama en `main` y `develop` (tarea manual de leads) | I | P0 | 🔵 EN CURSO (`develop` hecha; falta `main`) | [VITO-55](https://bernardo-mira.atlassian.net/browse/VITO-55) |
+| T-I16 | Protección de rama en `main` y `develop` (tarea manual de leads) | I | P0 | ✅ HECHA (#49, manual) | [VITO-55](https://bernardo-mira.atlassian.net/browse/VITO-55) |
 
 Bloqueadas (no tomar): T-C07 (VITO-16), T-F02 (VITO-19), T-F05 (VITO-22), T-F08 (VITO-25), T-B03 (VITO-28), T-B06 (VITO-31), T-B07 (VITO-32), T-B10 (VITO-35), T-B13 (VITO-38), T-I08 (VITO-47), T-I11 (VITO-50), T-I13 (VITO-52).
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
@@ -479,7 +479,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** la plantilla aparece al crear un issue en GitHub; AGENT-BRIEF y CONTRIBUTING
   enlazan el flujo; un issue de ejemplo (T-F01 ← T-B02/T-B15) creado con la plantilla.
 
-### T-I16 · Protección de rama en `main` y `develop` — 🔵 EN CURSO · P0 · ADR-012, CONTRIBUTING §1
+### T-I16 · Protección de rama en `main` y `develop` — ✅ HECHA (#49, manual) · P0 · ADR-012, CONTRIBUTING §1
 - **Tarea manual de los leads** (requiere admin del repo; no la ejecuta un agente).
 - **Por qué:** el repo pasó a ser público el 2026-10-19 y el plan Free ya permite la
   protección de rama. Hasta ahora, "sin push directo" y "1 aprobación de CODEOWNER" se
@@ -488,7 +488,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   para admins, 1 aprobación de CODEOWNER, los 25 checks de `ViTo CI`, sin force push ni
   borrado.
   - `develop`: ✅ aplicada el 2026-10-19.
-  - `main`: pendiente.
+  - `main`: ✅ aplicada el 2026-10-19; reglas idénticas a las de `develop`.
   - Documentación: ✅ #49.
 - **Cierre:** `gh api repos/AppViTo/ViTo/branches/main --jq .protected` devuelve `true` y
   las reglas de `main` coinciden con las de `develop`.
