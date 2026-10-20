@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -18,6 +22,8 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
   late Animation<double> _textOpacity;
   late Animation<Offset> _textSlide;
   late Animation<double> _loadingWidth;
+  bool _navigated = false;
+  StreamSubscription<AuthState>? _authSub;
 
   @override
   void initState() {
@@ -57,6 +63,8 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       CurvedAnimation(parent: _loadingController, curve: Curves.easeInOut),
     );
 
+    _authSub = context.read<AuthBloc>().stream.listen(_maybeGo);
+
     _startAnimation();
   }
 
@@ -72,12 +80,27 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
 
     await Future.delayed(const Duration(milliseconds: 2500));
     if (mounted) {
+      _maybeGo(context.read<AuthBloc>().state);
+    }
+  }
+
+  /// Decide la primera pantalla cuando el `AuthCheckRequested` de `ViToApp`
+  /// terminó: sesión restaurada → home, sin sesión (o refresh rechazado) → login.
+  void _maybeGo(AuthState state) {
+    if (_navigated || !mounted) return;
+
+    if (state is AuthAuthenticated) {
+      _navigated = true;
+      Navigator.pushReplacementNamed(context, '/home');
+    } else if (state is AuthUnauthenticated) {
+      _navigated = true;
       Navigator.pushReplacementNamed(context, '/login');
     }
   }
 
   @override
   void dispose() {
+    _authSub?.cancel();
     _logoController.dispose();
     _textController.dispose();
     _loadingController.dispose();
