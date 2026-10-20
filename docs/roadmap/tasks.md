@@ -31,46 +31,46 @@
 
 ## Resumen: qué se puede hacer desde ya
 
-| ID | Tarea | Pista | Prioridad | Estado |
-|----|-------|-------|-----------|--------|
-| T-C01 | Fixtures de las 15 operaciones existentes | C | P0 | ✅ HECHA (#21) |
-| T-C02 | `package.json` + mock REST con Prism | C | P0 | ✅ HECHA (#27) |
-| T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | ✅ HECHA (#44) |
-| T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | ✅ HECHA (#31) |
-| T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC |
-| T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | ✅ HECHA (#45) |
-| T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | ✅ HECHA (#46) |
-| T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | 🟢 READY |
-| T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming) | F | P0 | 🟢 READY |
-| T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | 🟢 READY |
-| T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | 🟢 READY |
-| T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) |
-| T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | ✅ HECHA (#38) |
-| T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) |
-| T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | ✅ HECHA (#25) |
-| T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | ✅ HECHA (#26) |
-| T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | ✅ HECHA (#43) |
-| T-B12 | event-service: `settings.isPublic` se serializa como `"public"` y se ignora al recibir | B | P0 | ✅ HECHA (#28) |
-| T-B13 | `boolean is*` serializado sin `is` en archive, mosaic, social y streaming | B | P1 | 🔴 BLOQUEADA (olas 2–5) |
-| T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | ✅ HECHA (#24) |
-| T-I01 | Higiene: `.gitignore` `backend/out/`, borrar `backend/java/` huérfano | I | P2 | 🟢 READY |
-| T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY |
-| T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY |
-| T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | ✅ HECHA (#33) |
-| T-B15 | Códigos y errores de auth-service y `createEvent` según los fixtures | B | P0 | ✅ HECHA (#39) |
-| T-B16 | `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 | B | P0 | ✅ HECHA (#40) |
-| T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) |
-| T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) |
-| T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) |
-| T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY |
-| T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | 🟢 READY (manual, leads) |
-| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔴 BLOQUEADA (T-I06) |
-| T-I11 | Frontend web en Cloudflare Pages | I/F | P1 | 🔴 BLOQUEADA (T-I06) |
-| T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (T-I06) |
-| T-I14 | Runbook de restauración y de incidentes | I | P1 | 🟢 READY |
-| T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY |
+| ID | Tarea | Pista | Prioridad | Estado | Jira |
+|----|-------|-------|-----------|--------|------|
+| T-C01 | Fixtures de las 15 operaciones existentes | C | P0 | ✅ HECHA (#21) | [VITO-10](https://bernardo-mira.atlassian.net/browse/VITO-10) |
+| T-C02 | `package.json` + mock REST con Prism | C | P0 | ✅ HECHA (#27) | [VITO-11](https://bernardo-mira.atlassian.net/browse/VITO-11) |
+| T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | ✅ HECHA (#44) | [VITO-12](https://bernardo-mira.atlassian.net/browse/VITO-12) |
+| T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | ✅ HECHA (#31) | [VITO-13](https://bernardo-mira.atlassian.net/browse/VITO-13) |
+| T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC | [VITO-14](https://bernardo-mira.atlassian.net/browse/VITO-14) |
+| T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | ✅ HECHA (#45) | [VITO-17](https://bernardo-mira.atlassian.net/browse/VITO-17) |
+| T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | ✅ HECHA (#46) | [VITO-18](https://bernardo-mira.atlassian.net/browse/VITO-18) |
+| T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | 🟢 READY | [VITO-20](https://bernardo-mira.atlassian.net/browse/VITO-20) |
+| T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming) | F | P0 | 🟢 READY | [VITO-21](https://bernardo-mira.atlassian.net/browse/VITO-21) |
+| T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | 🟢 READY | [VITO-23](https://bernardo-mira.atlassian.net/browse/VITO-23) |
+| T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | 🟢 READY | [VITO-24](https://bernardo-mira.atlassian.net/browse/VITO-24) |
+| T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) | [VITO-26](https://bernardo-mira.atlassian.net/browse/VITO-26) |
+| T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | ✅ HECHA (#38) | [VITO-27](https://bernardo-mira.atlassian.net/browse/VITO-27) |
+| T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) | [VITO-29](https://bernardo-mira.atlassian.net/browse/VITO-29) |
+| T-B05 | `WebSocketConfig` WS crudo en mosaic y streaming | B | P0 | ✅ HECHA (#25) | [VITO-30](https://bernardo-mira.atlassian.net/browse/VITO-30) |
+| T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | ✅ HECHA (#26) | [VITO-33](https://bernardo-mira.atlassian.net/browse/VITO-33) |
+| T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | ✅ HECHA (#43) | [VITO-34](https://bernardo-mira.atlassian.net/browse/VITO-34) |
+| T-B12 | event-service: `settings.isPublic` se serializa como `"public"` y se ignora al recibir | B | P0 | ✅ HECHA (#28) | [VITO-37](https://bernardo-mira.atlassian.net/browse/VITO-37) |
+| T-B13 | `boolean is*` serializado sin `is` en archive, mosaic, social y streaming | B | P1 | 🔴 BLOQUEADA (olas 2–5) | [VITO-38](https://bernardo-mira.atlassian.net/browse/VITO-38) |
+| T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | ✅ HECHA (#24) | [VITO-36](https://bernardo-mira.atlassian.net/browse/VITO-36) |
+| T-I01 | Higiene: `.gitignore` `backend/out/`, borrar `backend/java/` huérfano | I | P2 | 🟢 READY | [VITO-42](https://bernardo-mira.atlassian.net/browse/VITO-42) |
+| T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY | [VITO-43](https://bernardo-mira.atlassian.net/browse/VITO-43) |
+| T-I03 | `docs/architecture.md` alineado a ADR-001 y al inventario real | I | P2 | 🟢 READY | [VITO-44](https://bernardo-mira.atlassian.net/browse/VITO-44) |
+| T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | ✅ HECHA (#33) | [VITO-39](https://bernardo-mira.atlassian.net/browse/VITO-39) |
+| T-B15 | Códigos y errores de auth-service y `createEvent` según los fixtures | B | P0 | ✅ HECHA (#39) | [VITO-40](https://bernardo-mira.atlassian.net/browse/VITO-40) |
+| T-B16 | `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 | B | P0 | ✅ HECHA (#40) | [VITO-41](https://bernardo-mira.atlassian.net/browse/VITO-41) |
+| T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
+| T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
+| T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
+| T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY | [VITO-51](https://bernardo-mira.atlassian.net/browse/VITO-51) |
+| T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | 🟢 READY (manual, leads) | [VITO-45](https://bernardo-mira.atlassian.net/browse/VITO-45) |
+| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔴 BLOQUEADA (T-I06) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
+| T-I11 | Frontend web en Cloudflare Pages | I/F | P1 | 🔴 BLOQUEADA (T-I06) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
+| T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (T-I06) | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
+| T-I14 | Runbook de restauración y de incidentes | I | P1 | 🟢 READY | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
+| T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
 
-Bloqueadas (no tomar): T-C06, T-C07, T-F02, T-F05, T-F08, T-B03, T-B06, T-B07, T-B10, T-B13, T-I08, T-I11, T-I13.
+Bloqueadas (no tomar): T-C06 (VITO-15), T-C07 (VITO-16), T-F02 (VITO-19), T-F05 (VITO-22), T-F08 (VITO-25), T-B03 (VITO-28), T-B06 (VITO-31), T-B07 (VITO-32), T-B10 (VITO-35), T-B13 (VITO-38), T-I08 (VITO-47), T-I11 (VITO-50), T-I13 (VITO-52).
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
 
 ---
