@@ -14,7 +14,7 @@ Las opciones listadas son las que salieron del análisis del 2026-10-16. **La co
 | D-03 | Semántica del listado de eventos (`GET /events`) | T-C06, T-B07, T-F08 | ver §D-03 | ✅ [ADR-014](../decisions/adr-014-events-listing-scope.md) (opción A, `scope=mine\|upcoming`) |
 | D-04 | Mensajería durable del MVP (Kafka vs alternativa) | Ola 3, O-16/O-17 | ver §D-02.b | ✅ ADR-011 (Kafka KRaft, 1 broker) |
 | D-05 | Estrategia de código compartido Java (`shared-*`) | T-B03, O-23 | ver §D-05 | ⏳ |
-| D-06 | Identidad en el WS de chat (`?userId=`) | T-B06, T-F04 (parte chat) | ver §D-06 | ⏳ |
+| D-06 | Identidad en el WS de chat (`?userId=`) | T-B06, T-F04 (parte chat) | ver §D-06 | ✅ [ADR-015](../decisions/adr-015-chat-ws-identity.md) (se retira `userId`; identidad de `X-User-Id`) |
 | D-07 | Estrategia de ramas (`develop` vs `main`) | O-24, **T-I08 (deploy)** | ver §D-07 | ✅ [ADR-012](../decisions/adr-012-branching-and-release.md) |
 | D-08 | Aprobación del triage de `endpoint-inventory.md` | Olas 1–6 | aprobar por ola | ⏳ |
 | D-09 | Titularidad de cuentas y medio de pago de la infraestructura | T-I06 (aprovisionar) | ver §D-09 | ✅ [ADR-013](../decisions/adr-013-account-ownership.md) |
@@ -91,6 +91,10 @@ sin parent POM).
 | C (temporal) | Copiar el handler de auth-service a los 6 servicios que faltan y registrar la deuda en *Complexity Tracking*. |
 
 ## D-06 — Identidad en WS de chat
+
+> ✅ **Cerrada el 2026-10-20 por [ADR-015](../decisions/adr-015-chat-ws-identity.md):**
+> se adopta la propuesta. La ruta queda `/ws/chat?token=<jwt>` y el servicio toma la
+> identidad de `X-User-Id`. El texto de abajo se conserva como historial.
 
 `CONVENTIONS.md` §7 publica `/ws/chat?userId=<id>&token=<jwt>`. El `userId` en query lo
 elige el cliente (suplantable) y es redundante con el token. **Propuesta:** retirar
