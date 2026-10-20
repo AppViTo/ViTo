@@ -38,6 +38,7 @@
 | T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | ✅ HECHA (#44) | [VITO-12](https://bernardo-mira.atlassian.net/browse/VITO-12) |
 | T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | ✅ HECHA (#31) | [VITO-13](https://bernardo-mira.atlassian.net/browse/VITO-13) |
 | T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC | [VITO-14](https://bernardo-mira.atlassian.net/browse/VITO-14) |
+| T-C06 | `listEvents` con `scope=mine\|upcoming` según ADR-014 | C | P0 | 🟡 RFC | [VITO-15](https://bernardo-mira.atlassian.net/browse/VITO-15) |
 | T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | ✅ HECHA (#45) | [VITO-17](https://bernardo-mira.atlassian.net/browse/VITO-17) |
 | T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | ✅ HECHA (#46) | [VITO-18](https://bernardo-mira.atlassian.net/browse/VITO-18) |
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | 🟢 READY | [VITO-20](https://bernardo-mira.atlassian.net/browse/VITO-20) |
@@ -59,6 +60,7 @@
 | T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | ✅ HECHA (#33) | [VITO-39](https://bernardo-mira.atlassian.net/browse/VITO-39) |
 | T-B15 | Códigos y errores de auth-service y `createEvent` según los fixtures | B | P0 | ✅ HECHA (#39) | [VITO-40](https://bernardo-mira.atlassian.net/browse/VITO-40) |
 | T-B16 | `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 | B | P0 | ✅ HECHA (#40) | [VITO-41](https://bernardo-mira.atlassian.net/browse/VITO-41) |
+| T-B17 | `/events/upcoming` lista eventos privados ajenos (filtro `settings.isPublic`) | B | P0 | 🟢 READY | (pendiente) |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
@@ -70,7 +72,7 @@
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🟢 READY | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
 
-Bloqueadas (no tomar): T-C06 (VITO-15), T-C07 (VITO-16), T-F02 (VITO-19), T-F05 (VITO-22), T-F08 (VITO-25), T-B03 (VITO-28), T-B06 (VITO-31), T-B07 (VITO-32), T-B10 (VITO-35), T-B13 (VITO-38), T-I08 (VITO-47), T-I11 (VITO-50), T-I13 (VITO-52).
+Bloqueadas (no tomar): T-C07 (VITO-16), T-F02 (VITO-19), T-F05 (VITO-22), T-F08 (VITO-25), T-B03 (VITO-28), T-B06 (VITO-31), T-B07 (VITO-32), T-B10 (VITO-35), T-B13 (VITO-38), T-I08 (VITO-47), T-I11 (VITO-50), T-I13 (VITO-52).
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
 
 ---
@@ -132,9 +134,17 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** Spectral verde; tests Dart de contrato verdes con los fixtures nuevos; PR
   aprobado por 1 CODEOWNER.
 
-### T-C06 · Resolver `GET /events` (O-26) — 🔴 BLOQUEADA por D-03 · P0
-- **Qué:** según la opción elegida en D-03, PR `contract/events-listing` + fixture.
+### T-C06 · `listEvents` con `scope` (O-26) — 🟡 RFC · P0 · ADR-014
+- **Qué:** issue `contract-change` y PR `contract/events-listing`:
+  - `openapi.yaml`: parámetro `scope` (enum `mine|upcoming`, default `mine`) en
+    `listEvents`; descripción de contenido y orden de cada scope (en `upcoming`, orden por
+    `details.startDate` ascendente, excepción a CONVENTIONS §5); `400` con
+    `ErrorResponse` para un `scope` desconocido o `size` > 100.
+  - Fixtures `listEvents` para `mine`, `upcoming` y el `400`.
+- **No hacer:** publicar `/events/my-events` ni `/events/upcoming`; agregar parámetros de
+  identidad (`organizerId`, `userId`).
 - **Desbloquea:** T-B07, T-F08.
+- **Cierre:** Spectral y job Contract verdes; PR aprobado por 1 CODEOWNER.
 
 ### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔴 BLOQUEADA por D-01 + D-08 (por ola) · O-02, O-30
 - **Qué:** por cada ola aprobada en `endpoint-inventory.md`: paths + schemas en
@@ -176,7 +186,10 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** test unitario que verifica la URL generada y el manejo de 4401.
 
 ### T-F05 · Subida al mosaico — 🔴 BLOQUEADA por D-01 + Ola 3
-### T-F08 · Lista "mis eventos" — 🔴 BLOQUEADA por D-03 (T-C06)
+### T-F08 · Lista "mis eventos" — 🔴 BLOQUEADA por T-C06 · ADR-014
+- **Qué:** `getMyEvents` envía `scope=mine`; `getUpcomingEvents` deja de llamar a
+  `/events/upcoming` (fuera de contrato) y usa `GET /events?scope=upcoming`.
+- **Cierre:** tests del datasource contra los fixtures de T-C06.
 
 ### T-F06 · Build web estricto — 🟢 READY · P1 · O-15
 - **Qué:** el build de producción (`deploy-frontend.yml` y/o un check en `Env`) falla si
@@ -226,7 +239,16 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - Reemplazar STOMP/SockJS de `chat-service` por handler crudo con los frames de
   `asyncapi.yaml`.
 
-### T-B07 · Implementar listado de eventos — 🔴 BLOQUEADA por D-03 (T-C06) · P0 · O-26
+### T-B07 · Implementar listado de eventos — 🔴 BLOQUEADA por T-C06 · P0 · O-26, ADR-014
+- **Qué:** `GET /events?scope=mine|upcoming` en event-service según ADR-014:
+  identidad solo de `X-User-Id`; `mine` por defecto; `400 VALIDATION_ERROR` para un
+  `scope` desconocido o `size` > 100; `forViewer` aplicado a cada evento listado.
+  Índices `{organizerId: 1, createdAt: -1}` y
+  `{status: 1, "settings.isPublic": 1, "details.startDate": 1}` en `01-init.js`, retirando
+  los de `schedule.start` y `location.coordinates`, que son anteriores a ADR-001.
+  Retirar `/my-events` y `/upcoming` cuando T-F08 esté mergeada.
+- **Cierre:** tests de los dos scopes, del `400` y de que `upcoming` no incluye eventos
+  privados; respuestas iguales a los fixtures de T-C06.
 
 ### T-B08 · `hideAddressUntilAccepted` — ✅ HECHA (#26) · P1 · ADR-001, Principio IX, O-33
 - **Qué:** el campo existe en contrato, ADR-001 y Flutter, pero no en
@@ -312,6 +334,17 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **No hacer:** cambiar la forma de la respuesta ni `openapi.yaml` (eso es T-C08).
 - **Cierre:** test de la respuesta de las tres operaciones con `expiresIn` igual a
   `jwt.expiration / 1000`.
+
+### T-B17 · Fuga de eventos privados en `/events/upcoming` — 🟢 READY · P0 · Principio III, ADR-014
+- **Hallazgo (D-03):** `EventMongoAdapter.findUpcomingEvents` filtra por
+  `status = PUBLISHED` y `details.startDate` ≥ ahora, pero no por `settings.isPublic`.
+  Cualquier usuario autenticado lista eventos privados ajenos (título, fechas, descripción).
+  La ruta está expuesta hoy por el gateway.
+- **Qué:** agregar `settings.isPublic = true` a la consulta y limitar `size` a 100 en
+  `/my-events` y `/upcoming`. No cambia rutas ni contrato: es un arreglo de seguridad sobre
+  el código actual, previo a T-B07.
+- **Cierre:** test de que `/events/upcoming` no devuelve un evento privado publicado y
+  futuro de otro organizador; test de `size` > 100.
 
 ---
 
