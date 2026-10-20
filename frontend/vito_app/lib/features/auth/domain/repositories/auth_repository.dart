@@ -13,7 +13,6 @@ abstract class AuthRepository {
     required String username,
     required String email,
     required String password,
-    String? displayName,
   });
   
   Future<Either<Failure, void>> logout();
@@ -21,6 +20,12 @@ abstract class AuthRepository {
   Future<Either<Failure, User>> refreshToken({
     required String refreshToken,
   });
+  
+  /// Auto-login: intercambia el `refreshToken` guardado por un nuevo par de
+  /// tokens y el `user` del `AuthResponse` (ADR-004). `Right(null)` significa
+  /// que no hay sesión guardada o que venció; `Left` solo para errores
+  /// distintos de 401.
+  Future<Either<Failure, User?>> restoreSession();
   
   Future<Either<Failure, User>> getCurrentUser();
   

@@ -12,6 +12,7 @@ import '../../features/auth/domain/repositories/auth_repository.dart';
 import '../../features/auth/domain/usecases/login.dart';
 import '../../features/auth/domain/usecases/register.dart';
 import '../../features/auth/domain/usecases/logout.dart';
+import '../../features/auth/domain/usecases/restore_session.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 
 import '../../features/events/data/datasources/event_remote_datasource.dart';
@@ -101,12 +102,13 @@ Future<void> init() async {
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => RegisterUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
+  sl.registerLazySingleton(() => RestoreSessionUseCase(sl()));
   sl.registerFactory(
     () => AuthBloc(
       loginUseCase: sl(),
       registerUseCase: sl(),
       logoutUseCase: sl(),
-      authRepository: sl(),
+      restoreSessionUseCase: sl(),
     ),
   );
   
