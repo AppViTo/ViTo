@@ -35,6 +35,8 @@ en Environments de repos privados.
   espera al viernes.
 - Como no hay protección de rama, la regla "sin push directo a `main`" se cumple por
   acuerdo del equipo. Al pasar a GitHub Team se activa la protección en `main` y `develop`.
+  > **Actualización 2026-10-19:** el repo pasó a ser público y la protección quedó activa
+  > en `main` y `develop` sin cambiar de plan. Las reglas están en `CONTRIBUTING.md` §1.
 - `CONTRIBUTING.md` §2 se actualiza con el flujo de release y hotfix.
 
 ## Alternativas consideradas
