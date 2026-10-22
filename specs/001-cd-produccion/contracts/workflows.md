@@ -12,7 +12,7 @@ qué secretos necesitan. No es contrato de API (`docs/api/`): no lo consume el f
 
 | Input (`workflow_dispatch`) | Tipo | Regla |
 |-----------------------------|------|-------|
-| `mode` | `deploy` · `preflight`, default `deploy` | `preflight` verifica SSH, huella, secretos y `config -q` sin reiniciar nada (Historia 5) |
+| `mode` | `deploy` · `preflight`, default `deploy` | `preflight` verifica SSH, huella, secretos y `config -q` sin reiniciar nada (Historia 5); usa el Environment `production-preflight` y el grupo `vps-preflight`, sin aprobación (R8) |
 | `force_live_event` | boolean, default `false` | solo válido si el commit es hotfix (Environment `production-hotfix`) |
 | `reason` | string | obligatorio si `force_live_event` |
 
@@ -20,11 +20,11 @@ Jobs, en orden:
 
 | Job | Environment | Secretos | Hace |
 |-----|-------------|:--------:|------|
-| `changes` | — | no | último SHA desplegado (Deployments API), servicios cambiados (R2), `kind` y Environment (R5) |
-| `build` | — | no | construye y exporta las imágenes cambiadas como artifacts (R3); se omite si no hay |
-| `deploy` | `production` o `production-hotfix` | sí | verifica la autoaprobación (R5), conecta por SSH con huella fija, `live-check`, sube el bundle y las imágenes, ejecuta `deploy.sh apply`, publica el resumen y avisa |
+| `changes` | — | no | último SHA desplegado (Deployments API), servicios cambiados (R2), `kind` y Environment con `pick-environment.sh` (R5), `VERSION` (R1) |
+| `build` | — | no | construye las imágenes cambiadas con tag SHA + `v<VERSION>`, las escanea con Trivy (falla con CRITICAL/HIGH fuera de `.trivyignore`, R17) y las exporta como artifacts (R3); se omite si no hay |
+| `deploy` | `production`, `production-hotfix` o `production-preflight` | sí | verifica la autoaprobación (R5), conecta por SSH con huella fija, `live-check`, sube el bundle y las imágenes, ejecuta `deploy.sh apply` (o `check` en preflight), crea el tag git `v<VERSION>` si no existe, publica el resumen y avisa |
 
-`concurrency: vps-production` (sin cancelar el que está en curso).
+`concurrency: vps-production` (sin cancelar el que está en curso); `vps-preflight` con `mode=preflight`.
 
 ## `rollback.yml` — volver a un release anterior
 
@@ -32,7 +32,7 @@ Jobs, en orden:
 |-------|------|-------|
 | `sha` | string, requerido | uno de los últimos 3 releases desplegados con éxito; si no, falla antes de tocar servicios |
 | `reason` | string, requerido | queda en el registro |
-| `force_live_event` | boolean, default `false` | permite rollback durante un evento en vivo (R6) |
+| `force_live_event` | boolean, default `false` | permite rollback durante un evento en vivo; el motivo es `reason` (R6, FR-028) |
 
 Environment `production` (aprueba el otro lead). Mismo grupo de concurrencia que `cd.yml`.
 No construye imágenes.
@@ -41,9 +41,16 @@ No construye imágenes.
 
 | Disparador | `push` a `main` con cambios en `frontend/vito_app/**` o en el workflow; `workflow_dispatch` |
 |---|---|
-| Environment | `production` |
+| Environment | `production` o `production-hotfix`, con la misma detección que `cd.yml` (`pick-environment.sh`) |
 | Puertas | `flutter analyze --fatal-infos`, `flutter test`, URLs de producción no vacías |
 | Concurrencia | `pages-production` |
+
+## `expire-approvals.yml` — plazo de 24 h (FR-002)
+
+| Disparador | `schedule` cada hora; `workflow_dispatch` |
+|---|---|
+| Permisos | `actions: write`, `contents: read`; sin Environment ni secretos salvo los de aviso |
+| Hace | lista los runs en `waiting` de `cd.yml`, `rollback.yml` y `deploy-frontend.yml` con más de 24 h, los cancela (`POST /actions/runs/{id}/cancel`) y avisa por Telegram |
 
 ## Environments
 
@@ -51,8 +58,9 @@ No construye imágenes.
 |-------------|------------------------|:-------------------:|------------------|
 | `production` | los dos leads | ✅ | `main` |
 | `production-hotfix` | los dos leads | ❌ | `main` |
+| `production-preflight` | ninguno | — | `main` |
 
-## Secretos y variables (por Environment; los dos Environments llevan los mismos)
+## Secretos y variables (por Environment; los tres Environments llevan los mismos)
 
 Ningún valor entra al repo ni al chat. Los carga un lead (T-I06).
 

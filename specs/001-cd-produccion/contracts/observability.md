@@ -7,7 +7,7 @@
 | Métricas de servicio | `/actuator/prometheus` de los 10 Java | `service`, `uri`, `method`, `status`, `outcome` | lista blanca: `http_server_requests_seconds_*`, `jvm_memory_used_bytes`, `jvm_gc_pause_seconds_*`, `process_cpu_usage`, `hikaricp_*`/`mongodb_driver_*` si existen, `up` |
 | Métricas de host | exportador unix de Alloy | `instance` | CPU, memoria, disco, red |
 | Métricas de contenedor | cAdvisor de Alloy | `service` (nombre en Compose) | memoria, CPU, reinicios |
-| Logs | stdout/stderr de todos los contenedores | `service`, `level` | enmascarado de `Bearer …`, `token=…`, `"password":…`, correos (FR-026) |
+| Logs | stdout/stderr de todos los contenedores | `service`, `level` | enmascarado de `Bearer …`, `token=…`, `"password":…`, JWT sueltos (`eyJ[\w-]+\.[\w-]+\.[\w-]+`, cubre los QR) y correos (FR-026) |
 | Trazas | OTLP desde los servicios Java | `service.name` | muestreo del 10 % |
 | Uptime | Synthetic Monitoring | — | `GET https://api.<dominio>/healthz` cada 1 min desde 2 sondas |
 
