@@ -42,6 +42,30 @@ jobs:
         if: hashFiles('docs/api/asyncapi.yaml') != ''
         run: npm run lint:async
 
+  # Scripts de despliegue (feature 001). Por ahora solo bootstrap.sh (T022); la fase B
+  # (T011) suma shellcheck de todo infrastructure/, los tests bats y la validación del compose.
+  deploy-scripts:
+    name: Deploy Scripts
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ShellCheck
+        run: shellcheck infrastructure/vps/*.sh
+
+      # Sin Docker instalado, --check-only debe fallar sin tocar el sistema
+      - name: bootstrap.sh --check-only en ubuntu:24.04
+        run: |
+          docker run --rm -v "$PWD/infrastructure/vps:/vps:ro" ubuntu:24.04 bash -euc '
+            snap() { find /etc /opt /home /root /usr/local -xdev -printf "%p %m %s %T@\n" | sort; }
+            snap > /tmp/before
+            rc=0; bash /vps/bootstrap.sh --check-only || rc=$?
+            snap > /tmp/after
+            diff /tmp/before /tmp/after
+            echo "exit code: $rc"
+            test "$rc" -eq 1'
+
   # Servicios Spring Boot: compilación limpia + tests de cada uno
   backend:
     name: Backend Tests (${{ matrix.service }})

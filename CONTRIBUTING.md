@@ -36,7 +36,7 @@ Desde el 2026-10-19 el repo es público y GitHub aplica estas reglas (Settings �
 |-------|-------|
 | PR obligatorio | Sí. Nadie hace push directo, ni los admins. |
 | Aprobaciones | 1, de un CODEOWNER distinto del autor. |
-| Checks obligatorios | Los 25 jobs de `ViTo CI`: `Contract`, `Flutter App Tests`, `Transcode Service Tests`, `Moderation Service Tests`, `Backend Tests (<servicio>)` ×10 y `Docker Build (<servicio>)` ×11. |
+| Checks obligatorios | Los 26 jobs de `ViTo CI`: `Contract`, `Deploy Scripts`, `Flutter App Tests`, `Transcode Service Tests`, `Moderation Service Tests`, `Backend Tests (<servicio>)` ×10 y `Docker Build (<servicio>)` ×11. |
 | Rama al día con la base | No se exige: con merge squash obligaría a rebasear tras cada merge. |
 | Force push y borrado de la rama | Bloqueados. |
 

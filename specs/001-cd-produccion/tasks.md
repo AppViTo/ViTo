@@ -108,17 +108,17 @@ Rama `backend/t-i06-bootstrap` (en paralelo con la fase 3).
 
 ### Tests for User Story 5
 
-- [ ] T022 [P] [US5] Agregar a `Deploy Scripts` la ejecución de `infrastructure/vps/bootstrap.sh --check-only` en un contenedor `ubuntu:24.04`: debe salir distinto de 0 (Docker no instalado) sin modificar nada, y `shellcheck` sin advertencias
+- [X] T022 [P] [US5] Agregar a `Deploy Scripts` la ejecución de `infrastructure/vps/bootstrap.sh --check-only` en un contenedor `ubuntu:24.04`: debe salir distinto de 0 (Docker no instalado) sin modificar nada, y `shellcheck` sin advertencias
 
 ### Implementation for User Story 5
 
-- [ ] T023 [US5] Implementar `infrastructure/vps/bootstrap.sh` (R7, R16). Aborta si el sistema no es Ubuntu 22.04 o 24.04. Instala Docker Engine y el plugin Compose (repositorio oficial), `zstd`, `ufw`, `fail2ban` y `unattended-upgrades`. Crea el usuario `deploy` en el grupo `docker`, con `authorized_keys` desde cada `--pubkey`. SSH: `PasswordAuthentication no`, `PermitRootLogin prohibit-password`. `ufw`: `limit 22/tcp`, `allow 80,443,1935/tcp`, `allow 8000/udp`, el resto denegado. Crea `/opt/vito/{releases}` y `.env` con `0600`, dueño `deploy`. Es idempotente y tiene `--check-only`, que imprime el chequeo final
-- [ ] T024 [US5] Escribir `docs/runbooks/aprovisionamiento.md` (FR-016), sin valores reales:
+- [X] T023 [US5] Implementar `infrastructure/vps/bootstrap.sh` (R7, R16). Aborta si el sistema no es Ubuntu 22.04 o 24.04. Instala Docker Engine y el plugin Compose (repositorio oficial), `zstd`, `ufw`, `fail2ban` y `unattended-upgrades`. Crea el usuario `deploy` en el grupo `docker`, con `authorized_keys` desde cada `--pubkey`. SSH: `PasswordAuthentication no`, `PermitRootLogin prohibit-password`. `ufw`: `limit 22/tcp`, `allow 80,443,1935/tcp`, `allow 443,8000/udp` (443/udp: HTTP/3 de Caddy), el resto denegado. Crea `/opt/vito/{releases}` y `.env` con `0600`, dueño `deploy`. Aborta si root no tiene `authorized_keys` (evita quedar fuera al desactivar contraseñas). Es idempotente y tiene `--check-only`, que imprime el chequeo final
+- [X] T024 [US5] Escribir `docs/runbooks/aprovisionamiento.md` (FR-016), sin valores reales:
   1. generar la llave ed25519 del pipeline y obtener la huella con `ssh-keyscan`, verificándola a mano contra la consola de Contabo;
   2. correr `bootstrap.sh`;
-  3. crear los Environments `production` y `production-hotfix` con la tabla de [workflows.md](./contracts/workflows.md#environments);
+  3. crear los Environments `production`, `production-hotfix` y `production-preflight` con la tabla de [workflows.md](./contracts/workflows.md#environments);
   4. cargar los secretos y variables de [workflows.md](./contracts/workflows.md#secretos-y-variables-por-environment-los-dos-environments-llevan-los-mismos);
-  5. configurar el DNS en Cloudflare (`api.`, `live.` y `media.` → IP del VPS, con el proxy de Cloudflare apagado en `live.` para RTMP/WebRTC);
+  5. configurar el DNS en Cloudflare (`api.` y `live.` → IP del VPS, sin el proxy de Cloudflare; `media.` como dominio propio del bucket R2 `vito-media`);
   6. crear el proyecto de Pages y su dominio;
   7. configurar Resend (`send.<dominio>`, SPF, DKIM, MX y `_dmarc` con `p=none`; R12);
   8. crear el bot y el grupo de Telegram (obtener `chat_id`);

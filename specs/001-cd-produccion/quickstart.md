@@ -10,7 +10,7 @@ va lo que demuestra cada historia.
 - Environments `production`, `production-hotfix` y `production-preflight` creados, con todos
   los secretos y variables de [workflows.md](./contracts/workflows.md#secretos-y-variables-por-environment-los-tres-environments-llevan-los-mismos).
 - `backend/SECURITY_CHECKLIST.md` sin `TODO` de severidad alta sin excepción (T051).
-- DNS en Cloudflare: `api.`, `live.` y `media.` apuntan al VPS; la web tiene su dominio en
+- DNS en Cloudflare: `api.` y `live.` apuntan al VPS; `media.` es el dominio del bucket R2; la web tiene su dominio en
   Pages.
 - Grafana Cloud: contact point `leads` (correo + Telegram), tablero y alertas importados.
 

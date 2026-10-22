@@ -177,8 +177,10 @@ root una vez:
   `fail2ban`, actualizaciones de seguridad desatendidas.
 - Usuario `deploy` (grupo `docker`), `authorized_keys` con la llave pública del pipeline y
   de cada lead; `PasswordAuthentication no` y `PermitRootLogin prohibit-password`.
-- `ufw`: `limit 22/tcp`, `80`, `443`, `1935/tcp`, `8000/udp`; todo lo demás denegado.
-- `/opt/vito/{releases,backups}`, `.env` vacío con `chmod 600` y dueño `deploy`.
+- `ufw`: `limit 22/tcp`, `80`, `443` (tcp y udp, HTTP/3), `1935/tcp`, `8000/udp`; todo lo demás
+  denegado. Docker publica sus `ports:` por fuera de `ufw`: el aislamiento de los datastores
+  depende de que no tengan `ports:`.
+- `/opt/vito/releases`, `.env` vacío con `chmod 600` y dueño `deploy`.
 - Usuario Mongo de solo lectura, creado en el primer despliegue (R6), no en el bootstrap.
 
 El pipeline fija la huella del servidor con el secreto `SSH_KNOWN_HOSTS` y
