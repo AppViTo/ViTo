@@ -61,6 +61,8 @@
 | T-B15 | Códigos y errores de auth-service y `createEvent` según los fixtures | B | P0 | ✅ HECHA (#39) | [VITO-40](https://bernardo-mira.atlassian.net/browse/VITO-40) |
 | T-B16 | `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 | B | P0 | ✅ HECHA (#40) | [VITO-41](https://bernardo-mira.atlassian.net/browse/VITO-41) |
 | T-B17 | `/events/upcoming` lista eventos privados ajenos (filtro `settings.isPublic`) | B | P0 | 🟢 READY | [VITO-56](https://bernardo-mira.atlassian.net/browse/VITO-56) |
+| T-B03 | Envelope ADR-003 en los 6 servicios sin handler (copia temporal, ADR-017) | B | P1 | 🟢 READY | [VITO-28](https://bernardo-mira.atlassian.net/browse/VITO-28) |
+| T-B18 | Parent POM + `backend/shared-web`; borrar copias de filtro JWT y handler (ADR-017) | B/I | P1 | 🔴 BLOQUEADA (Ola 1) | — |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
@@ -73,7 +75,7 @@
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
 | T-I16 | Protección de rama en `main` y `develop` (tarea manual de leads) | I | P0 | ✅ HECHA (#49, manual) | [VITO-55](https://bernardo-mira.atlassian.net/browse/VITO-55) |
 
-Bloqueadas (no tomar): T-C07 (VITO-16), T-F02 (VITO-19), T-F05 (VITO-22), T-F08 (VITO-25), T-B03 (VITO-28), T-B06 (VITO-31), T-B07 (VITO-32), T-B10 (VITO-35), T-B13 (VITO-38), T-I08 (VITO-47), T-I11 (VITO-50), T-I13 (VITO-52).
+Bloqueadas (no tomar): T-C07 (VITO-16), T-F02 (VITO-19), T-F05 (VITO-22), T-F08 (VITO-25), T-B06 (VITO-31), T-B07 (VITO-32), T-B10 (VITO-35), T-B13 (VITO-38), T-B18, T-I08 (VITO-47), T-I11 (VITO-50), T-I13 (VITO-52).
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
 
 ---
@@ -227,9 +229,16 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `{error, message, status, timestamp}` (`UNAUTHORIZED`, `SERVICE_UNAVAILABLE`).
 - **Cierre:** test de cada respuesta comparada con el schema `ErrorResponse`.
 
-### T-B03 · ADR-003 en los 6 servicios sin handler — 🔴 BLOQUEADA por D-05 · P1 · O-29
+### T-B03 · ADR-003 en los 6 servicios sin handler — 🟢 READY · P1 · O-29, ADR-017
 - Servicios sin `@RestControllerAdvice`: social, event, checkin, mosaic, streaming, archive.
-- Si D-05 = opción C, pasa a READY copiando el handler de `auth-service`.
+- **Qué:** copiar el `GlobalExceptionHandler` y el `ErrorResponse` de `auth-service` (ya
+  alineados a ADR-003 por T-B15), adaptando solo el paquete y las excepciones de dominio de
+  cada servicio.
+- **No hacer:** crear `backend/shared-*` ni cambiar POMs, Dockerfile o CI (es T-B18);
+  modificar el handler de auth, chat o media.
+- **PR:** declara la desviación del Principio II citando ADR-017 (*Complexity Tracking*).
+- **Cierre:** en los 6 servicios, test MockMvc de 400, 404 y 500 con el envelope
+  `{error,message,status,timestamp}` y códigos `SCREAMING_SNAKE` de CONVENTIONS.
 
 ### T-B04 · Gateway: ruta `/ws/**` — ✅ HECHA (#22, re-entrega de #20) · P0 · O-08, O-28, ADR-006
 - **Qué:** rutas `ws://` en el gateway para `/ws/checkin/**`, `/ws/mosaic/**`,
@@ -325,7 +334,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
     propia, no `IllegalArgumentException`); validación → `400` `VALIDATION_ERROR` con
     `details` por campo; resto de códigos `SCREAMING_SNAKE` de CONVENTIONS; mensajes es-ES;
     `timestamp` ISO-8601 UTC (`Instant`).
-- **No hacer:** tocar los servicios de T-B03 (bloqueada por D-05) ni cambiar el contrato.
+- **No hacer:** tocar los servicios de T-B03 ni cambiar el contrato.
 - **Desbloquea:** que T-F01 pruebe 400/409/401 contra el backend real y no solo contra Prism.
 - **Cierre:** tests MockMvc de `registerUser` (201, 400, 409), `loginUser` (200, 401) y
   `createEvent` (201) comparados con sus fixtures de `docs/api/fixtures/` (mismas claves,
@@ -356,6 +365,18 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   el código actual, previo a T-B07.
 - **Cierre:** test de que `/events/upcoming` no devuelve un evento privado publicado y
   futuro de otro organizador; test de `size` > 100.
+
+### T-B18 · Librería `backend/shared-web` — 🔴 BLOQUEADA por la implementación de la Ola 1 · P1 · O-23, ADR-017
+- **Qué:** parent POM Maven multi-módulo en `backend/` con el módulo `shared-web`
+  (`JwtAuthenticationFilter`, `ErrorResponse`, handler base de ADR-003). Los servicios lo
+  consumen como dependencia; `backend/Dockerfile` usa `backend/` como contexto; los jobs
+  `backend` y `docker` de `ci.yml` y la matriz de `cd.yml` construyen desde el parent.
+  Se borran todas las copias.
+- **Coordinar con T-I12:** los filtros `paths` de cada servicio incluyen `backend/shared-web/**`.
+- **Plazo (ADR-017):** se toma antes de implementar la Ola 2. Se adelanta si aparece una
+  tercera clase compartida.
+- **Cierre:** ninguna clase duplicada entre servicios (`JwtAuthenticationFilter`,
+  `ErrorResponse`, handler); CI y build de imágenes verdes para los 10 servicios.
 
 ---
 

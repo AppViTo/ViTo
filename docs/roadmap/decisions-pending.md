@@ -13,13 +13,13 @@ Las opciones listadas son las que salieron del análisis del 2026-10-16. **La co
 | D-02 | Stack de despliegue y herramientas por costo | Etapa 5, O-11/12/13/17 | ver §D-02 | ✅ [ADR-011](../decisions/adr-011-traction-stack.md) |
 | D-03 | Semántica del listado de eventos (`GET /events`) | T-C06, T-B07, T-F08 | ver §D-03 | ✅ [ADR-014](../decisions/adr-014-events-listing-scope.md) (opción A, `scope=mine\|upcoming`) |
 | D-04 | Mensajería durable del MVP (Kafka vs alternativa) | Ola 3, O-16/O-17 | ver §D-02.b | ✅ ADR-011 (Kafka KRaft, 1 broker) |
-| D-05 | Estrategia de código compartido Java (`shared-*`) | T-B03, O-23 | ver §D-05 | ⏳ |
+| D-05 | Estrategia de código compartido Java (`shared-*`) | T-B03, O-23 | ver §D-05 | ✅ [ADR-017](../decisions/adr-017-shared-java-code.md) (C ahora; A en T-B18 tras la Ola 1) |
 | D-06 | Identidad en el WS de chat (`?userId=`) | T-B06, T-F04 (parte chat) | ver §D-06 | ✅ [ADR-015](../decisions/adr-015-chat-ws-identity.md) (se retira `userId`; identidad de `X-User-Id`) |
 | D-07 | Estrategia de ramas (`develop` vs `main`) | O-24, **T-I08 (deploy)** | ver §D-07 | ✅ [ADR-012](../decisions/adr-012-branching-and-release.md) |
 | D-08 | Aprobación del triage de `endpoint-inventory.md` | Olas 1–6 | aprobar por ola | ⏳ |
 | D-09 | Titularidad de cuentas y medio de pago de la infraestructura | T-I06 (aprovisionar) | ver §D-09 | ✅ [ADR-013](../decisions/adr-013-account-ownership.md) |
-| D-10 | Tipo de cuenta de Google Play (personal u organización) | Publicación Android | ver §D-10 | ⏳ **prioritaria** |
-| D-11 | Modelo de monetización (qué se cobra y a quién) | Ola de pagos (nueva), primeros ingresos | ver §D-11 | ⏳ |
+| D-10 | Tipo de cuenta de Google Play (personal u organización) | Publicación Android | ver §D-10 | ⏳ **prioritaria** · pospuesta el 2026-10-22 |
+| D-11 | Modelo de monetización (qué se cobra y a quién) | Ola de pagos (nueva), primeros ingresos | ver §D-11 | ⏳ pospuesta el 2026-10-22 |
 | D-12 | Política de privacidad, términos y transferencia de datos (Ley 1581) | Publicación en tiendas, lanzamiento | ver §D-12 | ⏳ |
 
 ---
@@ -82,6 +82,11 @@ tiene `GET /events/my-events` y `GET /events/upcoming` → hoy responde 405.
 | B | Contrato pasa a `GET /events/my-events` y `GET /events/upcoming`; se retira `listEvents`. |
 
 ## D-05 — Código compartido Java
+
+> ✅ **Cerrada el 2026-10-22 por [ADR-017](../decisions/adr-017-shared-java-code.md):**
+> opción C ahora (T-B03 copia el handler de auth-service, como desviación registrada del
+> Principio II) y opción A en T-B18, que se toma antes de implementar la Ola 2. Las
+> opciones de abajo se conservan como historial.
 
 La constitución (Principio II) exige extraer a librería `backend/shared-*` el
 `JwtAuthenticationFilter` (duplicado en 7 servicios) y el `ErrorResponse`/handler de
@@ -146,6 +151,11 @@ Brevo/Resend y Google Play, y pagarlas con tarjeta en moneda extranjera.
 | Personal | Se abre rápido. Las cuentas personales nuevas deben hacer una **prueba cerrada con al menos 12 testers durante 14 días** antes de publicar en producción (requisito de Google; verificar vigente). Queda a nombre de una persona. |
 | Organización | Requiere número **D-U-N-S** de una empresa constituida; sin el requisito de testers. La app queda a nombre de la empresa. |
 
+> **Revisión del 2026-10-22 (fuentes de terceros; confirmar en la ayuda de Play Console):**
+> aplica a cuentas personales creadas después del 13-nov-2023; si los testers inscritos
+> bajan de 12, el conteo de 14 días vuelve a cero, y Google revisaría que la app se use de
+> verdad. Son unas 3 semanas en la ruta crítica desde el primer build en prueba cerrada.
+
 **Propuesta:** si la empresa no está constituida, cuenta personal de un lead y **empezar ya
 la prueba cerrada** con 12+ testers (amigos, primeros organizadores), porque esos 14 días
 están en la ruta crítica del lanzamiento Android. Migrar la app a una cuenta de organización
@@ -166,7 +176,15 @@ pantallas. Sin esta decisión no hay "primeros ingresos" posibles.
 **Propuesta:** **A o B con checkout alojado de Wompi o Mercado Pago, pagado desde la web.**
 Es lo más simple, la app nunca toca datos de tarjeta y, si el pago se hace en la web (no
 dentro de la app Android), en principio no aplica la comisión de Google Play. Verificar
-con las políticas vigentes de Google Play antes de implementar. Implica una nueva ola de
+con las políticas vigentes de Google Play antes de implementar.
+
+> **Corrección del 2026-10-22:** que el pago sea en la web no basta. La política de pagos
+> de Google Play prohíbe que la app enlace o dirija al usuario a un pago externo para
+> funciones digitales (incluido un enlace a una web que lleve al pago); fuera de la app sí
+> se puede ofrecer. Los programas de enlace externo (EE. UU., Reino Unido y EEE desde el
+> 30-jun-2026) cobran comisión, y no está confirmado que cubran a Colombia. Con A o B, la
+> app solo refleja el plan comprado, sin botón ni enlace de compra. La opción C (entradas
+> a un evento presencial) es un servicio físico y no usa Google Play Billing. Implica una nueva ola de
 contrato ("Ola P: pagos").
 
 ## D-12 — Privacidad, términos y transferencia de datos
