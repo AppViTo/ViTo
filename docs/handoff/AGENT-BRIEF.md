@@ -87,7 +87,8 @@ a través del contrato**.
 
 **Lo que sí funciona:** CI (`ci.yml`) con `mvn clean verify` ×10, pytest de transcode,
 `flutter analyze --fatal-infos` + `flutter test`, build de 11 imágenes con
-`backend/Dockerfile`; deploy web a Vercel desde `main`; compose `--profile app`.
+`backend/Dockerfile`; compose `--profile app`. El deploy web de `deploy-frontend.yml`
+aún apunta a Vercel; pasa a Cloudflare Pages en T-I11 (ADR-011).
 
 **Mapa rápido de código:**
 
