@@ -12,7 +12,13 @@ deploy.sh check    <sha>
 deploy.sh status
 ```
 
-Todos los comandos corren `docker compose --project-directory /opt/vito/current` (R4).
+Todos los comandos corren `docker compose -p vito --project-directory /opt/vito/current` (R4),
+aunque validen otro bundle: `config` no exige que `current` exista (primer despliegue).
+
+Estado en `/opt/vito`: `history` (SHA desplegados con éxito, el último al final; de ahí
+salen los 3 retenidos) y `deployments.log`. `apply` y `rollback` agregan una línea JSON al
+registro en todos los resultados (también con código 2 o 4) y la repiten como última línea
+de stdout para el *job summary*. `check` y `status` no escriben nada.
 
 | Comando | Precondición | Efecto |
 |---------|--------------|--------|
@@ -27,8 +33,8 @@ Todos los comandos corren `docker compose --project-directory /opt/vito/current`
 | Código de salida | Significado |
 |:----------------:|-------------|
 | 0 | `succeeded` |
-| 2 | configuración inválida o secreto faltante: no se tocó nada (FR-012) |
-| 4 | imagen de una versión no cargada o rollback a un SHA no retenido: no se tocó nada |
+| 2 | configuración inválida, secreto faltante o argumento inválido (SHA que no es de 40 hex, servicio desconocido en `--changed`, `--meta` que no es un objeto JSON): no se tocó nada (FR-012) |
+| 4 | imagen de una versión no cargada, bundle inexistente o rollback a un SHA no retenido: no se tocó nada |
 | 5 | salud falló y se volvió al anterior (`rolled_back`) |
 | 6 | salud falló sin anterior o la vuelta también falló (`failed`): requiere un lead |
 

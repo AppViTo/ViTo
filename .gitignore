@@ -52,3 +52,6 @@ node_modules/
 Thumbs.db
 desktop.ini
 ~$*
+
+# Fixtures ficticios de los tests de despliegue (feature 001)
+!infrastructure/deploy/tests/fixtures/.env.test

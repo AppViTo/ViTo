@@ -50,7 +50,7 @@ estado.
 | `backend/Dockerfile`, `backend/Dockerfile.dockerignore` (y `backend/pom.xml`, `backend/shared-*/**` cuando exista T-B18) | los 10 Java |
 | `ai-services/<svc>/**` | `<svc>` (transcode, moderation) |
 | `infrastructure/backup/**` | `mongo-backup` |
-| `docker-compose.prod.yml`, `infrastructure/caddy/**`, `infrastructure/docker/srs/**`, `infrastructure/observability/**` | ninguno: se sincroniza el bundle y Compose recrea lo que cambió de definición |
+| `docker-compose.prod.yml`, `VERSION`, `infrastructure/caddy/**`, `infrastructure/docker/srs/**`, `infrastructure/observability/**`, `infrastructure/deploy/remote/**` | ninguno: se sincroniza el bundle y Compose recrea lo que cambió de definición (`VERSION` pasa a `RELEASE_VERSION` y al tag `v<VERSION>`) |
 | solo `docs/**`, `specs/**`, `frontend/**` | ninguno: el despliegue de backend termina sin tocar el VPS |
 
 Sin despliegue previo (primer despliegue), o si el SHA anterior no es ancestro del actual,
@@ -84,7 +84,7 @@ Crecimiento).
 ## R4 · Qué se copia al VPS y en qué orden
 
 **Decisión:** un **bundle** por despliegue en `/opt/vito/releases/<sha>/`, con
-`docker-compose.prod.yml`, `infrastructure/caddy/`, `infrastructure/docker/srs/`,
+`docker-compose.prod.yml`, `VERSION`, `infrastructure/caddy/`, `infrastructure/docker/srs/`,
 `infrastructure/observability/`, `infrastructure/deploy/remote/*.sh` y `versions.env`.
 `/opt/vito/current` es un symlink al bundle activo; `/opt/vito/.env` (secretos,
 `chmod 600`) queda fuera de los bundles. Se conservan los últimos 3 bundles e imágenes
