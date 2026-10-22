@@ -129,3 +129,27 @@ Cada paso se registra como actualización de este ADR (sección *Actualizaciones
   de Grafana Cloud y correo de equipo (Gmail, ADR-013).
 - **Pendiente (T-I06):** llave SSH del VPS, Environment `production` con sus secretos y
   configuración de **Resend** como proveedor de correo transaccional (se descarta Brevo).
+
+### 2026-10-22 — Frontend web: por qué Cloudflare Pages y criterios de salida
+
+- **Por qué no GitHub Pages:** no permite cabeceras HTTP propias, así que no cumple
+  T-I18 (CSP, HSTS, `X-Frame-Options`), y sus términos no lo admiten como hosting de un
+  producto comercial.
+- **Por qué Cloudflare Pages:** uso comercial permitido en el plan gratuito, tráfico
+  estático sin límite, archivo `_headers` para T-I18 y `_redirects` para las rutas de la
+  SPA, y el mismo proveedor que el DNS y R2. La web se compila en GitHub Actions y se
+  sube con *direct upload* (`wrangler`), así que no consume los builds de Cloudflare.
+- **Riesgo aceptado:** DNS, R2, backups y web quedan en una sola cuenta de Cloudflare.
+  Mitigación: 2FA en las cuentas de los dos leads y procedimiento de recuperación en el
+  gestor de contraseñas.
+- **Criterios de salida:**
+
+  | Disparador | Paso |
+  |------------|------|
+  | Cloudflare anuncia el fin de Pages o la web necesita lógica en el *edge* | Migrar a Cloudflare Workers con *static assets* (mismo `_headers`) |
+  | Caída prolongada de Cloudflare o pérdida de la cuenta | Plan de emergencia: servir `build/web` desde Caddy en el VPS |
+  | Salir de Cloudflare por otra razón | Firebase Hosting o Netlify (ambos admiten cabeceras y uso comercial) |
+  | La web pasa a necesitar SSR | Reevaluar Vercel Pro en un ADR nuevo |
+
+- La web es una carpeta de archivos estáticos: cambiar de proveedor solo toca el job de
+  `deploy-frontend.yml` y un registro DNS.
