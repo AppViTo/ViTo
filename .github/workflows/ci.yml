@@ -203,7 +203,7 @@ jobs:
 
       - name: Upload test reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.service }}-surefire-reports
           path: backend/${{ matrix.service }}/target/surefire-reports/
@@ -249,7 +249,7 @@ jobs:
       
       - name: Upload coverage reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: transcode-service-coverage
           path: ai-services/transcode-service/htmlcov/
@@ -314,7 +314,7 @@ jobs:
       
       - name: Upload coverage reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: flutter-coverage
           path: frontend/vito_app/coverage/lcov.info
