@@ -4,7 +4,7 @@
 #
 # mongodump/mongorestore vienen de la imagen oficial (misma versión que el servidor);
 # rclone es un binario estático y habla S3 con cualquier proveedor.
-FROM rclone/rclone:1.68.2 AS rclone
+FROM rclone/rclone:1.75.2 AS rclone
 
 FROM mongo:7.0
 
