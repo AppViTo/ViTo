@@ -48,18 +48,28 @@ jobs:
         working-directory: frontend/vito_app
         run: flutter test
 
-      - name: Build web
+      # En release Env no cae a localhost (T-F06): el build debe traer las URLs reales.
+      - name: Validate production URLs
         working-directory: frontend/vito_app
         env:
-          # Repo variables (Settings → Variables); vacíos = defaults del código
           API_BASE_URL: ${{ vars.VITO_API_BASE_URL }}
           WS_BASE_URL: ${{ vars.VITO_WS_BASE_URL }}
         run: |
-          # ENVIRONMENT=production activa Env.isProduction (por defecto es 'development')
-          FLAGS=(--dart-define=ENVIRONMENT=production)
-          [ -n "$API_BASE_URL" ] && FLAGS+=("--dart-define=API_BASE_URL=$API_BASE_URL")
-          [ -n "$WS_BASE_URL" ] && FLAGS+=("--dart-define=WS_BASE_URL=$WS_BASE_URL")
-          flutter build web --release "${FLAGS[@]}"
+          if [ -z "${API_BASE_URL// /}" ] || [ -z "${WS_BASE_URL// /}" ]; then
+            echo "::error::Faltan VITO_API_BASE_URL y/o VITO_WS_BASE_URL (Settings → Secrets and variables → Actions → Variables)"
+            exit 1
+          fi
+
+      - name: Build web
+        working-directory: frontend/vito_app
+        env:
+          API_BASE_URL: ${{ vars.VITO_API_BASE_URL }}
+          WS_BASE_URL: ${{ vars.VITO_WS_BASE_URL }}
+        run: |
+          flutter build web --release \
+            --dart-define=ENVIRONMENT=production \
+            --dart-define=API_BASE_URL="$API_BASE_URL" \
+            --dart-define=WS_BASE_URL="$WS_BASE_URL"
 
       # Vercel lee vercel.json desde el directorio desplegado: copiarlo a build/web
       - name: Copy vercel.json into build output
