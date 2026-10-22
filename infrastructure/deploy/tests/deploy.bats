@@ -212,3 +212,40 @@ PY
   run "$DEPLOY" status
   [ "$status" -eq 0 ]
 }
+
+# ---- T027: rollback (Historia 2) ----
+
+@test "(T027) rollback no carga ni construye imágenes y registra type rollback con from_sha" {
+  deploy_ok "$A"
+  deploy_ok "$B" --changed "auth-service"
+  : >"$DOCKER_LOG"
+  run "$DEPLOY" rollback "$A" --meta '{"approver":"lead1","triggered_by":"lead2","reason":"error 500 en login"}'
+  [ "$status" -eq 0 ]
+  ! grep -qE '^(load|build|buildx)( |$)| build( |$)' "$DOCKER_LOG"
+  python3 - "$VITO_ROOT/deployments.log" "$A" "$B" <<'PY'
+import json, sys
+rec = json.loads(open(sys.argv[1]).read().splitlines()[-1])
+assert rec["type"] == "rollback" and rec["kind"] is None, rec
+assert rec["sha"] == sys.argv[2] and rec["from_sha"] == sys.argv[3], rec
+assert rec["result"] == "succeeded" and rec["reason"] == "error 500 en login", rec
+PY
+}
+
+@test "(T027) rollback cuya salud falla vuelve al bundle que estaba (exit 5)" {
+  export FAKE_UP_RCS="0 0 1 0"
+  deploy_ok "$A"
+  deploy_ok "$B" --changed "auth-service"
+  run "$DEPLOY" rollback "$A"
+  [ "$status" -eq 5 ]
+  [ "$(current_sha)" = "$B" ]
+  [ "$(tail -1 "$VITO_ROOT/history")" = "$B" ]
+}
+
+@test "check usa DEPLOY_ENV_FILE si está definido (verificación previa sin tocar .env)" {
+  deploy_ok "$A"
+  make_bundle "$B"
+  : >"$VITO_ROOT/.env.preflight"
+  DEPLOY_ENV_FILE="$VITO_ROOT/.env.preflight" run "$DEPLOY" check "$B"
+  [ "$status" -eq 0 ]
+  grep -q -- "--env-file $VITO_ROOT/.env.preflight " "$DOCKER_LOG"
+}

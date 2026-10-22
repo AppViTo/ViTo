@@ -69,28 +69,28 @@ Rama `backend/t-i08-cd-pipeline`.
 
 ### Tests for User Story 1
 
-- [ ] T014 [P] [US1] Escribir `infrastructure/deploy/tests/live-check.bats` con un `mongosh` falso: sin eventos → exit 0; evento `PUBLISHED` con `details.startDate ≤ ahora + 1 h` y `details.endDate ≥ ahora − 1 h` → exit 3 y JSON `{"events":[{"id","title"}],"streams":[]}`; stream con `status ∈ {LIVE, CONNECTING, BUFFERING}` → exit 3; `mongosh` falla → exit 7; sin `$VITO_ROOT/current` → exit 0 con `{"skipped":"first-deploy"}` y sin llamar a `mongosh`; contenedor `mongodb` detenido → mismo resultado (R6)
+- [X] T014 [P] [US1] Escribir `infrastructure/deploy/tests/live-check.bats` con un `mongosh` falso: sin eventos → exit 0; evento `PUBLISHED` con `details.startDate ≤ ahora + 1 h` y `details.endDate ≥ ahora − 1 h` → exit 3 y JSON `{"events":[{"id","title"}],"streams":[]}`; stream con `status ∈ {LIVE, CONNECTING, BUFFERING}` → exit 3; `mongosh` falla → exit 7; sin `$VITO_ROOT/current` → exit 0 con `{"skipped":"first-deploy"}` y sin llamar a `mongosh`; contenedor `mongodb` detenido → mismo resultado (R6)
 
 ### Implementation for User Story 1
 
-- [ ] T015 [P] [US1] Implementar `infrastructure/deploy/remote/ensure-ro-user.sh`: crea o actualiza `vito_deploy_ro` con rol `read` en `vito_events` y `vito_streaming`, usando las credenciales root del `.env` y la contraseña de `MONGO_DEPLOY_RO_PASSWORD`; idempotente y sin imprimir secretos
-- [ ] T016 [US1] Implementar `infrastructure/deploy/remote/live-check.sh` según [contracts/remote-scripts.md](./contracts/remote-scripts.md), con la contraseña solo por variable de entorno. Hasta que pase T014
-- [ ] T017 [US1] Reescribir `.github/workflows/cd.yml`, job `changes`: `on: push: [main]` y `workflow_dispatch` (`mode: deploy|preflight`, `force_live_event`, `reason`); obtiene el último SHA con despliegue exitoso del Environment `production` o `production-hotfix` (Deployments API); llama a `changed-services.sh`; llama a `infrastructure/deploy/pick-environment.sh`, que obtiene el PR del commit (`GET /commits/{sha}/pulls`) y fija `kind` (`hotfix` si la rama de origen empieza con `hotfix/`) y el Environment (R5): `production-preflight` si `mode=preflight`; lee `VERSION` (R1). Sale sin más jobs si no hay servicios ni cambios de bundle
-- [ ] T018 [US1] En `.github/workflows/cd.yml`, job `build` (sin secretos, `permissions: contents: read`): matriz con `services`, Buildx con `cache-from/to: type=gha,scope=<svc>` (los mismos scopes que `docker-build` de CI), tags `vito/<svc>:<sha>` y `vito/<svc>:v<VERSION>` con la etiqueta OCI `org.opencontainers.image.version` (R1), escaneo Trivy de T049 antes de exportar, `docker save | zstd -T0 -19` y `upload-artifact` con `retention-days: 1` (R3)
-- [ ] T019 [US1] En `.github/workflows/cd.yml`, job `deploy` con `environment: ${{ needs.changes.outputs.environment }}` y `concurrency: { group: ${{ inputs.mode == 'preflight' && 'vps-preflight' || 'vps-production' }}, cancel-in-progress: false }` (R8), en este orden:
+- [X] T015 [P] [US1] Implementar `infrastructure/deploy/remote/ensure-ro-user.sh`: crea o actualiza `vito_deploy_ro` con rol `read` en `vito_events` y `vito_streaming`, usando las credenciales root del `.env` y la contraseña de `MONGO_DEPLOY_RO_PASSWORD`; idempotente y sin imprimir secretos
+- [X] T016 [US1] Implementar `infrastructure/deploy/remote/live-check.sh` según [contracts/remote-scripts.md](./contracts/remote-scripts.md), con la contraseña solo por variable de entorno. Hasta que pase T014
+- [X] T017 [US1] Reescribir `.github/workflows/cd.yml`, job `changes`: `on: push: [main]` y `workflow_dispatch` (`mode: deploy|preflight`, `force_live_event`, `reason`); obtiene el último SHA con despliegue exitoso del Environment `production` o `production-hotfix` (Deployments API); llama a `changed-services.sh`; llama a `infrastructure/deploy/pick-environment.sh`, que obtiene el PR del commit (`GET /commits/{sha}/pulls`) y fija `kind` (`hotfix` si la rama de origen empieza con `hotfix/`) y el Environment (R5): `production-preflight` si `mode=preflight`; lee `VERSION` (R1). Sale sin más jobs si no hay servicios ni cambios de bundle
+- [X] T018 [US1] En `.github/workflows/cd.yml`, job `build` (sin secretos, `permissions: contents: read`): matriz con `services`, Buildx con `cache-from/to: type=gha,scope=<svc>` (los mismos scopes que `docker-build` de CI), tags `vito/<svc>:<sha>` y `vito/<svc>:v<VERSION>` con la etiqueta OCI `org.opencontainers.image.version` (R1), escaneo Trivy de T049 antes de exportar, `docker save | zstd -T0 -19` y `upload-artifact` con `retention-days: 1` (R3)
+- [X] T019 [US1] En `.github/workflows/cd.yml`, job `deploy` con `environment: ${{ needs.changes.outputs.environment }}` y `concurrency: { group: ${{ inputs.mode == 'preflight' && 'vps-preflight' || 'vps-production' }}, cancel-in-progress: false }` (R8), en este orden:
   1. verificar la autoaprobación (`GET /actions/runs/{id}/approvals`): si en `production-hotfix` aprobó quien disparó el run y el comentario está vacío, falla (FR-002);
   2. escribir `SSH_KEY` (`0600`) y `SSH_KNOWN_HOSTS`, con `StrictHostKeyChecking=yes` (FR-014) y `::add-mask::` para el host;
   3. escribir `DOTENV_PRODUCTION` en `/opt/vito/.env` con `0600` (R15);
   4. subir el bundle a `/opt/vito/releases/<sha>/`;
   5. `ensure-ro-user.sh` (se omite si `mongodb` no corre) y `live-check.sh`: con exit 3 o 7, fallar y avisar, salvo `force_live_event` con `reason` en hotfix (FR-028); un release normal con `force_live_event` falla;
   6. con `mode=preflight`, solo `deploy.sh check <sha>` y salir;
-  7. cargar las imágenes (`zstd -d | ssh docker load`);
+  7. cargar las imágenes (`ssh vps 'zstd -dc | docker load' < imagen.tar.zst`, R3);
   8. `deploy.sh apply <sha> --changed … --meta <json>`;
-  9. con exit 0, crear el tag git `v<VERSION>` si no existe (`permissions: contents: write` solo en este paso);
+  9. con exit 0, crear el tag git `v<VERSION>` si no existe (job `tag` aparte, el único con `contents: write` y sin secretos);
   10. escribir el resumen del despliegue en `$GITHUB_STEP_SUMMARY`;
   11. borrar la llave en `always()`.
-- [ ] T020 [US1] Agregar a `.github/workflows/cd.yml` un paso `notify` en `failure()` y en los exit 3, 5, 6 y 7: mensaje a Telegram (Bot API, `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`) y correo con Resend a `ALERT_EMAILS` si existe `RESEND_API_KEY` (R11). Incluye resultado, SHA, servicios y enlace al run, sin secretos
-- [ ] T021 [US1] Escribir `docs/runbooks/despliegue.md`: cómo leer el resumen y `deploy.sh status`; qué hacer con cada código de salida (2, 4, 5, 6); hotfix con autoaprobación (comentario obligatorio); forzar durante un evento en vivo; primer despliegue
+- [X] T020 [US1] Agregar a `.github/workflows/cd.yml` un paso `notify` en `failure()` y en los exit 3, 5, 6 y 7: mensaje a Telegram (Bot API, `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`) y correo con Resend a `ALERT_EMAILS` si existe `RESEND_API_KEY` (R11). Incluye resultado, SHA, servicios y enlace al run, sin secretos
+- [X] T021 [US1] Escribir `docs/runbooks/despliegue.md`: cómo leer el resumen y `deploy.sh status`; qué hacer con cada código de salida (2, 4, 5, 6); hotfix con autoaprobación (comentario obligatorio); forzar durante un evento en vivo; primer despliegue
 
 **Checkpoint**: con el aprovisionamiento hecho (US5), un merge a `main` despliega solo y
 vuelve atrás solo si algo falla.
@@ -141,12 +141,12 @@ Rama `backend/t-i08-cd-pipeline` (mismo PR que la fase 3).
 
 ### Tests for User Story 2
 
-- [ ] T027 [P] [US2] Extender `infrastructure/deploy/tests/deploy.bats`: `rollback` a un SHA retenido activa su bundle sin llamar a `docker load` ni a `build`, y registra `type: rollback` con `from_sha`; un rollback cuya salud falla vuelve al bundle que estaba (exit 5)
+- [X] T027 [P] [US2] Extender `infrastructure/deploy/tests/deploy.bats`: `rollback` a un SHA retenido activa su bundle sin llamar a `docker load` ni a `build`, y registra `type: rollback` con `from_sha`; un rollback cuya salud falla vuelve al bundle que estaba (exit 5)
 
 ### Implementation for User Story 2
 
-- [ ] T028 [US2] Crear `.github/workflows/rollback.yml`: `workflow_dispatch` con `sha` y `reason` obligatorios y `force_live_event`; Environment `production`; `concurrency: vps-production`. Pasos de SSH y `.env` iguales a T019 (extraer a una acción compuesta `.github/actions/vps-ssh/action.yml` y usarla en los dos workflows); `live-check` (bloquea salvo `force_live_event` con `reason`, FR-028); `deploy.sh rollback <sha> --meta …`; resumen y `notify` como T020
-- [ ] T029 [US2] Agregar a `docs/runbooks/despliegue.md` la sección de rollback: cómo elegir el SHA (`deploy.sh status`, historial de Deployments), qué pasa con la base de datos (no se revierte) y cuándo hace falta un hotfix en vez de un rollback
+- [X] T028 [US2] Crear `.github/workflows/rollback.yml`: `workflow_dispatch` con `sha` y `reason` obligatorios y `force_live_event`; Environment `production`; `concurrency: vps-production`. Pasos de SSH y `.env` iguales a T019 (extraer a una acción compuesta `.github/actions/vps-ssh/action.yml` y usarla en los dos workflows); `live-check` (bloquea salvo `force_live_event` con `reason`, FR-028); `deploy.sh rollback <sha> --meta …`; resumen y `notify` como T020
+- [X] T029 [US2] Agregar a `docs/runbooks/despliegue.md` la sección de rollback: cómo elegir el SHA (`deploy.sh status`, historial de Deployments), qué pasa con la base de datos (no se revierte) y cuándo hace falta un hotfix en vez de un rollback
 
 **Checkpoint**: rollback probado con dos releases reales.
 
@@ -224,13 +224,13 @@ Se numeran al final para no renumerar las anteriores. La columna "Fase" dice en 
 van y antes de qué tarea.
 
 - [X] T048 [P] (Fase B, con T011) Agregar a `.github/workflows/ci.yml` el job `secrets-scan` (nombre `Secrets Scan`): `docker run` de `zricethezav/gitleaks:<versión fija>` con `detect --source . --log-opts="<base>..<head>" --redact --exit-code 1`, checkout con `fetch-depth: 0`, sin secretos; `.gitleaks.toml` solo si hace falta ignorar fixtures ficticios (R13)
-- [ ] T049 (Fase C, con T018) En el job `build` de `.github/workflows/cd.yml`, escanear cada imagen con `aquasecurity/trivy-action@<SHA fijo>` (`severity: CRITICAL,HIGH`, `exit-code: 1`, `ignore-unfixed: true`, `trivyignores: .trivyignore`) antes de `docker save`. Crear `.trivyignore` vacío con el formato de excepción comentado (motivo, aprobó, vence). En la matriz `docker-build` de `ci.yml`, el mismo escaneo con `exit-code: 0` y subida del SARIF con `github/codeql-action/upload-sarif` (`permissions: security-events: write`) (R17)
+- [X] T049 (Fase C, con T018) En el job `build` de `.github/workflows/cd.yml`, escanear cada imagen con `aquasecurity/trivy-action@<SHA fijo>` (`severity: CRITICAL,HIGH`, `exit-code: 1`, `ignore-unfixed: true`, `trivyignores: .trivyignore`) antes de `docker save`. Crear `.trivyignore` vacío con el formato de excepción comentado (motivo, aprobó, vence). En la matriz `docker-build` de `ci.yml`, el mismo escaneo con `exit-code: 0` y subida del SARIF con `github/codeql-action/upload-sarif` (`permissions: security-events: write`) (R17)
 - [X] T050 [P] (Fase B) Crear `.github/dependabot.yml`: `maven` en cada `backend/<svc>` (10), `pip` en `ai-services/transcode-service` y `ai-services/moderation-service`, `pub` en `frontend/vito_app`, `github-actions` en `/` y `docker` en `backend/` y `ai-services/*`; `interval: weekly`, `target-branch: develop`, `open-pull-requests-limit: 5` (R18). Sumar a la guía de T024 la activación de las alertas de Dependabot
 - [ ] T051 👤 (antes de T042) Triage de `backend/SECURITY_CHECKLIST.md`: los leads asignan severidad (alta/media/baja) a cada uno de los 38 `TODO`. Cada `TODO` de severidad alta se resuelve con una tarea en `docs/roadmap/tasks.md` o queda como excepción documentada en el mismo archivo (motivo, responsable, fecha de revisión), según el Principio III. El agente prepara la propuesta de severidades; los leads la aprueban
 - [X] T052 [P] (Fase B) Crear `VERSION` en la raíz con `0.1.0` y el job `version-check` (nombre `Version Check`) en `ci.yml`: en PR con base `main`, falla si `VERSION` no es semver o no es mayor que el último tag `v*`; en otros PR, se salta (R1)
 - [ ] T053 [P] [US4] (Fase E, con T038) Logs JSON en todos los perfiles (Principio VI): `net.logstash.logback:logstash-logback-encoder` en cada `backend/<svc>/pom.xml` (o en `backend/shared-web` si T-B18 ya existe) y `src/main/resources/logback-spring.xml` con `LogstashEncoder`, `customFields` `{"service":"${spring.application.name}"}` y los campos del MDC `traceId`, `spanId` y `userId`; en `ai-services/*`, `python-json-logger` con los mismos campos. Test por servicio que verifique que una línea de log es JSON válido con `service`
-- [ ] T054 (Fase C, con T028) Crear `.github/workflows/expire-approvals.yml` según [contracts/workflows.md](./contracts/workflows.md#expire-approvalsyml--plazo-de-24-h-fr-002): `schedule` cada hora y `workflow_dispatch`, `permissions: actions: write`; cancela los runs en `waiting` con más de 24 h de `cd.yml`, `rollback.yml` y `deploy-frontend.yml` y avisa como T020 (FR-002)
-- [ ] T055 [P] (Fase C, con T017) Implementar `infrastructure/deploy/pick-environment.sh <sha> <mode>`, que imprime `kind=` y `environment=` para `$GITHUB_OUTPUT`, con su test `infrastructure/deploy/tests/pick-environment.bats` (PR desde `develop` → `production`; desde `hotfix/*` → `production-hotfix`; `mode=preflight` → `production-preflight`; sin PR → `production`) (R5, R8)
+- [X] T054 (Fase C, con T028) Crear `.github/workflows/expire-approvals.yml` según [contracts/workflows.md](./contracts/workflows.md#expire-approvalsyml--plazo-de-24-h-fr-002): `schedule` cada hora y `workflow_dispatch`, `permissions: actions: write`; cancela los runs en `waiting` con más de 24 h de `cd.yml`, `rollback.yml` y `deploy-frontend.yml` y avisa como T020 (FR-002)
+- [X] T055 [P] (Fase C, con T017) Implementar `infrastructure/deploy/pick-environment.sh <sha> <mode>`, que imprime `kind=` y `environment=` para `$GITHUB_OUTPUT`, con su test `infrastructure/deploy/tests/pick-environment.bats` (PR desde `develop` → `production`; desde `hotfix/*` → `production-hotfix`; `mode=preflight` → `production-preflight`; sin PR → `production`) (R5, R8)
 
 ---
 

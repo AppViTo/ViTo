@@ -14,7 +14,11 @@ merge a main ─► cd.yml: changes ─► build ─► (aprobación del Environ
 | Ruta | Dónde corre | Qué hace |
 |------|-------------|----------|
 | `changed-services.sh` | runner | rutas cambiadas desde el último despliegue exitoso → servicios a reconstruir (research R2) |
+| `pick-environment.sh` | runner | `release` o `hotfix` según el PR del commit → Environment (R5) |
+| `summary.sh` | runner | línea del registro → resumen del job en Markdown |
 | `remote/deploy.sh` | VPS, como `deploy` | `apply`, `rollback`, `check` y `status` sobre los bundles ([contrato](../../specs/001-cd-produccion/contracts/remote-scripts.md)) |
+| `remote/live-check.sh` + `live-check.js` | VPS | ¿evento o stream en vivo? (R6, FR-028), con el usuario de solo lectura |
+| `remote/ensure-ro-user.sh` | VPS | crea o actualiza `vito_deploy_ro` (rol `read` en `vito_events` y `vito_streaming`) |
 | `tests/` | CI (`Deploy Scripts`) | `bats` con un `docker` falso y fixtures sin secretos |
 
 ## En el VPS
@@ -39,7 +43,7 @@ merge a main ─► cd.yml: changes ─► build ─► (aprobación del Environ
 ## Probar en local
 
 ```bash
-bats infrastructure/deploy/tests
+bats infrastructure/deploy/tests                    # VITO_TEST_MONGO=1 suma los tests contra Mongo real
 shellcheck infrastructure/**/*.sh
 docker compose -f docker-compose.prod.yml \
   --env-file infrastructure/deploy/tests/fixtures/.env.test \
@@ -47,4 +51,4 @@ docker compose -f docker-compose.prod.yml \
 ```
 
 Operación (rollback, forzar en evento, qué hacer con cada código de salida):
-`docs/runbooks/despliegue.md` (fase C).
+[`docs/runbooks/despliegue.md`](../../docs/runbooks/despliegue.md).

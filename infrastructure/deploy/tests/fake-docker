@@ -7,10 +7,32 @@
 #   image inspect <ref>  → 0 si <ref> está en $FAKE_DIR/images
 #   image ls …           → el contenido de $FAKE_DIR/images
 #   image rm <ref>…      → los quita de $FAKE_DIR/images
+#   ps …                 → "mongo-cid" si $FAKE_MONGO_RUNNING=1 (contenedor mongodb corriendo)
+#   exec … mongosh …     → sale con $FAKE_MONGOSH_RC; si es 0, imprime $FAKE_MONGOSH_OUT
+#                          (mongosh falso); guarda en $FAKE_DIR/exec-env las variables -e
 set -euo pipefail
 
 printf '%s\n' "$*" >>"$DOCKER_LOG"
 images="$FAKE_DIR/images"
+
+case "${1:-}" in
+  ps)
+    [[ "${FAKE_MONGO_RUNNING:-0}" == 1 ]] && echo mongo-cid
+    exit 0
+    ;;
+  exec)
+    # -e NOMBRE sin valor: docker toma el valor del entorno (nunca va en la línea de comandos)
+    : >"$FAKE_DIR/exec-env"
+    prev=''
+    for arg in "$@"; do
+      [[ "$prev" == -e ]] && printf '%s=%s\n' "$arg" "${!arg:-}" >>"$FAKE_DIR/exec-env"
+      prev=$arg
+    done
+    rc=${FAKE_MONGOSH_RC:-0}
+    ((rc == 0)) && printf '%s\n' "${FAKE_MONGOSH_OUT-}"
+    exit "$rc"
+    ;;
+esac
 
 if [[ "${1:-}" == image ]]; then
   case "${2:-}" in

@@ -1,0 +1,65 @@
+# Aviso a los leads (feature 001, T020, research R11): Telegram y, si está configurado,
+# correo con Resend. Nunca hace fallar el job: un aviso caído queda como warning.
+# El mensaje no debe llevar secretos ni la IP del VPS.
+name: Notify leads
+description: Avisa por Telegram y por correo (Resend)
+
+inputs:
+  subject:
+    description: Asunto del correo
+    required: true
+  message:
+    description: Texto del aviso (sin secretos)
+    required: true
+  telegram-token:
+    description: TELEGRAM_BOT_TOKEN
+    required: false
+    default: ''
+  telegram-chat-id:
+    description: TELEGRAM_CHAT_ID
+    required: false
+    default: ''
+  resend-api-key:
+    description: RESEND_API_KEY (sin ella no se manda correo)
+    required: false
+    default: ''
+  alert-emails:
+    description: ALERT_EMAILS, separados por coma
+    required: false
+    default: ''
+  alert-from:
+    description: Remitente verificado en Resend (variable ALERT_FROM)
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Avisar
+      shell: bash
+      env:
+        SUBJECT: ${{ inputs.subject }}
+        MESSAGE: ${{ inputs.message }}
+        TG_TOKEN: ${{ inputs.telegram-token }}
+        TG_CHAT: ${{ inputs.telegram-chat-id }}
+        RESEND_KEY: ${{ inputs.resend-api-key }}
+        EMAILS: ${{ inputs.alert-emails }}
+        FROM: ${{ inputs.alert-from }}
+      run: |
+        if [ -n "$TG_TOKEN" ] && [ -n "$TG_CHAT" ]; then
+          curl -fsS -o /dev/null --retry 2 "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=$TG_CHAT" \
+            --data-urlencode "text=$SUBJECT"$'\n'"$MESSAGE" \
+            --data-urlencode "disable_web_page_preview=true" \
+            && echo "Aviso enviado por Telegram" || echo "::warning::No se pudo avisar por Telegram"
+        else
+          echo "::warning::Sin TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID: no se avisa por Telegram"
+        fi
+        if [ -n "$RESEND_KEY" ] && [ -n "$EMAILS" ] && [ -n "$FROM" ]; then
+          body=$(jq -cn --arg from "$FROM" --arg to "$EMAILS" --arg subject "$SUBJECT" --arg text "$MESSAGE" \
+            '{from: $from, to: ($to | split(",") | map(gsub("^\\s+|\\s+$"; "")) | map(select(. != ""))),
+              subject: $subject, text: $text}')
+          curl -fsS -o /dev/null --retry 2 https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_KEY" -H 'Content-Type: application/json' -d "$body" \
+            && echo "Aviso enviado por correo" || echo "::warning::No se pudo avisar por correo"
+        fi

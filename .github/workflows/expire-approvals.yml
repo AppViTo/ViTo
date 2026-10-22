@@ -1,0 +1,57 @@
+name: ViTo Expire Approvals
+
+# Una aprobación de producción vence a las 24 h (feature 001, T054, FR-002). GitHub solo las
+# cancela a los 30 días: este workflow cancela antes los runs que siguen esperando.
+# Corre desde la rama por defecto (develop) y sin Environment: los secretos de Telegram que
+# usa son del repositorio (docs/runbooks/aprovisionamiento.md, paso 8).
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  expire:
+    name: Expire approvals
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cancelar los que esperan hace más de 24 h
+        id: cancel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cancelled=()
+          for wf in cd.yml rollback.yml deploy-frontend.yml; do
+            runs=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/runs?status=waiting&per_page=100" \
+              --jq '.workflow_runs[] | select((now - (.created_at | fromdateiso8601)) > 86400) | "\(.id) \(.html_url)"' \
+              2>/dev/null) || continue
+            while read -r id url; do
+              [ -n "$id" ] || continue
+              gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$id/cancel" >/dev/null
+              echo "Cancelado $wf: $url"
+              cancelled+=("$wf: $url")
+            done <<<"$runs"
+          done
+          echo "count=${#cancelled[@]}" >> "$GITHUB_OUTPUT"
+          {
+            echo 'list<<EOF'
+            printf '%s\n' "${cancelled[@]}"
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Avisar
+        if: steps.cancel.outputs.count != '0'
+        uses: ./.github/actions/notify
+        with:
+          subject: "ViTo · ${{ steps.cancel.outputs.count }} aprobación(es) vencida(s) a las 24 h"
+          message: |
+            Se cancelaron porque nadie las aprobó en 24 h (FR-002). Para desplegar, relanzar el workflow.
+            ${{ steps.cancel.outputs.list }}
+          telegram-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}
