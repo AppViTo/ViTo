@@ -29,6 +29,9 @@ en el compose y cambian solo si cambia el compose (FR-011).
 - Una variable `TAG_*` por cada servicio desplegable, siempre las 13 (no puede faltar
   ninguna: el compose usa `:?`).
 - `DEPLOYED_SHA=<sha>` del release que lo generó.
+- `RELEASE_VERSION=<semver>` leído de `VERSION` (R1).
+- `CFG_CADDY`, `CFG_SRS`, `CFG_ALLOY`: `sha256` de cada archivo de configuración montado;
+  los servicios los usan en la etiqueta `vito.config-hash` (R4).
 - **Derivación:** manifiesto del release anterior + `TAG_<svc>=<sha>` para cada servicio de
   `changed`. En el primer despliegue, todas valen `<sha>`.
 - **Invariante:** cada `TAG_*` apunta a una imagen `vito/<svc>:<tag>` cargada en el VPS.

@@ -28,8 +28,8 @@ constitución v1.3.0 (Principios III, VI, VIII y IX)
   verde, como release extraordinario aprobado por los dos leads y registrado como excepción
   a ADR-012.
 - Q: ¿Se puede desplegar mientras hay un evento en vivo? → A: no. Si hay un evento en curso
-  o un stream activo, el despliegue falla antes de tocar el servidor y avisa. Un hotfix puede
-  forzarlo con un motivo escrito (FR-028).
+  o un stream activo, el despliegue falla antes de tocar el servidor y avisa. Un hotfix o un
+  rollback pueden forzarlo con un motivo escrito (FR-028).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -190,7 +190,10 @@ que el DNS resuelve los subdominios previstos.
   está cargada falla antes de reiniciar servicios, no después.
 - **Comprobación de eventos no disponible:** si no se puede saber si hay un evento en curso
   (por ejemplo, la base de datos no responde), el despliegue se trata como bloqueado; un
-  hotfix puede forzarlo con motivo.
+  hotfix o un rollback pueden forzarlo con motivo.
+- **Comprobación de eventos en el primer despliegue:** si no hay un despliegue previo o la
+  base de datos todavía no corre, no puede haber eventos: la comprobación se salta y el
+  registro lo indica.
 - **Release de solo documentación:** no construye ni reinicia nada.
 - **Huella del servidor cambiada:** si la identidad SSH del servidor no coincide con la
   registrada, el pipeline se niega a conectar (posible suplantación).
@@ -207,7 +210,7 @@ que el DNS resuelve los subdominios previstos.
 - **FR-001**: El despliegue DEBE dispararse solo cuando un commit entra a `main` (release o
   hotfix, ADR-012) o cuando un lead pide un rollback; nunca desde otras ramas ni PRs.
 - **FR-002**: Antes de tocar el servidor, el despliegue DEBE esperar la aprobación de un lead
-  en el Environment `production` (constitución v1.3.0). Sin aprobación en 24 h, se cancela.
+  en el Environment `production` (constitución v1.3.0). Sin aprobación en 24 h, se cancela y se avisa a los leads.
   - Release y rollback: el aprobador DEBE ser un lead distinto de quien disparó el despliegue.
   - Hotfix (commit que entra a `main` desde `hotfix/*`, ADR-012): PUEDE aprobarlo el mismo lead,
     y el despliegue DEBE registrar el motivo escrito de la excepción.
@@ -215,8 +218,8 @@ que el DNS resuelve los subdominios previstos.
   despliegue exitoso, más todos los afectados cuando cambia un insumo común.
 - **FR-004**: Cada servicio DEBE poder tener su propia versión en producción; un servicio sin
   cambios sigue con la versión que ya corre, sin reconstruirse ni reiniciarse.
-- **FR-005**: La versión de cada servicio DEBE ser el SHA del commit que la construyó; nunca
-  `latest` (Principio VIII).
+- **FR-005**: La versión de cada servicio DEBE ser el SHA del commit que la construyó,
+  acompañado del número de release (semver, ADR-012); nunca `latest` (Principio VIII).
 - **FR-006**: Las imágenes DEBEN llegar al servidor sin pasar por un registro público.
 - **FR-007**: Tras instalar, el sistema DEBE verificar la salud de cada servicio tocado en
   un máximo de 5 minutos; si alguno no queda sano, DEBE restaurar la versión anterior de los
@@ -235,18 +238,18 @@ que el DNS resuelve los subdominios previstos.
 - **FR-028**: Antes de tocar el servidor, el despliegue (incluido el rollback) DEBE
   comprobar si hay un evento en curso (entre su inicio y su fin) o un stream activo. Si lo
   hay, DEBE fallar sin cambiar nada, avisando a los leads cuál evento lo bloquea, y puede
-  relanzarse después. Solo un hotfix PUEDE forzarlo, con un motivo escrito que queda en el
-  registro (FR-010). Un rollback forzado sigue la misma regla.
+  relanzarse después. Solo un hotfix o un rollback PUEDEN forzarlo, con un motivo escrito que
+  queda en el registro (FR-010); un release normal no.
 
 **Servidor y secretos (T-I06)**
 
 - **FR-013**: La preparación del servidor DEBE ser repetible e idempotente: usuario sin
-  privilegios de root para desplegar, acceso solo por llave, firewall con 22 (restringido),
-  80, 443, 1935 y los puertos UDP de WebRTC, y el directorio de despliegue.
+  privilegios de root para desplegar, acceso solo por llave, firewall con 22 limitado por tasa y solo
+  con llave (las IP de los runners no son fijas), 80, 443, 1935 y los puertos UDP de WebRTC, y el directorio de despliegue.
 - **FR-014**: El pipeline DEBE verificar la identidad del servidor contra una huella
   registrada antes de conectar.
-- **FR-015**: Los secretos DEBEN vivir solo en el Environment `production`, en el gestor de
-  contraseñas y en el archivo de entorno del servidor con permisos de solo dueño; nunca en
+- **FR-015**: Los secretos DEBEN vivir solo en los Environments de producción (`production`,
+  `production-hotfix` y `production-preflight`), en el gestor de contraseñas y en el archivo de entorno del servidor con permisos de solo dueño; nunca en
   el repo, en las imágenes ni en los logs del pipeline (Principio III; el repo es público).
 - **FR-016**: DEBE existir una guía de aprovisionamiento con la lista exacta de secretos,
   registros DNS, cuentas y el bot y grupo de Telegram de alertas, y una verificación que la compruebe sin desplegar.
@@ -262,8 +265,8 @@ que el DNS resuelve los subdominios previstos.
   API o del WebSocket (T-F06, Principio VIII).
 - **FR-020**: Los enlaces directos a rutas internas DEBEN cargar la app (comportamiento que
   hoy da `vercel.json`).
-- **FR-021**: La publicación de la web DEBE requerir la misma aprobación del Environment
-  `production` que el backend.
+- **FR-021**: La publicación de la web DEBE requerir la misma aprobación que el backend,
+  incluida la excepción de hotfix de FR-002.
 - **FR-022**: El flujo de despliegue a Vercel DEBE retirarse una vez verificada la primera
   publicación en Pages.
 
@@ -328,6 +331,12 @@ que el DNS resuelve los subdominios previstos.
   pipeline esté verde, como release extraordinario aprobado por los dos leads, y no espera
   al viernes. La excepción se registra en la sección *Actualizaciones* de ADR-012. Desde ahí
   rige la cadencia semanal.
+- Los Environments de producción solo aceptan `main`, así que el pipeline completo se prueba
+  por primera vez con el release extraordinario. Riesgo aceptado: lo mitigan los tests de
+  los scripts en CI y la verificación previa sin despliegue (Historia 5).
+- El primer release también exige que `backend/SECURITY_CHECKLIST.md` no tenga `TODO` de
+  severidad alta sin excepción documentada (Principio III): los leads hacen ese triage antes
+  de abrirlo.
 - La base de datos de producción arranca vacía; no hay migración de datos.
 - El monitor externo de disponibilidad es el de Grafana Cloud (gratuito).
 - Enviar correos desde la app (verificación, invitaciones) es otra feature; aquí solo se deja

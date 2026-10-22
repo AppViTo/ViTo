@@ -27,6 +27,15 @@ rollback es apuntar `current` a un manifiesto anterior (FR-008, sin reconstruir)
 - *Construir siempre todo:* ~10 imágenes Java por release, ~25 min de CI y reinicio de todos
   los servicios (viola SC-001 y SC-002).
 
+**Semver (Principio VIII, ADR-012):** un archivo `VERSION` en la raíz (`0.1.0` al empezar)
+fija el número de release. Cada PR de release o hotfix a `main` lo sube, y el check
+`Version Check` de CI exige que sea mayor que el último tag `v*`. El job `build` etiqueta
+cada imagen como `vito/<svc>:<sha>` y `vito/<svc>:v<VERSION>`, con la etiqueta OCI
+`org.opencontainers.image.version`. El compose sigue usando el SHA, que es la clave
+inmutable. Tras un despliegue exitoso, el pipeline crea el tag git `v<VERSION>` si no
+existe. ADR-012 crea el tag "al mergear", y en ese momento el build todavía no lo puede
+ver: por eso el número sale del archivo y no del tag.
+
 ## R2 · Qué servicios cambiaron
 
 **Decisión:** el job `changes` compara el commit actual con el **último despliegue exitoso**
@@ -91,6 +100,15 @@ Secuencia del script remoto `deploy.sh apply <sha>`:
 4. Registrar una línea JSON en `/opt/vito/deployments.log` (FR-010) y podar los bundles e
    imágenes fuera de los últimos 3.
 
+**Configuración montada:** Caddy, SRS y Alloy montan archivos del bundle. `deploy.sh`
+siempre corre `docker compose --project-directory /opt/vito/current`, así la ruta de
+origen de los montajes no cambia entre releases y un release que no toca esos archivos no
+recrea los servicios (SC-002). Para que un cambio de contenido sí se aplique, `deploy.sh`
+calcula el `sha256` de cada archivo montado, lo escribe en `versions.env`
+(`CFG_CADDY`, `CFG_SRS`, `CFG_ALLOY`) y cada servicio lo declara en la etiqueta
+`vito.config-hash`. Si el hash cambia, Compose recrea solo ese servicio. Hay que verificar
+en el primer despliegue que Compose no resuelve el symlink (quickstart, paso 2).
+
 El primer despliegue no tiene bundle anterior: si falla, queda en error y avisa (aclaración
 2); los volúmenes de datos no se tocan, así que reintentar es seguro.
 
@@ -136,7 +154,10 @@ propio VPS con un **usuario de solo lectura** (`vito_deploy_ro`, rol `read` en
 - `vito_streaming.live_streams`: `status ∈ {LIVE, CONNECTING, BUFFERING}`.
 
 Si hay coincidencias, sale con código 3 y la lista (id y título) para el aviso. Si la
-consulta falla, también se bloquea (edge case). Para forzar, el `workflow_dispatch` recibe
+consulta falla, también se bloquea (edge case). **Primer despliegue:** si no existe
+`/opt/vito/current` o el contenedor `mongodb` no está corriendo, no puede haber eventos:
+sale con 0 e imprime `{"skipped":"first-deploy"}`, que queda en el registro. Sin esto, el
+primer despliegue quedaría bloqueado para siempre (código 7). Para forzar, el `workflow_dispatch` recibe
 `force_live_event: true` y `reason`. Solo se acepta en el Environment `production-hotfix`
 (hotfix) o en un rollback, y el motivo queda en el registro.
 
@@ -176,6 +197,16 @@ VPS (ejecutaría código de PR en producción; descartado con un repo público).
 **Decisión:** `concurrency: { group: vps-production, cancel-in-progress: false }` en los
 workflows de deploy y rollback del backend. La web usa su propio grupo `pages-production`:
 no toca el VPS.
+
+La verificación previa (`mode=preflight`) es de solo lectura y no debe quedar en cola
+detrás de un despliegue que espera aprobación: usa el grupo `vps-preflight` y un tercer
+Environment, `production-preflight`, sin revisores y restringido a `main`, con los mismos
+secretos. Solo ejecuta `deploy.sh check`, que no cambia nada.
+
+**Plazo de aprobación (FR-002):** GitHub cancela una aprobación pendiente a los 30 días.
+Para cumplir las 24 h, `expire-approvals.yml` corre cada hora con
+`permissions: actions: write`, cancela los runs de `cd.yml`, `rollback.yml` y
+`deploy-frontend.yml` que llevan más de 24 h en `waiting` y avisa por Telegram.
 
 ## R9 · Web en Cloudflare Pages
 
@@ -244,13 +275,17 @@ correos al mes, 100 al día. La integración en la app es otra feature.
 
 ## R13 · Secretos fuera del repo (SC-007)
 
-**Decisión:** activar *Secret scanning* y *Push protection* de GitHub (gratuitos en repos
-públicos). Es una acción manual de los leads y se suma a la guía de T-I06. El workflow
+**Decisión:** dos capas, porque el Principio III nombra `gitleaks`:
+- Job `Secrets Scan` en `ci.yml`: `gitleaks detect` con la imagen `zricethezav/gitleaks`
+  en una versión fija, sobre la historia del PR. No se usa `gitleaks-action`, que pide
+  licencia en repos de organización. Se suma a los checks obligatorios.
+- *Secret scanning* y *Push protection* de GitHub (gratuitos en repos públicos), activados
+  por los leads en la guía de T-I06. El workflow
 nunca hace `echo` de valores. Usa `::add-mask::` para los datos derivados (IP, host) y
 escribe la llave SSH en un archivo `0600` que borra al terminar.
 
-**Alternativas:** job `gitleaks` en `ci.yml` (agrega un check obligatorio a la protección de
-rama, CONTRIBUTING §1; queda como mejora si el escaneo nativo resulta insuficiente).
+**Alternativas:** solo el escaneo nativo (la constitución nombra `gitleaks`, y el nativo no
+corre sobre los PR desde un fork antes del merge).
 
 ## R14 · Imágenes faltantes en CI
 
@@ -278,3 +313,26 @@ iguales en dos Environments).
 
 **Supuesto:** Ubuntu 24.04 LTS (imagen por defecto de Contabo). `bootstrap.sh` aborta si la
 distribución no es Ubuntu 22.04 o 24.04. Hay que confirmarlo con los leads en T-I06.
+
+## R17 · Escaneo de imágenes con Trivy (Principio III)
+
+**Decisión:** en el job `build` de `cd.yml`, `aquasecurity/trivy-action` (fijada por SHA)
+escanea cada imagen antes de exportarla, con `severity: CRITICAL,HIGH`, `exit-code: 1` e
+`ignore-unfixed: true`. Si encuentra algo, el build falla y no se despliega nada. Las
+excepciones van en `.trivyignore`, una por línea, con un comentario encima que dice el
+motivo, quién la aprobó y la fecha de vencimiento: esa es la "excepción documentada" de la
+constitución. En `ci.yml`, la matriz `docker-build` corre el mismo escaneo sin bloquear y
+sube el SARIF a Code Scanning, así el problema aparece en el PR antes de llegar al release.
+
+**Alternativas:** escanear solo en CI (un CVE publicado entre el PR y el release pasaría);
+Docker Scout (requiere cuenta).
+
+## R18 · Escaneo de dependencias (Principio III)
+
+**Decisión:** `.github/dependabot.yml` con revisión semanal y `target-branch: develop` para
+`maven` (los 10 servicios), `pip` (transcode y moderation), `pub` (`frontend/vito_app`),
+`github-actions` y `docker`. Las alertas de seguridad de Dependabot se activan en la guía de
+T-I06.
+
+**Alternativas:** OWASP Dependency-Check en CI (lento y necesita una llave de la NVD);
+`pip-audit` (cubre solo Python).

@@ -22,6 +22,8 @@ Enfoque técnico ([research.md](./research.md)):
 - Dos Environments: `production` con *prevent self-review* y `production-hotfix` con
   autoaprobación justificada (R5).
 - Comprobación de eventos en vivo con un usuario Mongo de solo lectura (R6).
+- Imágenes con tag SHA + `v<VERSION>` (R1), escaneadas con Trivy antes de desplegar (R17);
+  `gitleaks` y Dependabot en CI (R13, R18).
 - Grafana Alloy en el VPS (R10).
 
 ## Technical Context
@@ -35,7 +37,8 @@ OTel a los servicios. Flutter 3.47 sin cambios de código (solo `web/_redirects`
 `docker/build-push-action`, `actions/upload-artifact`/`download-artifact`), Docker Engine +
 Compose v2 en Ubuntu, `zstd`, `ufw`, `fail2ban`, `wrangler` (Pages, versión fijada),
 Grafana Alloy, `tecnativa/docker-socket-proxy`, `micrometer-tracing-bridge-otel` +
-`opentelemetry-exporter-otlp`, Bot API de Telegram, API de Resend.
+`opentelemetry-exporter-otlp`, `logstash-logback-encoder`, `python-json-logger`, Trivy,
+gitleaks, Dependabot, Bot API de Telegram, API de Resend.
 
 **Storage**: archivos en el VPS (`/opt/vito/releases/<sha>/`, `current`, `.env`,
 `deployments.log`); Deployments API de GitHub como registro del último SHA exitoso. Mongo:
@@ -74,17 +77,20 @@ semana más hotfixes; 2 leads.
 |-----------|-----------|:------:|
 | I. Contrato primero | Ningún endpoint de negocio nuevo. `GET /healthz` lo responde Caddy en `api.<dominio>` (proxy al readiness del gateway) y es operacional, no lo consume el frontend. → *Complexity Tracking*. | ⚠️ justificado |
 | II. Hexagonal y autonomía | Sin cambios de capas. `live-check.sh` lee `vito_events` y `vito_streaming` con un usuario de solo lectura desde operación, no desde un servicio. → *Complexity Tracking*. El tracing OTel es configuración de infraestructura de cada servicio. | ⚠️ justificado |
-| III. Seguridad por defecto | Secretos solo en Environments/gestor/`.env 0600`; llave SSH dedicada, huella fija, sin contraseñas; datastores sin puertos (sin cambios); máscaras en logs; Alloy no monta el socket de Docker: pasa por `docker-socket-proxy` con solo `GET /containers` e `/info` (el montaje `:ro` del socket no limita la API); secret scanning y push protection. El 22 no se puede filtrar por IP (R7): `ufw limit` + `fail2ban` + solo llave. | ✅ (desviación de T-I06 documentada en R7) |
+| III. Seguridad por defecto | Secretos solo en Environments/gestor/`.env 0600`; llave SSH dedicada, huella fija, sin contraseñas; datastores sin puertos (sin cambios); máscaras en logs (incluidos JWT); Alloy no monta el socket de Docker: pasa por `docker-socket-proxy` con solo `GET /containers` e `/info` (el montaje `:ro` del socket no limita la API). Cadena de suministro: Trivy bloquea el despliegue ante CRITICAL/HIGH sin excepción en `.trivyignore` (R17), `gitleaks` en CI más secret scanning y push protection (R13), Dependabot (R18). `SECURITY_CHECKLIST.md` tiene 38 `TODO` sin severidad: el triage de los leads (T051) bloquea el primer release. El 22 no se puede filtrar por IP (R7) → *Complexity Tracking*. | ⚠️ hasta T051 |
 | IV. Calidad verificable | `shellcheck` + `bats` + `compose config` + `alloy validate` en un job nuevo de CI (`Deploy Scripts`), que se suma a los checks obligatorios en el mismo PR (CONTRIBUTING §1). Quickstart cubre todas las historias. | ✅ |
 | V. Mensajería | Sin cambios. Kafka es un servicio con estado: no se reinicia salvo cambio de definición (FR-011). | ✅ |
-| VI. Observabilidad | Métricas, logs JSON y trazas OTel a Grafana Cloud, health checks ya existentes (T-B14), tablero RED y alertas. | ✅ |
+| VI. Observabilidad | Métricas, trazas OTel y logs a Grafana Cloud, health checks ya existentes (T-B14), tablero RED y alertas. Hoy los servicios escriben logs en texto plano: T053 los pasa a JSON con `traceId`, `spanId`, `service` y `userId`. | ✅ con T053 |
 | VII. SLO | Sin efecto en latencias. El bloqueo por evento en vivo protege la disponibilidad durante la carga real. | ✅ |
-| VIII. Entrega inmutable | Una imagen por servicio con tag = SHA, sin `:latest`; despliegue desde `main` por SSH; doble aprobación (v1.3.0); rollback = activar un bundle anterior; web solo desde `main`, con URLs obligatorias. El semver de ADR-012 es el tag git del release; `deployments.log` relaciona el SHA con ese tag. | ✅ |
+| VIII. Entrega inmutable | Una imagen por servicio con tag SHA + `v<VERSION>` (R1), sin `:latest`; despliegue desde `main` por SSH; doble aprobación (v1.3.0); rollback = activar un bundle anterior; web solo desde `main`, con URLs obligatorias. El archivo `VERSION` fija el semver de ADR-012; el pipeline crea el tag git `v<VERSION>` tras desplegar con éxito. | ✅ |
 | IX. Datos y resiliencia | Volúmenes de datos nunca se tocan en un despliegue; alerta si falta el backup; logs sin datos personales en claro. | ✅ |
 | X. Simplicidad | Solo se agregan Alloy (ya previsto en ADR-011 h) y un proxy de socket de ~10 MB. Sin registro, sin orquestador, sin Terraform. | ✅ |
 
-**Resultado:** pasa con dos desviaciones justificadas. **Re-check post-diseño (fase 1):** sin
-cambios; el único ajuste fue el proxy del socket (III), ya reflejado.
+**Resultado:** pasa con tres desviaciones justificadas y una condición: el triage de
+`SECURITY_CHECKLIST.md` (T051) antes del primer release. **Re-check post-diseño (fase 1):** el
+proxy del socket (III). **Re-check tras `/speckit-analyze` (2026-10-22):** se agregaron
+Trivy, `gitleaks`, Dependabot y el triage (III), el doble tag (VIII) y los logs JSON (VI),
+que el primer check había dado por cumplidos sin estarlo.
 
 ## Project Structure
 
@@ -94,7 +100,7 @@ cambios; el único ajuste fue el proxy del socket (III), ya reflejado.
 specs/001-cd-produccion/
 ├── spec.md
 ├── plan.md              # este archivo
-├── research.md          # R1–R14
+├── research.md          # R1–R18
 ├── data-model.md        # manifiesto, bundle, despliegue, alertas
 ├── quickstart.md        # validación de punta a punta
 ├── contracts/
@@ -111,8 +117,13 @@ specs/001-cd-produccion/
 .github/workflows/
 ├── cd.yml                     # reescrito: changes → build → deploy (R2–R5)
 ├── rollback.yml               # nuevo (Historia 2)
+├── expire-approvals.yml       # nuevo: cancela aprobaciones pendientes > 24 h (FR-002)
 ├── deploy-frontend.yml        # Vercel → Cloudflare Pages (R9)
-└── ci.yml                     # + job "Deploy Scripts"; matriz docker + moderation y mongo-backup (R14)
+└── ci.yml                     # + jobs "Deploy Scripts", "Secrets Scan", "Version Check"; Trivy informativo; matriz docker + moderation y mongo-backup (R14)
+.github/dependabot.yml         # R18
+
+VERSION                        # semver del release (R1)
+.trivyignore                   # excepciones documentadas de Trivy (R17)
 
 docker-compose.prod.yml        # TAG_* por servicio; alloy + docker-socket-proxy; healthz en Caddy
 .env.prod.example              # + GRAFANA_CLOUD_*, sin IMAGE_TAG
@@ -120,6 +131,7 @@ docker-compose.prod.yml        # TAG_* por servicio; alloy + docker-socket-proxy
 infrastructure/
 ├── deploy/
 │   ├── changed-services.sh    # rutas → servicios (R2), corre en el runner
+│   ├── pick-environment.sh    # kind y Environment del commit (R5), lo usan cd.yml y deploy-frontend.yml
 │   ├── remote/
 │   │   ├── deploy.sh          # apply | rollback | status (contrato)
 │   │   ├── live-check.sh
@@ -137,6 +149,7 @@ frontend/vito_app/
 └── vercel.json                    # se borra tras la primera publicación en Pages (FR-022)
 
 backend/*/pom.xml + application.yml   # tracing OTel con muestreo del 10 % (R10)
+backend/*/src/main/resources/logback-spring.xml   # logs JSON (T053)
 
 docs/runbooks/
 ├── aprovisionamiento.md       # guía de T-I06 (FR-016): cuentas, DNS, secretos, Resend, Telegram
@@ -166,4 +179,5 @@ Cada fase es un PR a `develop` (CONTRIBUTING §2, sin apilar).
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
 | Principio II: `live-check.sh` lee colecciones de event-service y streaming-service | FR-028 exige saber si hay un evento en curso antes de desplegar, y no existe una API interna para eso | Un endpoint interno exige contrato y una ola (Principio I) solo para operación. Se propone `/internal/live-status` cuando llegue la Ola 4. Mientras tanto: usuario de solo lectura, sin escribir y sin código de servicio. |
+| Principio III: el puerto 22 abierto al público (T-I06 lo pedía restringido) | Las IP de los runners de GitHub no son fijas, así que no se puede filtrar por IP | Tailscale o Cloudflare Tunnel agregan una cuenta y un agente; un runner en el VPS ejecutaría código de un repo público en producción. Queda limitado por tasa (`ufw limit`), `fail2ban` y solo llave (R7). |
 | Principio I: `GET /healthz` público en `api.<dominio>` fuera de `openapi.yaml` | El monitor externo de SC-005 necesita una URL pública de salud, y Caddy bloquea `/actuator` | Publicarlo en `openapi.yaml` lo mezclaría con la API de negocio que consume el frontend. Lo sirve el borde, no un servicio, y solo devuelve el estado de readiness, sin detalles. Se registra en `CONVENTIONS.md` como ruta de infraestructura. |
