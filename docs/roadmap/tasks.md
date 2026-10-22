@@ -423,6 +423,9 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `/actuator/prometheus` responde.
 
 ### T-I06 · Aprovisionar cuentas y VPS — 🟢 READY (manual, leads) · P0 · ADR-011, ADR-013
+- **Avance (2026-10-22):** listos el VPS Contabo 12 GB, los buckets R2, Grafana Cloud y el
+  correo de equipo (Gmail). Faltan la llave SSH, el Environment `production`, el
+  dominio/DNS/Pages y Resend (ADR-013, actualización del 2026-10-22).
 - **Tarea manual de los leads** (no la ejecuta un agente):
   0. En GitHub, cambiar la rama por defecto a `develop` (ADR-012).
   1. Correo de equipo, gestor de contraseñas con 2FA, tarjeta y hoja de gastos (ADR-013).
@@ -431,8 +434,8 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
      WebRTC de SRS.
   3. Cloudflare: dominio, DNS, bucket R2 (`vito-media`, `vito-backups`) y token de API
      limitado a esos buckets.
-  4. GitHub Environment `production` con `SSH_HOST`, `SSH_USER`, `SSH_KEY` y los secretos de
-     `.env.example`.
+  4. GitHub Environment `production` **con revisores obligatorios (los leads)**, `SSH_HOST`,
+     `SSH_USER`, `SSH_KEY`, `SSH_KNOWN_HOSTS` y los secretos de `.env.prod.example`.
   5. Completar el inventario de cuentas de ADR-013.
 - **Cierre:** `ssh` con llave funciona, `docker compose version` en el VPS, buckets creados
   y secretos cargados en GitHub. Registrar el gasto en la hoja de D-09.
@@ -482,8 +485,9 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 
 ### T-I12 · CI incremental — 🟢 READY · P1 · ADR-011
 - **Qué:** que `ci.yml` construya y pruebe solo los servicios cuyos archivos cambiaron
-  (filtros `paths` o `dorny/paths-filter`), más un job semanal completo. El plan gratuito de
-  GitHub Actions da 2.000 minutos al mes en repos privados.
+  (filtros `paths` o `dorny/paths-filter`), más un job semanal completo. El repo es público y
+  Actions no tiene cuota de minutos (ADR-011, actualización del 2026-10-22): el objetivo es
+  feedback rápido.
 - **Cierre:** un PR que solo toca `frontend/` no ejecuta jobs de backend, y viceversa.
 
 ### T-I13 · Observabilidad con Grafana Cloud — 🔴 BLOQUEADA por T-I06 · P1 · Principio VI
