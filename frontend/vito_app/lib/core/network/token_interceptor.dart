@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 
 import '../../features/auth/data/datasources/auth_local_datasource.dart';
-import '../../features/auth/data/models/auth_response_model.dart';
 import 'session_expired_notifier.dart';
+import 'token_refresher.dart';
 
 /// Pone `Authorization: Bearer` y, ante un 401, renueva los tokens con
 /// `POST /auth/refresh` y reintenta la petición una sola vez (ADR-004).
@@ -10,20 +10,21 @@ class TokenInterceptor extends Interceptor {
   final AuthLocalDataSource localDataSource;
   final Dio dio;
   final SessionExpiredNotifier? sessionExpiredNotifier;
+  final TokenRefresher tokenRefresher;
 
-  /// Marca de las peticiones que no deben disparar otro refresh: el propio
-  /// refresh y el reintento tras renovar.
-  static const skipRefreshKey = 'skipAuthRefresh';
-
-  /// Refresh en curso: varias peticiones con 401 a la vez comparten uno solo
-  /// (con rotación de refresh token, un segundo refresh fallaría).
-  Future<String?>? _refreshing;
+  static const skipRefreshKey = TokenRefresher.skipRefreshKey;
 
   TokenInterceptor({
     required this.localDataSource,
     required this.dio,
     this.sessionExpiredNotifier,
-  });
+    TokenRefresher? tokenRefresher,
+  }) : tokenRefresher = tokenRefresher ??
+            TokenRefresher(
+              localDataSource: localDataSource,
+              dio: dio,
+              sessionExpiredNotifier: sessionExpiredNotifier,
+            );
 
   @override
   void onRequest(
@@ -56,9 +57,7 @@ class TokenInterceptor extends Interceptor {
       return;
     }
 
-    final newAccessToken = await (_refreshing ??= _refresh().whenComplete(() {
-      _refreshing = null;
-    }));
+    final newAccessToken = await tokenRefresher.refresh();
 
     if (newAccessToken == null) {
       handler.next(err);
@@ -71,34 +70,6 @@ class TokenInterceptor extends Interceptor {
       handler.resolve(await dio.fetch(options));
     } on DioException catch (retryError) {
       handler.next(retryError);
-    }
-  }
-
-  /// Devuelve el nuevo access token, o `null` si no se pudo renovar (en ese
-  /// caso limpia la sesión y avisa a [sessionExpiredNotifier]).
-  Future<String?> _refresh() async {
-    final refreshToken = await localDataSource.getRefreshToken();
-    if (refreshToken == null || refreshToken.isEmpty) {
-      return null;
-    }
-
-    try {
-      final response = await dio.post(
-        '/auth/refresh',
-        data: {'refreshToken': refreshToken},
-        options: Options(extra: {skipRefreshKey: true}),
-      );
-      final auth = AuthResponseModel.fromJson(response.data);
-
-      await localDataSource.saveTokens(
-        accessToken: auth.accessToken,
-        refreshToken: auth.refreshToken,
-      );
-      return auth.accessToken;
-    } catch (_) {
-      await localDataSource.clearTokens();
-      sessionExpiredNotifier?.notify();
-      return null;
     }
   }
 }

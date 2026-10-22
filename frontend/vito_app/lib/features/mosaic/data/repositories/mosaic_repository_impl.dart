@@ -2,9 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:dartz/dartz.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-
 import '../../../../core/error/exceptions.dart';
+import '../../../../core/network/ws_connection.dart';
 import '../../../../core/error/failures.dart';
 import '../datasources/mosaic_remote_datasource.dart';
 import '../models/mosaic_model.dart';
@@ -18,9 +17,12 @@ class MosaicRepositoryImpl implements MosaicRepository {
   final _gridController = StreamController<MosaicGrid>.broadcast();
   final _likeController = StreamController<int>.broadcast();
   
-  WebSocketChannel? _webSocketChannel;
+  final WsConnection wsConnection;
   
-  MosaicRepositoryImpl({required this.remoteDataSource});
+  MosaicRepositoryImpl({
+    required this.remoteDataSource,
+    required this.wsConnection,
+  });
   
   @override
   Future<Either<Failure, MosaicFeedItem>> addPost({
@@ -176,37 +178,29 @@ class MosaicRepositoryImpl implements MosaicRepository {
   Stream<int> get likeStream => _likeController.stream;
   
   @override
-  void connectToWebSocket(String eventId, String baseUrl) {
-    final wsUrl = '${baseUrl.replaceFirst('http', 'ws')}/ws/mosaic/$eventId';
-    _webSocketChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
+  void connectToWebSocket(String eventId) {
+    unawaited(wsConnection.connect(
+      '/ws/mosaic/$eventId',
+      onData: _handleSocketMessage,
+      onError: (error) => debugPrint('WebSocket error: $error'),
+    ));
+  }
+  
+  void _handleSocketMessage(dynamic message) {
+    final data = Map<String, dynamic>.from(message as Map);
     
-    _webSocketChannel!.stream.listen(
-      (message) {
-        final data = Map<String, dynamic>.from(message as Map);
-        
-        if (data['type'] == 'NEW_ITEM') {
-          final item = MosaicFeedItemModel.fromJson(data['data']);
-          _feedController.add(item);
-        } else if (data['type'] == 'GRID_UPDATE') {
-          // Update grid logic here
-        } else if (data['type'] == 'LIKE_UPDATE') {
-          final likesCount = data['data']['likesCount'] as int;
-          _likeController.add(likesCount);
-        }
-      },
-      onError: (error) {
-        debugPrint('WebSocket error: $error');
-      },
-      onDone: () {
-        debugPrint('WebSocket connection closed');
-      },
-    );
+    if (data['type'] == 'NEW_ITEM') {
+      final item = MosaicFeedItemModel.fromJson(data['data']);
+      _feedController.add(item);
+    } else if (data['type'] == 'LIKE_UPDATE') {
+      final likesCount = data['data']['likesCount'] as int;
+      _likeController.add(likesCount);
+    }
   }
   
   @override
   void disconnectFromWebSocket() {
-    _webSocketChannel?.sink.close();
-    _webSocketChannel = null;
+    unawaited(wsConnection.disconnect());
   }
   
   void dispose() {

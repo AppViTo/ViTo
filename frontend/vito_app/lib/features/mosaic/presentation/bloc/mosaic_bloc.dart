@@ -108,15 +108,13 @@ class UnlikePost extends MosaicEvent {
 
 class ConnectToWebSocket extends MosaicEvent {
   final String eventId;
-  final String baseUrl;
   
   const ConnectToWebSocket({
     required this.eventId,
-    required this.baseUrl,
   });
   
   @override
-  List<Object?> get props => [eventId, baseUrl];
+  List<Object?> get props => [eventId];
 }
 
 class DisconnectFromWebSocket extends MosaicEvent {}
@@ -345,7 +343,7 @@ class MosaicBloc extends Bloc<MosaicEvent, MosaicState> {
   }
   
   void _onConnectToWebSocket(ConnectToWebSocket event, Emitter<MosaicState> emit) {
-    repository.connectToWebSocket(event.eventId, event.baseUrl);
+    repository.connectToWebSocket(event.eventId);
     
     _feedSubscription?.cancel();
     _gridSubscription?.cancel();

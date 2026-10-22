@@ -35,7 +35,7 @@ abstract class CheckInRepository {
   Stream<CheckInEvent> get checkInStream;
   Stream<CheckInStats> get statsStream;
   
-  void connectToWebSocket(String eventId, String baseUrl);
+  void connectToWebSocket(String eventId);
   void disconnectFromWebSocket();
 }
 

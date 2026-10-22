@@ -38,6 +38,6 @@ abstract class ChatRepository {
   // WebSocket
   Stream<ChatMessage> get messageStream;
   Stream<ChatRoom> get roomUpdates;
-  void connect(String userId);
+  void connect();
   void disconnect();
 }

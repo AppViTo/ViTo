@@ -1,17 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import '../../../../core/network/ws_connection.dart';
 import '../models/chat_message_model.dart';
 import '../models/chat_room_model.dart';
 
 class ChatRemoteDataSource {
   final Dio dio;
-  WebSocketChannel? _webSocketChannel;
+  final WsConnection wsConnection;
   final _messageController = StreamController<ChatMessageModel>.broadcast();
   final _roomController = StreamController<ChatRoomModel>.broadcast();
   
-  ChatRemoteDataSource({required this.dio});
+  ChatRemoteDataSource({
+    required this.dio,
+    required this.wsConnection,
+  });
   
   Stream<ChatMessageModel> get messageStream => _messageController.stream;
   Stream<ChatRoomModel> get roomUpdates => _roomController.stream;
@@ -106,34 +109,26 @@ class ChatRemoteDataSource {
   }
   
   // WebSocket
-  void connect(String userId, String baseUrl) {
-    _webSocketChannel = WebSocketChannel.connect(
-      Uri.parse('$baseUrl/ws/chat?userId=$userId'),
-    );
-    
-    _webSocketChannel!.stream.listen(
-      (data) {
-        final json = jsonDecode(data);
-        if (json['type'] == 'MESSAGE') {
-          final message = ChatMessageModel.fromJson(json['data']);
-          _messageController.add(message);
-        } else if (json['type'] == 'ROOM_UPDATE') {
-          final room = ChatRoomModel.fromJson(json['data']);
-          _roomController.add(room);
-        }
-      },
-      onError: (error) {
-        // Handle reconnection
-      },
-      onDone: () {
-        // Attempt reconnection
-      },
-    );
+  void connect() {
+    unawaited(wsConnection.connect(
+      '/ws/chat',
+      onData: _handleSocketMessage,
+    ));
+  }
+  
+  void _handleSocketMessage(dynamic data) {
+    final json = jsonDecode(data);
+    if (json['type'] == 'MESSAGE') {
+      final message = ChatMessageModel.fromJson(json['data']);
+      _messageController.add(message);
+    } else if (json['type'] == 'ROOM_UPDATE') {
+      final room = ChatRoomModel.fromJson(json['data']);
+      _roomController.add(room);
+    }
   }
   
   void disconnect() {
-    _webSocketChannel?.sink.close();
-    _webSocketChannel = null;
+    unawaited(wsConnection.disconnect());
   }
   
   void sendMessageViaWebSocket({
@@ -141,7 +136,7 @@ class ChatRemoteDataSource {
     required String content,
     String type = 'TEXT',
   }) {
-    _webSocketChannel?.sink.add(jsonEncode({
+    wsConnection.send(jsonEncode({
       'type': 'SEND_MESSAGE',
       'roomId': roomId,
       'content': content,
@@ -150,7 +145,7 @@ class ChatRemoteDataSource {
   }
   
   void sendTypingIndicator(String roomId, bool isTyping) {
-    _webSocketChannel?.sink.add(jsonEncode({
+    wsConnection.send(jsonEncode({
       'type': 'TYPING',
       'roomId': roomId,
       'isTyping': isTyping,
@@ -158,14 +153,14 @@ class ChatRemoteDataSource {
   }
   
   void joinRoomViaWebSocket(String roomId) {
-    _webSocketChannel?.sink.add(jsonEncode({
+    wsConnection.send(jsonEncode({
       'type': 'JOIN_ROOM',
       'roomId': roomId,
     }));
   }
   
   void leaveRoomViaWebSocket(String roomId) {
-    _webSocketChannel?.sink.add(jsonEncode({
+    wsConnection.send(jsonEncode({
       'type': 'LEAVE_ROOM',
       'roomId': roomId,
     }));
