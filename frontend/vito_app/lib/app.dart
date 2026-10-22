@@ -7,6 +7,7 @@ import 'core/di/injection_container.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/events/presentation/bloc/event_bloc.dart';
 import 'features/chat/presentation/bloc/chat_bloc.dart';
+import 'features/checkin/presentation/bloc/checkin_bloc.dart';
 import 'features/mosaic/presentation/bloc/mosaic_bloc.dart';
 import 'features/social/presentation/bloc/social_bloc.dart';
 
@@ -28,6 +29,9 @@ class ViToApp extends StatelessWidget {
         ),
         BlocProvider<MosaicBloc>(
           create: (_) => sl<MosaicBloc>(),
+        ),
+        BlocProvider<CheckInBloc>(
+          create: (_) => sl<CheckInBloc>(),
         ),
         BlocProvider<SocialBloc>(
           create: (_) => sl<SocialBloc>(),

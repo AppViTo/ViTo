@@ -41,7 +41,7 @@
 | T-C06 | `listEvents` con `scope=mine\|upcoming` según ADR-014 | C | P0 | 🟡 RFC | [VITO-15](https://bernardo-mira.atlassian.net/browse/VITO-15) |
 | T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | ✅ HECHA (#45) | [VITO-17](https://bernardo-mira.atlassian.net/browse/VITO-17) |
 | T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | ✅ HECHA (#46, #56) | [VITO-18](https://bernardo-mira.atlassian.net/browse/VITO-18) |
-| T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | 🟢 READY | [VITO-20](https://bernardo-mira.atlassian.net/browse/VITO-20) |
+| T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | ✅ HECHA (#63) | [VITO-20](https://bernardo-mira.atlassian.net/browse/VITO-20) |
 | T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming, chat sin `?userId=`) | F | P0 | ✅ HECHA (#60) | [VITO-21](https://bernardo-mira.atlassian.net/browse/VITO-21) |
 | T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | 🟢 READY | [VITO-23](https://bernardo-mira.atlassian.net/browse/VITO-23) |
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | 🟢 READY | [VITO-24](https://bernardo-mira.atlassian.net/browse/VITO-24) |
@@ -176,12 +176,15 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 ### T-F02 · Retirar `MockApiService` (home, people) — 🔴 BLOQUEADA por T-C07 (Olas 1–2)
 - Home necesita eventos (`GET /events` → D-03) y people necesita `social/search` (Ola 2).
 
-### T-F03 · Wiring de blocs y rutas — 🟢 READY · P1
+### T-F03 · Wiring de blocs y rutas — ✅ HECHA (#63) · P1
 - **Qué:** proveer `CheckInBloc` donde se usan sus páginas (o en el `MultiBlocProvider`
   raíz) y registrar la ruta de `ArchiveDetailPage` en `config/routes/app_router.dart`.
 - **No hacer:** conectar endpoints nuevos.
 - **Cierre:** navegar a check-in y a detalle de archivo no lanza `ProviderNotFound`;
   widget test de cada ruta.
+- **Complemento (#63):** `CheckInBloc` se provee en `lib/app.dart` y la ruta
+  `archiveDetail` recibe `archiveId` por `arguments`. Hallazgo: la feature archive crea
+  tres `ArchiveBloc` distintos (uno por widget) que nunca se cierran.
 
 ### T-F04 · `?token=` en los WebSocket — ✅ HECHA (#60) · P0 · CONVENTIONS §7, O-28, ADR-015
 - **Qué:** `checkin_repository_impl.dart`, `mosaic_repository_impl.dart`,
