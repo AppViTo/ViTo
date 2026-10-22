@@ -50,7 +50,7 @@ jobs:
             type=sha,prefix=
       
       - name: Build and push Auth Service
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: backend/auth-service
           push: true
@@ -59,7 +59,7 @@ jobs:
           cache-to: type=gha,mode=max
       
       - name: Build and push Transcode Service
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ai-services/transcode-service
           push: true
