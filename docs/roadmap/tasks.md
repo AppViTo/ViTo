@@ -43,7 +43,7 @@
 | T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | ✅ HECHA (#46, #56) | [VITO-18](https://bernardo-mira.atlassian.net/browse/VITO-18) |
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | 🟢 READY | [VITO-20](https://bernardo-mira.atlassian.net/browse/VITO-20) |
 | T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming, chat sin `?userId=`) | F | P0 | ✅ HECHA (#60) | [VITO-21](https://bernardo-mira.atlassian.net/browse/VITO-21) |
-| T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | 🟢 READY | [VITO-23](https://bernardo-mira.atlassian.net/browse/VITO-23) |
+| T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | 🔵 EN CURSO (frontend/t-f06-build-web-estricto) | [VITO-23](https://bernardo-mira.atlassian.net/browse/VITO-23) |
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | 🟢 READY | [VITO-24](https://bernardo-mira.atlassian.net/browse/VITO-24) |
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) | [VITO-26](https://bernardo-mira.atlassian.net/browse/VITO-26) |
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | ✅ HECHA (#38) | [VITO-27](https://bernardo-mira.atlassian.net/browse/VITO-27) |
@@ -206,7 +206,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `/events/upcoming` (fuera de contrato) y usa `GET /events?scope=upcoming`.
 - **Cierre:** tests del datasource contra los fixtures de T-C06.
 
-### T-F06 · Build web estricto — 🟢 READY · P1 · O-15
+### T-F06 · Build web estricto — 🔵 EN CURSO (frontend/t-f06-build-web-estricto) · P1 · O-15
 - **Qué:** el build de producción (`deploy-frontend.yml` y/o un check en `Env`) falla si
   `API_BASE_URL` o `WS_BASE_URL` están vacíos; el default `localhost` solo en debug.
 - **Cierre:** el job de Vercel falla sin las variables; pasa con ellas.
