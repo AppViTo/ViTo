@@ -199,3 +199,4 @@ publicar.
 | Transferencia internacional | Verificar que EE. UU. esté en la lista de países con nivel adecuado de protección de la SIC o, si no, obtener autorización expresa del titular. Declararlo en la política. |
 | Responsable del tratamiento | Persona natural (lead) o la empresa, según D-09 y D-10. |
 | Borrado de cuenta | Google Play exige un mecanismo de eliminación de cuenta; coincide con el flujo `USER_DELETED` del Principio IX. Planificarlo en la Ola 1. |
+| Insumos del triage de seguridad (T051) | M4 (cifrado en reposo: excepción en Fase Tracción), M5 (qué dato es sensible y si se cifra por campo), M10 (Ley 1581 en lugar de GDPR/CCPA) y M11 (retención, exportación y borrado) de `backend/SECURITY_CHECKLIST.md` se resuelven con esta decisión. |
