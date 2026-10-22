@@ -25,8 +25,8 @@ define qué puede implementarse **ya** y qué espera una decisión.
 
 ```
 Etapa 0  Gobierno         constitución v1.1.0 · hoja de ruta · brief        ✅ este PR
-Etapa 1  Decisiones       D-01/02/03/04/06/07/09 ✅ (ADR-011..016); quedan    ⏳ leads
-                          D-05, D-08, D-10..D-12
+Etapa 1  Decisiones       D-01..D-07/09 ✅ (ADR-011..017);                    ⏳ leads
+                          quedan D-08, D-10..D-12
 Etapa 2  Circuito cerrado fixtures + Prism + Spectral/AsyncAPI en CI          🟢 se puede empezar ya
          + tests Dart de fixtures, sobre las 15 operaciones existentes
 Etapa 3  Endurecimiento   gateway (X-User-*, /ws/**, ADR-003), WS crudos,    🟢 se puede empezar ya
