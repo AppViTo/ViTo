@@ -38,7 +38,7 @@
 | T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | ✅ HECHA (#44) | [VITO-12](https://bernardo-mira.atlassian.net/browse/VITO-12) |
 | T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | ✅ HECHA (#31) | [VITO-13](https://bernardo-mira.atlassian.net/browse/VITO-13) |
 | T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC | [VITO-14](https://bernardo-mira.atlassian.net/browse/VITO-14) |
-| T-C06 | `listEvents` con `scope=mine\|upcoming` según ADR-014 | C | P0 | 🟡 RFC | [VITO-15](https://bernardo-mira.atlassian.net/browse/VITO-15) |
+| T-C06 | `listEvents` con `scope=mine\|upcoming` según ADR-014 | C | P0 | 🔵 EN CURSO (contract/events-listing) | [VITO-15](https://bernardo-mira.atlassian.net/browse/VITO-15) |
 | T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | ✅ HECHA (#45) | [VITO-17](https://bernardo-mira.atlassian.net/browse/VITO-17) |
 | T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | ✅ HECHA (#46, #56) | [VITO-18](https://bernardo-mira.atlassian.net/browse/VITO-18) |
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | ✅ HECHA (#63) | [VITO-20](https://bernardo-mira.atlassian.net/browse/VITO-20) |
@@ -137,7 +137,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** Spectral verde; tests Dart de contrato verdes con los fixtures nuevos; PR
   aprobado por 1 CODEOWNER.
 
-### T-C06 · `listEvents` con `scope` (O-26) — 🟡 RFC · P0 · ADR-014
+### T-C06 · `listEvents` con `scope` (O-26) — 🔵 EN CURSO (contract/events-listing) · P0 · ADR-014
 - **Qué:** issue `contract-change` y PR `contract/events-listing`:
   - `openapi.yaml`: parámetro `scope` (enum `mine|upcoming`, default `mine`) en
     `listEvents`; descripción de contenido y orden de cada scope (en `upcoming`, orden por
