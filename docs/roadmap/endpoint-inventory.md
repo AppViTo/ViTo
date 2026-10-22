@@ -14,7 +14,7 @@
 |----------|-------------|
 | `CONTRATO` | Ya está en `openapi.yaml`. Falta fixture/mock (Ola 0). |
 | `PUBLICAR` | Entra al contrato en la ola indicada, tal cual o con ajustes a CONVENTIONS. |
-| `FUSIONAR→x` | Se retira y su función la cubre `x` (ver D-01 / D-03). |
+| `FUSIONAR→x` | Se retira y su función la cubre `x` (ver ADR-016 / ADR-014). |
 | `INTERNO` | Lo usa otro servicio o un consumidor Kafka; **no** se enruta en el gateway ni entra a `openapi.yaml`. |
 | `DIFERIR` | Fuera del MVP. Se retira del gateway de producción; el frontend oculta la UI. |
 
@@ -46,9 +46,9 @@ Columna **Front**: ✔ = el código Flutter ya lo llama (`lib/**/datasources`, `
 | GET | `/api/v1/events/{eventId}/attendees` | | ✔ | `PUBLICAR` (paginado) | 1 |
 | POST | `/api/v1/events/{eventId}/invitations` | | ✔ | `PUBLICAR` (app + link externo) | 1 |
 | GET | `/api/v1/events/{eventId}/invitations` | | ✔ | `PUBLICAR` (solo organizador) | 1 |
-| POST | `/api/v1/events/{eventId}/invitations/respond` | | ✔ | `PUBLICAR` o `FUSIONAR→/rsvp` (D-01) | 1 |
-| POST | `/api/v1/events/{eventId}/check-in` | | ✔ | `FUSIONAR→/checkin/validate` (D-01) | 2 |
-| GET | `/api/v1/events/{eventId}/qr-code` | | ✔ | `FUSIONAR→/checkin/ticket` (D-01) | 2 |
+| POST | `/api/v1/events/{eventId}/invitations/respond` | | ✔ | `PUBLICAR` o `FUSIONAR→/rsvp` (se fija en la spec de la Ola 1, ADR-016) | 1 |
+| POST | `/api/v1/events/{eventId}/check-in` | | ✔ | `FUSIONAR→/checkin/validate` (ADR-016) | 2 |
+| GET | `/api/v1/events/{eventId}/qr-code` | | ✔ | `FUSIONAR→/checkin/ticket` (ADR-016) | 2 |
 
 ## Check-in / QR — `checkin-service` (:8084)
 
@@ -92,8 +92,8 @@ Columna **Front**: ✔ = el código Flutter ya lo llama (`lib/**/datasources`, `
 | Método | Ruta | Contrato | Front | Decisión propuesta | Ola |
 |--------|------|:-------:|:-----:|--------------------|:---:|
 | POST | `/api/v1/mosaic/post` | | ✔ | `PUBLICAR` (con `mediaId`) | 3 |
-| POST | `/api/v1/mosaic/photo` | | ✔ | `FUSIONAR→/media/upload + /mosaic/post` (D-01) | 3 |
-| POST | `/api/v1/mosaic/checkin` | | ✔ | `INTERNO` (consumidor del evento de check-in) | — |
+| POST | `/api/v1/mosaic/photo` | | ✔ | `FUSIONAR→/media/upload + /mosaic/post` (ADR-016) | 3 |
+| POST | `/api/v1/mosaic/checkin` | | ✔ | `INTERNO` (consumidor de `checkin-events`, ADR-016) | — |
 | GET | `/api/v1/mosaic/feed/{eventId}` | | ✔ | `PUBLICAR` (paginado) | 3 |
 | GET | `/api/v1/mosaic/grid/{eventId}` | | ✔ | `PUBLICAR` | 3 |
 | POST | `/api/v1/mosaic/grid/{eventId}/initialize` | | ✔ | `PUBLICAR` (solo organizador) | 3 |
@@ -109,13 +109,13 @@ Columna **Front**: ✔ = el código Flutter ya lo llama (`lib/**/datasources`, `
 | POST | `/api/v1/streaming/{streamId}/start` | | ✔ | `PUBLICAR` | 4 |
 | POST | `/api/v1/streaming/{streamId}/stop` | | ✔ | `PUBLICAR` | 4 |
 | GET | `/api/v1/streaming/{streamId}` | | ✔ | `PUBLICAR` | 4 |
-| GET | `/api/v1/streaming/{streamId}/info` | | ✔ | `FUSIONAR→GET /streaming/{streamId}` | 4 |
+| GET | `/api/v1/streaming/{streamId}/info` | | ✔ | `FUSIONAR→GET /streaming/{streamId}` (ADR-016) | 4 |
 | GET | `/api/v1/streaming/event/{eventId}` | | ✔ | `PUBLICAR` | 4 |
 | GET | `/api/v1/streaming/live` | | ✔ | `PUBLICAR` (paginado) | 4 |
 | POST | `/api/v1/streaming/{streamId}/reaction` | | ✔ | `PUBLICAR` (también como frame WS) | 4 |
 | GET | `/api/v1/streaming/{streamId}/reactions` | | ✔ | `PUBLICAR` | 4 |
-| POST | `/api/v1/streaming/{streamId}/chat` | | ✔ | `FUSIONAR→chat-service` (D-01) | — |
-| GET | `/api/v1/streaming/{streamId}/chat` | | ✔ | `FUSIONAR→chat-service` (D-01) | — |
+| POST | `/api/v1/streaming/{streamId}/chat` | | ✔ | `FUSIONAR→chat-service` (ADR-016) | — |
+| GET | `/api/v1/streaming/{streamId}/chat` | | ✔ | `FUSIONAR→chat-service` (ADR-016) | — |
 
 ## Archivo — `archive-service` (:8087)
 
@@ -187,7 +187,7 @@ Ninguna ruta WS pasa por el gateway: falta la ruta `/ws/**` (O-08, T-B04).
 | Decisión | Filas |
 |----------|------:|
 | `CONTRATO` (ya publicado; incluye `GET /events` sin implementar) | 14 |
-| `PUBLICAR` (incluye `invitations/respond`, pendiente de D-01) | 53 |
+| `PUBLICAR` (incluye `invitations/respond`, se fija en la Ola 1) | 53 |
 | `FUSIONAR` | 10 |
 | `INTERNO` (incluye `moderation/check`, hoy en el contrato) | 7 |
 | `DIFERIR` | 18 |

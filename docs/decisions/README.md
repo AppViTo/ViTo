@@ -23,5 +23,6 @@ Registro de las decisiones que afectan el contrato compartido entre el **equipo 
 | [013](./adr-013-account-ownership.md) | Titularidad de cuentas, credenciales y medio de pago | Aceptada | 2026-10-17 |
 | [014](./adr-014-events-listing-scope.md) | Listado de eventos con `GET /events?scope=mine\|upcoming` | Aceptada | 2026-10-19 |
 | [015](./adr-015-chat-ws-identity.md) | Identidad en el WS de chat sin `?userId=` | Aceptada | 2026-10-20 |
+| [016](./adr-016-domain-owners.md) | Un solo servicio dueño por capacidad duplicada | Aceptada | 2026-10-22 |
 
 **Convención de formato:** estilo [MADR](https://adr.github.io/madr/) simplificado — Estado / Contexto / Decisión / Consecuencias / Alternativas.

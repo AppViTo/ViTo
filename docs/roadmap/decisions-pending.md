@@ -9,7 +9,7 @@ Las opciones listadas son las que salieron del análisis del 2026-10-16. **La co
 
 | ID | Decisión | Bloquea | Propuesta | Estado |
 |----|----------|---------|-----------|--------|
-| D-01 | Dueño de cada dominio duplicado | Olas 1–4 | ver §D-01 | ⏳ |
+| D-01 | Dueño de cada dominio duplicado | Olas 1–4 | ver §D-01 | ✅ [ADR-016](../decisions/adr-016-domain-owners.md) (propuesta completa; invitación vs RSVP se fija en la Ola 1) |
 | D-02 | Stack de despliegue y herramientas por costo | Etapa 5, O-11/12/13/17 | ver §D-02 | ✅ [ADR-011](../decisions/adr-011-traction-stack.md) |
 | D-03 | Semántica del listado de eventos (`GET /events`) | T-C06, T-B07, T-F08 | ver §D-03 | ✅ [ADR-014](../decisions/adr-014-events-listing-scope.md) (opción A, `scope=mine\|upcoming`) |
 | D-04 | Mensajería durable del MVP (Kafka vs alternativa) | Ola 3, O-16/O-17 | ver §D-02.b | ✅ ADR-011 (Kafka KRaft, 1 broker) |
@@ -25,6 +25,10 @@ Las opciones listadas son las que salieron del análisis del 2026-10-16. **La co
 ---
 
 ## D-01 — Dueño de dominios duplicados
+
+> ✅ **Cerrada el 2026-10-22 por [ADR-016](../decisions/adr-016-domain-owners.md):** se
+> adopta la propuesta completa. La fila invitación vs RSVP se resuelve en la spec de la
+> Ola 1. La tabla de abajo se conserva como historial.
 
 Hoy la misma capacidad vive en dos servicios:
 
