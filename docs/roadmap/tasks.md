@@ -63,6 +63,12 @@
 | T-B17 | `/events/upcoming` lista eventos privados ajenos (filtro `settings.isPublic`) | B | P0 | 🟢 READY | [VITO-56](https://bernardo-mira.atlassian.net/browse/VITO-56) |
 | T-B03 | Envelope ADR-003 en los 6 servicios sin handler (copia temporal, ADR-017) | B | P1 | 🟢 READY | [VITO-28](https://bernardo-mira.atlassian.net/browse/VITO-28) |
 | T-B18 | Parent POM + `backend/shared-web`; borrar copias de filtro JWT y handler (ADR-017) | B/I | P1 | 🔴 BLOQUEADA (Ola 1) | — |
+| T-B19 | media-service: magic bytes, MIME de CONVENTIONS §8 y límite de 10 MB | B | P0 | 🟢 READY | — |
+| T-B20 | chat-service: orígenes del WS desde configuración (hoy fijos en `localhost`) | B | P0 | 🟢 READY | — |
+| T-B21 | Revocación inmediata de access tokens (lista negra por `jti` en el gateway) | B | P1 | 🟢 READY | — |
+| T-B22 | Throttling de login por cuenta | B | P1 | 🟡 RFC | — |
+| T-B23 | Rate limit por usuario en las rutas autenticadas | B | P1 | 🟢 READY | — |
+| T-B24 | Audit log de eventos de seguridad | B | P1 | 🟢 READY | — |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
@@ -74,6 +80,14 @@
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🟢 READY | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
 | T-I16 | Protección de rama en `main` y `develop` (tarea manual de leads) | I | P0 | ✅ HECHA (#49, manual) | [VITO-55](https://bernardo-mira.atlassian.net/browse/VITO-55) |
+| T-I17 | Gateway en `prod`: rutas de subida cerradas hasta la ola del mosaico (excepción A3) | I/B | P0 | 🟢 READY | — |
+| T-I18 | Cabeceras de seguridad en Caddy (`api.`, `live.`) y CSP/HSTS en la web | I/F | P0 | 🟢 READY | — |
+| T-I19 | Un usuario de Mongo por servicio (sin root) | I/B | P1 | 🟢 READY | — |
+| T-I20 | Kafka con TLS y ACL por tópico (excepción A7) | I | P2 | ⚪ DIFERIDA (Fase Crecimiento; revisión 2027-04-22) | — |
+
+**Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17 y T-I18,
+más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
+gitleaks, Dependabot). Las de P1 del triage bloquean la apertura a usuarios reales.
 
 Bloqueadas (no tomar): T-C07 (VITO-16), T-F02 (VITO-19), T-F05 (VITO-22), T-F08 (VITO-25), T-B06 (VITO-31), T-B07 (VITO-32), T-B10 (VITO-35), T-B13 (VITO-38), T-B18, T-I08 (VITO-47), T-I11 (VITO-50), T-I13 (VITO-52).
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
@@ -378,6 +392,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   el código actual, previo a T-B07.
 - **Cierre:** test de que `/events/upcoming` no devuelve un evento privado publicado y
   futuro de otro organizador; test de `size` > 100.
+- **Bloquea el primer release** (T051, A8).
 
 ### T-B18 · Librería `backend/shared-web` — 🔴 BLOQUEADA por la implementación de la Ola 1 · P1 · O-23, ADR-017
 - **Qué:** parent POM Maven multi-módulo en `backend/` con el módulo `shared-web`
@@ -390,6 +405,66 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   tercera clase compartida.
 - **Cierre:** ninguna clase duplicada entre servicios (`JwtAuthenticationFilter`,
   `ErrorResponse`, handler); CI y build de imágenes verdes para los 10 servicios.
+
+### T-B19 · Validación de subida en media-service — 🟢 READY · P0 · Principio III, CONVENTIONS §8, T051 (A1, A2)
+- **Hallazgo:** `MediaServiceImpl.validateFile` confía en el `Content-Type` que manda el
+  cliente, acepta `image/gif`, `video/webm` y `audio/mpeg` (fuera del contrato) y el límite
+  es de 100 MB (`media.max-file-size` y `spring.servlet.multipart.*`).
+- **Qué:** límite de 10 MB en los dos lugares; lista blanca `image/jpeg`, `image/png`,
+  `image/webp` y `video/mp4` (CONVENTIONS §8); el tipo se detecta por los magic bytes del
+  archivo (p. ej. Apache Tika) y debe coincidir con el declarado. El error es `400` con el
+  envelope de ADR-003, como ya dice `openapi.yaml`. No cambia el contrato.
+- **Cierre:** tests de un PNG renombrado como JPEG (acepta con el tipo real o rechaza si no
+  coincide), un HTML con `Content-Type: image/png` (400), un GIF (400) y un archivo de 11 MB
+  (400).
+
+### T-B20 · Orígenes del WS de chat desde configuración — 🟢 READY · P0 · T051
+- **Hallazgo:** `chat-service` tiene los orígenes fijos en `localhost` en
+  `WebSocketConfig` (`setAllowedOriginPatterns`) y en `application.yml`; en producción la
+  web no podría conectarse.
+- **Qué:** leer los orígenes de `CORS_ALLOWED_ORIGINS`, como el gateway, y pasar la variable
+  a `chat-service` en `docker-compose.prod.yml`. Revisar lo mismo en los `WebSocketConfig`
+  de mosaic y streaming (T-B05).
+- **Cierre:** test de que un origen fuera de la lista recibe `403` en el handshake y uno de
+  la lista conecta.
+
+### T-B21 · Revocación inmediata de access tokens — 🟢 READY · P1 · T051 (M1)
+- **Hallazgo:** al rotar o cerrar sesión, el refresh token va a la lista negra de Redis
+  (`AuthServiceImpl`), pero el access token sigue valiendo hasta que vence (15–30 min).
+- **Qué:** `logoutUser` agrega el `jti` del access token a Redis con TTL igual a su vida
+  restante; el filtro JWT del gateway rechaza los `jti` de la lista con `401`. Si el token no
+  tiene `jti`, agregarlo al emitirlo. No cambia el contrato (`401` ya está en las rutas
+  protegidas).
+- **Cierre:** test de que un access token usado después de `logout` recibe `401` en el
+  gateway; con Redis caído, el gateway no deja de validar firmas (decidir y documentar si
+  falla abierto o cerrado).
+
+### T-B22 · Throttling de login por cuenta — 🟡 RFC · P1 · T051 (M2)
+- **Hallazgo:** solo hay rate limit por IP (T-B01, T-B11). Un ataque distribuido de
+  credential stuffing contra una cuenta no se frena. `loginUser` no documenta `429` en
+  `openapi.yaml`, aunque el gateway ya lo devuelve por IP.
+- **RFC:** agregar `429` con `Retry-After` a `loginUser` y `registerUser` (CONVENTIONS §9),
+  con fixture.
+- **Qué (después del RFC):** contador de intentos fallidos por correo en Redis; tras 5
+  fallos, espera creciente (1, 2, 4… hasta 15 min) con `429`. Sin bloqueo duro: un bloqueo
+  permitiría dejar fuera a un usuario ajeno. La respuesta no revela si la cuenta existe.
+- **Cierre:** test del sexto intento con `429` y `Retry-After`, y de que un login correcto
+  reinicia el contador.
+
+### T-B23 · Rate limit por usuario — 🟢 READY · P1 · T051 (M3)
+- **Qué:** en las rutas autenticadas del gateway, el `KeyResolver` usa el `X-User-Id` que
+  el propio gateway deriva del JWT (nunca el que manda el cliente, T-B01), con los límites de
+  CONVENTIONS §9. Las rutas públicas siguen por IP.
+- **Cierre:** test de que dos usuarios desde la misma IP tienen buckets distintos y de que un
+  `X-User-Id` falso del cliente no cambia el bucket.
+
+### T-B24 · Audit log de seguridad — 🟢 READY · P1 · Principios VI y IX, T051 (M6)
+- **Qué:** auth-service registra en un logger `AUDIT` (JSON, T053 de la feature 001):
+  login correcto y fallido, logout, refresh rechazado, cambio de contraseña y borrado de
+  cuenta. Campos: `event`, `userId` (si existe), `ip` truncada a /24, `traceId`. Nunca el
+  correo, la contraseña ni el token (Principio VI).
+- **Cierre:** test de que cada evento produce una línea con los campos y sin datos
+  prohibidos; consulta de ejemplo en Loki en `infrastructure/observability/README.md`.
 
 ---
 
@@ -470,6 +545,9 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   Rollback manual con `workflow_dispatch` indicando un SHA anterior.
 - **Cierre:** un merge a `main` despliega sin intervención; el rollback a un SHA anterior
   funciona y queda documentado en el runbook.
+- **Diseño y tareas:** [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md).
+  El triage de seguridad (T051) exige Trivy, gitleaks y Dependabot (T048–T050) antes del
+  primer release.
 
 ### T-I09 · Backup de Mongo a R2 — ✅ HECHA (#35) · P0 · Principio IX, ADR-011
 - **Qué:** contenedor o cron que corre `mongodump --gzip` diario y sube el archivo a un
@@ -501,7 +579,8 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 ### T-I13 · Observabilidad con Grafana Cloud — 🔴 BLOQUEADA por T-I06 · P1 · Principio VI
 - **Qué:** Grafana Alloy (u OTel Collector) en el VPS que envía métricas, logs y trazas a
   Grafana Cloud free; dashboard RED del gateway; alertas de caída y de disco/RAM > 80 % a
-  ambos leads; monitor de uptime externo.
+  ambos leads; monitor de uptime externo. Alertas de picos de `401` y `429` en el gateway
+  (T051, M7).
 - **Cierre:** dashboard con datos reales y una alerta de prueba recibida.
 
 ### T-I14 · Runbooks — 🟢 READY · P1 · Principio IX
@@ -540,3 +619,50 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   - Documentación: ✅ #49.
 - **Cierre:** `gh api repos/AppViTo/ViTo/branches/main --jq .protected` devuelve `true` y
   las reglas de `main` coinciden con las de `develop`.
+
+### T-I17 · Rutas de subida cerradas en producción — 🟢 READY · P0 · Principio III, T051 (A3)
+- **Por qué:** la constitución exige antimalware y moderación antes de publicar en el
+  mosaico, y no existen. La excepción A3 del triage cierra la subida en producción hasta la
+  ola del mosaico (Ola 3).
+- **Qué:** en el perfil `prod` del gateway, `POST /api/v1/media/**` y los métodos de
+  escritura de `/api/v1/mosaic/**` responden `404` con el envelope de ADR-003, sin llegar a
+  los servicios. En `dev` y `docker` siguen abiertas.
+- **Cierre:** test de perfil (como `RouteFiltersProfileTest`) que compruebe el `404` en
+  `prod` y el enrutamiento en `docker`. Se revierte en la Ola 3, junto con el antimalware y
+  la moderación, y se cierra la excepción A3.
+
+### T-I18 · Cabeceras de seguridad — 🟢 READY · P0 · Principio III, T051 (A4)
+- **Qué:**
+  - `infrastructure/caddy/Caddyfile`: en `api.` y `live.`, `Strict-Transport-Security:
+    max-age=31536000; includeSubDomains`, `X-Content-Type-Options: nosniff`,
+    `Referrer-Policy: no-referrer` y quitar `Server`.
+  - Web en Pages: ampliar T031 de la feature 001 con `Strict-Transport-Security` y una CSP
+    compatible con Flutter: `default-src 'self'`, `script-src 'self' 'wasm-unsafe-eval'`,
+    `connect-src` con la API y el WS, `img-src` con `media.`, `frame-ancestors 'none'`.
+    CanvasKit y las fuentes se sirven desde el propio sitio (`flutter build web
+    --no-web-resources-cdn`). Como el dominio no va en el repo, `deploy-frontend.yml`
+    completa los orígenes de la CSP desde `vars.*` al generar `_headers`.
+- **Cierre:** `curl -I` muestra las cabeceras en `api.`, `live.` y la web; la web carga sin
+  violaciones de CSP en la consola del navegador (quickstart, paso 6).
+
+### T-I19 · Un usuario de Mongo por servicio — 🟢 READY · P1 · Principios II y III, T051 (M12)
+- **Hallazgo:** los 10 servicios Java usan el usuario root (`MONGODB_URI` en
+  `x-java-service` de `docker-compose.prod.yml`). Si se compromete uno, quedan expuestas
+  todas las bases, y nada hace cumplir el Principio II.
+- **Qué:** script idempotente `infrastructure/deploy/remote/ensure-service-users.sh` (mismo
+  patrón que `ensure-ro-user.sh` de la feature 001) que crea `vito_<svc>` con `readWrite`
+  solo en la base del servicio; contraseñas `MONGO_<SVC>_PASSWORD` en el `.env`; un
+  `MONGODB_URI` por servicio en el compose. Root queda solo para `mongo-backup` y los
+  scripts de operación.
+- **Cierre:** cada servicio arranca sano con su usuario; un test de integración comprueba
+  que el usuario de event-service no puede leer la base de auth (`vito_db`). Si algún servicio lee la base de otro, se
+  registra como deuda del Principio II.
+
+### T-I20 · Kafka con TLS y ACL por tópico — ⚪ DIFERIDA (Fase Crecimiento) · P2 · Principio III, T051 (A7)
+- **Excepción A7:** Kafka usa `SASL_PLAINTEXT` con un solo usuario y sin ACL. Se acepta
+  mientras broker y clientes estén en el mismo host, en la red interna de Compose y sin
+  puertos publicados (ADR-011 b).
+- **Vuelve cuando:** Kafka salga del host (Fase Crecimiento) o el 2027-04-22, lo que pase
+  primero.
+- **Qué:** listener `SASL_SSL`, un usuario por servicio y ACL por tópico según los
+  productores y consumidores de `asyncapi.yaml`.
