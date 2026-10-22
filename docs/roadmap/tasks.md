@@ -44,7 +44,7 @@
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | ✅ HECHA (#63) | [VITO-20](https://bernardo-mira.atlassian.net/browse/VITO-20) |
 | T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming, chat sin `?userId=`) | F | P0 | ✅ HECHA (#60) | [VITO-21](https://bernardo-mira.atlassian.net/browse/VITO-21) |
 | T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | ✅ HECHA (#64) | [VITO-23](https://bernardo-mira.atlassian.net/browse/VITO-23) |
-| T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | 🟢 READY | [VITO-24](https://bernardo-mira.atlassian.net/browse/VITO-24) |
+| T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | 🔵 EN CURSO (frontend/t-f07-smoke-test-app) | [VITO-24](https://bernardo-mira.atlassian.net/browse/VITO-24) |
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) | [VITO-26](https://bernardo-mira.atlassian.net/browse/VITO-26) |
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | ✅ HECHA (#38) | [VITO-27](https://bernardo-mira.atlassian.net/browse/VITO-27) |
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) | [VITO-29](https://bernardo-mira.atlassian.net/browse/VITO-29) |
@@ -216,11 +216,14 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Complemento (#64):** el workflow tiene un paso `Validate production URLs` que corta el
   deploy si faltan, y `Env` ya no cae a `localhost` en release (lanza `StateError`).
 
-### T-F07 · Tests vacíos y cobertura — 🟢 READY · P1 · O-19
-- **Qué:** `test/widget_test.dart` y `test/features/events/create_event_screen_test.dart`
-  tienen 0 casos: rellenarlos o eliminarlos. Añadir `flutter test --coverage` al CI.
-- **Cierre:** no hay archivos de test sin casos; reporte de cobertura publicado como
-  artefacto.
+### T-F07 · Tests vacíos y cobertura — 🔵 EN CURSO (frontend/t-f07-smoke-test-app) · P1 · O-19
+- **Qué (ajustado 2026-10-22):** la premisa de O-19 está desactualizada:
+  `create_event_screen_test.dart` ya tiene 11 casos y `ci.yml` ya corre
+  `flutter test --coverage` y sube el artefacto. Lo único falso es
+  `test/widget_test.dart`, que monta un `Text('ViTo')` en vez de la app: reemplazarlo por
+  un smoke test de `ViToApp` con `di.init()` real (SharedPreferences y secure storage
+  mockeados) que compruebe splash → login sin excepciones.
+- **Cierre:** ningún archivo de test sin casos; el smoke test monta `ViToApp` y navega.
 
 ---
 
