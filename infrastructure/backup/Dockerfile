@@ -6,7 +6,7 @@
 # rclone es un binario estático y habla S3 con cualquier proveedor.
 FROM rclone/rclone:1.68.2 AS rclone
 
-FROM mongo:7.0
+FROM mongo:9.0
 
 COPY --from=rclone /usr/local/bin/rclone /usr/local/bin/rclone
 COPY backup.sh restore.sh entrypoint.sh /usr/local/bin/
