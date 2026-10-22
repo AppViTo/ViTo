@@ -90,15 +90,13 @@ class RevokeTicket extends CheckInBlocEvent {
 
 class ConnectToWebSocket extends CheckInBlocEvent {
   final String eventId;
-  final String baseUrl;
   
   const ConnectToWebSocket({
     required this.eventId,
-    required this.baseUrl,
   });
   
   @override
-  List<Object?> get props => [eventId, baseUrl];
+  List<Object?> get props => [eventId];
 }
 
 class DisconnectFromWebSocket extends CheckInBlocEvent {}
@@ -324,7 +322,7 @@ class CheckInBloc extends Bloc<CheckInBlocEvent, CheckInState> {
   }
   
   void _onConnectToWebSocket(ConnectToWebSocket event, Emitter<CheckInState> emit) {
-    repository.connectToWebSocket(event.eventId, event.baseUrl);
+    repository.connectToWebSocket(event.eventId);
     
     _checkInSubscription?.cancel();
     _statsSubscription?.cancel();

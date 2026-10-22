@@ -44,6 +44,6 @@ abstract class MosaicRepository {
   Stream<MosaicGrid> get gridStream;
   Stream<int> get likeStream;
   
-  void connectToWebSocket(String eventId, String baseUrl);
+  void connectToWebSocket(String eventId);
   void disconnectFromWebSocket();
 }

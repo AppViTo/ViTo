@@ -6,6 +6,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../config/env/env.dart';
 import '../../core/network/session_expired_notifier.dart';
 import '../../core/network/token_interceptor.dart';
+import '../../core/network/token_refresher.dart';
+import '../../core/network/ws_connection.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/datasources/auth_local_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -84,13 +86,28 @@ Future<void> init() async {
   
   // Add token interceptor
   sl.registerLazySingleton(() => SessionExpiredNotifier());
+  final tokenRefresher = TokenRefresher(
+    localDataSource: sl(),
+    dio: dio,
+    sessionExpiredNotifier: sl(),
+  );
+  sl.registerLazySingleton<TokenRefresher>(() => tokenRefresher);
   dio.interceptors.add(TokenInterceptor(
     localDataSource: sl(),
     dio: dio,
     sessionExpiredNotifier: sl(),
+    tokenRefresher: tokenRefresher,
   ));
   
   sl.registerLazySingleton(() => dio);
+  
+  // WebSocket autenticado con ?token= (ADR-006): una instancia por repositorio
+  sl.registerFactory(
+    () => WsConnection(
+      tokenProvider: () => sl<AuthLocalDataSource>().getAccessToken(),
+      refreshAccessToken: () => sl<TokenRefresher>().refresh(),
+    ),
+  );
   
   // Features - Auth
   sl.registerLazySingleton<AuthRemoteDataSource>(
@@ -142,7 +159,7 @@ Future<void> init() async {
     () => StreamingRemoteDataSourceImpl(dio: sl()),
   );
   sl.registerLazySingleton<StreamingRepository>(
-    () => StreamingRepositoryImpl(remoteDataSource: sl()),
+    () => StreamingRepositoryImpl(remoteDataSource: sl(), wsConnection: sl()),
   );
   sl.registerFactory(
     () => StreamingBloc(
@@ -174,7 +191,7 @@ Future<void> init() async {
     () => CheckInRemoteDataSourceImpl(dio: sl()),
   );
   sl.registerLazySingleton<CheckInRepository>(
-    () => CheckInRepositoryImpl(remoteDataSource: sl()),
+    () => CheckInRepositoryImpl(remoteDataSource: sl(), wsConnection: sl()),
   );
   sl.registerLazySingleton(() => GenerateTicketUseCase(sl()));
   sl.registerLazySingleton(() => ValidateCheckInUseCase(sl()));
@@ -189,7 +206,7 @@ Future<void> init() async {
     () => MosaicRemoteDataSourceImpl(dio: sl()),
   );
   sl.registerLazySingleton<MosaicRepository>(
-    () => MosaicRepositoryImpl(remoteDataSource: sl()),
+    () => MosaicRepositoryImpl(remoteDataSource: sl(), wsConnection: sl()),
   );
   sl.registerFactory(
     () => MosaicBloc(
@@ -212,7 +229,7 @@ Future<void> init() async {
   
   // Features - Chat
   sl.registerLazySingleton<ChatRemoteDataSource>(
-    () => ChatRemoteDataSource(dio: sl()),
+    () => ChatRemoteDataSource(dio: sl(), wsConnection: sl()),
   );
   sl.registerLazySingleton<ChatRepository>(
     () => ChatRepositoryImpl(remoteDataSource: sl()),

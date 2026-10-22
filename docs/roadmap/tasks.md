@@ -42,7 +42,7 @@
 | T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | ✅ HECHA (#45) | [VITO-17](https://bernardo-mira.atlassian.net/browse/VITO-17) |
 | T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | ✅ HECHA (#46, #56) | [VITO-18](https://bernardo-mira.atlassian.net/browse/VITO-18) |
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | 🟢 READY | [VITO-20](https://bernardo-mira.atlassian.net/browse/VITO-20) |
-| T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming, chat sin `?userId=`) | F | P0 | 🟢 READY | [VITO-21](https://bernardo-mira.atlassian.net/browse/VITO-21) |
+| T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming, chat sin `?userId=`) | F | P0 | ✅ HECHA (#60) | [VITO-21](https://bernardo-mira.atlassian.net/browse/VITO-21) |
 | T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | 🟢 READY | [VITO-23](https://bernardo-mira.atlassian.net/browse/VITO-23) |
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | 🟢 READY | [VITO-24](https://bernardo-mira.atlassian.net/browse/VITO-24) |
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) | [VITO-26](https://bernardo-mira.atlassian.net/browse/VITO-26) |
@@ -183,7 +183,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** navegar a check-in y a detalle de archivo no lanza `ProviderNotFound`;
   widget test de cada ruta.
 
-### T-F04 · `?token=` en los WebSocket — 🟢 READY · P0 · CONVENTIONS §7, O-28
+### T-F04 · `?token=` en los WebSocket — ✅ HECHA (#60) · P0 · CONVENTIONS §7, O-28, ADR-015
 - **Qué:** `checkin_repository_impl.dart`, `mosaic_repository_impl.dart`,
   `streaming_repository_impl.dart` construyen la URL desde `Env.wsBaseUrl` (no
   `baseUrl.replaceFirst('http','ws')`) y agregan `?token=<accessToken>`. Manejar cierre
@@ -191,6 +191,11 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Chat (ADR-015):** `chat_remote_datasource.dart` hace lo mismo y **retira `?userId=`**;
   `connect` deja de recibir el `userId`.
 - **Cierre:** test unitario que verifica la URL generada y el manejo de 4401.
+- **Complemento (#60):** la lógica común vive en `core/network/ws_connection.dart` y el
+  refresh de ADR-004 se extrajo a `core/network/token_refresher.dart` (lo comparten REST y
+  WS). Hallazgos fuera de alcance reportados en el PR: ninguna página despacha
+  `ConnectToWebSocket` (check-in y mosaico no conectan desde la UI) y
+  `ChatBloc._onSendTypingIndicator` conecta en vez de enviar el frame.
 
 ### T-F05 · Subida al mosaico — 🔴 BLOQUEADA por Ola 3 · ADR-016
 - **Qué:** subir en dos pasos: `POST /media/upload` y luego `POST /mosaic/post` con el

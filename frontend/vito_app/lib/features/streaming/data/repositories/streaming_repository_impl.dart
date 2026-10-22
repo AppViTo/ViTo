@@ -2,9 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:dartz/dartz.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-
 import '../../../../core/error/exceptions.dart';
+import '../../../../core/network/ws_connection.dart';
 import '../../../../core/error/failures.dart';
 import '../datasources/streaming_remote_datasource.dart';
 import '../models/streaming_model.dart';
@@ -18,9 +17,12 @@ class StreamingRepositoryImpl implements StreamingRepository {
   final _chatController = StreamController<ChatMessage>.broadcast();
   final _viewerCountController = StreamController<int>.broadcast();
   
-  WebSocketChannel? _webSocketChannel;
+  final WsConnection wsConnection;
   
-  StreamingRepositoryImpl({required this.remoteDataSource});
+  StreamingRepositoryImpl({
+    required this.remoteDataSource,
+    required this.wsConnection,
+  });
   
   @override
   Future<Either<Failure, LiveStream>> createStream({
@@ -213,38 +215,32 @@ class StreamingRepositoryImpl implements StreamingRepository {
   Stream<int> get viewerCountStream => _viewerCountController.stream;
   
   @override
-  void connectToWebSocket(String streamId, String baseUrl) {
-    final wsUrl = '${baseUrl.replaceFirst('http', 'ws')}/ws/streaming/$streamId';
-    _webSocketChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
+  void connectToWebSocket(String streamId) {
+    unawaited(wsConnection.connect(
+      '/ws/streaming/$streamId',
+      onData: _handleSocketMessage,
+      onError: (error) => debugPrint('WebSocket error: $error'),
+    ));
+  }
+  
+  void _handleSocketMessage(dynamic message) {
+    final data = Map<String, dynamic>.from(message as Map);
     
-    _webSocketChannel!.stream.listen(
-      (message) {
-        final data = Map<String, dynamic>.from(message as Map);
-        
-        if (data['type'] == 'REACTION') {
-          final reaction = ReactionModel.fromJson(data['data']);
-          _reactionController.add(reaction);
-        } else if (data['type'] == 'CHAT') {
-          final chatMessage = ChatMessageModel.fromJson(data['data']);
-          _chatController.add(chatMessage);
-        } else if (data['type'] == 'VIEWER_COUNT') {
-          final count = data['data']['count'] as int;
-          _viewerCountController.add(count);
-        }
-      },
-      onError: (error) {
-        debugPrint('WebSocket error: $error');
-      },
-      onDone: () {
-        debugPrint('WebSocket connection closed');
-      },
-    );
+    if (data['type'] == 'REACTION') {
+      final reaction = ReactionModel.fromJson(data['data']);
+      _reactionController.add(reaction);
+    } else if (data['type'] == 'CHAT') {
+      final chatMessage = ChatMessageModel.fromJson(data['data']);
+      _chatController.add(chatMessage);
+    } else if (data['type'] == 'VIEWER_COUNT') {
+      final count = data['data']['count'] as int;
+      _viewerCountController.add(count);
+    }
   }
   
   @override
   void disconnectFromWebSocket() {
-    _webSocketChannel?.sink.close();
-    _webSocketChannel = null;
+    unawaited(wsConnection.disconnect());
   }
   
   void dispose() {

@@ -191,7 +191,7 @@ class StreamingBloc extends Bloc<StreamingEvent, StreamingState> {
     ConnectToStream event,
     Emitter<StreamingState> emit,
   ) async {
-    repository.connectToWebSocket(event.streamId, event.baseUrl);
+    repository.connectToWebSocket(event.streamId);
   }
   
   Future<void> _onDisconnectFromStream(
