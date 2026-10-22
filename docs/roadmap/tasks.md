@@ -147,7 +147,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Desbloquea:** T-B07, T-F08.
 - **Cierre:** Spectral y job Contract verdes; PR aprobado por 1 CODEOWNER.
 
-### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔴 BLOQUEADA por D-01 + D-08 (por ola) · O-02, O-30
+### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔴 BLOQUEADA por D-08 (por ola) · O-02, O-30, ADR-016
 - **Qué:** por cada ola aprobada en `endpoint-inventory.md`: paths + schemas en
   `openapi.yaml`, frames/eventos en `asyncapi.yaml`, fixtures, ADR si aplica y handoff
   `docs/handoff/<ola>.md` desde `TEMPLATE.md`. Se ejecuta con Spec Kit
@@ -190,7 +190,10 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `connect` deja de recibir el `userId`.
 - **Cierre:** test unitario que verifica la URL generada y el manejo de 4401.
 
-### T-F05 · Subida al mosaico — 🔴 BLOQUEADA por D-01 + Ola 3
+### T-F05 · Subida al mosaico — 🔴 BLOQUEADA por Ola 3 · ADR-016
+- **Qué:** subir en dos pasos: `POST /media/upload` y luego `POST /mosaic/post` con el
+  `mediaId`. Deja de llamar a `/mosaic/photo` y `/mosaic/checkin`.
+
 ### T-F08 · Lista "mis eventos" — 🔴 BLOQUEADA por T-C06 · ADR-014
 - **Qué:** `getMyEvents` envía `scope=mine`; `getUpcomingEvents` deja de llamar a
   `/events/upcoming` (fuera de contrato) y usa `GET /events?scope=upcoming`.
