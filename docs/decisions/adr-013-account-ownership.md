@@ -57,4 +57,17 @@ revocar accesos.
 
 ## Actualizaciones
 
-*(ninguna todavía)*
+### 2026-10-22 — Estado del inventario
+
+El repo es público (ADR-012): el inventario se lleva aquí **sin** correos, IDs de cuenta ni
+IP; esos datos viven en el gestor de contraseñas.
+
+| Proveedor | Estado |
+|-----------|--------|
+| Correo de equipo | ✅ Cuenta de Gmail dedicada al proyecto. Pasa a `infra@<dominio>` con Email Routing cuando se configure el dominio. |
+| Contabo | ✅ VPS 12 GB, EE. UU. Falta configurar el acceso por llave SSH. |
+| Cloudflare | ✅ Buckets R2 creados. Dominio, DNS y Pages se confirman en T-I06. |
+| Grafana Cloud | ✅ Cuenta creada. |
+| Resend (se descarta Brevo) | ⏳ Por configurar: requiere verificar el dominio de envío con registros DNS en Cloudflare. |
+| Firebase (FCM) | ⏳ Sin abrir. |
+| Google Play Console | ⏳ Según D-10 (pospuesta). |

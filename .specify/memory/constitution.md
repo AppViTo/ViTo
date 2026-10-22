@@ -1,5 +1,14 @@
 <!--
-Sync Impact Report — v1.2.0 → v1.2.1 (PATCH) · 2026-10-17
+Sync Impact Report — v1.2.1 → v1.3.0 (MINOR) · 2026-10-22
+- Modificado: Principio VIII, Fase Tracción. Producción requiere, además del PR aprobado
+  que entra a `main`, la aprobación de un lead en el GitHub Environment `production`
+  protegido. Es posible porque el repo es público desde el 2026-10-19 (ADR-011,
+  actualización del 2026-10-22).
+- Observaciones: O-24 cerrada (protección de rama activa en `main` y `develop` desde el
+  2026-10-19, sin GitHub Team).
+- Plantillas: .specify/templates/* sin cambios requeridos.
+
+Sync Impact Report anterior — v1.2.0 → v1.2.1 (PATCH) · 2026-10-17
 - O-24 cerrada en su parte de flujo por ADR-012 (ramas y release); sigue pendiente la
   protección de rama, que depende del plan de GitHub.
 
@@ -202,8 +211,9 @@ criterios de aceptación verificables.
   plataforma (Docker Compose en Tracción, Kubernetes en Crecimiento).
 - **Fase Tracción (ADR-011):** un VPS con `docker-compose.prod.yml`; límites de memoria y
   healthcheck por servicio; solo el borde (Caddy) y SRS exponen puertos; el despliegue sale
-  de `main` por GitHub Actions vía SSH; la aprobación manual es la aprobación del PR que
-  entra a `main`; rollback = redesplegar el SHA anterior.
+  de `main` por GitHub Actions vía SSH; producción requiere dos aprobaciones: la del PR
+  que entra a `main` (ADR-012) y la de un lead en el GitHub Environment `production`
+  protegido, que el job de despliegue DEBE usar; rollback = redesplegar el SHA anterior.
 - **Fase Crecimiento** — despliegue GitOps: manifiestos Kustomize `base` + `overlays/{dev,staging,production}`
   sincronizados por ArgoCD; GitHub Actions construye, prueba, escanea y publica imágenes,
   pero no hace `kubectl apply` contra producción.
@@ -312,7 +322,7 @@ en CI o staging.
 | O-21 | P1 | X | Spring Boot 3.2.1 y Java 17 en CI; la línea 3.2 ya no recibe soporte OSS. | Spring Boot en versión soportada, Java 21. |
 | O-22 | P1 | III/IX | Redis sin `requirepass` efectivo en compose (el `redis.conf` montado no se usa en `command`); Mongo y Kafka exponen puertos en el host. | Auth y red privada en todos los datastores. |
 | O-23 | P2 | II | `JwtAuthenticationFilter` duplicado en 7 servicios; `backend/java/` sin uso aparente. | Librería compartida; directorios huérfanos eliminados. |
-| O-24 | P1 | — | `CONTRIBUTING.md` exige `develop` pero los PR recientes van a `main`. | ~~Flujo de ramas acordado~~ (ADR-012: feature → `develop`, release semanal a `main`); falta protección de rama activa con CODEOWNERS (requiere GitHub Team). |
+| O-24 | P1 | — | `CONTRIBUTING.md` exige `develop` pero los PR recientes van a `main`. | ~~Flujo de ramas acordado~~ (ADR-012: feature → `develop`, release semanal a `main`); ~~protección de rama activa con CODEOWNERS~~ (activa desde el 2026-10-19: el repo es público). **Cerrada.** |
 | O-25 | P2 | IX | Documentos binarios (`*.docx`) versionados en la raíz; sin política de datos personales ni retención. | Documentos movidos a `docs/` o fuera del repo; política publicada. |
 | O-26 | P0 | I | `GET /api/v1/events` (`listEvents`) está en el contrato y lo consume el frontend, pero el backend no lo implementa (solo `/my-events` y `/upcoming`) → 405. | Contrato y backend coinciden (D-03) con fixture y test. |
 | O-27 | P0 | III | El rate limiter del gateway toma `X-User-Id` del cliente como clave; en rutas públicas (`/auth/**`) basta rotar el header para evadir el límite de login. | Clave = usuario autenticado por el gateway o IP; test de evasión. |
@@ -423,4 +433,4 @@ de guardia.
 - Guía operativa en tiempo de desarrollo: `AGENTS.md`, `CONTRIBUTING.md` y
   `docs/api/CONVENTIONS.md`.
 
-**Version**: 1.2.1 | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-17
+**Version**: 1.3.0 | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-22

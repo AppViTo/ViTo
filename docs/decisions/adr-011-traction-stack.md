@@ -112,4 +112,20 @@ Cada paso se registra como actualización de este ADR (sección *Actualizaciones
 
 ## Actualizaciones
 
-*(ninguna todavía)*
+### 2026-10-22 — Repo público y cuentas aprovisionadas
+
+- **El repo es público desde el 2026-10-19** (ver ADR-012). Esto invalida dos supuestos
+  de este ADR:
+  - *Promoción a producción:* en repos públicos, GitHub Free **sí** permite revisores
+    obligatorios en Environments. Producción pasa a requerir dos aprobaciones: el PR de
+    release a `main` (ADR-012) y la aprobación de un lead en el Environment `production`
+    (constitución v1.3.0, Principio VIII).
+  - *Minutos de CI:* los runners estándar de GitHub Actions no tienen límite de minutos en
+    repos públicos. T-I12 (CI incremental) se mantiene por tiempo de feedback, no por cuota.
+- **Consecuencia de seguridad:** todo lo que entra al repo es público. IP del VPS, correos
+  de las cuentas, IDs de cuenta de Cloudflare y valores del `.env` viven solo en GitHub
+  Environments, en el gestor de contraseñas y en el VPS.
+- **Aprovisionado (T-I06):** VPS Contabo 12 GB en EE. UU., buckets R2 en Cloudflare, cuenta
+  de Grafana Cloud y correo de equipo (Gmail, ADR-013).
+- **Pendiente (T-I06):** llave SSH del VPS, Environment `production` con sus secretos y
+  configuración de **Resend** como proveedor de correo transaccional (se descarta Brevo).
