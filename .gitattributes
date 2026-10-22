@@ -2,3 +2,7 @@
 mvnw text eol=lf
 *.cmd text eol=crlf
 *.sh text eol=lf
+*.bats text eol=lf
+*.bash text eol=lf
+infrastructure/deploy/tests/fake-docker text eol=lf
+.shellcheckrc text eol=lf

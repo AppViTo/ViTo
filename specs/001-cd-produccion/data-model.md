@@ -78,6 +78,8 @@ resumen en el *job summary* de GitHub:
 | `reason` | string · null | obligatorio si hay autoaprobación o `force_live_event` |
 | `forced_live_event` | bool | |
 | `result` | `succeeded` · `rolled_back` · `failed` · `blocked` | |
+| `exit_code` | entero | código de `deploy.sh` (contrato); distingue un `failed` sin cambios (2, 4) de uno que requiere un lead (6) |
+| `live_check` | objeto · null | salida de `live-check.sh` (p. ej. `{"skipped":"first-deploy"}`) |
 | `duration_s` | entero | |
 | `run_url` | URL | run de GitHub |
 

@@ -1,10 +1,16 @@
 # Producción — Fase Tracción (ADR-011): un VPS de 12 GB con Docker Compose.
 #
-#   docker compose -f docker-compose.prod.yml --env-file .env up -d
+#   docker compose -f docker-compose.prod.yml --env-file .env --env-file versions.env up -d
 #
 # - Variables en .env (ver .env.prod.example; chmod 600, fuera del repo). Falta una → no arranca.
-# - Imágenes propias con tag ${IMAGE_TAG} (SHA del commit); nunca :latest. T-I08 las
-#   construye en CI y las copia con `docker save | ssh docker load`.
+# - Una versión por servicio (TAG_<SERVICIO>, el SHA del commit que la construyó; nunca
+#   :latest). Llegan por un segundo archivo de entorno, el manifiesto versions.env de cada
+#   release (feature 001, research R1): solo cambia el tag de lo reconstruido, así Compose
+#   no recrea el resto. cd.yml construye en CI y copia con `docker save | ssh docker load`.
+# - En el VPS lo corre infrastructure/deploy/remote/deploy.sh:
+#     docker compose -p vito --project-directory /opt/vito/current #       --env-file /opt/vito/.env --env-file /opt/vito/current/versions.env up -d --wait
+# - CFG_CADDY y CFG_SRS: sha256 del archivo montado. Si cambia su contenido, cambia la
+#   etiqueta vito.config-hash y Compose recrea solo ese servicio (R4).
 # - Solo Caddy (80/443) y SRS (RTMP 1935, WebRTC 8000/udp) publican puertos.
 #   Mongo, Redis y Kafka exigen credenciales y no son alcanzables desde fuera.
 #
@@ -79,6 +85,8 @@ services:
       - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    labels:
+      vito.config-hash: ${CFG_CADDY:?}
     depends_on:
       - api-gateway
       - srs
@@ -168,7 +176,7 @@ services:
 
   # Backup diario a R2 (T-I09)
   mongo-backup:
-    image: vito/mongo-backup:${IMAGE_TAG:?}
+    image: vito/mongo-backup:${TAG_MONGO_BACKUP:?}
     build: ./infrastructure/backup
     restart: unless-stopped
     logging: *logging
@@ -204,12 +212,14 @@ services:
       CANDIDATE: ${SRS_CANDIDATE:?IP pública del VPS}
     volumes:
       - ./infrastructure/docker/srs/srs.conf:/usr/local/srs/conf/docker.conf:ro
+    labels:
+      vito.config-hash: ${CFG_SRS:?}
     networks: [vito]
 
   # ── Servicios Spring Boot ─────────────────────────────────────
   api-gateway:
     <<: *java-service
-    image: vito/api-gateway:${IMAGE_TAG:?}
+    image: vito/api-gateway:${TAG_API_GATEWAY:?}
     build: { context: ./backend/api-gateway, dockerfile: ../Dockerfile }
     environment:
       <<: *java-env
@@ -226,7 +236,7 @@ services:
 
   auth-service:
     <<: *java-service
-    image: vito/auth-service:${IMAGE_TAG:?}
+    image: vito/auth-service:${TAG_AUTH_SERVICE:?}
     build: { context: ./backend/auth-service, dockerfile: ../Dockerfile }
     healthcheck:
       <<: *java-healthcheck
@@ -234,7 +244,7 @@ services:
 
   social-service:
     <<: *java-service
-    image: vito/social-service:${IMAGE_TAG:?}
+    image: vito/social-service:${TAG_SOCIAL_SERVICE:?}
     build: { context: ./backend/social-service, dockerfile: ../Dockerfile }
     healthcheck:
       <<: *java-healthcheck
@@ -242,7 +252,7 @@ services:
 
   event-service:
     <<: *java-service
-    image: vito/event-service:${IMAGE_TAG:?}
+    image: vito/event-service:${TAG_EVENT_SERVICE:?}
     build: { context: ./backend/event-service, dockerfile: ../Dockerfile }
     environment:
       <<: *java-env
@@ -253,7 +263,7 @@ services:
 
   checkin-service:
     <<: *java-service
-    image: vito/checkin-service:${IMAGE_TAG:?}
+    image: vito/checkin-service:${TAG_CHECKIN_SERVICE:?}
     build: { context: ./backend/checkin-service, dockerfile: ../Dockerfile }
     environment:
       <<: *java-env
@@ -264,7 +274,7 @@ services:
 
   mosaic-service:
     <<: *java-service
-    image: vito/mosaic-service:${IMAGE_TAG:?}
+    image: vito/mosaic-service:${TAG_MOSAIC_SERVICE:?}
     build: { context: ./backend/mosaic-service, dockerfile: ../Dockerfile }
     healthcheck:
       <<: *java-healthcheck
@@ -272,7 +282,7 @@ services:
 
   streaming-service:
     <<: *java-service
-    image: vito/streaming-service:${IMAGE_TAG:?}
+    image: vito/streaming-service:${TAG_STREAMING_SERVICE:?}
     build: { context: ./backend/streaming-service, dockerfile: ../Dockerfile }
     environment:
       <<: *java-env
@@ -289,7 +299,7 @@ services:
 
   archive-service:
     <<: *java-service
-    image: vito/archive-service:${IMAGE_TAG:?}
+    image: vito/archive-service:${TAG_ARCHIVE_SERVICE:?}
     build: { context: ./backend/archive-service, dockerfile: ../Dockerfile }
     environment:
       <<: *java-env
@@ -300,7 +310,7 @@ services:
 
   chat-service:
     <<: *java-service
-    image: vito/chat-service:${IMAGE_TAG:?}
+    image: vito/chat-service:${TAG_CHAT_SERVICE:?}
     build: { context: ./backend/chat-service, dockerfile: ../Dockerfile }
     healthcheck:
       <<: *java-healthcheck
@@ -308,7 +318,7 @@ services:
 
   media-service:
     <<: *java-service
-    image: vito/media-service:${IMAGE_TAG:?}
+    image: vito/media-service:${TAG_MEDIA_SERVICE:?}
     build: { context: ./backend/media-service, dockerfile: ../Dockerfile }
     environment:
       <<: *java-env
@@ -325,7 +335,7 @@ services:
 
   # ── Servicios Python ──────────────────────────────────────────
   transcode-service:
-    image: vito/transcode-service:${IMAGE_TAG:?}
+    image: vito/transcode-service:${TAG_TRANSCODE_SERVICE:?}
     build: ./ai-services/transcode-service
     restart: unless-stopped
     logging: *logging
@@ -352,7 +362,7 @@ services:
     networks: [vito]
 
   moderation-service:
-    image: vito/moderation-service:${IMAGE_TAG:?}
+    image: vito/moderation-service:${TAG_MODERATION_SERVICE:?}
     build: ./ai-services/moderation-service
     restart: unless-stopped
     logging: *logging
