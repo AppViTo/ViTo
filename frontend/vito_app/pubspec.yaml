@@ -31,7 +31,7 @@ dependencies:
   pull_to_refresh: ^2.0.0
   
   # Camera & Media
-  image_picker: ^1.0.5
+  image_picker: ^1.2.4
   camera: ^0.10.5+7
   
   # QR Code
