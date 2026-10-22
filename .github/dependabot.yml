@@ -1,6 +1,10 @@
 # Actualizaciones de dependencias (feature 001, T050, research R18; Principio III).
 # Los PR van a develop y entran con el release semanal (ADR-012). Las alertas de seguridad
 # se activan en Settings (docs/runbooks/aprovisionamiento.md, paso 9).
+#
+# Agrupado: como máximo un PR de menores y parches y uno de mayores por ecosistema. Sin
+# grupos, la primera corrida abrió 30 PR y cada uno corre los 30 checks de CI, lo que
+# llenó la cola de runners.
 version: 2
 
 updates:
@@ -18,7 +22,14 @@ updates:
       - /backend/media-service
     schedule: { interval: weekly }
     target-branch: develop
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      major:
+        patterns: ["*"]
+        update-types: [major]
     commit-message: { prefix: chore, include: scope }
 
   - package-ecosystem: pip
@@ -27,21 +38,42 @@ updates:
       - /ai-services/moderation-service
     schedule: { interval: weekly }
     target-branch: develop
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      major:
+        patterns: ["*"]
+        update-types: [major]
     commit-message: { prefix: chore, include: scope }
 
   - package-ecosystem: pub
     directory: /frontend/vito_app
     schedule: { interval: weekly }
     target-branch: develop
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      major:
+        patterns: ["*"]
+        update-types: [major]
     commit-message: { prefix: chore, include: scope }
 
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly }
     target-branch: develop
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      major:
+        patterns: ["*"]
+        update-types: [major]
     commit-message: { prefix: ci, include: scope }
 
   # Imágenes base de los Dockerfile (las de terceros en docker-compose.prod.yml se fijan a mano)
@@ -53,5 +85,12 @@ updates:
       - /infrastructure/backup
     schedule: { interval: weekly }
     target-branch: develop
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      major:
+        patterns: ["*"]
+        update-types: [major]
     commit-message: { prefix: chore, include: scope }
