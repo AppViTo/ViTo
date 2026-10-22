@@ -177,6 +177,7 @@ secreto y se redespliega, sin entrar por SSH.
 | `VITO_API_BASE_URL` | `https://api.<dominio>/api/v1` |
 | `VITO_WS_BASE_URL` | `wss://api.<dominio>` |
 | `PAGES_PROJECT` | `vito-web` |
+| `ALERT_FROM` | `ViTo <alertas@send.<dominio>>` (remitente verificado en Resend, paso 7; sin él no se manda correo, solo Telegram) |
 
 Al terminar, borrar de la máquina `vito-pipeline`, `vito-pipeline.pub` y
 `known_hosts.vito`: ya están en el gestor.
@@ -251,6 +252,10 @@ usa el MX del dominio raíz. Plan gratuito: 3.000 correos al mes y 100 al día.
    → `TELEGRAM_CHAT_ID`.
 4. Prueba: `curl -s "https://api.telegram.org/bot${TOKEN}/sendMessage" -d chat_id=<id> -d text=prueba`
    tiene que llegar al grupo.
+5. Cargar también `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` como **secretos del repositorio**
+   (Settings → Secrets and variables → Actions → *Repository secrets*). Los usa
+   `expire-approvals.yml`, que corre cada hora sin Environment para avisar cuando una
+   aprobación vence a las 24 h.
 
 ## 9. Seguridad del repo
 

@@ -1,0 +1,9 @@
+# Excepciones documentadas de Trivy (feature 001, research R17; Principio III).
+# cd.yml no despliega una imagen con CVE CRITICAL o HIGH con arreglo disponible salvo que
+# esté aquí. Cada excepción lleva encima, en comentarios, el motivo, quién la aprobó (los dos
+# leads, en el PR que la agrega) y la fecha de vencimiento. Vencida, se quita o se renueva.
+#
+# Formato:
+#   # Motivo: <por qué no aplica o por qué no se puede arreglar todavía>
+#   # Aprobó: @lead1, @lead2 (PR #N) · Vence: AAAA-MM-DD
+#   CVE-AAAA-NNNNN

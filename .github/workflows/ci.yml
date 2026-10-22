@@ -59,7 +59,10 @@ jobs:
       - name: Install bats
         run: sudo apt-get update -qq && sudo apt-get install -y -qq bats
 
+      # VITO_TEST_MONGO: live-check-mongo.bats corre contra mongo:7.0.14 real
       - name: bats
+        env:
+          VITO_TEST_MONGO: '1'
         run: bats infrastructure/deploy/tests
 
       - name: Validate docker-compose.prod.yml
@@ -325,6 +328,9 @@ jobs:
     name: Docker Build (${{ matrix.service }})
     runs-on: ubuntu-latest
     needs: [backend, transcode-service]
+    permissions:
+      contents: read
+      security-events: write   # SARIF de Trivy a Code Scanning (T049)
     strategy:
       fail-fast: false
       matrix:
@@ -358,3 +364,25 @@ jobs:
           tags: vito/${{ matrix.service }}:ci
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          outputs: type=docker,dest=${{ runner.temp }}/image.tar
+
+      # Informativo (T049, research R17): el mismo escaneo que bloquea en cd.yml, aquí sin
+      # bloquear, para ver el problema en el PR antes del release
+      - name: Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          input: ${{ runner.temp }}/image.tar
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '0'
+          trivyignores: .trivyignore
+          format: sarif
+          output: ${{ runner.temp }}/trivy.sarif
+
+      # Los PR desde un fork no tienen permiso de escritura en Code Scanning
+      - name: Subir a Code Scanning
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: ${{ runner.temp }}/trivy.sarif
+          category: trivy-${{ matrix.service }}

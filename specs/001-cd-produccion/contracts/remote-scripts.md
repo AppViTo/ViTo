@@ -24,7 +24,7 @@ de stdout para el *job summary*. `check` y `status` no escriben nada.
 |---------|--------------|--------|
 | `apply` | `releases/<sha>/` copiado e imágenes cargadas | genera `versions.env` desde el activo + `--changed` (con `RELEASE_VERSION` y los `CFG_*`), valida, activa, espera salud y, si falla, vuelve sola al anterior (R4) |
 | `rollback` | `releases/<sha>/` retenido (últimos 3 con éxito) | activa ese bundle sin reconstruir, espera salud y, si falla, vuelve al que estaba |
-| `check` | `releases/<sha>/` copiado | `config -q` con el `.env` real y `status`; no cambia `current` ni reinicia nada (verificación previa, R8) |
+| `check` | `releases/<sha>/` copiado | `config -q` con el `.env` real y `status`; no cambia `current` ni reinicia nada (verificación previa, R8). Con `DEPLOY_ENV_FILE` valida contra esa copia del `.env` (cd.yml usa `/opt/vito/.env.preflight` y la borra) |
 | `status` | — | imprime `DEPLOYED_SHA`, versiones por servicio y estado de salud (sin secretos) |
 
 `--meta` lleva los campos que solo conoce GitHub (`approver`, `triggered_by`, `reason`,
@@ -46,6 +46,9 @@ live-check.sh            # exit 0 = libre u omitido, 3 = bloqueado, 7 = no se pu
 
 Si no existe `/opt/vito/current` o el contenedor `mongodb` no está corriendo, sale con 0 e
 imprime `{"skipped":"first-deploy"}` sin consultar nada (R6).
+
+La consulta está en `live-check.js` (corre con `mongosh --nodb` dentro del contenedor
+`mongodb`, que se encuentra por las etiquetas de Compose del proyecto `vito`).
 
 Imprime en stdout un JSON `{"events":[{"id","title"}],"streams":[{"id","eventId"}]}`. Usa
 `vito_deploy_ro` (R6); su contraseña llega por la variable de entorno

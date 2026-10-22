@@ -71,7 +71,8 @@ el job falla después de moverlo).
 mismos *scopes* del job `docker-build` de CI), exporta cada imagen con
 `docker save | zstd` y la sube como artifact con retención de 1 día. El job `deploy`
 (después de la aprobación) descarga los artifacts y los carga en el VPS con
-`zstd -d | ssh deploy@vps docker load`.
+`ssh deploy@vps 'zstd -dc | docker load' < imagen.tar.zst`: viaja comprimida y se descomprime
+en el VPS (`bootstrap.sh` instala `zstd`).
 
 **Justificación:** construir antes de la aprobación hace que el tiempo entre aprobar y
 tener producción sana sea solo transferencia y arranque (SC-001 ≤ 15 min). Sin registro,

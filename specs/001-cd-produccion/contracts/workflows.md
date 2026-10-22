@@ -88,6 +88,10 @@ Ningún valor entra al repo ni al chat. Los carga un lead (T-I06).
 | `VITO_API_BASE_URL` | `https://api.<dominio>/api/v1` |
 | `VITO_WS_BASE_URL` | `wss://api.<dominio>` |
 | `PAGES_PROJECT` | `vito-web` |
+| `ALERT_FROM` | `ViTo <alertas@send.<dominio>>`: remitente de los avisos por correo (Resend); sin él, solo Telegram |
+
+**Secretos del repositorio** (no de un Environment): `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`,
+para `expire-approvals.yml`, que corre desde la rama por defecto y sin Environment.
 
 El dominio no se escribe en el repo: llega por `DOTENV_PRODUCTION` (`DOMAIN`) y por estas
 variables.

@@ -1,0 +1,51 @@
+# Conexión SSH al VPS para cd.yml y rollback.yml (feature 001, T019, T028; FR-014).
+# Deja el alias `vps` en ~/.ssh/config: huella fija (StrictHostKeyChecking=yes), solo la
+# llave del pipeline y sin preguntas. El host se enmascara en los logs (el repo es público).
+# Borrar ~/.ssh/vito_* al final del job (paso con `if: always()`).
+name: VPS SSH
+description: Configura el alias ssh `vps` con huella fija
+
+inputs:
+  host:
+    description: IP o nombre del VPS (secreto SSH_HOST)
+    required: true
+  user:
+    description: Usuario (secreto SSH_USER, `deploy`)
+    required: true
+  key:
+    description: Llave privada ed25519 del pipeline (secreto SSH_KEY)
+    required: true
+  known-hosts:
+    description: Salida verificada de ssh-keyscan (secreto SSH_KNOWN_HOSTS)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Configurar ssh
+      shell: bash
+      env:
+        HOST: ${{ inputs.host }}
+        USER_NAME: ${{ inputs.user }}
+        KEY: ${{ inputs.key }}
+        KNOWN_HOSTS: ${{ inputs.known-hosts }}
+      run: |
+        echo "::add-mask::$HOST"
+        install -d -m 700 ~/.ssh
+        (umask 077 && printf '%s\n' "$KEY" > ~/.ssh/vito_key)
+        printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/vito_known_hosts
+        cat > ~/.ssh/config <<EOF
+        Host vps
+          HostName $HOST
+          User $USER_NAME
+          IdentityFile ~/.ssh/vito_key
+          IdentitiesOnly yes
+          UserKnownHostsFile ~/.ssh/vito_known_hosts
+          StrictHostKeyChecking yes
+          BatchMode yes
+          ConnectTimeout 20
+          ServerAliveInterval 30
+        EOF
+        chmod 600 ~/.ssh/config
+        ssh vps true
+        echo "SSH con huella verificada: OK"

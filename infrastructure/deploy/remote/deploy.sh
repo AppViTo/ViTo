@@ -17,7 +17,8 @@ set -euo pipefail
 VITO_ROOT=${VITO_ROOT:-/opt/vito}
 RELEASES=$VITO_ROOT/releases
 CURRENT=$VITO_ROOT/current
-ENV_FILE=$VITO_ROOT/.env
+# La verificación previa (cd.yml, mode=preflight) valida con una copia y no pisa el .env
+ENV_FILE=${DEPLOY_ENV_FILE:-$VITO_ROOT/.env}
 HISTORY=$VITO_ROOT/history
 LOG=$VITO_ROOT/deployments.log
 KEEP=3
