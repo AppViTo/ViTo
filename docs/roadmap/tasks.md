@@ -80,7 +80,7 @@
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🟢 READY | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
 | T-I16 | Protección de rama en `main` y `develop` (tarea manual de leads) | I | P0 | ✅ HECHA (#49, manual) | [VITO-55](https://bernardo-mira.atlassian.net/browse/VITO-55) |
-| T-I17 | Gateway en `prod`: rutas de subida cerradas hasta la ola del mosaico (excepción A3) | I/B | P0 | 🔵 EN CURSO (backend/t-i17-close-upload-routes-prod) | — |
+| T-I17 | Gateway en `prod`: rutas de subida cerradas hasta la ola del mosaico (excepción A3) | I/B | P0 | ✅ HECHA (#156) | — |
 | T-I18 | Cabeceras de seguridad en Caddy (`api.`, `live.`) y CSP/HSTS en la web | I/F | P0 | 🟢 READY | — |
 | T-I19 | Un usuario de Mongo por servicio (sin root) | I/B | P1 | 🟢 READY | — |
 | T-I20 | Kafka con TLS y ACL por tópico (excepción A7) | I | P2 | ⚪ DIFERIDA (Fase Crecimiento; revisión 2027-04-22) | — |
@@ -624,7 +624,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** `gh api repos/AppViTo/ViTo/branches/main --jq .protected` devuelve `true` y
   las reglas de `main` coinciden con las de `develop`.
 
-### T-I17 · Rutas de subida cerradas en producción — 🔵 EN CURSO (backend/t-i17-close-upload-routes-prod) · P0 · Principio III, T051 (A3)
+### T-I17 · Rutas de subida cerradas en producción — ✅ HECHA (#156) · P0 · Principio III, T051 (A3)
 - **Por qué:** la constitución exige antimalware y moderación antes de publicar en el
   mosaico, y no existen. La excepción A3 del triage cierra la subida en producción hasta la
   ola del mosaico (Ola 3).
