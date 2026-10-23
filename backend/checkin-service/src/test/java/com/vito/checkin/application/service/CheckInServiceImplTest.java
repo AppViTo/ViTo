@@ -94,7 +94,7 @@ class CheckInServiceImplTest {
                 CheckInException.class,
                 () -> checkInService.generateTicket(command)
         );
-        assertEquals("You already have a check-in ticket for this event", exception.getMessage());
+        assertEquals("Ya tienes un ticket de check-in para este evento", exception.getMessage());
 
         verify(ticketRepository).existsByEventIdAndUserId("event123", "user123");
         verify(ticketRepository, never()).save(any());
@@ -150,7 +150,7 @@ class CheckInServiceImplTest {
                 CheckInException.class,
                 () -> checkInService.validateAndCheckIn(command)
         );
-        assertEquals("Invalid QR code", exception.getMessage());
+        assertEquals("El código QR no es válido", exception.getMessage());
     }
 
     @Test
@@ -177,7 +177,7 @@ class CheckInServiceImplTest {
                 CheckInException.class,
                 () -> checkInService.validateAndCheckIn(command)
         );
-        assertEquals("Check-in ticket has already been used", exception.getMessage());
+        assertEquals("El ticket de check-in ya se usó", exception.getMessage());
     }
 
     @Test
@@ -204,7 +204,7 @@ class CheckInServiceImplTest {
                 CheckInException.class,
                 () -> checkInService.validateAndCheckIn(command)
         );
-        assertEquals("Check-in ticket has expired", exception.getMessage());
+        assertEquals("El ticket de check-in expiró", exception.getMessage());
     }
 
     @Test

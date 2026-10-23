@@ -4,6 +4,7 @@ import com.vito.event.domain.model.Event;
 import com.vito.event.domain.model.Invitation;
 import com.vito.event.domain.model.RSVP;
 import com.vito.event.domain.port.inbound.EventService;
+import com.vito.event.domain.exception.EventException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -156,7 +157,7 @@ public class EventController {
     private String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("User not authenticated");
+            throw EventException.unauthenticated();
         }
         return authentication.getName();
     }

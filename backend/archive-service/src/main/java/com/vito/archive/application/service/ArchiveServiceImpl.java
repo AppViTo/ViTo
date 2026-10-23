@@ -5,6 +5,7 @@ import com.vito.archive.domain.model.ArchiveMedia;
 import com.vito.archive.domain.model.EventArchive;
 import com.vito.archive.domain.port.inbound.ArchiveService;
 import com.vito.archive.domain.port.outbound.*;
+import com.vito.archive.domain.exception.ArchiveException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -60,13 +61,13 @@ public class ArchiveServiceImpl implements ArchiveService {
     @Override
     public EventArchive getArchive(String archiveId) {
         return archiveRepository.findById(archiveId)
-                .orElseThrow(() -> new RuntimeException("Archive not found: " + archiveId));
+                .orElseThrow(ArchiveException::archiveNotFound);
     }
     
     @Override
     public EventArchive getArchiveByEventId(String eventId) {
         return archiveRepository.findByEventId(eventId)
-                .orElseThrow(() -> new RuntimeException("Archive not found for event: " + eventId));
+                .orElseThrow(ArchiveException::archiveNotFound);
     }
     
     @Override
@@ -150,7 +151,7 @@ public class ArchiveServiceImpl implements ArchiveService {
     @Override
     public ArchiveMedia getMediaById(String mediaId) {
         return mediaRepository.findById(mediaId)
-                .orElseThrow(() -> new RuntimeException("Media not found: " + mediaId));
+                .orElseThrow(ArchiveException::mediaNotFound);
     }
     
     @Override
@@ -196,10 +197,10 @@ public class ArchiveServiceImpl implements ArchiveService {
     @Override
     public ArchiveComment updateComment(String commentId, String userId, String content) {
         ArchiveComment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found: " + commentId));
+                .orElseThrow(ArchiveException::commentNotFound);
         
         if (!comment.getUserId().equals(userId)) {
-            throw new RuntimeException("Unauthorized to update this comment");
+            throw ArchiveException.notAuthorized();
         }
         
         comment.setContent(content);
@@ -211,10 +212,10 @@ public class ArchiveServiceImpl implements ArchiveService {
     @Override
     public void deleteComment(String commentId, String userId) {
         ArchiveComment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found: " + commentId));
+                .orElseThrow(ArchiveException::commentNotFound);
         
         if (!comment.getUserId().equals(userId)) {
-            throw new RuntimeException("Unauthorized to delete this comment");
+            throw ArchiveException.notAuthorized();
         }
         
         commentRepository.deleteById(commentId);

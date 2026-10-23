@@ -2,6 +2,7 @@ package com.vito.social.infrastructure.adapter.inbound.rest;
 
 import com.vito.social.domain.model.SocialProfile;
 import com.vito.social.domain.port.inbound.SocialService;
+import com.vito.social.domain.exception.SocialException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -97,7 +98,7 @@ public class SocialController {
     private String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("User not authenticated");
+            throw SocialException.unauthenticated();
         }
         return authentication.getName();
     }
