@@ -5,6 +5,11 @@
 # Agrupado: como máximo un PR de menores y parches y uno de mayores por ecosistema. Sin
 # grupos, la primera corrida abrió 30 PR y cada uno corre los 30 checks de CI, lo que
 # llenó la cola de runners.
+#
+# Límites del stack (constitución §stack, ADR-011): los `ignore` impiden que Dependabot proponga
+# versiones fuera de lo definido. Subir JDK, Spring Boot o Spring Cloud de línea es T-B10
+# (requiere spec propio): poms, java.version y backend/Dockerfile se cambian juntos. La imagen
+# de backup lleva la misma versión mayor que el Mongo de docker-compose.prod.yml (se fija a mano).
 version: 2
 
 updates:
@@ -21,6 +26,12 @@ updates:
       - /backend/chat-service
       - /backend/media-service
     schedule: { interval: weekly }
+    ignore:
+      # Spring Boot 3.x y su Spring Cloud compatible; el salto de línea es T-B10
+      - dependency-name: "org.springframework.boot:*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "org.springframework.cloud:*"
+        update-types: ["version-update:semver-major"]
     target-branch: develop
     open-pull-requests-limit: 2
     groups:
@@ -89,6 +100,13 @@ updates:
       - /ai-services/moderation-service
       - /infrastructure/backup
     schedule: { interval: weekly }
+    ignore:
+      # El JDK de la imagen va con java.version de los poms (T-B10)
+      - dependency-name: "eclipse-temurin"
+        update-types: ["version-update:semver-major"]
+      # Debe coincidir con el servidor (mongo:7.0.x en docker-compose.prod.yml)
+      - dependency-name: "mongo"
+        update-types: ["version-update:semver-major"]
     target-branch: develop
     open-pull-requests-limit: 2
     groups:
