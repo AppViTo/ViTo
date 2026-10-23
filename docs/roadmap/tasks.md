@@ -75,18 +75,18 @@
 | T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY | [VITO-51](https://bernardo-mira.atlassian.net/browse/VITO-51) |
 | T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | 🟢 READY (manual, leads) | [VITO-45](https://bernardo-mira.atlassian.net/browse/VITO-45) |
 | T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔴 BLOQUEADA (T-I06) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
-| T-I11 | Frontend web en Cloudflare Pages | I/F | P1 | 🔴 BLOQUEADA (T-I06) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
+| T-I11 | Frontend web en Cloudflare Pages, con la CSP/HSTS de la web (antes en T-I18) | I/F | P1 | 🔴 BLOQUEADA (T-I06) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
 | T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (T-I06) | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🟢 READY | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
 | T-I16 | Protección de rama en `main` y `develop` (tarea manual de leads) | I | P0 | ✅ HECHA (#49, manual) | [VITO-55](https://bernardo-mira.atlassian.net/browse/VITO-55) |
 | T-I17 | Gateway en `prod`: rutas de subida cerradas hasta la ola del mosaico (excepción A3) | I/B | P0 | 🟢 READY | — |
-| T-I18 | Cabeceras de seguridad en Caddy (`api.`, `live.`) y CSP/HSTS en la web | I/F | P0 | 🔵 EN CURSO (chore/t-i18-security-headers) | — |
+| T-I18 | Cabeceras de seguridad en Caddy (`api.`, `live.`); la parte web pasa a T-I11 | I | P0 | 🔵 EN CURSO (chore/t-i18-security-headers) | — |
 | T-I19 | Un usuario de Mongo por servicio (sin root) | I/B | P1 | 🟢 READY | — |
 | T-I20 | Kafka con TLS y ACL por tópico (excepción A7) | I | P2 | ⚪ DIFERIDA (Fase Crecimiento; revisión 2027-04-22) | — |
 
-**Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17 y T-I18,
-más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
+**Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
+T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
 gitleaks, Dependabot). Las de P1 del triage bloquean la apertura a usuarios reales.
 
 Bloqueadas (no tomar): T-C07 (VITO-16), T-F02 (VITO-19), T-F05 (VITO-22), T-F08 (VITO-25), T-B06 (VITO-31), T-B07 (VITO-32), T-B10 (VITO-35), T-B13 (VITO-38), T-B18, T-I08 (VITO-47), T-I11 (VITO-50), T-I13 (VITO-52).
@@ -570,8 +570,18 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 ### T-I11 · Frontend web en Cloudflare Pages — 🔴 BLOQUEADA por T-I06 · P1 · ADR-011
 - **Qué:** reemplazar el deploy a Vercel de `deploy-frontend.yml` por Cloudflare Pages
   (`wrangler pages deploy`), con las mismas puertas de calidad y el build estricto de T-F06.
+- **Cabeceras de la web (separadas de T-I18 el 2026-10-23):** van en el `_headers` de T031 de
+  la feature 001 (despliegue de T032): `Strict-Transport-Security` y una CSP compatible con
+  Flutter: `default-src 'self'`, `script-src 'self' 'wasm-unsafe-eval'`, `connect-src` con la
+  API y el WS, `img-src` con `media.`, `frame-ancestors 'none'`. CanvasKit y las fuentes se
+  sirven desde el propio sitio (`flutter build web --no-web-resources-cdn`). Como el dominio no
+  va en el repo, `deploy-frontend.yml` completa los orígenes de la CSP desde `vars.*` al generar
+  `_headers`. Ojo: el motor web de Flutter descarga las fuentes de respaldo (Noto) de
+  `fonts.gstatic.com` aunque se use `--no-web-resources-cdn`; o se permite ese origen en
+  `font-src`/`connect-src` o se sirve desde el sitio con `fontFallbackBaseUrl`.
 - **Cierre:** un merge a `main` publica la web en Pages con `API_BASE_URL`/`WS_BASE_URL` de
-  producción.
+  producción; `curl -I` muestra HSTS y la CSP en la web, que carga sin violaciones de CSP en la
+  consola del navegador (quickstart, paso 6).
 
 ### T-I12 · CI incremental — 🟢 READY · P1 · ADR-011
 - **Qué:** que `ci.yml` construya y pruebe solo los servicios cuyos archivos cambiaron
@@ -636,18 +646,14 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   la moderación, y se cierra la excepción A3.
 
 ### T-I18 · Cabeceras de seguridad — 🔵 EN CURSO (chore/t-i18-security-headers) · P0 · Principio III, T051 (A4)
-- **Qué:**
-  - `infrastructure/caddy/Caddyfile`: en `api.` y `live.`, `Strict-Transport-Security:
-    max-age=31536000; includeSubDomains`, `X-Content-Type-Options: nosniff`,
-    `Referrer-Policy: no-referrer` y quitar `Server`.
-  - Web en Pages: ampliar T031 de la feature 001 con `Strict-Transport-Security` y una CSP
-    compatible con Flutter: `default-src 'self'`, `script-src 'self' 'wasm-unsafe-eval'`,
-    `connect-src` con la API y el WS, `img-src` con `media.`, `frame-ancestors 'none'`.
-    CanvasKit y las fuentes se sirven desde el propio sitio (`flutter build web
-    --no-web-resources-cdn`). Como el dominio no va en el repo, `deploy-frontend.yml`
-    completa los orígenes de la CSP desde `vars.*` al generar `_headers`.
-- **Cierre:** `curl -I` muestra las cabeceras en `api.`, `live.` y la web; la web carga sin
-  violaciones de CSP en la consola del navegador (quickstart, paso 6).
+- **Qué:** `infrastructure/caddy/Caddyfile`: en `api.` y `live.`,
+  `Strict-Transport-Security: max-age=31536000; includeSubDomains`,
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` y quitar `Server`.
+- **Alcance (2026-10-23):** la parte web (CSP y HSTS en Pages) pasó a T-I11. La web sigue en
+  Vercel, que ignora `_headers`, y el cierre en el navegador requiere Pages (bloqueada por T-I06).
+- **Cierre:** `infrastructure/caddy/tests/security-headers.sh` (job Deploy Scripts de CI)
+  levanta el Caddyfile real con backends falsos y comprueba con `curl` las cabeceras en
+  `api.` y `live.`, también en lo que llega por `reverse_proxy`.
 
 ### T-I19 · Un usuario de Mongo por servicio — 🟢 READY · P1 · Principios II y III, T051 (M12)
 - **Hallazgo:** los 10 servicios Java usan el usuario root (`MONGODB_URI` en
