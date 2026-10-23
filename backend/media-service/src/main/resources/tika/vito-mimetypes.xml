@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Extiende la detección de Tika (T-B19); lo carga TikaFileTypeDetector.
+  Tika solo reconoce como video/mp4 las marcas mp41 y mp42; los MP4 con marca isom,
+  iso2 o avc1 (Android, ffmpeg, cámaras) los clasifica como video/quicktime y se
+  rechazarían. Los QuickTime reales (marca "qt  ") y los HEIC se detectan igual que antes.
+-->
+<mime-info>
+  <mime-type type="video/mp4">
+    <magic priority="60">
+      <match value="ftypisom" type="string" offset="4"/>
+      <match value="ftypiso2" type="string" offset="4"/>
+      <match value="ftypavc1" type="string" offset="4"/>
+    </magic>
+  </mime-type>
+</mime-info>

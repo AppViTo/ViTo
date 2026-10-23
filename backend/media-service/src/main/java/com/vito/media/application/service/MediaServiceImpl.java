@@ -3,6 +3,7 @@ package com.vito.media.application.service;
 import com.vito.media.domain.exception.MediaException;
 import com.vito.media.domain.model.Media;
 import com.vito.media.domain.port.inbound.MediaService;
+import com.vito.media.domain.port.outbound.FileTypeDetectorPort;
 import com.vito.media.domain.port.outbound.ImageProcessingPort;
 import com.vito.media.domain.port.outbound.MediaEventPublisher;
 import com.vito.media.domain.port.outbound.MediaRepository;
@@ -16,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,11 +31,13 @@ public class MediaServiceImpl implements MediaService {
     private final StoragePort storagePort;
     private final MediaEventPublisher eventPublisher;
     private final ImageProcessingPort imageProcessingPort;
+    private final FileTypeDetectorPort fileTypeDetector;
 
-    @Value("${media.max-file-size:104857600}") // 100MB default
+    // CONVENTIONS §8: 10 MB y estos cuatro formatos
+    @Value("${media.max-file-size:10485760}")
     private long maxFileSize;
 
-    @Value("${media.allowed-types:image/jpeg,image/png,image/gif,video/mp4,video/webm,audio/mpeg}")
+    @Value("${media.allowed-types:image/jpeg,image/png,image/webp,video/mp4}")
     private String allowedTypes;
 
     @Value("${s3.bucket}")
@@ -42,21 +46,22 @@ public class MediaServiceImpl implements MediaService {
     @Override
     @Transactional
     public Media uploadMedia(MultipartFile file, String eventId, String userId) {
-        // Validate file
         validateFile(file);
 
         try {
+            byte[] data = file.getBytes();
+            String contentType = verifiedContentType(file.getContentType(), data);
+
             String fileName = generateFileName(file.getOriginalFilename());
             String key = String.format("events/%s/%s/%s", eventId, userId, fileName);
 
             // Upload to S3
-            byte[] data = file.getBytes();
-            String url = storagePort.uploadFile(key, data, file.getContentType());
+            String url = storagePort.uploadFile(key, data, contentType);
 
             // Extract metadata for images
             Media.MediaMetadata metadata = null;
-            if (imageProcessingPort.isImage(file.getContentType())) {
-                metadata = imageProcessingPort.extractMetadata(data, file.getContentType());
+            if (imageProcessingPort.isImage(contentType)) {
+                metadata = imageProcessingPort.extractMetadata(data, contentType);
             }
 
             // Create thumbnail for images
@@ -65,10 +70,10 @@ public class MediaServiceImpl implements MediaService {
                     .key(key)
                     .url(url);
 
-            if (imageProcessingPort.isImage(file.getContentType()) && metadata != null) {
+            if (imageProcessingPort.isImage(contentType) && metadata != null) {
                 byte[] thumbnail = imageProcessingPort.createThumbnail(data, 200, 200);
                 String thumbnailKey = key.replace(fileName, "thumb_" + fileName);
-                String thumbnailUrl = storagePort.uploadFile(thumbnailKey, thumbnail, file.getContentType());
+                String thumbnailUrl = storagePort.uploadFile(thumbnailKey, thumbnail, contentType);
                 locationBuilder.thumbnailKey(thumbnailKey).thumbnailUrl(thumbnailUrl);
             }
 
@@ -78,7 +83,7 @@ public class MediaServiceImpl implements MediaService {
                     .uploadedBy(userId)
                     .fileName(fileName)
                     .originalFileName(file.getOriginalFilename())
-                    .contentType(file.getContentType())
+                    .contentType(contentType)
                     .fileSize(file.getSize())
                     .status(Media.MediaStatus.UPLOADED)
                     .metadata(metadata)
@@ -208,7 +213,7 @@ public class MediaServiceImpl implements MediaService {
 
     private void validateFile(MultipartFile file) {
         if (file.isEmpty()) {
-            throw new MediaException.UploadFailedException("File is empty");
+            throw new MediaException.EmptyFileException();
         }
 
         if (file.getSize() > maxFileSize) {
@@ -216,19 +221,27 @@ public class MediaServiceImpl implements MediaService {
         }
 
         String contentType = file.getContentType();
-        if (contentType == null || !isAllowedType(contentType)) {
-            throw new MediaException.UnsupportedFileTypeException(contentType);
+        if (contentType == null || !allowedTypeList().contains(contentType)) {
+            throw new MediaException.UnsupportedFileTypeException(contentType, allowedTypeList());
         }
     }
 
-    private boolean isAllowedType(String contentType) {
-        String[] types = allowedTypes.split(",");
-        for (String type : types) {
-            if (type.trim().equals(contentType)) {
-                return true;
-            }
+    /** El Content-Type lo pone el cliente: vale solo si coincide con el tipo real del contenido (T-B19). */
+    private String verifiedContentType(String declaredType, byte[] data) {
+        String detectedType = fileTypeDetector.detect(data);
+        if (!allowedTypeList().contains(detectedType)) {
+            throw new MediaException.UnsupportedFileTypeException(detectedType, allowedTypeList());
         }
-        return false;
+        if (!detectedType.equals(declaredType)) {
+            throw new MediaException.ContentTypeMismatchException(declaredType, detectedType, allowedTypeList());
+        }
+        return detectedType;
+    }
+
+    private List<String> allowedTypeList() {
+        return Arrays.stream(allowedTypes.split(","))
+                .map(String::trim)
+                .toList();
     }
 
     private String generateFileName(String originalFileName) {

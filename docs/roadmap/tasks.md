@@ -60,10 +60,10 @@
 | T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | ✅ HECHA (#33) | [VITO-39](https://bernardo-mira.atlassian.net/browse/VITO-39) |
 | T-B15 | Códigos y errores de auth-service y `createEvent` según los fixtures | B | P0 | ✅ HECHA (#39) | [VITO-40](https://bernardo-mira.atlassian.net/browse/VITO-40) |
 | T-B16 | `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 | B | P0 | ✅ HECHA (#40) | [VITO-41](https://bernardo-mira.atlassian.net/browse/VITO-41) |
-| T-B17 | `/events/upcoming` lista eventos privados ajenos (filtro `settings.isPublic`) | B | P0 | 🟢 READY | [VITO-56](https://bernardo-mira.atlassian.net/browse/VITO-56) |
+| T-B17 | `/events/upcoming` lista eventos privados ajenos (filtro `settings.isPublic`) | B | P0 | ✅ HECHA (#153) | [VITO-56](https://bernardo-mira.atlassian.net/browse/VITO-56) |
 | T-B03 | Envelope ADR-003 en los 6 servicios sin handler (copia temporal, ADR-017) | B | P1 | 🟢 READY | [VITO-28](https://bernardo-mira.atlassian.net/browse/VITO-28) |
 | T-B18 | Parent POM + `backend/shared-web`; borrar copias de filtro JWT y handler (ADR-017) | B/I | P1 | 🔴 BLOQUEADA (Ola 1) | — |
-| T-B19 | media-service: magic bytes, MIME de CONVENTIONS §8 y límite de 10 MB | B | P0 | 🟢 READY | — |
+| T-B19 | media-service: magic bytes, MIME de CONVENTIONS §8 y límite de 10 MB | B | P0 | ✅ HECHA (#155) | — |
 | T-B20 | chat-service: orígenes del WS desde configuración (hoy fijos en `localhost`) | B | P0 | 🟢 READY | — |
 | T-B21 | Revocación inmediata de access tokens (lista negra por `jti` en el gateway) | B | P1 | 🟢 READY | — |
 | T-B22 | Throttling de login por cuenta | B | P1 | 🟡 RFC | — |
@@ -80,8 +80,8 @@
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🟢 READY | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
 | T-I16 | Protección de rama en `main` y `develop` (tarea manual de leads) | I | P0 | ✅ HECHA (#49, manual) | [VITO-55](https://bernardo-mira.atlassian.net/browse/VITO-55) |
-| T-I17 | Gateway en `prod`: rutas de subida cerradas hasta la ola del mosaico (excepción A3) | I/B | P0 | 🟢 READY | — |
-| T-I18 | Cabeceras de seguridad en Caddy (`api.`, `live.`); la parte web pasa a T-I11 | I | P0 | ✅ HECHA (#157) | — |
+| T-I17 | Gateway en `prod`: rutas de subida cerradas hasta la ola del mosaico (excepción A3) | I/B | P0 | ✅ HECHA (#156) | — |
+| T-I18 | Cabeceras de seguridad en Caddy (`api.`, `live.`) y CSP/HSTS en la web | I/F | P0 | 🟢 READY | — |
 | T-I19 | Un usuario de Mongo por servicio (sin root) | I/B | P1 | 🟢 READY | — |
 | T-I20 | Kafka con TLS y ACL por tópico (excepción A7) | I | P2 | ⚪ DIFERIDA (Fase Crecimiento; revisión 2027-04-22) | — |
 
@@ -386,7 +386,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** test de la respuesta de las tres operaciones con `expiresIn` igual a
   `jwt.expiration / 1000`.
 
-### T-B17 · Fuga de eventos privados en `/events/upcoming` — 🟢 READY · P0 · Principio III, ADR-014
+### T-B17 · Fuga de eventos privados en `/events/upcoming` — ✅ HECHA (#153) · P0 · Principio III, ADR-014
 - **Hallazgo (D-03):** `EventMongoAdapter.findUpcomingEvents` filtra por
   `status = PUBLISHED` y `details.startDate` ≥ ahora, pero no por `settings.isPublic`.
   Cualquier usuario autenticado lista eventos privados ajenos (título, fechas, descripción).
@@ -410,7 +410,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** ninguna clase duplicada entre servicios (`JwtAuthenticationFilter`,
   `ErrorResponse`, handler); CI y build de imágenes verdes para los 10 servicios.
 
-### T-B19 · Validación de subida en media-service — 🟢 READY · P0 · Principio III, CONVENTIONS §8, T051 (A1, A2)
+### T-B19 · Validación de subida en media-service — ✅ HECHA (#155) · P0 · Principio III, CONVENTIONS §8, T051 (A1, A2)
 - **Hallazgo:** `MediaServiceImpl.validateFile` confía en el `Content-Type` que manda el
   cliente, acepta `image/gif`, `video/webm` y `audio/mpeg` (fuera del contrato) y el límite
   es de 100 MB (`media.max-file-size` y `spring.servlet.multipart.*`).
@@ -634,7 +634,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** `gh api repos/AppViTo/ViTo/branches/main --jq .protected` devuelve `true` y
   las reglas de `main` coinciden con las de `develop`.
 
-### T-I17 · Rutas de subida cerradas en producción — 🟢 READY · P0 · Principio III, T051 (A3)
+### T-I17 · Rutas de subida cerradas en producción — ✅ HECHA (#156) · P0 · Principio III, T051 (A3)
 - **Por qué:** la constitución exige antimalware y moderación antes de publicar en el
   mosaico, y no existen. La excepción A3 del triage cierra la subida en producción hasta la
   ola del mosaico (Ola 3).
