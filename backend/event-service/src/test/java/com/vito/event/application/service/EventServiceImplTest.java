@@ -430,4 +430,34 @@ class EventServiceImplTest {
 
         assertAddressHidden(eventService.getUpcomingEvents(0, 20, "stranger").get(0));
     }
+
+    // T-B17: size acotado a 1..100 en /my-events y /upcoming
+
+    @Test
+    void getUpcomingEvents_SizeOver100_IsCappedAt100() {
+        eventService.getUpcomingEvents(0, 500, "user1");
+
+        verify(eventRepository).findUpcomingEvents(0, 100);
+    }
+
+    @Test
+    void getUpcomingEvents_SizeZero_DoesNotBecomeUnlimited() {
+        eventService.getUpcomingEvents(0, 0, "user1");
+
+        verify(eventRepository).findUpcomingEvents(0, 1);
+    }
+
+    @Test
+    void getUserEvents_SizeOver100_IsCappedAt100() {
+        eventService.getUserEvents("organizer123", 2, 101);
+
+        verify(eventRepository).findByOrganizerId("organizer123", 2, 100);
+    }
+
+    @Test
+    void getUserEvents_SizeWithinLimit_IsKept() {
+        eventService.getUserEvents("organizer123", 0, 100);
+
+        verify(eventRepository).findByOrganizerId("organizer123", 0, 100);
+    }
 }
