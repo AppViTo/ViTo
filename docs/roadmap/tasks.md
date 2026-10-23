@@ -63,7 +63,7 @@
 | T-B17 | `/events/upcoming` lista eventos privados ajenos (filtro `settings.isPublic`) | B | P0 | 🟢 READY | [VITO-56](https://bernardo-mira.atlassian.net/browse/VITO-56) |
 | T-B03 | Envelope ADR-003 en los 6 servicios sin handler (copia temporal, ADR-017) | B | P1 | 🟢 READY | [VITO-28](https://bernardo-mira.atlassian.net/browse/VITO-28) |
 | T-B18 | Parent POM + `backend/shared-web`; borrar copias de filtro JWT y handler (ADR-017) | B/I | P1 | 🔴 BLOQUEADA (Ola 1) | — |
-| T-B19 | media-service: magic bytes, MIME de CONVENTIONS §8 y límite de 10 MB | B | P0 | 🟢 READY | — |
+| T-B19 | media-service: magic bytes, MIME de CONVENTIONS §8 y límite de 10 MB | B | P0 | 🔵 EN CURSO (backend/t-b19-media-upload-validation) | — |
 | T-B20 | chat-service: orígenes del WS desde configuración (hoy fijos en `localhost`) | B | P0 | 🟢 READY | — |
 | T-B21 | Revocación inmediata de access tokens (lista negra por `jti` en el gateway) | B | P1 | 🟢 READY | — |
 | T-B22 | Throttling de login por cuenta | B | P1 | 🟡 RFC | — |
@@ -410,7 +410,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** ninguna clase duplicada entre servicios (`JwtAuthenticationFilter`,
   `ErrorResponse`, handler); CI y build de imágenes verdes para los 10 servicios.
 
-### T-B19 · Validación de subida en media-service — 🟢 READY · P0 · Principio III, CONVENTIONS §8, T051 (A1, A2)
+### T-B19 · Validación de subida en media-service — 🔵 EN CURSO (backend/t-b19-media-upload-validation) · P0 · Principio III, CONVENTIONS §8, T051 (A1, A2)
 - **Hallazgo:** `MediaServiceImpl.validateFile` confía en el `Content-Type` que manda el
   cliente, acepta `image/gif`, `video/webm` y `audio/mpeg` (fuera del contrato) y el límite
   es de 100 MB (`media.max-file-size` y `spring.servlet.multipart.*`).
