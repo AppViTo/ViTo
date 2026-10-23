@@ -75,6 +75,13 @@
             <version>2.25.5</version>
         </dependency>
         
+        <!-- Tipo real del archivo por magic bytes (T-B19); tika-core no trae parsers -->
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>3.3.1</version>
+        </dependency>
+        
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
