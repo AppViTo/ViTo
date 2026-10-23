@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../domain/entities/archive.dart' show EventArchive;
 import '../bloc/archive_bloc.dart';
 import '../bloc/archive_event.dart';
 import '../bloc/archive_state.dart';
@@ -99,7 +100,7 @@ class _ArchiveDetailPageState extends State<ArchiveDetailPage>
     );
   }
   
-  Widget _buildArchiveDetail(archive) {
+  Widget _buildArchiveDetail(EventArchive archive) {
     return Column(
       children: [
         if (archive.coverUrl != null)
@@ -197,7 +198,7 @@ class _ArchiveDetailPageState extends State<ArchiveDetailPage>
     );
   }
   
-  Widget _buildDetailsTab(archive) {
+  Widget _buildDetailsTab(EventArchive archive) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(

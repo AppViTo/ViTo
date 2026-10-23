@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
+import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
@@ -39,11 +41,16 @@ public class S3StorageAdapter implements StoragePort {
                 .pathStyleAccessEnabled(settings.pathStyle())
                 .build();
 
+        // Desde el SDK 2.30 los PUT llevan checksum CRC en un cuerpo aws-chunked; SeaweedFS
+        // guarda ese cuerpo tal cual ("4;chunk-signature=...") y el archivo queda corrupto.
+        // WHEN_REQUIRED: checksum solo en las operaciones que lo exigen, como los S3 no-AWS.
         this.s3Client = S3Client.builder()
                 .endpointOverride(endpoint)
                 .credentialsProvider(credentials)
                 .region(region)
                 .serviceConfiguration(s3Configuration)
+                .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
+                .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
                 .build();
 
         this.presigner = S3Presigner.builder()

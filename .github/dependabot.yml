@@ -27,9 +27,11 @@ updates:
       - /backend/media-service
     schedule: { interval: weekly }
     ignore:
-      # Spring Boot 3.x y su Spring Cloud compatible; el salto de línea es T-B10
+      # Spring Boot y su Spring Cloud compatible: subir de línea (3.2 → 3.5) es T-B10, que pide
+      # spec propio. Cada línea de Boot exige otro tren de Spring Cloud (#154 rompió el gateway).
+      # Los parches de 3.2.x sí llegan.
       - dependency-name: "org.springframework.boot:*"
-        update-types: ["version-update:semver-major"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "org.springframework.cloud:*"
         update-types: ["version-update:semver-major"]
     target-branch: develop

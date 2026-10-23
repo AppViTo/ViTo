@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.1</version>
+        <version>3.2.12</version>
         <relativePath/>
     </parent>
     
@@ -21,6 +21,9 @@
         <java.version>17</java.version>
         <!-- La 1.19 de Spring Boot 3.2 no habla con Docker Engine 29 (API mínima 1.44) -->
         <testcontainers.version>1.21.4</testcontainers.version>
+        <!-- El AWS SDK 2.57 usa httpclient5 5.6 (TlsSocketStrategy); Spring Boot 3.2 fija 5.2 -->
+        <httpclient5.version>5.6.4</httpclient5.version>
+        <httpcore5.version>5.4.3</httpcore5.version>
     </properties>
     
     <dependencies>
@@ -72,7 +75,7 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
-            <version>2.25.5</version>
+            <version>2.57.0</version>
         </dependency>
         
         <!-- Tipo real del archivo por magic bytes (T-B19); tika-core no trae parsers -->
@@ -86,18 +89,18 @@
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
-            <version>0.12.3</version>
+            <version>0.13.0</version>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
-            <version>0.12.3</version>
+            <version>0.13.0</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
-            <version>0.12.3</version>
+            <version>0.13.0</version>
             <scope>runtime</scope>
         </dependency>
         

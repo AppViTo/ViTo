@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../domain/entities/chat_room.dart';
 import '../bloc/chat_bloc.dart';
 import '../bloc/chat_state.dart';
 
@@ -100,7 +101,7 @@ class _ChatRoomsPageState extends State<ChatRoomsPage> {
     );
   }
 
-  Widget _buildRoomTile(room) {
+  Widget _buildRoomTile(ChatRoom room) {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: AppColors.primary.withValues(alpha: 0.1),
