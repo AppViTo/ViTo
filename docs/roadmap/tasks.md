@@ -81,7 +81,7 @@
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
 | T-I16 | Protección de rama en `main` y `develop` (tarea manual de leads) | I | P0 | ✅ HECHA (#49, manual) | [VITO-55](https://bernardo-mira.atlassian.net/browse/VITO-55) |
 | T-I17 | Gateway en `prod`: rutas de subida cerradas hasta la ola del mosaico (excepción A3) | I/B | P0 | ✅ HECHA (#156) | — |
-| T-I18 | Cabeceras de seguridad en Caddy (`api.`, `live.`) y CSP/HSTS en la web | I/F | P0 | 🟢 READY | — |
+| T-I18 | Cabeceras de seguridad en Caddy (`api.`, `live.`); la CSP/HSTS de la web pasó a T-I11 | I | P0 | ✅ HECHA (#157) | — |
 | T-I19 | Un usuario de Mongo por servicio (sin root) | I/B | P1 | 🟢 READY | — |
 | T-I20 | Kafka con TLS y ACL por tópico (excepción A7) | I | P2 | ⚪ DIFERIDA (Fase Crecimiento; revisión 2027-04-22) | — |
 
