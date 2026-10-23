@@ -140,7 +140,7 @@ void main() {
       expect(json['details']['longitude'], -74.0721);
     });
 
-    test('listEvents.200.json es un array plano de eventos (ADR-002)', () {
+    test('listEvents.mine.200.json es un array plano de eventos (ADR-002)', () {
       final list = loadFixtureList('events/listEvents.mine.200.json');
 
       expect(list, isNotEmpty);
