@@ -8,7 +8,7 @@
 # Lo que no entra en la imagen está en Dockerfile.dockerignore (junto a este archivo).
 
 # ── Build ───────────────────────────────────────────────────────
-FROM eclipse-temurin:17-jdk-jammy AS build
+FROM eclipse-temurin:25-jdk-jammy AS build
 WORKDIR /src
 
 # Dependencias primero: esta capa solo se invalida si cambia el pom.xml
@@ -22,7 +22,7 @@ RUN --mount=type=cache,target=/root/.m2,sharing=locked ./mvnw -B -q package -Dsk
  && cp target/*.jar /app.jar
 
 # ── Runtime ─────────────────────────────────────────────────────
-FROM eclipse-temurin:17-jre-jammy
+FROM eclipse-temurin:25-jre-jammy
 
 # curl solo para el healthcheck (GET /actuator/health/readiness)
 RUN apt-get update \
