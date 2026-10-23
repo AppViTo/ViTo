@@ -36,7 +36,7 @@ dependencies:
   
   # QR Code
   qr_flutter: ^4.1.0
-  mobile_scanner: ^7.3.0
+  mobile_scanner: ^7.4.2
   
   # Video Player
   video_player: ^2.14.1
