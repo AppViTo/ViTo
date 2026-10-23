@@ -52,7 +52,9 @@ public class EventMongoAdapter implements EventRepository {
     
     @Override
     public List<Event> findUpcomingEvents(int page, int size) {
+        // Solo eventos públicos: los privados se ven por invitación (T-B17, ADR-014)
         Query query = new Query(Criteria.where("status").is(Event.EventStatus.PUBLISHED)
+                .and("settings.isPublic").is(true)
                 .and("details.startDate").gte(LocalDateTime.now()))
                 .with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "details.startDate"))
                 .skip((long) page * size)

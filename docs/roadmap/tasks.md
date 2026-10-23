@@ -60,7 +60,7 @@
 | T-B14 | Actuator + health + métricas Prometheus en todos los servicios | B | P0 | ✅ HECHA (#33) | [VITO-39](https://bernardo-mira.atlassian.net/browse/VITO-39) |
 | T-B15 | Códigos y errores de auth-service y `createEvent` según los fixtures | B | P0 | ✅ HECHA (#39) | [VITO-40](https://bernardo-mira.atlassian.net/browse/VITO-40) |
 | T-B16 | `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 | B | P0 | ✅ HECHA (#40) | [VITO-41](https://bernardo-mira.atlassian.net/browse/VITO-41) |
-| T-B17 | `/events/upcoming` lista eventos privados ajenos (filtro `settings.isPublic`) | B | P0 | 🟢 READY | [VITO-56](https://bernardo-mira.atlassian.net/browse/VITO-56) |
+| T-B17 | `/events/upcoming` lista eventos privados ajenos (filtro `settings.isPublic`) | B | P0 | ✅ HECHA (#153) | [VITO-56](https://bernardo-mira.atlassian.net/browse/VITO-56) |
 | T-B03 | Envelope ADR-003 en los 6 servicios sin handler (copia temporal, ADR-017) | B | P1 | 🟢 READY | [VITO-28](https://bernardo-mira.atlassian.net/browse/VITO-28) |
 | T-B18 | Parent POM + `backend/shared-web`; borrar copias de filtro JWT y handler (ADR-017) | B/I | P1 | 🔴 BLOQUEADA (Ola 1) | — |
 | T-B19 | media-service: magic bytes, MIME de CONVENTIONS §8 y límite de 10 MB | B | P0 | 🟢 READY | — |
@@ -386,7 +386,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** test de la respuesta de las tres operaciones con `expiresIn` igual a
   `jwt.expiration / 1000`.
 
-### T-B17 · Fuga de eventos privados en `/events/upcoming` — 🟢 READY · P0 · Principio III, ADR-014
+### T-B17 · Fuga de eventos privados en `/events/upcoming` — ✅ HECHA (#153) · P0 · Principio III, ADR-014
 - **Hallazgo (D-03):** `EventMongoAdapter.findUpcomingEvents` filtra por
   `status = PUBLISHED` y `details.startDate` ≥ ahora, pero no por `settings.isPublic`.
   Cualquier usuario autenticado lista eventos privados ajenos (título, fechas, descripción).

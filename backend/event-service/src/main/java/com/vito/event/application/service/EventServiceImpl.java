@@ -18,6 +18,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EventServiceImpl implements EventService {
     
+    /** Máximo de elementos por página (CONVENTIONS §5); {@code size} &lt; 1 sería {@code limit(0)}, sin límite en Mongo. */
+    static final int MAX_PAGE_SIZE = 100;
+    
     private final EventRepository eventRepository;
     private final RSVPRepository rsvpRepository;
     private final InvitationRepository invitationRepository;
@@ -114,14 +117,18 @@ public class EventServiceImpl implements EventService {
     
     @Override
     public List<Event> getUserEvents(String userId, int page, int size) {
-        return eventRepository.findByOrganizerId(userId, page, size);
+        return eventRepository.findByOrganizerId(userId, page, pageSize(size));
     }
     
     @Override
     public List<Event> getUpcomingEvents(int page, int size, String viewerId) {
-        return eventRepository.findUpcomingEvents(page, size).stream()
+        return eventRepository.findUpcomingEvents(page, pageSize(size)).stream()
                 .map(event -> forViewer(event, viewerId))
                 .toList();
+    }
+    
+    private static int pageSize(int size) {
+        return Math.max(1, Math.min(size, MAX_PAGE_SIZE));
     }
     
     /** Oculta la dirección exacta si el evento lo pide y quien consulta no puede verla. */
