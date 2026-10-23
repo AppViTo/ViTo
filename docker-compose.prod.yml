@@ -268,6 +268,7 @@ services:
     environment:
       <<: *java-env
       QR_SECRET: ${QR_SECRET:?}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}  # handshake WebSocket (T-B20)
     healthcheck:
       <<: *java-healthcheck
       test: ["CMD", "curl", "-fsS", "http://localhost:8084/actuator/health/readiness"]
@@ -276,6 +277,9 @@ services:
     <<: *java-service
     image: vito/mosaic-service:${TAG_MOSAIC_SERVICE:?}
     build: { context: ./backend/mosaic-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *java-env
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}  # handshake WebSocket (T-B20)
     healthcheck:
       <<: *java-healthcheck
       test: ["CMD", "curl", "-fsS", "http://localhost:8085/actuator/health/readiness"]
@@ -289,6 +293,7 @@ services:
       SRS_API_URL: http://srs:1985
       SRS_STREAM_URL: rtmp://live.${DOMAIN:?}:1935
       SRS_PLAYBACK_URL: https://live.${DOMAIN:?}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}  # handshake WebSocket (T-B20)
     depends_on:
       <<: *java-deps
       srs:
@@ -312,6 +317,9 @@ services:
     <<: *java-service
     image: vito/chat-service:${TAG_CHAT_SERVICE:?}
     build: { context: ./backend/chat-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *java-env
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}  # handshake WebSocket (T-B20)
     healthcheck:
       <<: *java-healthcheck
       test: ["CMD", "curl", "-fsS", "http://localhost:8088/actuator/health/readiness"]
