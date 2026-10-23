@@ -5,9 +5,22 @@
 	email {$ACME_EMAIL}
 }
 
+# Cabeceras de seguridad de api. y live. (T-I18, T051 A4). Quitar Server implica defer:
+# se aplica después de reverse_proxy, así que también borra el Server de SRS y del gateway.
+# includeSubDomains cubre solo los subdominios de cada host (p. ej. *.api.), no el dominio raíz.
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+}
+
 # API REST y WebSocket (/ws/**). reverse_proxy reenvía el Upgrade de WebSocket sin
 # configuración extra; flush_interval -1 para que los frames no se queden en búfer.
 api.{$DOMAIN} {
+	import security_headers
 	encode zstd gzip
 
 	# El actuator del gateway está en el puerto de gestión 9080 (T-B14); por si acaso
@@ -23,6 +36,8 @@ api.{$DOMAIN} {
 # HLS/HTTP-FLV. El servidor HTTP de SRS también responde su API de gestión (/api/v1/...)
 # y la consola: nada de eso se expone.
 live.{$DOMAIN} {
+	import security_headers
+
 	handle /rtc/* {
 		reverse_proxy srs:1985
 	}

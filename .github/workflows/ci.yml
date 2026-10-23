@@ -72,6 +72,10 @@ jobs:
           --env-file infrastructure/deploy/tests/fixtures/versions.env
           config -q
 
+      # Caddyfile real con backends falsos: HSTS, nosniff, Referrer-Policy y sin Server (T-I18)
+      - name: Cabeceras de seguridad de Caddy
+        run: bash infrastructure/caddy/tests/security-headers.sh
+
       # Sin Docker instalado, --check-only debe fallar sin tocar el sistema (T022)
       - name: bootstrap.sh --check-only en ubuntu:24.04
         run: |
