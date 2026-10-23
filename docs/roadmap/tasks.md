@@ -81,7 +81,7 @@
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
 | T-I16 | Protección de rama en `main` y `develop` (tarea manual de leads) | I | P0 | ✅ HECHA (#49, manual) | [VITO-55](https://bernardo-mira.atlassian.net/browse/VITO-55) |
 | T-I17 | Gateway en `prod`: rutas de subida cerradas hasta la ola del mosaico (excepción A3) | I/B | P0 | 🟢 READY | — |
-| T-I18 | Cabeceras de seguridad en Caddy (`api.`, `live.`) y CSP/HSTS en la web | I/F | P0 | 🟢 READY | — |
+| T-I18 | Cabeceras de seguridad en Caddy (`api.`, `live.`) y CSP/HSTS en la web | I/F | P0 | 🔵 EN CURSO (chore/t-i18-security-headers) | — |
 | T-I19 | Un usuario de Mongo por servicio (sin root) | I/B | P1 | 🟢 READY | — |
 | T-I20 | Kafka con TLS y ACL por tópico (excepción A7) | I | P2 | ⚪ DIFERIDA (Fase Crecimiento; revisión 2027-04-22) | — |
 
@@ -635,7 +635,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `prod` y el enrutamiento en `docker`. Se revierte en la Ola 3, junto con el antimalware y
   la moderación, y se cierra la excepción A3.
 
-### T-I18 · Cabeceras de seguridad — 🟢 READY · P0 · Principio III, T051 (A4)
+### T-I18 · Cabeceras de seguridad — 🔵 EN CURSO (chore/t-i18-security-headers) · P0 · Principio III, T051 (A4)
 - **Qué:**
   - `infrastructure/caddy/Caddyfile`: en `api.` y `live.`, `Strict-Transport-Security:
     max-age=31536000; includeSubDomains`, `X-Content-Type-Options: nosniff`,
