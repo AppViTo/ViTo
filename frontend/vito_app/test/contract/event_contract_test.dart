@@ -141,7 +141,7 @@ void main() {
     });
 
     test('listEvents.200.json es un array plano de eventos (ADR-002)', () {
-      final list = loadFixtureList('events/listEvents.200.json');
+      final list = loadFixtureList('events/listEvents.mine.200.json');
 
       expect(list, isNotEmpty);
       expect(
@@ -158,7 +158,7 @@ void main() {
       for (final item in list) {
         expect(item, isA<Map<String, dynamic>>());
         final map = item as Map<String, dynamic>;
-        expectValidEvent(map, 'events/listEvents.200.json');
+        expectValidEvent(map, 'events/listEvents.mine.200.json');
         expect(EventModel.fromJson(map).id, map['id']);
       }
     });
@@ -167,7 +167,7 @@ void main() {
       final created = loadFixtureObject('events/createEvent.201.json');
       final detail = loadFixtureObject('events/getEvent.200.json');
       final listed =
-          (loadFixtureList('events/listEvents.200.json').first as Map)
+          (loadFixtureList('events/listEvents.mine.200.json').first as Map)
               .cast<String, dynamic>();
 
       expect(created['organizerId'], detail['organizerId']);

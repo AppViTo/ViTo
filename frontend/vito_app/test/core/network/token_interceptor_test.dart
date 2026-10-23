@@ -16,7 +16,7 @@ void main() {
   late int expiredCount;
 
   final refresh200 = loadFixtureObject('authentication/refreshToken.200.json');
-  final events200 = loadFixtureList('events/listEvents.200.json');
+  final events200 = loadFixtureList('events/listEvents.mine.200.json');
   final events401 = loadFixtureObject('events/listEvents.401.json');
   final refresh401 = loadFixtureObject('authentication/refreshToken.401.json');
 

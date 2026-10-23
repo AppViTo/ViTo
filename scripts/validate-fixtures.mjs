@@ -3,7 +3,8 @@
 //
 // Reglas (docs/api/fixtures/README.md):
 //   - cada operación con body JSON tiene <operationId>.request.json;
-//   - cada status declarado tiene <operationId>.<status>.json;
+//   - cada status declarado tiene <operationId>.<status>.json; si el media type
+//     declara `examples`, cada nombre tiene <operationId>.<ejemplo>.<status>.json;
 //   - un status sin `content` tiene un fixture con el literal `null`;
 //   - cada fixture valida contra su schema, sin propiedades no declaradas;
 //   - no hay fixtures huérfanos (operación o status que el YAML no declara);
@@ -97,17 +98,27 @@ for (const [path, item] of Object.entries(spec.paths ?? {})) {
     }
     const folder = op.tags[0].toLowerCase().replace(/\s+/g, '-');
     const base = `${folder}/${op.operationId}`;
-    operations.push({ base, label, statuses: Object.keys(op.responses ?? {}) });
+    operations.push({ base, label });
 
     const reqSchema = op.requestBody?.content?.[JSON_MEDIA]?.schema;
     if (reqSchema) expected.set(`${base}.request.json`, { schema: reqSchema });
 
     for (const [status, response] of Object.entries(op.responses ?? {})) {
       const content = response.content;
+      const media = content?.[JSON_MEDIA];
       if (!content) {
         expected.set(`${base}.${status}.json`, { schema: null });
-      } else if (content[JSON_MEDIA]?.schema) {
-        expected.set(`${base}.${status}.json`, { schema: content[JSON_MEDIA].schema });
+      } else if (media?.schema) {
+        // Variantes declaradas en `examples`: un fixture por nombre, sin el
+        // `<operationId>.<status>.json` canónico (README §Variantes).
+        const examples = media.examples;
+        if (examples && Object.keys(examples).length > 0) {
+          for (const name of Object.keys(examples)) {
+            expected.set(`${base}.${name}.${status}.json`, { schema: media.schema });
+          }
+        } else {
+          expected.set(`${base}.${status}.json`, { schema: media.schema });
+        }
       } else {
         fail(label, `status ${status} no declara ${JSON_MEDIA}; el validador no sabe qué aplicar`);
       }
@@ -150,8 +161,12 @@ for (const [file, { schema }] of expected) {
   validated++;
 }
 
-for (const { base, label, statuses } of operations) {
-  const has = (pred) => statuses.some((s) => pred(Number(s)) && present.has(`${base}.${s}.json`));
+for (const { base, label } of operations) {
+  const statuses = [...present]
+    .filter((file) => file.startsWith(`${base}.`))
+    .map((file) => Number(file.match(/\.(\d{3})\.json$/)?.[1]))
+    .filter((status) => !Number.isNaN(status));
+  const has = (pred) => statuses.some(pred);
   if (!has((s) => s >= 200 && s < 300)) fail(label, 'sin fixture 2xx');
   if (!has((s) => s >= 400)) fail(label, 'sin fixture de error (4xx/5xx)');
 }

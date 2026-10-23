@@ -114,7 +114,9 @@ Códigos de error canónicos: `VALIDATION_ERROR`, `UNAUTHORIZED`, `FORBIDDEN`, `
   - `page` base **0**, default `0`
   - `size` default `20`, máximo `100`
   - Un endpoint sin `page`/`size` es un error de contrato (a menosque el ADR diga lo contrario).
-- Orden por defecto: `createdAt` descendente.
+- Orden por defecto: `createdAt` descendente. Excepción documentada:
+  `listEvents?scope=upcoming` ordena por `details.startDate` ascendente
+  (ADR-014).
 - La respuesta es un array plano (§3.2), por lo que el cliente pagina con `page`/`size` y no con `total`.
 
 ---
