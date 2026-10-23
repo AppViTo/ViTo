@@ -1,0 +1,82 @@
+[
+  {
+    "id": "evt_01H9A1B2C3",
+    "organizerId": "usr_01H8X2K4QM",
+    "title": "Sunset Session en la terraza",
+    "description": "Música, cócteles y vista al atardecer",
+    "details": {
+      "startDate": "2027-02-14T21:00:00.000Z",
+      "endDate": "2027-02-15T03:00:00.000Z",
+      "location": "Terraza del Hotel Click",
+      "address": "Cl. 93 #11-19, Bogotá",
+      "latitude": 4.676,
+      "longitude": -74.048,
+      "coverImages": [
+        "https://cdn.vito.com/evt_01H9A1B2C3/cover.jpg"
+      ],
+      "tags": ["música", "terraza"],
+      "category": "PARTY"
+    },
+    "settings": {
+      "isPublic": true,
+      "requiresApproval": false,
+      "maxAttendees": 120,
+      "allowGuestInvites": true,
+      "enableLiveStreaming": false,
+      "enableMosaic": true,
+      "hideAddressUntilAccepted": false
+    },
+    "stats": {
+      "totalInvited": 80,
+      "totalAccepted": 42,
+      "totalDeclined": 3,
+      "totalMaybe": 9,
+      "totalWaitlisted": 0,
+      "totalCheckedIn": 0,
+      "totalViewers": 0
+    },
+    "status": "PUBLISHED",
+    "createdAt": "2026-10-01T15:30:00Z",
+    "updatedAt": "2026-10-20T09:12:00Z"
+  },
+  {
+    "id": "evt_01H9D4E5F6",
+    "organizerId": "usr_01H8X2K4QK",
+    "title": "Caminata ecológica Cerro de Monserrate",
+    "description": "Salida temprano para evitar el calor",
+    "details": {
+      "startDate": "2027-03-08T13:00:00.000Z",
+      "endDate": "2027-03-08T17:00:00.000Z",
+      "location": "Cerro de Monserrate",
+      "address": "Cl. 21 #4-84, Bogotá",
+      "latitude": 4.605,
+      "longitude": -74.055,
+      "coverImages": [
+        "https://cdn.vito.com/evt_01H9D4E5F6/cover.jpg"
+      ],
+      "tags": ["senderismo", "naturaleza"],
+      "category": "TRAVEL"
+    },
+    "settings": {
+      "isPublic": true,
+      "requiresApproval": true,
+      "maxAttendees": 30,
+      "allowGuestInvites": false,
+      "enableLiveStreaming": false,
+      "enableMosaic": true,
+      "hideAddressUntilAccepted": true
+    },
+    "stats": {
+      "totalInvited": 20,
+      "totalAccepted": 12,
+      "totalDeclined": 1,
+      "totalMaybe": 4,
+      "totalWaitlisted": 2,
+      "totalCheckedIn": 0,
+      "totalViewers": 0
+    },
+    "status": "PUBLISHED",
+    "createdAt": "2026-10-05T11:00:00Z",
+    "updatedAt": "2026-10-18T18:45:00Z"
+  }
+]

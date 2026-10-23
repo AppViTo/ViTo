@@ -653,11 +653,30 @@ paths:
       tags: [Events]
       summary: List user events
       description: >
-        Lista los eventos del usuario autenticado. Devuelve **array plano**
-        (ADR-002), no un envelope `{events, total}`: el frontend parsea
-        `(response.data as List)`.
+        Lista eventos como **array plano** (ADR-002), no un envelope
+        `{events, total}`: el frontend parsea `(response.data as List)`.
+        `scope=mine` (por defecto) devuelve los eventos organizados por el
+        usuario autenticado, en cualquier estado, orden `createdAt`
+        descendente (CONVENTIONS §5). `scope=upcoming` devuelve los eventos
+        `PUBLISHED`, públicos (`settings.isPublic: true`) y con
+        `details.startDate` mayor o igual a ahora, orden `details.startDate`
+        ascendente (excepción documentada a CONVENTIONS §5). La identidad sale
+        solo de `X-User-Id` (ADR-007): no se aceptan `organizerId` ni `userId`.
+        `hideAddressUntilAccepted` aplica igual que en `getEvent` (ADR-014).
       operationId: listEvents
       parameters:
+        - name: scope
+          in: query
+          required: false
+          description: >
+            `mine`: eventos del usuario autenticado (cualquier estado).
+            `upcoming`: eventos públicos publicados con `details.startDate`
+            mayor o igual a ahora. Por defecto `mine`, para no listar nunca un
+            catálogo global (ADR-014).
+          schema:
+            type: string
+            enum: [mine, upcoming]
+            default: mine
         - name: page
           in: query
           description: Base 0.
@@ -673,18 +692,52 @@ paths:
             maximum: 100
       responses:
         '200':
-          description: Array plano de eventos, orden `createdAt` descendente
+          description: >
+            Array plano de `Event`. `scope=mine` ordena por `createdAt`
+            descendente; `scope=upcoming` por `details.startDate` ascendente.
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Event'
+              examples:
+                mine:
+                  summary: Eventos que organiza el usuario
+                  value:
+                    - id: evt_01H8X2K4QJ
+                      organizerId: usr_01H8X2K4QJ
+                      title: Los 30 de Marta
+                      status: PUBLISHED
+                      settings:
+                        isPublic: false
+                upcoming:
+                  summary: Próximos eventos públicos
+                  value:
+                    - id: evt_01H9A1B2C3
+                      organizerId: usr_01H8X2K4QK
+                      title: Sunset Session en la terraza
+                      status: PUBLISHED
+                      details:
+                        startDate: '2027-02-14T21:00:00.000Z'
+                        endDate: '2027-02-15T03:00:00.000Z'
+                        category: PARTY
+                      settings:
+                        isPublic: true
+        '400':
+          description: >
+            `scope` fuera del enum o `size` mayor que 100 (ADR-003, ADR-008).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
               example:
-                - id: evt_01H8X2K4QJ
-                  organizerId: usr_01H8X2K4QJ
-                  title: Los 30 de Marta
-                  status: PUBLISHED
+                error: VALIDATION_ERROR
+                message: El scope debe ser mine o upcoming
+                status: 400
+                timestamp: '2026-10-22T14:03:22Z'
+                details:
+                  scope: 'Valores permitidos: mine, upcoming'
         '401':
           description: Unauthorized
           content:

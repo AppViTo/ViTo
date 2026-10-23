@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "El scope debe ser mine o upcoming",
+  "status": 400,
+  "timestamp": "2026-10-22T14:03:22Z",
+  "details": {
+    "scope": "Valores permitidos: mine, upcoming"
+  }
+}
