@@ -20,6 +20,7 @@ import java.util.Map;
 public final class ErrorResponses {
 
     public static final String UNAUTHORIZED = "UNAUTHORIZED";
+    public static final String NOT_FOUND = "NOT_FOUND";
     public static final String RATE_LIMITED = "RATE_LIMITED";
     public static final String SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE";
 
