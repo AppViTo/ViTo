@@ -4,6 +4,7 @@ import com.vito.archive.domain.model.ArchiveComment;
 import com.vito.archive.domain.model.ArchiveMedia;
 import com.vito.archive.domain.model.EventArchive;
 import com.vito.archive.domain.port.inbound.ArchiveService;
+import com.vito.archive.domain.exception.ArchiveException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -156,7 +157,7 @@ public class ArchiveController {
     private String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("User not authenticated");
+            throw ArchiveException.unauthenticated();
         }
         return authentication.getName();
     }

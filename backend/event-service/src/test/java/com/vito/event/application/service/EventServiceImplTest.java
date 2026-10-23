@@ -127,7 +127,7 @@ class EventServiceImplTest {
                 EventException.class,
                 () -> eventService.updateEvent(command)
         );
-        assertEquals("You are not authorized to perform this action", exception.getMessage());
+        assertEquals("No tienes permiso para realizar esta acción", exception.getMessage());
     }
 
     @Test
@@ -188,7 +188,7 @@ class EventServiceImplTest {
                 EventException.class,
                 () -> eventService.respondToRSVP(command)
         );
-        assertEquals("Cannot RSVP to your own event", exception.getMessage());
+        assertEquals("No puedes responder a tu propio evento", exception.getMessage());
     }
 
     @Test
@@ -208,7 +208,7 @@ class EventServiceImplTest {
                 EventException.class,
                 () -> eventService.respondToRSVP(command)
         );
-        assertEquals("You have already responded to this event", exception.getMessage());
+        assertEquals("Ya respondiste a este evento", exception.getMessage());
     }
 
     @Test
@@ -253,7 +253,7 @@ class EventServiceImplTest {
                 EventException.class,
                 () -> eventService.sendInvitation(command)
         );
-        assertEquals("You are not authorized to perform this action", exception.getMessage());
+        assertEquals("No tienes permiso para realizar esta acción", exception.getMessage());
     }
 
     @Test
@@ -315,7 +315,7 @@ class EventServiceImplTest {
                 EventException.class,
                 () -> eventService.checkIn(command)
         );
-        assertEquals("Invalid check-in code", exception.getMessage());
+        assertEquals("El código de check-in no es válido", exception.getMessage());
     }
 
     @Test
@@ -343,7 +343,7 @@ class EventServiceImplTest {
                 EventException.class,
                 () -> eventService.checkIn(command)
         );
-        assertEquals("You have already checked in to this event", exception.getMessage());
+        assertEquals("Ya hiciste check-in en este evento", exception.getMessage());
     }
 
     // ---- hideAddressUntilAccepted (ADR-001, Principio IX) ----------------------------

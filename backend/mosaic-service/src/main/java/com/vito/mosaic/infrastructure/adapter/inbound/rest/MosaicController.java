@@ -3,6 +3,7 @@ package com.vito.mosaic.infrastructure.adapter.inbound.rest;
 import com.vito.mosaic.domain.model.MosaicFeedItem;
 import com.vito.mosaic.domain.model.MosaicGrid;
 import com.vito.mosaic.domain.port.inbound.MosaicService;
+import com.vito.mosaic.domain.exception.MosaicException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -109,7 +110,7 @@ public class MosaicController {
     private String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("User not authenticated");
+            throw MosaicException.unauthenticated();
         }
         return authentication.getName();
     }
