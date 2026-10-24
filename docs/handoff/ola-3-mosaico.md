@@ -1,5 +1,9 @@
 # Handoff: Ola 3 — Mosaico en Vivo & Contrato (T-C07, T-F05)
 
+> **Estado (2026-10-24):** #171 incorporó solo el punto 2 (`asyncapi.yaml`). Los puntos 1 y 3
+> (rutas REST en `openapi.yaml` y fixtures en `docs/api/fixtures/mosaic/`) y el endpoint de
+> moderación del organizador (excepción A3, T-B26) siguen pendientes en T-C07.
+
 ## Alcance
 1. **Contrato REST (`docs/api/openapi.yaml`)**:
    - `POST /api/v1/mosaic/post`: crea una entrada en el mosaico vinculada a un `mediaId` (ADR-016).
