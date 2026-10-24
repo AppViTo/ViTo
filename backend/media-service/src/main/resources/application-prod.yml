@@ -1,0 +1,7 @@
+# Perfil de producción (docker-compose.prod.yml activa prod).
+# application.yml deja com.vito.media en DEBUG para desarrollo; en prod ese nivel registra datos
+# de cada subida y, con el tope de logs por contenedor, borra en minutos lo que haría falta para
+# diagnosticar un incidente (docs/runbooks/incident.md). software.amazon.awssdk sigue en WARN.
+logging:
+  level:
+    com.vito.media: INFO
