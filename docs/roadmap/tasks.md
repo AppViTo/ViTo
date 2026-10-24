@@ -83,7 +83,7 @@
 | T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY | [VITO-51](https://bernardo-mira.atlassian.net/browse/VITO-51) |
 | T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | 🟢 READY (manual, leads) | [VITO-45](https://bernardo-mira.atlassian.net/browse/VITO-45) |
 | T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔴 BLOQUEADA (T-I06) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
-| T-I11 | Frontend web en Cloudflare Pages, con la CSP/HSTS de la web (antes en T-I18) | I/F | P1 | 🔵 EN CURSO (frontend/t-i11-pages) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
+| T-I11 | Frontend web en Cloudflare Pages, con la CSP/HSTS de la web (antes en T-I18) | I/F | P1 | 🔵 EN CURSO (#179 · falta verificar en prod) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
 | T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (T-I06) | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔵 EN CURSO (#167 · falta el ensayo manual) | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
@@ -683,12 +683,12 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** test de integración contra SeaweedFS local; documentación de las variables
   para R2 en `.env.example`.
 
-### T-I11 · Frontend web en Cloudflare Pages — 🔵 EN CURSO (frontend/t-i11-pages) · P1 · ADR-011
+### T-I11 · Frontend web en Cloudflare Pages — 🔵 EN CURSO (#179 · falta verificar en prod) · P1 · ADR-011
 - **Desbloqueo (2026-10-24):** T-I06 dejó listos el proyecto de Pages `vito-web` con el dominio
   `app.`, `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`, y las variables `VITO_API_BASE_URL`,
   `VITO_WS_BASE_URL`, `PAGES_PROJECT` y `VITO_MEDIA_ORIGIN` (origen de `img-src` en la CSP) en
   los tres Environments.
-- **Avance (rama `frontend/t-i11-pages`):** T030–T032 de la feature 001: `web/_redirects`,
+- **Avance (#179, en `develop`):** T030–T032 de la feature 001: `web/_redirects`,
   `web/_headers`, `infrastructure/deploy/render-web-headers.sh` (con tests bats), verificación
   del build web en CI y `deploy-frontend.yml` a Pages; `VITO_MEDIA_ORIGIN` agregada al contrato
   de workflows. Fuentes de respaldo: se permite `fonts.gstatic.com` en `font-src` y
