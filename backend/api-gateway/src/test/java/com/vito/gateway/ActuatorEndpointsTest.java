@@ -27,7 +27,7 @@ class ActuatorEndpointsTest {
     int managementPort;
 
     private WebTestClient client(int port) {
-        return WebTestClient.bindToServer().baseUrl("http://localhost:" + port).build();
+        return WebTestClient.bindToServer().baseUrl("http://127.0.0.1:" + port).build();
     }
 
     @Test

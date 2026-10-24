@@ -46,8 +46,8 @@ class CircuitBreakerFallbackIntegrationTest {
     @DynamicPropertySource
     static void routes(DynamicPropertyRegistry registry) {
         registry.add("JWT_SECRET", () -> JwtAuthenticationFilterTest.SECRET);
-        route(registry, 0, "slow", "http://localhost:" + backend.port(), "/slow/**", "auth");
-        route(registry, 1, "down", "http://localhost:" + closedPort, "/down/**", "events");
+        route(registry, 0, "slow", "http://127.0.0.1:" + backend.port(), "/slow/**", "auth");
+        route(registry, 1, "down", "http://127.0.0.1:" + closedPort, "/down/**", "events");
     }
 
     private static void route(DynamicPropertyRegistry registry, int i, String id, String uri, String path,
