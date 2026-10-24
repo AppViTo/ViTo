@@ -39,10 +39,11 @@ No construye imágenes.
 
 ## `deploy-frontend.yml` — web en Cloudflare Pages
 
-| Disparador | `push` a `main` con cambios en `frontend/vito_app/**` o en el workflow; `workflow_dispatch` |
+| Disparador | `push` a `main` con cambios en `frontend/vito_app/**`, en `infrastructure/deploy/render-web-headers.sh` o en el workflow; `workflow_dispatch` |
 |---|---|
 | Environment | `production` o `production-hotfix`, con la misma detección que `cd.yml` (`pick-environment.sh`) |
-| Puertas | `flutter analyze --fatal-infos`, `flutter test`, URLs de producción no vacías |
+| Puertas | `flutter analyze --fatal-infos` y `flutter test` antes de la aprobación; después, `VITO_API_BASE_URL`, `VITO_WS_BASE_URL`, `VITO_MEDIA_ORIGIN` y `PAGES_PROJECT` no vacías |
+| Hace | `flutter build web --no-web-resources-cdn`; `render-web-headers.sh` completa los orígenes de la CSP de `web/_headers`; `wrangler pages deploy --branch=main` (versión fija) |
 | Concurrencia | `pages-production` |
 
 ## `expire-approvals.yml` — plazo de 24 h (FR-002)
@@ -88,6 +89,7 @@ Ningún valor entra al repo ni al chat. Los carga un lead (T-I06).
 | `VITO_API_BASE_URL` | `https://api.<dominio>/api/v1` |
 | `VITO_WS_BASE_URL` | `wss://api.<dominio>` |
 | `PAGES_PROJECT` | `vito-web` |
+| `VITO_MEDIA_ORIGIN` | `https://media.<dominio>`: origen de las imágenes en la CSP de la web (`img-src` y `connect-src`) |
 | `ALERT_FROM` | `ViTo <alertas@send.<dominio>>`: remitente de los avisos por correo (Resend); sin él, solo Telegram |
 
 **Secretos del repositorio** (no de un Environment): `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID`,

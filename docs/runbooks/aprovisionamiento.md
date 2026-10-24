@@ -177,6 +177,7 @@ secreto y se redespliega, sin entrar por SSH.
 | `VITO_API_BASE_URL` | `https://api.<dominio>/api/v1` |
 | `VITO_WS_BASE_URL` | `wss://api.<dominio>` |
 | `PAGES_PROJECT` | `vito-web` |
+| `VITO_MEDIA_ORIGIN` | `https://media.<dominio>` (CSP de la web, T-I11) |
 | `ALERT_FROM` | `ViTo <alertas@send.<dominio>>` (remitente verificado en Resend, paso 7; sin él no se manda correo, solo Telegram) |
 
 Al terminar, borrar de la máquina `vito-pipeline`, `vito-pipeline.pub` y
@@ -197,8 +198,17 @@ En la zona del dominio (DNS → Records):
   `api`, Caddy saca y renueva sus certificados de Let's Encrypt sin intermediarios. La IP
   igual es pública por `live` y por el candidato WebRTC de SRS.
 - `media`: en R2 → `vito-media` → Settings → *Custom Domains* → *Connect domain* →
-  `media.<dominio>`. Cloudflare crea el registro. No apunta al VPS: los archivos se sirven
-  directo desde R2.
+  `media.<dominio>`, con *Minimum TLS version* **1.2**. Cloudflare crea el registro. No
+  apunta al VPS: los archivos se sirven directo desde R2. No usar la URL pública `r2.dev` ni
+  conectar un dominio a `vito-backups`.
+- **CORS de `vito-media`** (T-I11): la web descarga las imágenes con `fetch`, así que el
+  bucket tiene que permitir el origen de la web. En R2 → `vito-media` → Settings →
+  *CORS Policy*:
+
+  ```json
+  [{"AllowedOrigins": ["https://app.<dominio>"], "AllowedMethods": ["GET", "HEAD"],
+    "AllowedHeaders": ["*"], "MaxAgeSeconds": 3600}]
+  ```
 
 Comprobar: `dig +short api.<dominio>` y `dig +short live.<dominio>` devuelven la IP del
 VPS.
@@ -209,8 +219,11 @@ La web se compila en GitHub Actions y se sube con *Direct Upload* (`wrangler`). 
 conecta el repo con la integración Git de Pages, porque se saltaría CI y la aprobación del
 Environment (R9; ADR-011, actualización del 2026-10-22).
 
-1. Workers & Pages → *Create* → Pages → *Direct Upload* → nombre `vito-web`, rama de
+1. Workers & Pages → *Create*. El asistente nuevo crea Workers: abajo, *Continue to Pages*
+   (*legacy Pages workflow*) → *Upload assets* (*Direct Upload*) → nombre `vito-web`, rama de
    producción `main`. Si pide un primer archivo, sirve cualquier `index.html` provisional.
+   No elegir *Upload your static files* del asistente: crea un Worker, y
+   `wrangler pages deploy` necesita un proyecto de Pages.
 2. `vito-web` → *Custom domains* → `app.<dominio>`.
 3. **Token:** My Profile → API Tokens → *Create Token* → *Custom token*. Permiso
    *Account → Cloudflare Pages → Edit*, limitado a la cuenta de ViTo, sin otros permisos.

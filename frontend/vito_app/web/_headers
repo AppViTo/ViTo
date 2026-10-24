@@ -1,0 +1,20 @@
+# Cabeceras de la web en Cloudflare Pages (T-I11; feature 001, T031 y research R9; T051 A4).
+# Los marcadores de origen (API, WS y media) los completa infrastructure/deploy/render-web-headers.sh en
+# deploy-frontend.yml con las variables del Environment: el dominio no va en el repo.
+#
+# CSP compatible con Flutter web (CanvasKit, build con --no-web-resources-cdn):
+# - script-src 'wasm-unsafe-eval': CanvasKit es WebAssembly.
+# - style-src 'unsafe-inline': el motor de Flutter inserta elementos <style>.
+# - fonts.gstatic.com: el motor descarga de ahí las fuentes de respaldo (Noto) aunque
+#   CanvasKit se sirva desde el sitio.
+# - El origen de media también en connect-src: CanvasKit descarga las imágenes con fetch
+#   (requiere la política CORS del bucket vito-media, runbook de aprovisionamiento, paso 5).
+#
+# Sin caché larga en /assets/*: Flutter no pone hash en esos nombres y una versión nueva no
+# llegaría a quien ya los tiene en caché. Pages revalida con ETag.
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: __MEDIA_ORIGIN__; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' __API_ORIGIN__ __WS_ORIGIN__ __MEDIA_ORIGIN__ https://fonts.gstatic.com; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
