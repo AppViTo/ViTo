@@ -62,8 +62,31 @@ class EventMongoAdapterTest {
         assertEquals(25, query.getLimit());
     }
 
+    // T-B07: el orden de cada scope coincide con su índice de 01-init.js (ADR-014)
+
+    @Test
+    void findUpcomingEvents_SortsByStartDateAscending() {
+        assertEquals(new Document("details.startDate", 1), upcomingQuery(0, 20).getSortObject());
+    }
+
+    @Test
+    void findByOrganizerId_FiltersByOrganizerAndSortsByCreatedAtDescending() {
+        adapter.findByOrganizerId("usr_1", 2, 10);
+        Query query = capturedQuery();
+
+        // Solo el organizador: ni estado ni visibilidad, scope=mine lista todos sus eventos
+        assertEquals(new Document("organizerId", "usr_1"), mappedFilter(query));
+        assertEquals(new Document("createdAt", -1), query.getSortObject());
+        assertEquals(20, query.getSkip());
+        assertEquals(10, query.getLimit());
+    }
+
     private Query upcomingQuery(int page, int size) {
         adapter.findUpcomingEvents(page, size);
+        return capturedQuery();
+    }
+
+    private Query capturedQuery() {
         ArgumentCaptor<Query> captor = ArgumentCaptor.forClass(Query.class);
         verify(mongoTemplate).find(captor.capture(), eq(Event.class), any(String.class));
         return captor.getValue();

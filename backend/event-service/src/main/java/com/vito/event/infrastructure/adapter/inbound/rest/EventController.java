@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 @Slf4j
 @RestController
@@ -60,6 +61,19 @@ public class EventController {
         return ResponseEntity.ok(event);
     }
     
+    /** listEvents (ADR-014): la identidad sale solo de X-User-Id; sin {@code scope}, {@code mine}. */
+    @GetMapping
+    public ResponseEntity<List<Event>> listEvents(
+            @RequestParam(defaultValue = "mine") String scope,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        String currentUserId = getCurrentUserId(
+                () -> EventException.unauthenticated("Debes iniciar sesión para ver tus eventos"));
+        EventService.ListScope listScope = EventService.ListScope.fromValue(scope);
+        return ResponseEntity.ok(eventService.listEvents(listScope, currentUserId, page, size));
+    }
+
+    // Fuera del contrato: se retiran cuando T-F08 use listEvents (ADR-014)
     @GetMapping("/my-events")
     public ResponseEntity<List<Event>> getMyEvents(
             @RequestParam(defaultValue = "0") int page,
@@ -155,9 +169,14 @@ public class EventController {
     }
     
     private String getCurrentUserId() {
+        return getCurrentUserId(EventException::unauthenticated);
+    }
+
+    /** {@code onMissing}: el 401 con el mensaje que el contrato fija para la operación. */
+    private String getCurrentUserId(Supplier<EventException> onMissing) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw EventException.unauthenticated();
+            throw onMissing.get();
         }
         return authentication.getName();
     }
