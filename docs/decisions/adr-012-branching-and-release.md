@@ -48,4 +48,12 @@ en Environments de repos privados.
 
 ## Actualizaciones
 
-*(ninguna todavía)*
+### 2026-10-24 — Release extraordinario 0.1.0 fuera de la cadencia de los viernes
+
+Se abre el PR de release `develop` → `main` ("release: 2026-10-24", `VERSION` 0.1.0) un
+sábado, fuera de la cadencia semanal. Motivo: es el primer despliegue a producción con el
+pipeline de la feature 001 (T042) y lo necesita el evento de prueba. Requisitos cumplidos:
+triage de seguridad aprobado (T051), T-I06 cerrada y CI verde en `develop`. Aplica las mismas
+reglas que un release normal: aprobación de un CODEOWNER distinto del autor, merge commit y
+aprobación del despliegue en el Environment `production`. La cadencia de los viernes sigue
+vigente para los siguientes releases.

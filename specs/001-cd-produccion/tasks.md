@@ -211,7 +211,7 @@ Rama `backend/t-i13-observability` (depende de la fase 2 por el compose).
 
 **Purpose**: primer release, validación completa y cierre del backlog. Rama `docs/close-cd`.
 
-- [ ] T042 👤 Abrir el PR de release extraordinario `develop` → `main` (aclaración 4), con `VERSION` en `0.1.0`. Bloqueada por T051; en ADR-012 (*Actualizaciones*), registrar la excepción a la cadencia de los viernes
+- [X] T042 👤 Abrir el PR de release extraordinario `develop` → `main` (aclaración 4), con `VERSION` en `0.1.0`. Bloqueada por T051; en ADR-012 (*Actualizaciones*), registrar la excepción a la cadencia de los viernes
 - [ ] T043 Ejecutar [quickstart.md](./quickstart.md) completo (pasos 0 a 8) en producción y pegar los resultados en el PR de cierre (sin IP ni secretos). A los 7 días, revisar en Grafana Cloud el uso de series, logs y trazas frente al plan gratuito (FR-027)
 - [ ] T044 [P] Revisar los logs de todos los runs de T043 buscando IP, dominios privados y valores del `.env`; confirmar que Secret scanning no reporta nada (SC-007)
 - [ ] T045 [P] Actualizar `docs/roadmap/tasks.md`: T-I06, T-I08, T-I11 y T-I13 → ✅ HECHA con sus PR; T-I12 sin cambios; quitar T-I08/T-I11/T-I13 de "Bloqueadas". Actualizar la Etapa 5 en `docs/roadmap/README.md`. Anotar el costo del mes en la hoja de gastos de ADR-013 (SC-008)
