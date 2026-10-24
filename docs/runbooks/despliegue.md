@@ -3,7 +3,8 @@
 Cómo operar el despliegue continuo de la [feature 001](../../specs/001-cd-produccion/spec.md):
 `cd.yml` despliega cada merge a `main`, `rollback.yml` vuelve a un release anterior y
 `expire-approvals.yml` cancela las aprobaciones que llevan más de 24 h esperando.
-Aprovisionamiento previo: [aprovisionamiento.md](aprovisionamiento.md).
+Aprovisionamiento previo: [aprovisionamiento.md](aprovisionamiento.md). Incidentes:
+[incident.md](incident.md). Restauración de Mongo o del VPS: [restore.md](restore.md).
 
 > **El repo es público.** No pegar en issues, PR ni chats la IP, el `.env`, salidas de
 > `docker inspect` ni logs con datos de usuarios.
