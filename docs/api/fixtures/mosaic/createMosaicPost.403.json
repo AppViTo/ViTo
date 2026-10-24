@@ -1,0 +1,6 @@
+{
+  "error": "FORBIDDEN",
+  "message": "Solo los asistentes confirmados pueden publicar en el mosaico",
+  "status": 403,
+  "timestamp": "2026-10-16T22:15:00Z"
+}

@@ -1,0 +1,6 @@
+{
+  "error": "FORBIDDEN",
+  "message": "Solo el organizador puede preparar el mosaico",
+  "status": 403,
+  "timestamp": "2026-10-16T20:00:00Z"
+}
