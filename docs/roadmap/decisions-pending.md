@@ -16,7 +16,7 @@ Las opciones listadas son las que salieron del análisis del 2026-10-16. **La co
 | D-05 | Estrategia de código compartido Java (`shared-*`) | T-B03, O-23 | ver §D-05 | ✅ [ADR-017](../decisions/adr-017-shared-java-code.md) (C ahora; A en T-B18 tras la Ola 1) |
 | D-06 | Identidad en el WS de chat (`?userId=`) | T-B06, T-F04 (parte chat) | ver §D-06 | ✅ [ADR-015](../decisions/adr-015-chat-ws-identity.md) (se retira `userId`; identidad de `X-User-Id`) |
 | D-07 | Estrategia de ramas (`develop` vs `main`) | O-24, **T-I08 (deploy)** | ver §D-07 | ✅ [ADR-012](../decisions/adr-012-branching-and-release.md) |
-| D-08 | Aprobación del triage de `endpoint-inventory.md` | Olas 1–6 | aprobar por ola | ⏳ |
+| D-08 | Aprobación del triage de `endpoint-inventory.md` | Olas 1–6 | aprobar por ola | ✅ **Ola 3 aprobada** el 2026-10-24; olas 1-2, 4-6 pendientes |
 | D-09 | Titularidad de cuentas y medio de pago de la infraestructura | T-I06 (aprovisionar) | ver §D-09 | ✅ [ADR-013](../decisions/adr-013-account-ownership.md) |
 | D-10 | Tipo de cuenta de Google Play (personal u organización) | Publicación Android | ver §D-10 | ⏳ **prioritaria** · pospuesta el 2026-10-22 |
 | D-11 | Modelo de monetización (qué se cobra y a quién) | Ola de pagos (nueva), primeros ingresos | ver §D-11 | ⏳ pospuesta el 2026-10-22 |
@@ -129,6 +129,7 @@ semanal (viernes), que dispara el deploy.
 
 Aprobar (o corregir) la columna "Decisión propuesta" de `endpoint-inventory.md`, **ola
 por ola**. Aprobar la ola N desbloquea su rama `contract/<ola>`.
+**Actualización (2026-10-24):** Se aprueba la **Ola 3** (mosaico y subida de contenido) por D-08.
 
 ## D-09 — Titularidad de cuentas y medio de pago
 

@@ -1,11 +1,12 @@
 # ViTo · Checklist de seguridad
 
-> **Estado: PROPUESTA de triage (T051, 2026-10-22), pendiente de aprobación de los leads.**
+> **Estado: APROBADA (T051) el 2026-10-24 por AlexVilla (alexvilla01) y Bernardo (bamg359).**
 > El Principio III de la constitución exige que este archivo no tenga `TODO` de severidad
 > alta antes del primer release. Cada ítem de la versión anterior (sin fecha real,
 > "2024-01-XX") tiene aquí una severidad, el estado real verificado en el código y la acción
 > propuesta. Los ítems que ya estaban marcados `[x]` no se reauditaron, salvo los que se
-> indican.
+> indican. La única excepción de severidad alta es **A3/M1** (ver abajo): se aprueba para el
+> evento de prueba del 2026-10-24 con las condiciones y la fecha de revisión indicadas.
 
 ## Severidades
 
@@ -25,7 +26,7 @@ revisión. Las aprueban los dos leads en el PR que la agrega.
 |---|---------------|-------------|------------------|
 | A1 | File type validation | `MediaServiceImpl.validateFile` solo revisa el `Content-Type` que manda el cliente; no hay verificación de magic bytes | Validar magic bytes contra los MIME de CONVENTIONS §8 (tarea nueva, media-service) |
 | A2 | File size limits | Límite de 100 MB (`media.max-file-size`, `spring.servlet.multipart`); la constitución pide 10 MB | Bajar a 10 MB en los dos lugares (misma tarea que A1) |
-| A3 | Malware scanning | No existe; la constitución exige escaneo antimalware y moderación antes de publicar en el mosaico | **Opción 1:** el gateway no publica `/api/v1/media/**` ni las rutas de subida de `/api/v1/mosaic/**` en producción hasta la ola del mosaico (excepción documentada, cierra con esa ola). **Opción 2:** implementarlo antes del release. Se propone la 1 |
+| A3 | Malware scanning | No existe; la constitución exige escaneo antimalware y moderación antes de publicar en el mosaico. El flujo real (`/media/upload` + mosaico) no se escanea. ClamAV ocupa 1–1,5 GB de RAM y no cabe con holgura en el VPS de 12 GB | **Excepción M1 aprobada (2026-10-24):** se publica la subida al mosaico **solo** para `image/jpeg`, `image/png` y `image/webp` (≤10 MB, magic bytes y MIME verificados en servidor por T-B19), con **re-codificación en el servidor** antes de servir y **moderación por el organizador**. No se aceptan SVG, GIF, HEIC ni vídeo en esta ola. Responsable: Bernardo (backend). Revisión: **al cierre del evento de prueba o antes de la primera apertura a usuarios reales**, lo que ocurra primero; se cierra al integrar antimalware en Fase Crecimiento (S3 Malware Protection o ClamAV dedicado) |
 | A4 | Content-Security-Policy · X-Frame-Options (y HSTS, que pide la constitución) | Caddy no agrega cabeceras; T031 (feature 001) ya planea `X-Frame-Options` en la web, pero ni CSP ni HSTS | Ampliar T031: CSP compatible con Flutter web (`script-src 'self' 'wasm-unsafe-eval'`, CanvasKit servido desde el propio dominio) y `Strict-Transport-Security`; agregar HSTS y `X-Content-Type-Options` en `api.` y `live.` en el Caddyfile |
 | A5 | Container scanning | No existe | Cubierto por T049 (Trivy en `cd.yml`, feature 001) |
 | A6 | Vulnerability scanning (dependencias) | No existe | Cubierto por T050 (Dependabot) y T049 |
@@ -81,13 +82,26 @@ revisión. Las aprueban los dos leads en el PR que la agrega.
 - **"Dependencies regularly updated"**: no hay proceso. Queda cubierto por T050 (Dependabot).
 - **"Sensitive data excluded from logs"**: falta verificarlo. Lo comprueban T034/T035 (enmascarado en Alloy) y T053 (logs JSON) de la feature 001.
 
+## Aprobación de los leads (T051)
+
+- **Fecha:** 2026-10-24.
+- **Aprobado por:** AlexVilla (`alexvilla01`, lead frontend/contrato) y Bernardo (`bamg359`, lead backend).
+- **Alcance:** triage y severidades de este archivo, y la excepción **M1/A3** con sus
+  condiciones y fecha de revisión. No exime de las tareas abiertas de severidad alta.
+- **Trazabilidad de las altas:** A1/A2 → T-B19 (#155); A3 → excepción M1 (arriba);
+  A4 → T031 (web) + T-I11/Caddyfile; A5/A6 → T049/T050; A7 → excepción ya documentada;
+  A8 → T-B17 (#153). Las medias M1–M12 se cierran antes de abrir a usuarios reales; M1
+  (blacklist de `jti`) está en curso como T-B21.
+- **Revisión de M1:** al cierre del evento de prueba, o antes de abrir a usuarios reales,
+  lo que ocurra primero.
+
 ## Resumen
 
-- **Bloquean el primer release:** A1, A2, A4, A8 (código), A5 y A6 (ya planificadas en la
-  feature 001), A3 (excepción propuesta: no publicar las rutas de subida) y A7 (excepción
-  propuesta).
-- **Bloquean la apertura a usuarios o las tiendas:** M1–M12.
-- **Tareas nuevas que habría que crear en `docs/roadmap/tasks.md`:** validación de subida
-  (A1 + A2), CSP y HSTS (A4, ampliando T031 y el Caddyfile), rutas de subida cerradas en
-  producción (A3), throttling por cuenta (M2), rate limit por usuario (M3), audit logging
-  (M6) y usuarios de Mongo por servicio (M12).
+- **Altas del primer release:** A1, A2, A4 y A8 ya cerradas o planificadas (T-B19, T-B17,
+  T031/T-I11); A5/A6 en T049/T050; A3 cubierta por la excepción M1; A7 por su excepción.
+  No queda ninguna alta sin resolver o excepción aprobada.
+- **Bloquean la apertura a usuarios o las tiendas:** M1–M12. M1 (revocación de access
+  token) está en curso como T-B21; el resto sigue su curso.
+- **Tareas nuevas que habría que crear en `docs/roadmap/tasks.md`:** throttling por cuenta
+  (M2), rate limit por usuario (M3), audit logging (M6) y usuarios de Mongo por servicio
+  (M12). La validación de subida (A1/A2) y CSP/HSTS (A4) ya tienen tarea.

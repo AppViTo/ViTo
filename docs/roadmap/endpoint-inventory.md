@@ -7,6 +7,8 @@
 > La columna **Decisión propuesta** NO es vinculante hasta que los leads la aprueben por
 > ola (D-08 en `decisions-pending.md`). Mientras tanto, según la constitución (Principio I),
 > todo lo que no está en el contrato se considera **no publicado**.
+> **✅ OLA 3 APROBADA (D-08) el 2026-10-24 por AlexVilla y Bernardo.** Los endpoints de mosaico
+> de la Ola 3 pasan a ser oficiales para el contrato (T-C07).
 
 ## Leyenda
 
