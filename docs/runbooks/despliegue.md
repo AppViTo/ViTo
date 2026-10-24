@@ -94,7 +94,8 @@ activo (compose, configuración y versiones a la vez) y espera la salud.
 1. **Elegir el SHA:** `cat /opt/vito/history` en el VPS, o en GitHub → *Deployments* →
    `production` (los despliegues con éxito, con su commit). Hace falta el SHA completo.
 2. Actions → *ViTo Rollback* → *Run workflow* sobre `main` con `sha` y `reason`.
-3. Aprueba el otro lead (Environment `production`).
+3. Lo aprueba cualquiera de los dos leads, también quien lo disparó (Environment
+   `production-hotfix`, D-13). El motivo y quién aprobó quedan en `deployments.log`.
 4. Si la salud del release destino falla, vuelve solo al que estaba (código 5).
 
 **La base de datos no se revierte.** Un rollback devuelve el código, no los datos. Si el

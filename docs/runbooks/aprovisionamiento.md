@@ -119,7 +119,7 @@ Settings → Environments → *New environment*, tres veces (contrato:
 - `production`: con *Prevent self-review*, quien dispara el despliegue no lo puede aprobar;
   lo aprueba el otro lead (constitución v1.3.0, Principio VIII).
 - `production-hotfix`: sin esa opción, para que un lead solo pueda sacar un hotfix si el
-  otro no está disponible (R5).
+  otro no está disponible (R5). También lo usa siempre `rollback.yml` (D-13).
 - `production-preflight`: solo lo usa la verificación previa (`cd.yml`, `mode=preflight`),
   que no despliega nada.
 
