@@ -21,7 +21,7 @@ Las opciones listadas son las que salieron del análisis del 2026-10-16. **La co
 | D-10 | Tipo de cuenta de Google Play (personal u organización) | Publicación Android | ver §D-10 | ⏳ **prioritaria** · pospuesta el 2026-10-22 |
 | D-11 | Modelo de monetización (qué se cobra y a quién) | Ola de pagos (nueva), primeros ingresos | ver §D-11 | ⏳ pospuesta el 2026-10-22 |
 | D-12 | Política de privacidad, términos y transferencia de datos (Ley 1581) | Publicación en tiendas, lanzamiento | ver §D-12 | ⏳ |
-| D-13 | Rollback con un solo lead disponible | Operación del evento, `rollback.yml` | ver §D-13 | ⏳ **antes del evento** |
+| D-13 | Rollback con un solo lead disponible | Operación del evento, `rollback.yml` | ver §D-13 | ✅ `production-hotfix` (2026-10-24) |
 
 ---
 
@@ -216,3 +216,9 @@ hay uno disponible, no puede volver atrás por `rollback.yml`.
 | Los dos leads de guardia durante el evento | Sin cambios; depende de la disponibilidad |
 | Que `rollback.yml` pueda usar `production-hotfix` | Ese Environment ya permite la autoaprobación (con comentario obligatorio en `cd.yml`, FR-002), pero `rollback.yml` hoy usa siempre `production`: requiere cambiar el workflow y `incident.md` |
 | Tercer revisor de confianza | Más personas con acceso a producción (ADR-013) |
+
+**Decisión (2026-10-24, Bernardo):** `rollback.yml` usa siempre `production-hotfix`. Un
+rollback solo vuelve a un release que ya estuvo en producción con éxito (uno de los últimos 3)
+y no reconstruye nada, así que basta con un lead; `reason` es obligatorio y queda en
+`deployments.log` con quien aprobó. Los releases normales siguen en `production`, con
+aprobación del otro lead.

@@ -34,7 +34,8 @@ Jobs, en orden:
 | `reason` | string, requerido | queda en el registro |
 | `force_live_event` | boolean, default `false` | permite rollback durante un evento en vivo; el motivo es `reason` (R6, FR-028) |
 
-Environment `production` (aprueba el otro lead). Mismo grupo de concurrencia que `cd.yml`.
+Environment `production-hotfix` (D-13): lo aprueba cualquiera de los dos leads, también quien
+lo dispara, con `reason` en el registro. Mismo grupo de concurrencia que `cd.yml`.
 No construye imágenes.
 
 ## `deploy-frontend.yml` — web en Cloudflare Pages
