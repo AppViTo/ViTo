@@ -214,6 +214,10 @@ vito:
   security:
     revocation:
       redis-timeout: ${REVOCATION_REDIS_TIMEOUT:250ms}
+  # T-I21 (excepción A3): solo pesa en el perfil prod (ClosedUploadRoutesFilter). Apagada, la
+  # subida y las escrituras del mosaico responden 404; encendida, se abren las de la Ola 3.
+  mosaic:
+    uploads-enabled: ${MOSAIC_UPLOADS_ENABLED:false}
 
 # Resilience4j Circuit Breaker
 resilience4j:

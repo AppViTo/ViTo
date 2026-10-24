@@ -185,8 +185,12 @@ Rutas: `/ws/chat`, `/ws/checkin/{eventId}`, `/ws/mosaic/{eventId}`,
 ### 3.3 Subida y medios
 
 - **En producción la subida está cerrada a propósito** (T-I17): `POST /api/v1/media/**` y
-  las escrituras de `/api/v1/mosaic/**` responden `404 NOT_FOUND` desde el gateway hasta la
-  Ola 3. Un usuario que no puede subir fotos **no** es un incidente: es lo esperado.
+  las escrituras de `/api/v1/mosaic/**` responden `404 NOT_FOUND` desde el gateway mientras
+  `MOSAIC_UPLOADS_ENABLED` no valga `true` (T-I21). Un usuario que no puede subir fotos con
+  la variable en `false` **no** es un incidente: es lo esperado. Con `true` se abren
+  `POST /media/upload`, `POST /mosaic/post`, `POST /mosaic/grid/{eventId}/initialize` y
+  `POST`/`DELETE /mosaic/item/{itemId}/like`; lo demás sigue en `404`. Para volver a
+  cerrarla: `MOSAIC_UPLOADS_ENABLED=false` en `DOTENV_PRODUCTION` y redesplegar.
 - Las fotos y videos existentes se sirven desde R2 (`media.<DOMAIN>`), sin pasar por el
   VPS. Si no cargan: `curl -sI https://media.<DOMAIN>/<una clave conocida>`. Si R2 falla,
   no hay nada que hacer en el VPS: revisar el estado de Cloudflare.

@@ -226,6 +226,8 @@ services:
       # Perfil docker: URIs de los servicios por DNS de Compose
       SPRING_PROFILES_ACTIVE: prod,docker
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}
+      # T-I21 (excepción A3): subida al mosaico cerrada si falta o vale false
+      MOSAIC_UPLOADS_ENABLED: ${MOSAIC_UPLOADS_ENABLED:-false}
     depends_on:
       redis:
         condition: service_healthy
