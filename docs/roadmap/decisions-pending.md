@@ -21,6 +21,7 @@ Las opciones listadas son las que salieron del análisis del 2026-10-16. **La co
 | D-10 | Tipo de cuenta de Google Play (personal u organización) | Publicación Android | ver §D-10 | ⏳ **prioritaria** · pospuesta el 2026-10-22 |
 | D-11 | Modelo de monetización (qué se cobra y a quién) | Ola de pagos (nueva), primeros ingresos | ver §D-11 | ⏳ pospuesta el 2026-10-22 |
 | D-12 | Política de privacidad, términos y transferencia de datos (Ley 1581) | Publicación en tiendas, lanzamiento | ver §D-12 | ⏳ |
+| D-13 | Rollback con un solo lead disponible | Operación del evento, `rollback.yml` | ver §D-13 | ⏳ **antes del evento** |
 
 ---
 
@@ -201,3 +202,17 @@ publicar.
 | Responsable del tratamiento | Persona natural (lead) o la empresa, según D-09 y D-10. |
 | Borrado de cuenta | Google Play exige un mecanismo de eliminación de cuenta; coincide con el flujo `USER_DELETED` del Principio IX. Planificarlo en la Ola 1. |
 | Insumos del triage de seguridad (T051) | M4 (cifrado en reposo: excepción en Fase Tracción), M5 (qué dato es sensible y si se cifra por campo), M10 (Ley 1581 en lugar de GDPR/CCPA) y M11 (retención, exportación y borrado) de `backend/SECURITY_CHECKLIST.md` se resuelven con esta decisión. |
+
+---
+
+## D-13 — Rollback con un solo lead disponible
+
+`production` exige la aprobación de un revisor distinto de quien lanza el workflow, así que
+un rollback necesita a los dos leads (hallazgo de T-I14, #167). Si el día del evento solo
+hay uno disponible, no puede volver atrás por `rollback.yml`.
+
+| Opción | Efecto |
+|--------|--------|
+| Los dos leads de guardia durante el evento | Sin cambios; depende de la disponibilidad |
+| Que `rollback.yml` pueda usar `production-hotfix` | Ese Environment ya permite la autoaprobación (con comentario obligatorio en `cd.yml`, FR-002), pero `rollback.yml` hoy usa siempre `production`: requiere cambiar el workflow y `incident.md` |
+| Tercer revisor de confianza | Más personas con acceso a producción (ADR-013) |
