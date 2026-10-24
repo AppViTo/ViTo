@@ -71,3 +71,21 @@ IP; esos datos viven en el gestor de contraseñas.
 | Resend (se descarta Brevo) | ⏳ Por configurar: requiere verificar el dominio de envío con registros DNS en Cloudflare. |
 | Firebase (FCM) | ⏳ Sin abrir. |
 | Google Play Console | ⏳ Según D-10 (pospuesta). |
+
+### 2026-10-24 — Estado del inventario (cierre de T-I06)
+
+| Proveedor | Estado |
+|-----------|--------|
+| Correo de equipo | ✅ Sigue siendo la cuenta de Gmail. ⏳ Falta `infra@<dominio>` con Email Routing. |
+| Contabo | ✅ Acceso solo por llave SSH (`bootstrap.sh`): usuario `deploy` con las llaves del pipeline y de los leads, sin contraseñas, `ufw` y `fail2ban`. |
+| Cloudflare | ✅ Dominio y DNS (`api.`, `live.`, `media.`, `app.`), proyecto de Pages `vito-web`, token limitado a Pages, `media.` conectado a `vito-media` con TLS 1.2 mínimo y CORS solo para la web. ⏳ Falta Alex como administrador. |
+| GitHub (org AppViTo) | ✅ Environments `production`, `production-hotfix` y `production-preflight` con revisores, secretos y variables. Secret scanning y Push protection activos. |
+| Grafana Cloud | ✅ Cuenta creada. ⏳ Falta Alex como administrador; la integración es T-I13. |
+| Telegram (nuevo) | ✅ Bot de avisos del pipeline y grupo con los dos leads. |
+| Resend | ⏳ Opcional: sin él, los avisos llegan solo por Telegram. |
+| Firebase (FCM) | ⏳ Sin abrir; no hace falta para el evento de prueba. |
+| Google Play Console | ⏳ Según D-10 (pospuesta). |
+
+Puntos 3 a 6 de la decisión: gestor compartido con 2FA en todas las cuentas y códigos de
+recuperación fuera del gestor, una sola tarjeta, hoja de gastos con el VPS y el dominio, y
+alertas de cobro a los dos leads. Los leads confirmaron que están cumplidos.

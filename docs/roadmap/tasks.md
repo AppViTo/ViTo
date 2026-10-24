@@ -81,10 +81,10 @@
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
 | T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY | [VITO-51](https://bernardo-mira.atlassian.net/browse/VITO-51) |
-| T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | 🟢 READY (manual, leads) | [VITO-45](https://bernardo-mira.atlassian.net/browse/VITO-45) |
-| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔴 BLOQUEADA (T-I06) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
+| T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | ✅ HECHA (manual, 2026-10-24; pendientes menores en ADR-013) | [VITO-45](https://bernardo-mira.atlassian.net/browse/VITO-45) |
+| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔵 EN CURSO (release 0.1.0: falta el preflight y el primer despliegue) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
 | T-I11 | Frontend web en Cloudflare Pages, con la CSP/HSTS de la web (antes en T-I18) | I/F | P1 | 🔵 EN CURSO (#179 · falta verificar en prod) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
-| T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (T-I06) | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
+| T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🟢 READY | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔵 EN CURSO (#167 · falta el ensayo manual) | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
 | T-I16 | Protección de rama en `main` y `develop` (tarea manual de leads) | I | P0 | ✅ HECHA (#49, manual) | [VITO-55](https://bernardo-mira.atlassian.net/browse/VITO-55) |
@@ -101,7 +101,7 @@
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
 gitleaks, Dependabot). Las de P1 del triage bloquean la apertura a usuarios reales.
 
-Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-B06 (VITO-31), T-B10 (VITO-35), T-B13 (VITO-38), T-B18, T-B30, T-I08 (VITO-47), T-I13 (VITO-52).
+Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-B06 (VITO-31), T-B10 (VITO-35), T-B13 (VITO-38), T-B18, T-B30.
 Desbloqueadas el 2026-10-24: T-C07 Ola 3 (D-08), T-B07 y T-F08 (T-C06 hecha en #147), y T-I11
 (Pages, dominio, secretos y variables listos en T-I06).
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
@@ -622,15 +622,21 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** test por servicio que verifica `200` en liveness/readiness y que
   `/actuator/prometheus` responde.
 
-### T-I06 · Aprovisionar cuentas y VPS — 🟢 READY (manual, leads) · P0 · ADR-011, ADR-013
+### T-I06 · Aprovisionar cuentas y VPS — ✅ HECHA (manual, 2026-10-24) · P0 · ADR-011, ADR-013
 - **Avance (2026-10-22):** listos el VPS Contabo 12 GB, los buckets R2, Grafana Cloud y el
   correo de equipo (Gmail). Faltan la llave SSH, el Environment `production`, el
   dominio/DNS/Pages y Resend (ADR-013, actualización del 2026-10-22).
 - **Avance (2026-10-24):** listos los Environments `production`, `production-hotfix` (con
   revisores) y `production-preflight`, los secretos SSH y de Cloudflare, las variables
-  `VITO_*` y `PAGES_PROJECT`, y el DNS de `api.`, `live.` y `media.`. Faltan
-  `DOTENV_PRODUCTION`, `MONGO_DEPLOY_RO_PASSWORD`, `TELEGRAM_BOT_TOKEN` y
-  `TELEGRAM_CHAT_ID` en los tres Environments.
+  `VITO_*` y `PAGES_PROJECT`, y el DNS de `api.`, `live.` y `media.`.
+- **Cierre (2026-10-24):** `bootstrap.sh --check-only` con todo OK (llave SSH, sin
+  contraseñas, `docker compose` instalado); los tres Environments con los 10 secretos y las 4
+  variables; secretos de Telegram en el repo; CORS de `vito-media` verificado con `curl`;
+  Secret scanning y Push protection activos; rama por defecto `develop`; gastos en la hoja.
+  La huella SSH se verificó desde dos redes distintas, no por la consola de Contabo.
+  **Pendientes menores (no bloquean el release):** Alex como administrador en Cloudflare y
+  en Grafana Cloud, Email Routing `infra@<dominio>` y Resend (ADR-013, actualización del
+  2026-10-24).
 - **Tarea manual de los leads** (no la ejecuta un agente):
   0. En GitHub, cambiar la rama por defecto a `develop` (ADR-012).
   1. Correo de equipo, gestor de contraseñas con 2FA, tarjeta y hoja de gastos (ADR-013).
@@ -660,7 +666,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `docker compose ... up` en local con un `.env` de prueba levanta todo dentro de 12 GB
   (`docker stats` en el PR).
 
-### T-I08 · Pipeline de despliegue — 🔴 BLOQUEADA por T-I06 · P0 · O-12, ADR-011, ADR-012
+### T-I08 · Pipeline de despliegue — 🔵 EN CURSO (release 0.1.0) · P0 · O-12, ADR-011, ADR-012
 - **Qué:** rehacer `cd.yml`: al entrar un commit a `main`, construir solo las imágenes de
   los servicios cambiados (tag = SHA), copiarlas al VPS con `docker save | ssh docker load`,
   ejecutar `docker compose up -d` con el nuevo `IMAGE_TAG` y verificar los healthchecks.
@@ -719,7 +725,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   feedback rápido.
 - **Cierre:** un PR que solo toca `frontend/` no ejecuta jobs de backend, y viceversa.
 
-### T-I13 · Observabilidad con Grafana Cloud — 🔴 BLOQUEADA por T-I06 · P1 · Principio VI
+### T-I13 · Observabilidad con Grafana Cloud — 🟢 READY · P1 · Principio VI
 - **Qué:** Grafana Alloy (u OTel Collector) en el VPS que envía métricas, logs y trazas a
   Grafana Cloud free; dashboard RED del gateway; alertas de caída y de disco/RAM > 80 % a
   ambos leads; monitor de uptime externo. Alertas de picos de `401` y `429` en el gateway
