@@ -287,4 +287,19 @@ class FakeMediaRemoteDataSource implements MediaRemoteDataSource {
     if (uploadError != null) throw uploadError!;
     return 'https://cdn.vito.app/cover.jpg';
   }
+
+  @override
+  Future<String> uploadMedia({
+    required String eventId,
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+  }) async {
+    capturedEventId = eventId;
+    capturedBytes = bytes;
+    capturedFileName = fileName;
+    capturedMimeType = mimeType;
+    if (uploadError != null) throw uploadError!;
+    return 'med_1';
+  }
 }

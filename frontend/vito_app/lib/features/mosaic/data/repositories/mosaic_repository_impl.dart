@@ -5,6 +5,7 @@ import 'package:dartz/dartz.dart';
 import '../../../../core/error/exceptions.dart';
 import '../../../../core/network/ws_connection.dart';
 import '../../../../core/error/failures.dart';
+import '../../../events/data/datasources/media_remote_datasource.dart';
 import '../datasources/mosaic_remote_datasource.dart';
 import '../models/mosaic_model.dart';
 import '../../domain/entities/mosaic.dart';
@@ -12,7 +13,10 @@ import '../../domain/repositories/mosaic_repository.dart';
 
 class MosaicRepositoryImpl implements MosaicRepository {
   final MosaicRemoteDataSource remoteDataSource;
-  
+
+  /// Paso 1 de la subida (`uploadMedia`), el mismo que usa la portada.
+  final MediaRemoteDataSource mediaDataSource;
+
   final _feedController = StreamController<MosaicFeedItem>.broadcast();
   final _gridController = StreamController<MosaicGrid>.broadcast();
   final _likeController = StreamController<int>.broadcast();
@@ -21,62 +25,70 @@ class MosaicRepositoryImpl implements MosaicRepository {
   
   MosaicRepositoryImpl({
     required this.remoteDataSource,
+    required this.mediaDataSource,
     required this.wsConnection,
   });
-  
+
+  Failure _toFailure(Object error) {
+    if (error is ValidationException) {
+      return ValidationFailure(message: error.message);
+    }
+    if (error is AuthenticationException) {
+      return AuthenticationFailure(message: error.message);
+    }
+    if (error is NetworkException) return NetworkFailure(message: error.message);
+    if (error is ServerException) {
+      if (error.statusCode == 403) {
+        return AuthorizationFailure(message: error.message);
+      }
+      if (error.statusCode == 404) {
+        return NotFoundFailure(message: error.message);
+      }
+      return ServerFailure(message: error.message);
+    }
+    return ServerFailure(message: error.toString());
+  }
+
   @override
-  Future<Either<Failure, MosaicFeedItem>> addPost({
+  Future<Either<Failure, MosaicFeedItem>> uploadPhoto({
     required String eventId,
-    required String content,
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+    String? content,
   }) async {
+    if (!mosaicAllowedImageTypes.contains(mimeType)) {
+      return const Left(ValidationFailure(
+        message: 'Solo se pueden publicar imágenes JPEG, PNG o WebP',
+      ));
+    }
+    if (bytes.lengthInBytes > mosaicMaxUploadBytes) {
+      return const Left(ValidationFailure(
+        message: 'La foto supera los 10 MB',
+      ));
+    }
+
     try {
+      final mediaId = await mediaDataSource.uploadMedia(
+        eventId: eventId,
+        bytes: bytes,
+        fileName: fileName,
+        mimeType: mimeType,
+      );
+      if (mediaId.isEmpty) {
+        return const Left(ServerFailure(
+          message: 'No se pudo subir la foto. Inténtalo de nuevo.',
+        ));
+      }
+
       final item = await remoteDataSource.addPost(
         eventId: eventId,
+        mediaId: mediaId,
         content: content,
       );
       return Right(item);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
-  
-  @override
-  Future<Either<Failure, MosaicFeedItem>> addPhoto({
-    required String eventId,
-    String? content,
-    required List<String> mediaUrls,
-  }) async {
-    try {
-      final item = await remoteDataSource.addPhoto(
-        eventId: eventId,
-        content: content,
-        mediaUrls: mediaUrls,
-      );
-      return Right(item);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
-    }
-  }
-  
-  @override
-  Future<Either<Failure, MosaicFeedItem>> addCheckIn({
-    required String eventId,
-    String? location,
-  }) async {
-    try {
-      final item = await remoteDataSource.addCheckIn(
-        eventId: eventId,
-        location: location,
-      );
-      return Right(item);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
-    } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   
@@ -133,26 +145,20 @@ class MosaicRepositoryImpl implements MosaicRepository {
   }
   
   @override
-  Future<Either<Failure, void>> likePost(String itemId) async {
+  Future<Either<Failure, MosaicLikeState>> likePost(String itemId) async {
     try {
-      await remoteDataSource.likePost(itemId);
-      return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
+      return Right(await remoteDataSource.likePost(itemId));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
-  
+
   @override
-  Future<Either<Failure, void>> unlikePost(String itemId) async {
+  Future<Either<Failure, MosaicLikeState>> unlikePost(String itemId) async {
     try {
-      await remoteDataSource.unlikePost(itemId);
-      return const Right(null);
-    } on ServerException catch (e) {
-      return Left(ServerFailure(message: e.message));
+      return Right(await remoteDataSource.unlikePost(itemId));
     } catch (e) {
-      return Left(ServerFailure(message: e.toString()));
+      return Left(_toFailure(e));
     }
   }
   

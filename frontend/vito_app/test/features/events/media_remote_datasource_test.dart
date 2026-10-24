@@ -88,6 +88,45 @@ void main() {
     expect(url, 'https://cdn.vito.app/evt_1/portada.jpg');
   });
 
+  test('uploadMedia devuelve el Media.id para createMosaicPost (ADR-016)',
+      () async {
+    adapter.responseBody = jsonEncode({
+      'id': 'med_01H8X2K4QJ',
+      'eventId': 'evt_1',
+      'status': 'UPLOADED',
+      'location': {'url': 'https://cdn.vito.app/evt_1/foto.webp'},
+    });
+
+    final mediaId = await dataSource.uploadMedia(
+      eventId: 'evt_1',
+      bytes: Uint8List.fromList([1, 2, 3]),
+      fileName: 'foto.webp',
+      mimeType: 'image/webp',
+    );
+
+    expect(adapter.request!.method, 'POST');
+    expect(adapter.request!.uri.path, '/api/v1/media/upload');
+    final body = adapter.requestBody.toLowerCase();
+    expect(body, contains('name="eventid"'));
+    expect(body, contains('name="file"'));
+    expect(body, contains('content-type: image/webp'));
+    expect(mediaId, 'med_01H8X2K4QJ');
+  });
+
+  test('uploadMedia devuelve cadena vacía si la respuesta no trae id',
+      () async {
+    adapter.responseBody = jsonEncode({'status': 'UPLOADED'});
+
+    final mediaId = await dataSource.uploadMedia(
+      eventId: 'evt_1',
+      bytes: Uint8List.fromList([1]),
+      fileName: 'foto.png',
+      mimeType: 'image/png',
+    );
+
+    expect(mediaId, isEmpty);
+  });
+
   test('devuelve cadena vacía si la respuesta no trae location.url', () async {
     adapter.responseBody = jsonEncode({'id': 'med_1'});
 

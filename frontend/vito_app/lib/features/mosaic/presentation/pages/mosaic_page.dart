@@ -16,6 +16,7 @@ class MosaicPage extends StatefulWidget {
 
 class _MosaicPageState extends State<MosaicPage> {
   bool _showGrid = true;
+  bool _uploading = false;
   final ImagePicker _imagePicker = ImagePicker();
 
   @override
@@ -64,11 +65,14 @@ class _MosaicPageState extends State<MosaicPage> {
           // Upload button
           IconButton(
             icon: const Icon(Icons.add_a_photo),
-            onPressed: _pickAndUpload,
+            onPressed: _uploading ? null : _pickAndUpload,
           ),
         ],
       ),
-      body: BlocBuilder<MosaicBloc, MosaicState>(
+      body: BlocConsumer<MosaicBloc, MosaicState>(
+        listener: _onUploadState,
+        // Los estados de la subida se notifican sin reemplazar el contenido.
+        buildWhen: (_, state) => !_isUploadState(state),
         builder: (context, state) {
           if (state is MosaicLoading) {
             return const Center(
@@ -104,8 +108,14 @@ class _MosaicPageState extends State<MosaicPage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _pickAndUpload,
-        child: const Icon(Icons.camera_alt),
+        onPressed: _uploading ? null : _pickAndUpload,
+        child: _uploading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.camera_alt),
       ),
     );
   }
@@ -272,15 +282,68 @@ class _MosaicPageState extends State<MosaicPage> {
 
     if (source == null || !mounted) return;
 
-    final XFile? image = await _imagePicker.pickImage(source: source);
+    // Excepción A3: solo fotos (pickImage nunca ofrece video).
+    XFile? image;
+    try {
+      image = await _imagePicker.pickImage(source: source, imageQuality: 85);
+    } catch (_) {
+      if (mounted) _showMessage('No se pudo abrir la cámara o la galería');
+      return;
+    }
     if (image == null || !mounted) return;
 
-    // TODO: Upload to media service and then add to mosaic
-    // For now, just show a snackbar
+    final mimeType = image.mimeType ?? _mimeFromName(image.name);
+    if (mimeType == null || !mosaicAllowedImageTypes.contains(mimeType)) {
+      _showMessage('Solo se pueden publicar imágenes JPEG, PNG o WebP');
+      return;
+    }
+
+    final bytes = await image.readAsBytes();
+    if (!mounted) return;
+    if (bytes.lengthInBytes > mosaicMaxUploadBytes) {
+      _showMessage('La foto supera los 10 MB');
+      return;
+    }
+
+    context.read<MosaicBloc>().add(UploadMosaicPhoto(
+          eventId: widget.eventId,
+          bytes: bytes,
+          fileName: image.name,
+          mimeType: mimeType,
+        ));
+  }
+
+  String? _mimeFromName(String name) {
+    final lower = name.toLowerCase();
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    return null;
+  }
+
+  bool _isUploadState(MosaicState state) =>
+      state is MosaicUploading ||
+      state is MosaicUploadFailed ||
+      state is MosaicItemAdded;
+
+  void _onUploadState(BuildContext context, MosaicState state) {
+    if (!_isUploadState(state)) return;
+    setState(() => _uploading = state is MosaicUploading);
+
+    if (state is MosaicUploadFailed) {
+      _showMessage(state.message);
+    } else if (state is MosaicItemAdded) {
+      _showMessage('Foto publicada en el mosaico');
+      final bloc = context.read<MosaicBloc>();
+      bloc.add(_showGrid
+          ? LoadEventGrid(widget.eventId)
+          : LoadEventFeed(widget.eventId));
+    }
+  }
+
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Upload feature coming soon!'),
-      ),
+      SnackBar(content: Text(message)),
     );
   }
 

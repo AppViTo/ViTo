@@ -249,7 +249,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `ConnectToWebSocket` (check-in y mosaico no conectan desde la UI) y
   `ChatBloc._onSendTypingIndicator` conecta en vez de enviar el frame.
 
-### T-F05 · Subida al mosaico — 🟢 READY (contrato en #182) · ADR-016
+### T-F05 · Subida al mosaico — ✅ HECHA (#186) · ADR-016
 - **Qué:** subir en dos pasos: `POST /media/upload` y luego `POST /mosaic/post` con el
   `mediaId`. Deja de llamar a `/mosaic/photo` y `/mosaic/checkin`.
 - **Excepción A3:** solo `image/jpeg`, `image/png` e `image/webp`; el selector no ofrece video
