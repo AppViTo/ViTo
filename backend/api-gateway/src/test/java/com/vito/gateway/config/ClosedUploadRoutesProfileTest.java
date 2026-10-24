@@ -120,6 +120,7 @@ class ClosedUploadRoutesProfileTest {
         void olaTresWritesAreClosedByDefault() {
             assertClosed(client, HttpMethod.POST, "/api/v1/mosaic/grid/evt_1/initialize");
             assertClosed(client, HttpMethod.POST, "/api/v1/mosaic/item/itm_1/like");
+            assertClosed(client, HttpMethod.DELETE, "/api/v1/mosaic/item/itm_1");
         }
 
         @Test
@@ -184,6 +185,12 @@ class ClosedUploadRoutesProfileTest {
             assertRouted(client, HttpMethod.DELETE, "/api/v1/mosaic/item/itm_1/like");
         }
 
+        /** La moderación del organizador (removeMosaicItem) abre junto con la subida: A3 exige las dos. */
+        @Test
+        void organizerModerationIsRouted() {
+            assertRouted(client, HttpMethod.DELETE, "/api/v1/mosaic/item/itm_1");
+        }
+
         /** ADR-016 elimina photo y checkin; process es interno (transcode vía Kafka). */
         @Test
         void otherWritesStayClosed() {
@@ -194,7 +201,7 @@ class ClosedUploadRoutesProfileTest {
             assertClosed(client, HttpMethod.PUT, "/api/v1/mosaic/item/itm_1/like");
             assertClosed(client, HttpMethod.PUT, "/api/v1/mosaic/item/itm_1");
             assertClosed(client, HttpMethod.PATCH, "/api/v1/mosaic/item/itm_1");
-            assertClosed(client, HttpMethod.DELETE, "/api/v1/mosaic/item/itm_1");
+            assertClosed(client, HttpMethod.POST, "/api/v1/mosaic/item/itm_1");
             assertClosed(client, HttpMethod.POST, "/api/v1/mosaic/grid/evt_1");
         }
 

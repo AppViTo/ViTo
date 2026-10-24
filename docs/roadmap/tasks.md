@@ -92,7 +92,7 @@
 | T-I18 | Cabeceras de seguridad en Caddy (`api.`, `live.`); la CSP/HSTS de la web pasó a T-I11 | I | P0 | ✅ HECHA (#157) | — |
 | T-I19 | Un usuario de Mongo por servicio (sin root) | I/B | P1 | 🟢 READY | — |
 | T-I20 | Kafka con TLS y ACL por tópico (excepción A7) | I | P2 | ⚪ DIFERIDA (Fase Crecimiento; revisión 2027-04-22) | — |
-| T-I21 | Subida al mosaico en `prod` detrás de una propiedad (excepción A3) | I/B | P0 | 🔵 EN CURSO (#177 · borrador, espera las rutas REST de la Ola 3) | — |
+| T-I21 | Subida al mosaico en `prod` detrás de una propiedad (excepción A3) | I/B | P0 | ✅ HECHA (#177, #183 · activar tras T-B26) | — |
 | T-I22 | `cd.yml`: opción para reconstruir todas las imágenes (VPS vacío) | I | P1 | 🟢 READY | — |
 | T-I23 | Recomendaciones en `prod` sin `recommendation-service`: fallback y degradación | I/F | P2 | 🟢 READY | — |
 | T-I24 | Registro de imágenes para no depender del VPS | I | P2 | ⚪ DIFERIDA (Fase Crecimiento) | — |
@@ -813,7 +813,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Qué:** listener `SASL_SSL`, un usuario por servicio y ACL por tópico según los
   productores y consumidores de `asyncapi.yaml`.
 
-### T-I21 · Subida al mosaico en producción detrás de una propiedad — 🔵 EN CURSO (#177 · borrador, espera las rutas REST de la Ola 3) · P0 · Principio III, T051 (excepción A3)
+### T-I21 · Subida al mosaico en producción detrás de una propiedad — ✅ HECHA (#177, #183) · P0 · Principio III, T051 (excepción A3)
 - **Por qué:** T-I17 cierra la subida en `prod` por perfil. La excepción A3 la abre solo para
   imágenes re-codificadas y moderables.
 - **Qué:** `ClosedUploadRoutesFilter` pasa a depender de una propiedad (cerrada por defecto),
