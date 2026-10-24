@@ -7,3 +7,10 @@ logging:
     com.vito.gateway: INFO
     org.springframework.cloud.gateway: INFO
     org.springframework.security: INFO
+
+# T-B23: Caddy es el único salto delante del gateway (api. está en DNS only) y reescribe
+# X-Forwarded-For con la IP del cliente. Sin esto, todo internet comparte el bucket de la IP
+# de Caddy en /auth/login y /auth/register.
+vito:
+  rate-limit:
+    trusted-proxies: 1

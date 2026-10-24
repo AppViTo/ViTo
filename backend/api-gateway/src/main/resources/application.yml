@@ -57,6 +57,11 @@ spring:
               args:
                 name: socialServiceCircuitBreaker
                 fallbackUri: forward:/fallback/social
+            - name: RequestRateLimiter
+              args:
+                deny-empty-key: false
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
         
         - id: event-service
           uri: ${EVENT_SERVICE_URI:http://localhost:8083}
@@ -84,6 +89,11 @@ spring:
               args:
                 name: checkinServiceCircuitBreaker
                 fallbackUri: forward:/fallback/checkin
+            - name: RequestRateLimiter
+              args:
+                deny-empty-key: false
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
         
         - id: mosaic-service
           uri: ${MOSAIC_SERVICE_URI:http://localhost:8085}
@@ -95,6 +105,11 @@ spring:
               args:
                 name: mosaicServiceCircuitBreaker
                 fallbackUri: forward:/fallback/mosaic
+            - name: RequestRateLimiter
+              args:
+                deny-empty-key: false
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
         
         - id: streaming-service
           uri: ${STREAMING_SERVICE_URI:http://localhost:8086}
@@ -106,6 +121,11 @@ spring:
               args:
                 name: streamingServiceCircuitBreaker
                 fallbackUri: forward:/fallback/streaming
+            - name: RequestRateLimiter
+              args:
+                deny-empty-key: false
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
         
         - id: archive-service
           uri: ${ARCHIVE_SERVICE_URI:http://localhost:8087}
@@ -117,6 +137,11 @@ spring:
               args:
                 name: archiveServiceCircuitBreaker
                 fallbackUri: forward:/fallback/archive
+            - name: RequestRateLimiter
+              args:
+                deny-empty-key: false
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
         
         - id: chat-service
           uri: ${CHAT_SERVICE_URI:http://localhost:8088}
@@ -128,6 +153,11 @@ spring:
               args:
                 name: chatServiceCircuitBreaker
                 fallbackUri: forward:/fallback/chat
+            - name: RequestRateLimiter
+              args:
+                deny-empty-key: false
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
         
         - id: media-service
           uri: ${MEDIA_SERVICE_URI:http://localhost:8089}
@@ -139,6 +169,11 @@ spring:
               args:
                 name: mediaServiceCircuitBreaker
                 fallbackUri: forward:/fallback/media
+            - name: RequestRateLimiter
+              args:
+                deny-empty-key: false
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
         
         - id: transcode-service
           uri: ${TRANSCODE_SERVICE_URI:http://localhost:8000}
@@ -150,6 +185,11 @@ spring:
               args:
                 name: transcodeServiceCircuitBreaker
                 fallbackUri: forward:/fallback/transcode
+            - name: RequestRateLimiter
+              args:
+                deny-empty-key: false
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
         
         - id: recommendation-service
           uri: ${RECOMMENDATION_SERVICE_URI:http://localhost:8001}
@@ -161,6 +201,11 @@ spring:
               args:
                 name: recommendationServiceCircuitBreaker
                 fallbackUri: forward:/fallback/recommendations
+            - name: RequestRateLimiter
+              args:
+                deny-empty-key: false
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
         
         - id: moderation-service
           uri: ${MODERATION_SERVICE_URI:http://localhost:8002}
@@ -172,6 +217,11 @@ spring:
               args:
                 name: moderationServiceCircuitBreaker
                 fallbackUri: forward:/fallback/moderation
+            - name: RequestRateLimiter
+              args:
+                deny-empty-key: false
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
 
         # WebSocket crudo (ADR-006). JwtAuthenticationFilter valida ?token= y cierra con 4401.
         # La URI es http: el gateway la convierte a ws:// cuando el request trae Upgrade: websocket.
@@ -211,6 +261,10 @@ jwt:
 # responde en este tiempo, el gateway falla abierto: acepta el token con firma válida y
 # cuenta el fallo en vito.gateway.revocation.check.errors.
 vito:
+  # T-B23: saltos de proxy delante del gateway cuyo X-Forwarded-For se cree para el bucket por
+  # IP de las rutas públicas. 0 = la dirección de la conexión; prod (detrás de Caddy) usa 1.
+  rate-limit:
+    trusted-proxies: ${RATE_LIMIT_TRUSTED_PROXIES:0}
   security:
     revocation:
       redis-timeout: ${REVOCATION_REDIS_TIMEOUT:250ms}

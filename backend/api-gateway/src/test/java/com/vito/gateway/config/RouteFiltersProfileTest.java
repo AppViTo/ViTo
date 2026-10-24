@@ -3,6 +3,7 @@ package com.vito.gateway.config;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.gateway.config.GatewayProperties;
 import org.springframework.cloud.gateway.filter.FilterDefinition;
@@ -40,6 +41,26 @@ class RouteFiltersProfileTest {
 
         assertTrue(filterNames(route(properties, "event-service")).contains("RequestRateLimiter"));
         assertEquals(URI.create("http://" + checkinHost + ":8084"), route(properties, "checkin-ws").getUri());
+        assertRestRoutesRateLimited(properties);
+    }
+
+    /** CONVENTIONS §9 (T-B23): auth 10/20, events 20/40 y el resto de las rutas REST 10/20. */
+    static void assertRestRoutesRateLimited(GatewayProperties properties) {
+        List<RouteDefinition> rest = properties.getRoutes().stream()
+                .filter(r -> r.getPredicates().stream()
+                        .anyMatch(p -> p.getArgs().values().stream().anyMatch(v -> v.startsWith("/api/v1/"))))
+                .toList();
+        assertEquals(12, rest.size(), "rutas REST: " + rest.stream().map(RouteDefinition::getId).toList());
+
+        for (RouteDefinition route : rest) {
+            FilterDefinition limiter = route.getFilters().stream()
+                    .filter(f -> f.getName().equals("RequestRateLimiter"))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError(route.getId() + " sin RequestRateLimiter"));
+            boolean events = route.getId().equals("event-service");
+            assertEquals(events ? "20" : "10", limiter.getArgs().get("redis-rate-limiter.replenishRate"), route.getId());
+            assertEquals(events ? "40" : "20", limiter.getArgs().get("redis-rate-limiter.burstCapacity"), route.getId());
+        }
     }
 
     @Nested
@@ -65,6 +86,24 @@ class RouteFiltersProfileTest {
         @Test
         void routesKeepRateLimiterAndCircuitBreakerWithComposeHosts() {
             assertProtectedRoutes(properties, "auth-service", "checkin-service");
+        }
+    }
+
+    /** Detrás de Caddy el bucket por IP sale de X-Forwarded-For (T-B23). */
+    @Nested
+    @SpringBootTest(properties = "JWT_SECRET=test-secret-key-for-unit-tests-only-256-bits-long")
+    @ActiveProfiles({"prod", "docker"})
+    class ProdProfile {
+        @Autowired
+        GatewayProperties properties;
+
+        @Value("${vito.rate-limit.trusted-proxies}")
+        int trustedProxies;
+
+        @Test
+        void routesKeepRateLimiterAndTrustCaddyAsTheOnlyProxy() {
+            assertProtectedRoutes(properties, "auth-service", "checkin-service");
+            assertEquals(1, trustedProxies);
         }
     }
 }
