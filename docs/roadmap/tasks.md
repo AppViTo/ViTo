@@ -46,7 +46,7 @@
 | T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | ✅ HECHA (#64) | [VITO-23](https://bernardo-mira.atlassian.net/browse/VITO-23) |
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | ✅ HECHA (#65) | [VITO-24](https://bernardo-mira.atlassian.net/browse/VITO-24) |
 | T-F09 | Probar en dispositivo `mobile_scanner` 7 y `share_plus` 10 (#158) antes del evento | F | P0 | 🟢 READY (manual) | — |
-| T-F10 | Moderación del mosaico en la app del organizador (excepción A3) | F | P0 | 🔴 BLOQUEADA (T-C07 Ola 3) | — |
+| T-F10 | Moderación del mosaico en la app del organizador (excepción A3) | F | P0 | 🟢 READY (contrato en #182) | — |
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) | [VITO-26](https://bernardo-mira.atlassian.net/browse/VITO-26) |
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | ✅ HECHA (#38) | [VITO-27](https://bernardo-mira.atlassian.net/browse/VITO-27) |
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) | [VITO-29](https://bernardo-mira.atlassian.net/browse/VITO-29) |
@@ -72,7 +72,7 @@
 | T-B23 | Rate limit por usuario en las rutas autenticadas | B | P1 | ✅ HECHA (#180) | — |
 | T-B24 | Audit log de eventos de seguridad | B | P1 | 🟢 READY | — |
 | T-B25 | media-service: re-codificar imágenes y quitar metadatos (excepción A3) | B | P0 | ✅ HECHA (#174) | — |
-| T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | 🔴 BLOQUEADA (T-C07 Ola 3) | — |
+| T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | 🟢 READY (contrato en #182) | — |
 | T-B27 | Logs en INFO en `prod` en los 9 servicios Java restantes | B | P1 | ✅ HECHA (#175) | — |
 | T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🟢 READY | — |
 | T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🟢 READY | — |
@@ -101,7 +101,7 @@
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
 gitleaks, Dependabot). Las de P1 del triage bloquean la apertura a usuarios reales.
 
-Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-F05 (VITO-22), T-B06 (VITO-31), T-B10 (VITO-35), T-B13 (VITO-38), T-B18, T-B26, T-B30, T-F10, T-I08 (VITO-47), T-I13 (VITO-52).
+Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-B06 (VITO-31), T-B10 (VITO-35), T-B13 (VITO-38), T-B18, T-B30, T-I08 (VITO-47), T-I13 (VITO-52).
 Desbloqueadas el 2026-10-24: T-C07 Ola 3 (D-08), T-B07 y T-F08 (T-C06 hecha en #147), y T-I11
 (Pages, dominio, secretos y variables listos en T-I06).
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
@@ -182,6 +182,11 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `listEvents.mine.200.json`.
 
 ### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔵 EN CURSO (contract/ola-3) · D-08 aprobada 2026-10-24 (por ola) · O-02, O-30, ADR-016
+- **Ola 3 REST (#182):** las 7 rutas del handoff más `removeMosaicItem`
+  (`DELETE /mosaic/item/{itemId}`, moderación del organizador), `ITEM_REMOVED` en
+  `asyncapi.yaml`, 33 fixtures en `fixtures/mosaic/` y CONVENTIONS §8 sin `video/mp4`. La
+  escribió la sesión de terminal; el lead la aprueba. Quedan de la ola `DELETE /media/{mediaId}`
+  y `GET /media/{mediaId}/presigned-url`, que el evento de prueba no necesita.
 - **Ola 3 (aprobada por D-08 el 2026-10-24, #169):** #171 incorporó `/ws/mosaic/{eventId}` en
   `asyncapi.yaml` y el handoff `docs/handoff/ola-3-mosaico.md`. Falta el endpoint de moderación
   del organizador que pide la excepción A3 (lo implementa T-B26).
@@ -195,12 +200,9 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `openapi.yaml`, frames/eventos en `asyncapi.yaml`, fixtures, ADR si aplica y handoff
   `docs/handoff/<ola>.md` desde `TEMPLATE.md`. Se ejecuta con Spec Kit
   (`/speckit-specify` referenciando la ola y las O-xx que cierra).
-- **Ola 3 incompleta tras #171 (revisado 2026-10-24):** #171 solo cambió `asyncapi.yaml` y el
-  handoff. Faltan en `openapi.yaml` las 7 rutas `PUBLICAR` del mosaico de
-  `endpoint-inventory.md` (`post`, `feed`, `grid`, `grid/{eventId}/initialize`, `item/{itemId}`
-  y el like `POST`/`DELETE`), sus fixtures en `docs/api/fixtures/mosaic/` y el endpoint de
-  moderación del organizador (T-B26). Hasta entonces siguen bloqueadas T-F05, T-B26 y T-F10, y
-  T-I21 espera en borrador.
+- **Ola 3 incompleta tras #171 (revisado 2026-10-24, #178):** #171 solo cambió `asyncapi.yaml`
+  y el handoff; faltaban las rutas REST, sus fixtures y la moderación. Lo resuelve #182 (viñeta
+  "Ola 3 REST" de arriba).
 
 ---
 
@@ -247,7 +249,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `ConnectToWebSocket` (check-in y mosaico no conectan desde la UI) y
   `ChatBloc._onSendTypingIndicator` conecta en vez de enviar el frame.
 
-### T-F05 · Subida al mosaico — 🔴 BLOQUEADA por T-C07 (contrato de la Ola 3) · ADR-016
+### T-F05 · Subida al mosaico — 🟢 READY (contrato en #182) · ADR-016
 - **Qué:** subir en dos pasos: `POST /media/upload` y luego `POST /mosaic/post` con el
   `mediaId`. Deja de llamar a `/mosaic/photo` y `/mosaic/checkin`.
 - **Excepción A3:** solo `image/jpeg`, `image/png` e `image/webp`; el selector no ofrece video
@@ -273,7 +275,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** resultado por plataforma en el PR o en el issue; si algo falla, issue
   `blocked-by-frontend` antes del release.
 
-### T-F10 · Moderación del mosaico en la app — 🔴 BLOQUEADA por T-C07 (Ola 3) · P0 · Principio III, T051 (excepción A3)
+### T-F10 · Moderación del mosaico en la app — 🟢 READY (contrato en #182) · P0 · Principio III, T051 (excepción A3)
 - **Por qué:** la excepción A3 exige moderación por el organizador. T-B26 la implementa en el
   backend, pero sin una pantalla el organizador no puede usarla durante el evento.
 - **Qué:** en el mosaico (grid y feed), solo para el organizador del evento, una acción para
@@ -537,7 +539,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   descompresión (las dos `400`); límite de memoria del servicio respetado
   (`docker-compose.prod.yml`).
 
-### T-B26 · Moderación por el organizador — 🔴 BLOQUEADA por T-C07 (Ola 3) · P0 · Principio III, T051 (excepción A3)
+### T-B26 · Moderación por el organizador — 🟢 READY (contrato en #182) · P0 · Principio III, T051 (excepción A3)
 - **Qué:** el organizador del evento oculta o retira un elemento del mosaico; deja de
   aparecer en feed, grid y WebSocket. Solo el organizador (autorización por recurso). El
   endpoint lo define la rama `contract/ola-3`.
