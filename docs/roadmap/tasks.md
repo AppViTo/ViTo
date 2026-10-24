@@ -247,7 +247,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Excepción A3:** solo `image/jpeg`, `image/png` e `image/webp`; el selector no ofrece video
   ni otros formatos en esta ola.
 
-### T-F08 · Lista "mis eventos" — 🟢 READY (T-C06 hecha en #147) · ADR-014
+### T-F08 · Lista "mis eventos" — ✅ HECHA (#181) · ADR-014
 - **Qué:** `getMyEvents` envía `scope=mine`; `getUpcomingEvents` deja de llamar a
   `/events/upcoming` (fuera de contrato) y usa `GET /events?scope=upcoming`.
 - **Cierre:** tests del datasource contra los fixtures de T-C06.
