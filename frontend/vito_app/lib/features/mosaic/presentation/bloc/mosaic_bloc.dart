@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
@@ -14,45 +15,25 @@ abstract class MosaicEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class AddPost extends MosaicEvent {
+/// Sube una foto al mosaico en dos pasos (`uploadMedia` y
+/// `createMosaicPost`, ADR-016).
+class UploadMosaicPhoto extends MosaicEvent {
   final String eventId;
-  final String content;
-  
-  const AddPost({
-    required this.eventId,
-    required this.content,
-  });
-  
-  @override
-  List<Object?> get props => [eventId, content];
-}
-
-class AddPhoto extends MosaicEvent {
-  final String eventId;
+  final Uint8List bytes;
+  final String fileName;
+  final String mimeType;
   final String? content;
-  final List<String> mediaUrls;
-  
-  const AddPhoto({
-    required this.eventId,
-    this.content,
-    required this.mediaUrls,
-  });
-  
-  @override
-  List<Object?> get props => [eventId, content, mediaUrls];
-}
 
-class AddCheckIn extends MosaicEvent {
-  final String eventId;
-  final String? location;
-  
-  const AddCheckIn({
+  const UploadMosaicPhoto({
     required this.eventId,
-    this.location,
+    required this.bytes,
+    required this.fileName,
+    required this.mimeType,
+    this.content,
   });
-  
+
   @override
-  List<Object?> get props => [eventId, location];
+  List<Object?> get props => [eventId, bytes, fileName, mimeType, content];
 }
 
 class LoadEventFeed extends MosaicEvent {
@@ -185,6 +166,19 @@ class MosaicItemAdded extends MosaicState {
   List<Object?> get props => [item];
 }
 
+/// Subida en curso; la pantalla mantiene el contenido que ya mostraba.
+class MosaicUploading extends MosaicState {}
+
+/// La subida falló; se informa sin reemplazar el feed ni la grilla.
+class MosaicUploadFailed extends MosaicState {
+  final String message;
+
+  const MosaicUploadFailed(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
 class MosaicRealTimeUpdate extends MosaicState {
   final MosaicFeedItem item;
   
@@ -229,9 +223,7 @@ class MosaicBloc extends Bloc<MosaicEvent, MosaicState> {
   StreamSubscription? _likeSubscription;
   
   MosaicBloc({required this.repository}) : super(MosaicInitial()) {
-    on<AddPost>(_onAddPost);
-    on<AddPhoto>(_onAddPhoto);
-    on<AddCheckIn>(_onAddCheckIn);
+    on<UploadMosaicPhoto>(_onUploadMosaicPhoto);
     on<LoadEventFeed>(_onLoadEventFeed);
     on<LoadEventGrid>(_onLoadEventGrid);
     on<InitializeGrid>(_onInitializeGrid);
@@ -244,45 +236,29 @@ class MosaicBloc extends Bloc<MosaicEvent, MosaicState> {
     on<LikeCountUpdated>(_onLikeCountUpdated);
   }
   
-  Future<void> _onAddPost(AddPost event, Emitter<MosaicState> emit) async {
-    emit(MosaicLoading());
-    
-    final result = await repository.addPost(
+  Future<void> _onUploadMosaicPhoto(
+    UploadMosaicPhoto event,
+    Emitter<MosaicState> emit,
+  ) async {
+    final previous = state;
+    emit(MosaicUploading());
+
+    final result = await repository.uploadPhoto(
       eventId: event.eventId,
+      bytes: event.bytes,
+      fileName: event.fileName,
+      mimeType: event.mimeType,
       content: event.content,
     );
-    
+
     result.fold(
-      (failure) => emit(MosaicError(failure.message)),
-      (item) => emit(MosaicItemAdded(item)),
-    );
-  }
-  
-  Future<void> _onAddPhoto(AddPhoto event, Emitter<MosaicState> emit) async {
-    emit(MosaicLoading());
-    
-    final result = await repository.addPhoto(
-      eventId: event.eventId,
-      content: event.content,
-      mediaUrls: event.mediaUrls,
-    );
-    
-    result.fold(
-      (failure) => emit(MosaicError(failure.message)),
-      (item) => emit(MosaicItemAdded(item)),
-    );
-  }
-  
-  Future<void> _onAddCheckIn(AddCheckIn event, Emitter<MosaicState> emit) async {
-    emit(MosaicLoading());
-    
-    final result = await repository.addCheckIn(
-      eventId: event.eventId,
-      location: event.location,
-    );
-    
-    result.fold(
-      (failure) => emit(MosaicError(failure.message)),
+      (failure) {
+        emit(MosaicUploadFailed(failure.message));
+        // Vuelve al feed o la grilla que había para no perder lo cargado.
+        if (previous is MosaicFeedLoaded || previous is MosaicGridLoaded) {
+          emit(previous);
+        }
+      },
       (item) => emit(MosaicItemAdded(item)),
     );
   }
@@ -326,20 +302,30 @@ class MosaicBloc extends Bloc<MosaicEvent, MosaicState> {
   
   Future<void> _onLikePost(LikePost event, Emitter<MosaicState> emit) async {
     final result = await repository.likePost(event.itemId);
-    
+
     result.fold(
       (failure) => emit(MosaicError(failure.message)),
-      (_) {},
+      (likeState) => _applyLikeState(likeState, emit),
     );
   }
-  
+
   Future<void> _onUnlikePost(UnlikePost event, Emitter<MosaicState> emit) async {
     final result = await repository.unlikePost(event.itemId);
-    
+
     result.fold(
       (failure) => emit(MosaicError(failure.message)),
-      (_) {},
+      (likeState) => _applyLikeState(likeState, emit),
     );
+  }
+
+  /// Aplica el `MosaicLikeState` de la respuesta al ítem del feed cargado.
+  void _applyLikeState(MosaicLikeState likeState, Emitter<MosaicState> emit) {
+    final current = state;
+    if (current is! MosaicFeedLoaded) return;
+    emit(MosaicFeedLoaded([
+      for (final item in current.feed)
+        item.id == likeState.itemId ? item.withLikeState(likeState) : item,
+    ]));
   }
   
   void _onConnectToWebSocket(ConnectToWebSocket event, Emitter<MosaicState> emit) {

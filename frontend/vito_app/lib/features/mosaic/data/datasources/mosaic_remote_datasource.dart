@@ -4,22 +4,14 @@ import '../../../../core/error/exceptions.dart';
 import '../models/mosaic_model.dart';
 
 abstract class MosaicRemoteDataSource {
+  /// `createMosaicPost`: publica una imagen ya subida con `uploadMedia`
+  /// (ADR-016). Los check-in los crea `mosaic-service`, no el cliente.
   Future<MosaicFeedItemModel> addPost({
     required String eventId,
-    required String content,
-  });
-  
-  Future<MosaicFeedItemModel> addPhoto({
-    required String eventId,
+    required String mediaId,
     String? content,
-    required List<String> mediaUrls,
   });
-  
-  Future<MosaicFeedItemModel> addCheckIn({
-    required String eventId,
-    String? location,
-  });
-  
+
   Future<List<MosaicFeedItemModel>> getEventFeed({
     required String eventId,
     int page = 0,
@@ -34,10 +26,10 @@ abstract class MosaicRemoteDataSource {
     int cols = 4,
   });
   
-  Future<void> likePost(String itemId);
-  
-  Future<void> unlikePost(String itemId);
-  
+  Future<MosaicLikeStateModel> likePost(String itemId);
+
+  Future<MosaicLikeStateModel> unlikePost(String itemId);
+
   Future<MosaicFeedItemModel> getFeedItem(String itemId);
 }
 
@@ -49,59 +41,19 @@ class MosaicRemoteDataSourceImpl implements MosaicRemoteDataSource {
   @override
   Future<MosaicFeedItemModel> addPost({
     required String eventId,
-    required String content,
+    required String mediaId,
+    String? content,
   }) async {
     try {
       final response = await dio.post(
         '/mosaic/post',
         data: {
           'eventId': eventId,
-          'content': content,
+          'mediaId': mediaId,
+          if (content != null && content.isNotEmpty) 'content': content,
         },
       );
-      
-      return MosaicFeedItemModel.fromJson(response.data);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-  
-  @override
-  Future<MosaicFeedItemModel> addPhoto({
-    required String eventId,
-    String? content,
-    required List<String> mediaUrls,
-  }) async {
-    try {
-      final response = await dio.post(
-        '/mosaic/photo',
-        data: {
-          'eventId': eventId,
-          'content': content,
-          'mediaUrls': mediaUrls,
-        },
-      );
-      
-      return MosaicFeedItemModel.fromJson(response.data);
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-  
-  @override
-  Future<MosaicFeedItemModel> addCheckIn({
-    required String eventId,
-    String? location,
-  }) async {
-    try {
-      final response = await dio.post(
-        '/mosaic/checkin',
-        data: {
-          'eventId': eventId,
-          'location': location,
-        },
-      );
-      
+
       return MosaicFeedItemModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
@@ -157,18 +109,20 @@ class MosaicRemoteDataSourceImpl implements MosaicRemoteDataSource {
   }
   
   @override
-  Future<void> likePost(String itemId) async {
+  Future<MosaicLikeStateModel> likePost(String itemId) async {
     try {
-      await dio.post('/mosaic/item/$itemId/like');
+      final response = await dio.post('/mosaic/item/$itemId/like');
+      return MosaicLikeStateModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
     }
   }
-  
+
   @override
-  Future<void> unlikePost(String itemId) async {
+  Future<MosaicLikeStateModel> unlikePost(String itemId) async {
     try {
-      await dio.delete('/mosaic/item/$itemId/like');
+      final response = await dio.delete('/mosaic/item/$itemId/like');
+      return MosaicLikeStateModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
     }
