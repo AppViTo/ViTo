@@ -24,6 +24,7 @@
         <!-- El AWS SDK 2.57 usa httpclient5 5.6 (TlsSocketStrategy); Spring Boot 3.2 fija 5.2 -->
         <httpclient5.version>5.6.4</httpclient5.version>
         <httpcore5.version>5.4.3</httpcore5.version>
+        <twelvemonkeys.version>3.15.3</twelvemonkeys.version>
     </properties>
     
     <dependencies>
@@ -85,6 +86,22 @@
             <version>3.3.1</version>
         </dependency>
         
+        <!--
+          Re-codificación de imágenes (T-B25, excepción A3). TwelveMonkeys: BSD-3, Java puro,
+          plugins de ImageIO. webp lee WebP (el JDK no); jpeg lee CMYK/YCCK e ICC dañados que el
+          lector del JDK rechaza. La escritura usa los writers JPEG y PNG del JDK.
+        -->
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-jpeg</artifactId>
+            <version>${twelvemonkeys.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-webp</artifactId>
+            <version>${twelvemonkeys.version}</version>
+        </dependency>
+
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

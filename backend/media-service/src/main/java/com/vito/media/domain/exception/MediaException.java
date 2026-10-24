@@ -82,6 +82,32 @@ public class MediaException extends RuntimeException {
         }
     }
 
+    /**
+     * La excepción A3 solo publica imágenes re-codificadas: el vídeo se rechaza en esta ola aunque
+     * CONVENTIONS §8 aún lo liste (decisión de los leads, 2026-10-24).
+     */
+    public static class VideoNotAllowedException extends InvalidFileException {
+        public VideoNotAllowedException() {
+            super("Por ahora no se admiten vídeos: sube una imagen JPEG, PNG o WebP",
+                    "Formatos permitidos por ahora: image/jpeg, image/png, image/webp");
+        }
+    }
+
+    /** El tipo es de imagen pero el contenido no decodifica (dañado o falsificado) (T-B25). */
+    public static class UnreadableImageException extends InvalidFileException {
+        public UnreadableImageException() {
+            super("La imagen está dañada o no se puede leer", "Sube una imagen JPEG, PNG o WebP válida");
+        }
+    }
+
+    /** Más píxeles que el tope: frena las bombas de descompresión antes de reservar memoria (T-B25). */
+    public static class ImageTooLargeException extends InvalidFileException {
+        public ImageTooLargeException(long maxPixels) {
+            super("La imagen supera el máximo de " + maxPixels / 1_000_000 + " megapíxeles",
+                    "Resolución máxima: " + maxPixels / 1_000_000 + " megapíxeles");
+        }
+    }
+
     private static String allowedTypesDetail(List<String> allowedTypes) {
         return "Formatos permitidos: " + String.join(", ", allowedTypes);
     }

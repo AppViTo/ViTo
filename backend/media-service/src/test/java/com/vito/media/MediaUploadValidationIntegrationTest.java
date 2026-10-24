@@ -3,6 +3,7 @@ package com.vito.media;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vito.media.support.SampleFiles;
+import com.vito.media.support.SampleImages;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
@@ -63,6 +64,31 @@ class MediaUploadValidationIntegrationTest {
         JsonNode body = assertValidationError(upload("grande.jpg", "image/jpeg", new byte[11 * 1024 * 1024]));
 
         assertEquals("El archivo supera el tamaño máximo de 10 MB", body.get("message").asText());
+    }
+
+    /** T-B25: pasa la detección de tipo (firma PNG) pero no decodifica. */
+    @Test
+    void corruptImage_Returns400WithErrorEnvelope() throws Exception {
+        JsonNode body = assertValidationError(upload("foto.png", "image/png", SampleImages.corruptPng()));
+
+        assertEquals("La imagen está dañada o no se puede leer", body.get("message").asText());
+        assertEquals("Sube una imagen JPEG, PNG o WebP válida", body.get("details").get("file").asText());
+    }
+
+    /** T-B25: 400 MP en menos de 1 MB; se corta con la cabecera, sin decodificar. */
+    @Test
+    void decompressionBomb_Returns400() throws Exception {
+        JsonNode body = assertValidationError(upload("bomba.png", "image/png", SampleImages.pngBomb()));
+
+        assertEquals("La imagen supera el máximo de 16 megapíxeles", body.get("message").asText());
+    }
+
+    /** Excepción A3: el vídeo se rechaza en esta ola (leads, 2026-10-24). */
+    @Test
+    void validMp4_Returns400() throws Exception {
+        JsonNode body = assertValidationError(upload("video.mp4", "video/mp4", SampleFiles.mp4()));
+
+        assertEquals("Por ahora no se admiten vídeos: sube una imagen JPEG, PNG o WebP", body.get("message").asText());
     }
 
     private JsonNode assertValidationError(ResponseEntity<String> response) throws Exception {

@@ -6,11 +6,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.MemoryCacheImageInputStream;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Iterator;
 
 @Slf4j
 @Component
@@ -39,9 +44,8 @@ public class ImageProcessingAdapter implements ImageProcessingPort {
     @Override
     public byte[] createThumbnail(byte[] data, int width, int height) {
         try {
-            ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
-            BufferedImage originalImage = ImageIO.read(inputStream);
-            
+            BufferedImage originalImage = readSubsampled(data, width, height);
+
             if (originalImage == null) {
                 return data;
             }
@@ -61,6 +65,29 @@ public class ImageProcessingAdapter implements ImageProcessingPort {
         } catch (IOException e) {
             log.error("Failed to create thumbnail: {}", e.getMessage(), e);
             return data;
+        }
+    }
+
+    /**
+     * Decodifica saltando filas y columnas (T-B25): la miniatura no necesita el raster completo,
+     * que con 16 MP ocuparía ~64 MB fuera del semáforo de {@link ImageIoReencoder}.
+     */
+    private static BufferedImage readSubsampled(byte[] data, int width, int height) throws IOException {
+        try (ImageInputStream in = new MemoryCacheImageInputStream(new ByteArrayInputStream(data))) {
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(in);
+            if (!readers.hasNext()) {
+                return null;
+            }
+            ImageReader reader = readers.next();
+            try {
+                reader.setInput(in, true, true);
+                int step = Math.max(1, Math.min(reader.getWidth(0) / (2 * width), reader.getHeight(0) / (2 * height)));
+                ImageReadParam param = reader.getDefaultReadParam();
+                param.setSourceSubsampling(step, step, 0, 0);
+                return reader.read(0, param);
+            } finally {
+                reader.dispose();
+            }
         }
     }
 
