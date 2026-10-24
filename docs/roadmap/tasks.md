@@ -69,7 +69,7 @@
 | T-B20 | chat-service: orígenes del WS desde configuración (hoy fijos en `localhost`) | B | P0 | ✅ HECHA (#163) | — |
 | T-B21 | Revocación inmediata de access tokens (lista negra por `jti` en el gateway) | B | P1 | ✅ HECHA (#168) | — |
 | T-B22 | Throttling de login por cuenta | B | P1 | 🟡 RFC | — |
-| T-B23 | Rate limit por usuario en las rutas autenticadas | B | P1 | 🟢 READY | — |
+| T-B23 | Rate limit por usuario en las rutas autenticadas | B | P1 | ✅ HECHA (#180) | — |
 | T-B24 | Audit log de eventos de seguridad | B | P1 | 🟢 READY | — |
 | T-B25 | media-service: re-codificar imágenes y quitar metadatos (excepción A3) | B | P0 | ✅ HECHA (#174) | — |
 | T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | 🔴 BLOQUEADA (T-C07 Ola 3) | — |
@@ -497,12 +497,16 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** test del sexto intento con `429` y `Retry-After`, y de que un login correcto
   reinicia el contador.
 
-### T-B23 · Rate limit por usuario — 🟢 READY · P1 · T051 (M3)
+### T-B23 · Rate limit por usuario — ✅ HECHA (#180) · P1 · T051 (M3)
 - **Qué:** en las rutas autenticadas del gateway, el `KeyResolver` usa el `X-User-Id` que
   el propio gateway deriva del JWT (nunca el que manda el cliente, T-B01), con los límites de
   CONVENTIONS §9. Las rutas públicas siguen por IP.
 - **Cierre:** test de que dos usuarios desde la misma IP tienen buckets distintos y de que un
   `X-User-Id` falso del cliente no cambia el bucket.
+- **Hallazgo (#180):** detrás de Caddy, la IP de la conexión es siempre la de Caddy, y las rutas
+  públicas compartían un solo bucket para todo internet. `vito.rate-limit.trusted-proxies` (1 en
+  `prod`) toma la IP de `X-Forwarded-For`. Si `api.` deja de estar en *DNS only*, hay que revisarlo.
+  Los handshakes `/ws/**` siguen sin rate limit.
 
 ### T-B24 · Audit log de seguridad — 🟢 READY · P1 · Principios VI y IX, T051 (M6)
 - **Qué:** auth-service registra en un logger `AUDIT` (JSON, T053 de la feature 001):
