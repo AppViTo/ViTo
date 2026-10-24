@@ -18,6 +18,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class MosaicFeedMongoAdapter implements MosaicFeedRepository {
     
+    /** Borrado lógico de T-B26; {@code ne(true)} incluye los documentos anteriores sin el campo. */
+    private static final String REMOVED = "removed";
+
     private final MongoTemplate mongoTemplate;
     
     @Override
@@ -34,7 +37,8 @@ public class MosaicFeedMongoAdapter implements MosaicFeedRepository {
     
     @Override
     public List<MosaicFeedItem> findByEventId(String eventId, int page, int size) {
-        Query query = new Query(Criteria.where("eventId").is(eventId))
+        Query query = new Query(Criteria.where("eventId").is(eventId)
+                .and(REMOVED).ne(true))
                 .with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "timestamp"))
                 .skip((long) page * size)
                 .limit(size);
@@ -44,7 +48,8 @@ public class MosaicFeedMongoAdapter implements MosaicFeedRepository {
     @Override
     public List<MosaicFeedItem> findByEventIdAndType(String eventId, MosaicFeedItem.FeedItemType type, int page, int size) {
         Query query = new Query(Criteria.where("eventId").is(eventId)
-                .and("type").is(type))
+                .and("type").is(type)
+                .and(REMOVED).ne(true))
                 .with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "timestamp"))
                 .skip((long) page * size)
                 .limit(size);
@@ -53,7 +58,8 @@ public class MosaicFeedMongoAdapter implements MosaicFeedRepository {
     
     @Override
     public long countByEventId(String eventId) {
-        Query query = new Query(Criteria.where("eventId").is(eventId));
+        Query query = new Query(Criteria.where("eventId").is(eventId)
+                .and(REMOVED).ne(true));
         return mongoTemplate.count(query, MosaicFeedItem.class, "mosaic_feed");
     }
     

@@ -106,6 +106,13 @@ public class MosaicController {
         MosaicFeedItem item = mosaicService.getFeedItem(itemId);
         return ResponseEntity.ok(item);
     }
+
+    /** removeMosaicItem (T-B26): solo el organizador del evento; {@code 204} sin cuerpo. */
+    @DeleteMapping("/item/{itemId}")
+    public ResponseEntity<Void> removeMosaicItem(@PathVariable String itemId) {
+        mosaicService.removeItem(itemId, getCurrentUserId());
+        return ResponseEntity.noContent().build();
+    }
     
     private String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

@@ -234,6 +234,7 @@ services:
     container_name: vito-mosaic-service
     environment:
       <<: *java-env
+      EVENT_SERVICE_URI: http://event-service:8083  # organizador para removeMosaicItem (T-B26)
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8085/actuator/health/readiness"]
       interval: 15s
