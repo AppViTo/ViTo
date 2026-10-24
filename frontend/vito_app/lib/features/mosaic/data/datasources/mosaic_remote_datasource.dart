@@ -31,6 +31,11 @@ abstract class MosaicRemoteDataSource {
   Future<MosaicLikeStateModel> unlikePost(String itemId);
 
   Future<MosaicFeedItemModel> getFeedItem(String itemId);
+
+  /// `removeMosaicItem` (T-F10, excepción A3): el organizador retira una foto.
+  /// `204` sin cuerpo; `403` si no es el organizador y `404` si ya no existe
+  /// lanzan [ServerException] con el `message` del envelope (ADR-003).
+  Future<void> removeMosaicItem(String itemId);
 }
 
 class MosaicRemoteDataSourceImpl implements MosaicRemoteDataSource {
@@ -133,6 +138,15 @@ class MosaicRemoteDataSourceImpl implements MosaicRemoteDataSource {
     try {
       final response = await dio.get('/mosaic/item/$itemId');
       return MosaicFeedItemModel.fromJson(response.data);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<void> removeMosaicItem(String itemId) async {
+    try {
+      await dio.delete('/mosaic/item/$itemId');
     } on DioException catch (e) {
       throw _handleError(e);
     }

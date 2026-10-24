@@ -208,3 +208,15 @@ class MosaicLikeState extends Equatable {
   @override
   List<Object?> get props => [itemId, likesCount, isLiked];
 }
+
+/// Frame WS `LIKE_UPDATE` (asyncapi `MosaicLikeUpdate`): nuevo total de likes
+/// de un ítem. No trae `isLiked`, que depende de quién mira.
+class MosaicLikeCountUpdate extends Equatable {
+  final String itemId;
+  final int likesCount;
+
+  const MosaicLikeCountUpdate({required this.itemId, required this.likesCount});
+
+  @override
+  List<Object?> get props => [itemId, likesCount];
+}

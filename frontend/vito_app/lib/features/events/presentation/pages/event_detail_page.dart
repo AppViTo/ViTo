@@ -317,7 +317,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
             Navigator.pushNamed(
               context,
               '/mosaic',
-              arguments: {'eventId': event.id},
+              arguments: {
+                'eventId': event.id,
+                'organizerId': event.organizerId,
+              },
             );
           },
           icon: const Icon(Icons.grid_view),
