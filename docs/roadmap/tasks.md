@@ -46,6 +46,7 @@
 | T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | ✅ HECHA (#64) | [VITO-23](https://bernardo-mira.atlassian.net/browse/VITO-23) |
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | ✅ HECHA (#65) | [VITO-24](https://bernardo-mira.atlassian.net/browse/VITO-24) |
 | T-F09 | Probar en dispositivo `mobile_scanner` 7 y `share_plus` 10 (#158) antes del evento | F | P0 | 🟢 READY (manual) | — |
+| T-F10 | Moderación del mosaico en la app del organizador (excepción A3) | F | P0 | 🔴 BLOQUEADA (T-C07 Ola 3) | — |
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) | [VITO-26](https://bernardo-mira.atlassian.net/browse/VITO-26) |
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | ✅ HECHA (#38) | [VITO-27](https://bernardo-mira.atlassian.net/browse/VITO-27) |
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) | [VITO-29](https://bernardo-mira.atlassian.net/browse/VITO-29) |
@@ -82,7 +83,7 @@
 | T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY | [VITO-51](https://bernardo-mira.atlassian.net/browse/VITO-51) |
 | T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | 🟢 READY (manual, leads) | [VITO-45](https://bernardo-mira.atlassian.net/browse/VITO-45) |
 | T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔴 BLOQUEADA (T-I06) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
-| T-I11 | Frontend web en Cloudflare Pages, con la CSP/HSTS de la web (antes en T-I18) | I/F | P1 | 🔴 BLOQUEADA (T-I06) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
+| T-I11 | Frontend web en Cloudflare Pages, con la CSP/HSTS de la web (antes en T-I18) | I/F | P1 | 🟢 READY (lo toma la sesión de Desktop) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
 | T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (T-I06) | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔵 EN CURSO (#167 · falta el ensayo manual) | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
@@ -100,8 +101,9 @@
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
 gitleaks, Dependabot). Las de P1 del triage bloquean la apertura a usuarios reales.
 
-Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-F05 (VITO-22), T-B06 (VITO-31), T-B10 (VITO-35), T-B13 (VITO-38), T-B18, T-B26, T-B30, T-I08 (VITO-47), T-I11 (VITO-50), T-I13 (VITO-52).
-Desbloqueadas el 2026-10-24: T-C07 Ola 3 (D-08), T-B07 y T-F08 (T-C06 hecha en #147).
+Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-F05 (VITO-22), T-B06 (VITO-31), T-B10 (VITO-35), T-B13 (VITO-38), T-B18, T-B26, T-B30, T-F10, T-I08 (VITO-47), T-I13 (VITO-52).
+Desbloqueadas el 2026-10-24: T-C07 Ola 3 (D-08), T-B07 y T-F08 (T-C06 hecha en #147), y T-I11
+(Pages, dominio, secretos y variables listos en T-I06).
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
 
 ---
@@ -183,7 +185,12 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Ola 3 (aprobada por D-08 el 2026-10-24, #169):** #171 incorporó `/ws/mosaic/{eventId}` en
   `asyncapi.yaml` y el handoff `docs/handoff/ola-3-mosaico.md`. Falta el endpoint de moderación
   del organizador que pide la excepción A3 (lo implementa T-B26).
-  Prioridad P0: el evento de prueba necesita el mosaico. Desbloquea T-F05 y T-B26.
+  Prioridad P0: el evento de prueba necesita el mosaico. Desbloquea T-F05, T-B26 y T-F10.
+- **Definiciones de la excepción A3 para la Ola 3 (leads, 2026-10-24):**
+  - **Post-moderación:** la foto aparece en el mosaico al instante y el organizador la oculta
+    o la retira después. No hay cola de aprobación previa.
+  - **Solo imágenes:** sacar `video/mp4` de CONVENTIONS §8 mientras rija la excepción (quedan
+    `image/jpeg`, `image/png` e `image/webp`).
 - **Qué:** por cada ola aprobada en `endpoint-inventory.md`: paths + schemas en
   `openapi.yaml`, frames/eventos en `asyncapi.yaml`, fixtures, ADR si aplica y handoff
   `docs/handoff/<ola>.md` desde `TEMPLATE.md`. Se ejecuta con Spec Kit
@@ -259,6 +266,15 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   conceder el permiso de cámara, y compartir el link de un evento.
 - **Cierre:** resultado por plataforma en el PR o en el issue; si algo falla, issue
   `blocked-by-frontend` antes del release.
+
+### T-F10 · Moderación del mosaico en la app — 🔴 BLOQUEADA por T-C07 (Ola 3) · P0 · Principio III, T051 (excepción A3)
+- **Por qué:** la excepción A3 exige moderación por el organizador. T-B26 la implementa en el
+  backend, pero sin una pantalla el organizador no puede usarla durante el evento.
+- **Qué:** en el mosaico (grid y feed), solo para el organizador del evento, una acción para
+  ocultar o retirar una foto con el endpoint de la Ola 3. La foto desaparece también en los
+  demás clientes por el aviso del WebSocket. Post-moderación: no hay cola de aprobación.
+- **Cierre:** tests de widget (la acción solo aparece al organizador) y del bloc (la foto sale
+  del estado al recibir el aviso de retiro), contra los fixtures de la Ola 3.
 
 ### T-F07 · Tests vacíos y cobertura — ✅ HECHA (#65) · P1 · O-19
 - **Qué (ajustado 2026-10-22):** la premisa de O-19 está desactualizada:
@@ -503,7 +519,10 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   decodificar `jpeg`/`png`/`webp`, rechazar lo que no decodifica o supera un tope de píxeles
   (bomba de descompresión) con `400 VALIDATION_ERROR`, re-codificar y guardar solo la versión
   re-codificada, sin metadatos (EXIF, GPS incluido: Principio IX). No cambia el contrato.
-- **Cierre:** tests con una imagen con EXIF/GPS (la salida no los tiene), un políglota
+- **Sin video (excepción A3):** rechazar `video/mp4` con `400 VALIDATION_ERROR` aunque
+  CONVENTIONS §8 todavía lo liste. Sacarlo de §8 le toca a `contract/ola-3` (T-C07).
+- **Cierre:** tests con una imagen con EXIF/GPS (la salida no los tiene), un `video/mp4`
+  (`400`), un políglota
   (imagen válida con datos anexados: se eliminan), una imagen corrupta y una bomba de
   descompresión (las dos `400`); límite de memoria del servicio respetado
   (`docker-compose.prod.yml`).
@@ -512,6 +531,8 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Qué:** el organizador del evento oculta o retira un elemento del mosaico; deja de
   aparecer en feed, grid y WebSocket. Solo el organizador (autorización por recurso). El
   endpoint lo define la rama `contract/ola-3`.
+- **Post-moderación (leads, 2026-10-24):** los elementos se publican al instante; no hay
+  estado "pendiente de aprobación". La pantalla del organizador es T-F10.
 - **Cierre:** tests de autorización (`403` a quien no organiza), de que el elemento no sale
   en feed ni grid y de que el WS avisa el retiro.
 
@@ -652,7 +673,13 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** test de integración contra SeaweedFS local; documentación de las variables
   para R2 en `.env.example`.
 
-### T-I11 · Frontend web en Cloudflare Pages — 🔴 BLOQUEADA por T-I06 · P1 · ADR-011
+### T-I11 · Frontend web en Cloudflare Pages — 🟢 READY · P1 · ADR-011
+- **Desbloqueo (2026-10-24):** T-I06 dejó listos el proyecto de Pages `vito-web` con el dominio
+  `app.`, `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`, y las variables `VITO_API_BASE_URL`,
+  `VITO_WS_BASE_URL`, `PAGES_PROJECT` y `VITO_MEDIA_ORIGIN` (origen de `img-src` en la CSP) en
+  los tres Environments. `VITO_MEDIA_ORIGIN` todavía no figura en
+  `specs/001-cd-produccion/contracts/workflows.md`: se agrega con T032. Lo toma la sesión de
+  Desktop (rama `frontend/t-i11-pages`).
 - **Qué:** reemplazar el deploy a Vercel de `deploy-frontend.yml` por Cloudflare Pages
   (`wrangler pages deploy`), con las mismas puertas de calidad y el build estricto de T-F06.
 - **Cabeceras de la web (separadas de T-I18 el 2026-10-23):** van en el `_headers` de T031 de

@@ -24,14 +24,32 @@ revisión. Las aprueban los dos leads en el PR que la agrega.
 
 | # | Ítem original | Estado real | Acción propuesta |
 |---|---------------|-------------|------------------|
-| A1 | File type validation | `MediaServiceImpl.validateFile` solo revisa el `Content-Type` que manda el cliente; no hay verificación de magic bytes | Validar magic bytes contra los MIME de CONVENTIONS §8 (tarea nueva, media-service) |
-| A2 | File size limits | Límite de 100 MB (`media.max-file-size`, `spring.servlet.multipart`); la constitución pide 10 MB | Bajar a 10 MB en los dos lugares (misma tarea que A1) |
-| A3 | Malware scanning | No existe; la constitución exige escaneo antimalware y moderación antes de publicar en el mosaico. El flujo real (`/media/upload` + mosaico) no se escanea. ClamAV ocupa 1–1,5 GB de RAM y no cabe con holgura en el VPS de 12 GB | **Excepción A3 aprobada (2026-10-24):** se publica la subida al mosaico **solo** para `image/jpeg`, `image/png` y `image/webp` (≤10 MB, magic bytes y MIME verificados en servidor por T-B19), con **re-codificación en el servidor** antes de servir y **moderación por el organizador**. No se aceptan SVG, GIF, HEIC ni vídeo en esta ola. Responsable: Bernardo (backend). Revisión: **al cierre del evento de prueba o antes de la primera apertura a usuarios reales**, lo que ocurra primero; se cierra al integrar antimalware en Fase Crecimiento (S3 Malware Protection o ClamAV dedicado) |
-| A4 | Content-Security-Policy · X-Frame-Options (y HSTS, que pide la constitución) | Caddy no agrega cabeceras; T031 (feature 001) ya planea `X-Frame-Options` en la web, pero ni CSP ni HSTS | Ampliar T031: CSP compatible con Flutter web (`script-src 'self' 'wasm-unsafe-eval'`, CanvasKit servido desde el propio dominio) y `Strict-Transport-Security`; agregar HSTS y `X-Content-Type-Options` en `api.` y `live.` en el Caddyfile |
-| A5 | Container scanning | No existe | Cubierto por T049 (Trivy en `cd.yml`, feature 001) |
-| A6 | Vulnerability scanning (dependencias) | No existe | Cubierto por T050 (Dependabot) y T049 |
-| A7 | Kafka: SSL/TLS · Authorization · Topic access control | SASL/PLAIN sin TLS (`SASL_PLAINTEXT`), un solo usuario `vito`, sin ACL. La constitución pide SASL/TLS y ACL por tópico | **Excepción documentada:** broker y clientes en el mismo host, red interna de Compose sin puertos publicados (ADR-011 b). Revisión: cuando Kafka salga del host (Fase Crecimiento) o en 6 meses, lo que pase primero |
-| A8 | *(fuera del checklist)* `GET /events/upcoming` lista eventos privados ajenos | Bug abierto, T-B17 (P0, 🟢 READY) | Resolver T-B17 antes del release: expone ubicaciones de eventos privados |
+| A1 | File type validation | **Resuelto (T-B19, #155):** media-service valida los magic bytes contra los MIME de CONVENTIONS §8 | Mientras rija la excepción A3, aceptar solo imágenes (T-B25) |
+| A2 | File size limits | **Resuelto (T-B19, #155):** 10 MB en `media.max-file-size` y `spring.servlet.multipart` | — |
+| A3 | Malware scanning | No existe; la constitución exige escaneo antimalware y moderación antes de publicar en el mosaico. ClamAV ocupa 1–1,5 GB de RAM y no cabe con holgura en el VPS de 12 GB. Hoy la subida está cerrada en `prod` (T-I17, #156) | **Excepción A3** (ver la sección siguiente) |
+| A4 | Content-Security-Policy · X-Frame-Options (y HSTS, que pide la constitución) | **API resuelta (T-I18, #157):** HSTS, `nosniff`, `Referrer-Policy` y sin `Server` en `api.` y `live.`. **Web pendiente:** sigue en Vercel, que ignora `_headers` | CSP, HSTS y `X-Frame-Options` de la web con T-I11 (T031–T032 de la feature 001) |
+| A5 | Container scanning | **Resuelto (T049):** Trivy en el job `build` de `cd.yml` | — |
+| A6 | Vulnerability scanning (dependencias) | **Resuelto (T050 y T049):** Dependabot y Trivy | — |
+| A7 | Kafka: SSL/TLS · Authorization · Topic access control | SASL/PLAIN sin TLS (`SASL_PLAINTEXT`), un solo usuario `vito`, sin ACL. La constitución pide SASL/TLS y ACL por tópico | **Excepción documentada:** broker y clientes en el mismo host, red interna de Compose sin puertos publicados (ADR-011 b). Revisión: cuando Kafka salga del host (Fase Crecimiento) o en 6 meses, lo que pase primero (T-I20) |
+| A8 | *(fuera del checklist)* `GET /events/upcoming` lista eventos privados ajenos | **Resuelto (T-B17, #153)** | — |
+
+### Excepción A3 · Subida al mosaico sin antimalware
+
+- **Aprobada:** 2026-10-24 por los dos leads (T051). Responsable: Bernardo (backend).
+- **Motivo:** no hay antimalware que quepa en el VPS de 12 GB, y el mosaico es requisito del
+  evento de prueba.
+- **Condiciones.** Todas deben estar desplegadas antes de abrir la subida en `prod` (T-I21):
+
+  | Condición | Tarea |
+  |-----------|-------|
+  | Solo `image/jpeg`, `image/png` e `image/webp`; no se aceptan SVG, GIF, HEIC ni `video/mp4` en esta ola. CONVENTIONS §8 se ajusta en el contrato de la Ola 3 | T-B25, T-C07 (Ola 3) |
+  | Magic bytes, MIME verificado en el servidor y ≤10 MB | T-B19 (#155) ✅ |
+  | Re-codificación **síncrona en media-service** antes de guardar en R2: el original nunca se almacena y se eliminan los metadatos (EXIF, GPS) | T-B25 |
+  | **Post-moderación del organizador:** la foto aparece al instante y el organizador la oculta o la retira; sin cola de aprobación | T-C07 (Ola 3), T-B26, T-F10 |
+
+- **Revisión:** al cierre del evento de prueba o antes de la primera apertura a usuarios
+  reales, lo que ocurra primero. Se cierra al integrar antimalware en Fase Crecimiento (S3
+  Malware Protection o ClamAV dedicado).
 
 ## Media
 
@@ -88,20 +106,21 @@ revisión. Las aprueban los dos leads en el PR que la agrega.
 - **Aprobado por:** AlexVilla (`alexvilla01`, lead frontend/contrato) y Bernardo (`bamg359`, lead backend).
 - **Alcance:** triage y severidades de este archivo, y la excepción **A3** con sus
   condiciones y fecha de revisión. No exime de las tareas abiertas de severidad alta.
-- **Trazabilidad de las altas:** A1/A2 → T-B19 (#155); A3 → excepción A3 (arriba; T-B25, T-B26 y T-I21);
-  A4 → T031 (web) + T-I11/Caddyfile; A5/A6 → T049/T050; A7 → excepción ya documentada;
-  A8 → T-B17 (#153). Las medias M1–M12 se cierran antes de abrir a usuarios reales; M1
+- **Trazabilidad de las altas:** A1/A2 → T-B19 (#155); A3 → excepción A3 (arriba; T-B25,
+  T-B26, T-F10, T-I21 y la Ola 3 de T-C07); A4 → T-I18 (#157) en la API y T-I11 en la web;
+  A5/A6 → T049/T050; A7 → excepción ya documentada (T-I20); A8 → T-B17 (#153). Las medias M1–M12 se cierran antes de abrir a usuarios reales; M1
   (blacklist de `jti`) quedó resuelta con T-B21 (#168).
 - **Revisión de la excepción A3:** al cierre del evento de prueba, o antes de abrir a usuarios reales,
   lo que ocurra primero.
+- **Definiciones de la excepción A3 (2026-10-24, Bernardo):** post-moderación del
+  organizador, re-codificación síncrona en media-service y nombre "excepción A3" en lugar de
+  "M1".
 
 ## Resumen
 
-- **Altas del primer release:** A1, A2, A4 y A8 ya cerradas o planificadas (T-B19, T-B17,
-  T031/T-I11); A5/A6 en T049/T050; A3 cubierta por su excepción; A7 por su excepción.
-  No queda ninguna alta sin resolver o excepción aprobada.
-- **Bloquean la apertura a usuarios o las tiendas:** M1–M12. M1 (revocación de access
-  token) quedó resuelta con T-B21 (#168); el resto sigue su curso.
-- **Tareas nuevas que habría que crear en `docs/roadmap/tasks.md`:** throttling por cuenta
-  (M2), rate limit por usuario (M3), audit logging (M6) y usuarios de Mongo por servicio
-  (M12). La validación de subida (A1/A2) y CSP/HSTS (A4) ya tienen tarea.
+- **Altas del primer release:** A1, A2, A5, A6 y A8 resueltas; A4 resuelta en la API y
+  pendiente en la web (T-I11); A3 cubierta por su excepción, con la subida cerrada en `prod`
+  hasta cumplir sus condiciones (T-I21); A7 por su excepción.
+- **Bloquean la apertura a usuarios o las tiendas:** M2–M12. M1 (revocación de access
+  token) quedó resuelta con T-B21 (#168).
+- **Tareas de las medias:** M2 → T-B22, M3 → T-B23, M6 → T-B24, M12 → T-I19.
