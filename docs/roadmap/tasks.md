@@ -46,7 +46,7 @@
 | T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | ✅ HECHA (#64) | [VITO-23](https://bernardo-mira.atlassian.net/browse/VITO-23) |
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | ✅ HECHA (#65) | [VITO-24](https://bernardo-mira.atlassian.net/browse/VITO-24) |
 | T-F09 | Probar en dispositivo `mobile_scanner` 7 y `share_plus` 10 (#158) antes del evento | F | P0 | 🟢 READY (manual) | — |
-| T-F10 | Moderación del mosaico en la app del organizador (excepción A3) | F | P0 | 🟢 READY (contrato en #182) | — |
+| T-F10 | Moderación del mosaico en la app del organizador (excepción A3) | F | P0 | ✅ HECHA (#185) | — |
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) | [VITO-26](https://bernardo-mira.atlassian.net/browse/VITO-26) |
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | ✅ HECHA (#38) | [VITO-27](https://bernardo-mira.atlassian.net/browse/VITO-27) |
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) | [VITO-29](https://bernardo-mira.atlassian.net/browse/VITO-29) |
@@ -275,7 +275,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** resultado por plataforma en el PR o en el issue; si algo falla, issue
   `blocked-by-frontend` antes del release.
 
-### T-F10 · Moderación del mosaico en la app — 🟢 READY (contrato en #182) · P0 · Principio III, T051 (excepción A3)
+### T-F10 · Moderación del mosaico en la app — ✅ HECHA (#185) · P0 · Principio III, T051 (excepción A3)
 - **Por qué:** la excepción A3 exige moderación por el organizador. T-B26 la implementa en el
   backend, pero sin una pantalla el organizador no puede usarla durante el evento.
 - **Qué:** en el mosaico (grid y feed), solo para el organizador del evento, una acción para
