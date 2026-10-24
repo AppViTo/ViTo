@@ -26,7 +26,8 @@ import java.util.Set;
  *
  * <p>T-I21: con {@code vito.mosaic.uploads-enabled=true} (variable {@code MOSAIC_UPLOADS_ENABLED},
  * apagada por defecto) se abren la subida de media y las escrituras del mosaico que el
- * inventario publica en la Ola 3. El resto de las escrituras sigue en {@code 404}: las rutas que
+ * inventario publica en la Ola 3, incluida la moderación del organizador ({@code removeMosaicItem},
+ * #182: sin ella la excepción A3 no se cumple). El resto de las escrituras sigue en {@code 404}: las rutas que
  * ADR-016 elimina ({@code /mosaic/photo}, {@code /mosaic/checkin}) y la interna
  * {@code /media/{id}/process}. Solo se activa cuando T-B25 y T-B26 estén desplegadas.
  */
@@ -47,7 +48,8 @@ public class ClosedUploadRoutesFilter implements WebFilter, Ordered {
             new Route(PARSER.parse("/api/v1/mosaic/post"), Set.of(HttpMethod.POST)),
             new Route(PARSER.parse("/api/v1/mosaic/grid/{eventId}/initialize"), Set.of(HttpMethod.POST)),
             new Route(PARSER.parse("/api/v1/mosaic/item/{itemId}/like"),
-                    Set.of(HttpMethod.POST, HttpMethod.DELETE)));
+                    Set.of(HttpMethod.POST, HttpMethod.DELETE)),
+            new Route(PARSER.parse("/api/v1/mosaic/item/{itemId}"), Set.of(HttpMethod.DELETE)));
 
     private final boolean uploadsEnabled;
 
