@@ -74,6 +74,9 @@ class _FakeMosaicRemoteDataSource implements MosaicRemoteDataSource {
   @override
   Future<MosaicFeedItemModel> getFeedItem(String itemId) =>
       throw UnimplementedError();
+
+  @override
+  Future<void> removeMosaicItem(String itemId) => throw UnimplementedError();
 }
 
 Failure _failureOf<T>(Either<Failure, T> result) =>

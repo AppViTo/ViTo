@@ -118,13 +118,34 @@ class GridUpdated extends MosaicEvent {
   List<Object?> get props => [grid];
 }
 
+/// `LIKE_UPDATE` por WebSocket: nuevo total de likes de [update.itemId].
 class LikeCountUpdated extends MosaicEvent {
-  final int likesCount;
-  
-  const LikeCountUpdated(this.likesCount);
-  
+  final MosaicLikeCountUpdate update;
+
+  const LikeCountUpdated(this.update);
+
   @override
-  List<Object?> get props => [likesCount];
+  List<Object?> get props => [update];
+}
+
+/// El organizador retira una foto (`removeMosaicItem`, T-F10).
+class RemoveMosaicItem extends MosaicEvent {
+  final String itemId;
+
+  const RemoveMosaicItem(this.itemId);
+
+  @override
+  List<Object?> get props => [itemId];
+}
+
+/// Llegó `ITEM_REMOVED` por el WebSocket del mosaico (T-F10).
+class MosaicItemRemovedReceived extends MosaicEvent {
+  final String itemId;
+
+  const MosaicItemRemovedReceived(this.itemId);
+
+  @override
+  List<Object?> get props => [itemId];
 }
 
 // States
@@ -197,15 +218,6 @@ class MosaicGridUpdated extends MosaicState {
   List<Object?> get props => [grid];
 }
 
-class MosaicLikeUpdated extends MosaicState {
-  final int likesCount;
-  
-  const MosaicLikeUpdated(this.likesCount);
-  
-  @override
-  List<Object?> get props => [likesCount];
-}
-
 class MosaicError extends MosaicState {
   final String message;
   
@@ -215,12 +227,25 @@ class MosaicError extends MosaicState {
   List<Object?> get props => [message];
 }
 
+/// Falló `removeMosaicItem` (`403`, `404`...). Es transitorio: el bloc vuelve
+/// enseguida al estado anterior, así que la página solo lo usa para avisar.
+class MosaicItemRemovalFailed extends MosaicState {
+  final String itemId;
+  final String message;
+
+  const MosaicItemRemovalFailed({required this.itemId, required this.message});
+
+  @override
+  List<Object?> get props => [itemId, message];
+}
+
 // BLoC
 class MosaicBloc extends Bloc<MosaicEvent, MosaicState> {
   final MosaicRepository repository;
   StreamSubscription? _feedSubscription;
   StreamSubscription? _gridSubscription;
   StreamSubscription? _likeSubscription;
+  StreamSubscription? _itemRemovedSubscription;
   
   MosaicBloc({required this.repository}) : super(MosaicInitial()) {
     on<UploadMosaicPhoto>(_onUploadMosaicPhoto);
@@ -234,6 +259,8 @@ class MosaicBloc extends Bloc<MosaicEvent, MosaicState> {
     on<NewItemReceived>(_onNewItemReceived);
     on<GridUpdated>(_onGridUpdated);
     on<LikeCountUpdated>(_onLikeCountUpdated);
+    on<RemoveMosaicItem>(_onRemoveMosaicItem);
+    on<MosaicItemRemovedReceived>(_onMosaicItemRemovedReceived);
   }
   
   Future<void> _onUploadMosaicPhoto(
@@ -348,8 +375,15 @@ class MosaicBloc extends Bloc<MosaicEvent, MosaicState> {
     );
     
     _likeSubscription = repository.likeStream.listen(
-      (likesCount) {
-        add(LikeCountUpdated(likesCount));
+      (update) {
+        add(LikeCountUpdated(update));
+      },
+    );
+
+    _itemRemovedSubscription?.cancel();
+    _itemRemovedSubscription = repository.itemRemovedStream.listen(
+      (itemId) {
+        add(MosaicItemRemovedReceived(itemId));
       },
     );
   }
@@ -360,18 +394,108 @@ class MosaicBloc extends Bloc<MosaicEvent, MosaicState> {
     _feedSubscription?.cancel();
     _gridSubscription?.cancel();
     _likeSubscription?.cancel();
+    _itemRemovedSubscription?.cancel();
   }
   
+  /// `NEW_ITEM`: el ítem entra arriba del feed cargado (si no estaba ya).
+  /// Con otra vista, la grilla se actualiza por `GRID_UPDATE`.
   void _onNewItemReceived(NewItemReceived event, Emitter<MosaicState> emit) {
-    emit(MosaicRealTimeUpdate(event.item));
+    final current = state;
+    if (current is! MosaicFeedLoaded) return;
+    if (current.feed.any((item) => item.id == event.item.id)) return;
+    emit(MosaicFeedLoaded([event.item, ...current.feed]));
   }
-  
+
+  /// `GRID_UPDATE`: reemplaza la grilla cargada, conservando la vista.
   void _onGridUpdated(GridUpdated event, Emitter<MosaicState> emit) {
-    emit(MosaicGridUpdated(event.grid));
+    final current = state;
+    if (current is MosaicGridLoaded || current is MosaicGridUpdated) {
+      emit(MosaicGridLoaded(event.grid));
+    }
   }
-  
+
+  /// `LIKE_UPDATE`: cambia el total del ítem y conserva el `isLiked` propio.
   void _onLikeCountUpdated(LikeCountUpdated event, Emitter<MosaicState> emit) {
-    emit(MosaicLikeUpdated(event.likesCount));
+    final current = state;
+    if (current is! MosaicFeedLoaded) return;
+    final update = event.update;
+    if (!current.feed.any((item) => item.id == update.itemId)) return;
+    emit(MosaicFeedLoaded([
+      for (final item in current.feed)
+        item.id == update.itemId
+            ? item.withLikeState(MosaicLikeState(
+                itemId: update.itemId,
+                likesCount: update.likesCount,
+                isLiked: item.isLiked,
+              ))
+            : item,
+    ]));
+  }
+
+  Future<void> _onRemoveMosaicItem(
+    RemoveMosaicItem event,
+    Emitter<MosaicState> emit,
+  ) async {
+    final result = await repository.removeMosaicItem(event.itemId);
+
+    result.fold(
+      (failure) {
+        final previous = state;
+        emit(MosaicItemRemovalFailed(
+          itemId: event.itemId,
+          message: failure.message,
+        ));
+        emit(previous);
+      },
+      (_) => _removeItemFromState(event.itemId, emit),
+    );
+  }
+
+  void _onMosaicItemRemovedReceived(
+    MosaicItemRemovedReceived event,
+    Emitter<MosaicState> emit,
+  ) {
+    _removeItemFromState(event.itemId, emit);
+  }
+
+  /// Post-moderación (A3): el ítem sale del feed y su celda vuelve a `null`.
+  void _removeItemFromState(String itemId, Emitter<MosaicState> emit) {
+    final current = state;
+    if (current is MosaicFeedLoaded) {
+      final feed = current.feed.where((item) => item.id != itemId).toList();
+      if (feed.length != current.feed.length) {
+        emit(MosaicFeedLoaded(feed));
+      }
+    } else if (current is MosaicGridLoaded) {
+      final grid = _withoutItem(current.grid, itemId);
+      if (grid != null) emit(MosaicGridLoaded(grid));
+    } else if (current is MosaicGridUpdated) {
+      final grid = _withoutItem(current.grid, itemId);
+      if (grid != null) emit(MosaicGridUpdated(grid));
+    }
+  }
+
+  /// Copia de [grid] con la celda de [itemId] en `null`, o `null` si el ítem
+  /// no está en la grilla.
+  MosaicGrid? _withoutItem(MosaicGrid grid, String itemId) {
+    var found = false;
+    final cells = grid.grid
+        .map((row) => row.map((cell) {
+              if (cell != null && cell.id == itemId) {
+                found = true;
+                return null;
+              }
+              return cell;
+            }).toList())
+        .toList();
+    if (!found) return null;
+    return MosaicGrid(
+      eventId: grid.eventId,
+      grid: cells,
+      totalItems: grid.totalItems > 0 ? grid.totalItems - 1 : 0,
+      lastUpdatedIndex: grid.lastUpdatedIndex,
+      lastUpdatedAt: grid.lastUpdatedAt,
+    );
   }
   
   @override
@@ -379,6 +503,7 @@ class MosaicBloc extends Bloc<MosaicEvent, MosaicState> {
     _feedSubscription?.cancel();
     _gridSubscription?.cancel();
     _likeSubscription?.cancel();
+    _itemRemovedSubscription?.cancel();
     repository.disconnectFromWebSocket();
     return super.close();
   }

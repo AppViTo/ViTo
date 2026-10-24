@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/exceptions.dart';
@@ -19,7 +20,8 @@ class MosaicRepositoryImpl implements MosaicRepository {
 
   final _feedController = StreamController<MosaicFeedItem>.broadcast();
   final _gridController = StreamController<MosaicGrid>.broadcast();
-  final _likeController = StreamController<int>.broadcast();
+  final _likeController = StreamController<MosaicLikeCountUpdate>.broadcast();
+  final _itemRemovedController = StreamController<String>.broadcast();
   
   final WsConnection wsConnection;
   
@@ -175,13 +177,26 @@ class MosaicRepositoryImpl implements MosaicRepository {
   }
   
   @override
+  Future<Either<Failure, void>> removeMosaicItem(String itemId) async {
+    try {
+      await remoteDataSource.removeMosaicItem(itemId);
+      return const Right(null);
+    } catch (e) {
+      return Left(_toFailure(e));
+    }
+  }
+
+  @override
   Stream<MosaicFeedItem> get feedStream => _feedController.stream;
   
   @override
   Stream<MosaicGrid> get gridStream => _gridController.stream;
   
   @override
-  Stream<int> get likeStream => _likeController.stream;
+  Stream<MosaicLikeCountUpdate> get likeStream => _likeController.stream;
+
+  @override
+  Stream<String> get itemRemovedStream => _itemRemovedController.stream;
   
   @override
   void connectToWebSocket(String eventId) {
@@ -192,15 +207,55 @@ class MosaicRepositoryImpl implements MosaicRepository {
     ));
   }
   
+  /// Frames del canal `/ws/mosaic/{eventId}` según asyncapi.yaml: son planos,
+  /// sin envoltorio `data`. Un frame mal formado se descarta.
   void _handleSocketMessage(dynamic message) {
-    final data = Map<String, dynamic>.from(message as Map);
-    
-    if (data['type'] == 'NEW_ITEM') {
-      final item = MosaicFeedItemModel.fromJson(data['data']);
-      _feedController.add(item);
-    } else if (data['type'] == 'LIKE_UPDATE') {
-      final likesCount = data['data']['likesCount'] as int;
-      _likeController.add(likesCount);
+    final data = _decodeFrame(message);
+    if (data == null) return;
+
+    switch (data['type']) {
+      case 'NEW_ITEM':
+        // `MosaicNewItem`: `{type, item: MosaicFeedItem}`.
+        final item = data['item'];
+        if (item is Map<String, dynamic>) {
+          _feedController.add(MosaicFeedItemModel.fromJson(item));
+        }
+      case 'GRID_UPDATE':
+        // `MosaicGridUpdate`: `{type, eventId, grid}`.
+        if (data['grid'] is List) {
+          final grid = MosaicGridModel.fromJson(data);
+          _gridController.add(MosaicGridModel(
+            eventId: grid.eventId,
+            grid: grid.grid,
+            totalItems:
+                grid.grid.expand((row) => row).whereType<MosaicItem>().length,
+          ));
+        }
+      case 'LIKE_UPDATE':
+        // `MosaicLikeUpdate`: `{type, itemId, likesCount}`.
+        final likedId = data['itemId'];
+        final likesCount = data['likesCount'];
+        if (likedId is String && likedId.isNotEmpty && likesCount is int) {
+          _likeController.add(
+            MosaicLikeCountUpdate(itemId: likedId, likesCount: likesCount),
+          );
+        }
+      case 'ITEM_REMOVED':
+        // `MosaicItemRemoved`: `{type, eventId, itemId}`.
+        final removedId = data['itemId'];
+        if (removedId is String && removedId.isNotEmpty) {
+          _itemRemovedController.add(removedId);
+        }
+    }
+  }
+
+  /// web_socket_channel entrega el frame como texto JSON.
+  Map<String, dynamic>? _decodeFrame(dynamic message) {
+    try {
+      final decoded = message is String ? jsonDecode(message) : message;
+      return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
+    } on FormatException {
+      return null;
     }
   }
   
@@ -214,5 +269,6 @@ class MosaicRepositoryImpl implements MosaicRepository {
     _feedController.close();
     _gridController.close();
     _likeController.close();
+    _itemRemovedController.close();
   }
 }

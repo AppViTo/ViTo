@@ -35,10 +35,16 @@ abstract class MosaicRepository {
   Future<Either<Failure, MosaicLikeState>> unlikePost(String itemId);
   
   Future<Either<Failure, MosaicFeedItem>> getFeedItem(String itemId);
+
+  /// El organizador retira una foto del mosaico (T-F10, excepción A3).
+  Future<Either<Failure, void>> removeMosaicItem(String itemId);
   
   Stream<MosaicFeedItem> get feedStream;
   Stream<MosaicGrid> get gridStream;
-  Stream<int> get likeStream;
+  Stream<MosaicLikeCountUpdate> get likeStream;
+
+  /// `itemId` de cada frame `ITEM_REMOVED` del WebSocket del mosaico.
+  Stream<String> get itemRemovedStream;
   
   void connectToWebSocket(String eventId);
   void disconnectFromWebSocket();
