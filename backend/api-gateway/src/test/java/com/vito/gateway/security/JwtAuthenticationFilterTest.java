@@ -16,7 +16,13 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,13 +45,31 @@ public class JwtAuthenticationFilterTest {
         return Mono.empty();
     };
 
-    private final JwtAuthenticationFilter filter = new JwtAuthenticationFilter(SECRET, webSocketService);
+    /** jti revocados y jti consultados por el filtro (T-B21). */
+    private final Set<String> revokedJtis = new HashSet<>();
+    private final List<String> consultedJtis = new ArrayList<>();
 
+    private final RevokedAccessTokens revokedAccessTokens = jti -> {
+        consultedJtis.add(jti);
+        return Mono.just(revokedJtis.contains(jti));
+    };
+
+    private final JwtAuthenticationFilter filter =
+            new JwtAuthenticationFilter(SECRET, webSocketService, revokedAccessTokens);
+
+    /** Token sin jti, como los emitidos antes de T-B21. */
     public static String token(String userId) {
+        return token(userId, null);
+    }
+
+    /** Token como los de auth-service desde T-B21: con jti y vencimiento. */
+    public static String token(String userId, String jti) {
         return Jwts.builder()
+                .id(jti)
                 .subject(userId)
                 .claim("email", userId + "@vito.test")
                 .claim("roles", List.of("USER"))
+                .expiration(Date.from(Instant.now().plus(Duration.ofMinutes(15))))
                 .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
                 .compact();
     }
@@ -181,6 +205,69 @@ public class JwtAuthenticationFilterTest {
 
         assertNull(forwarded(exchange));
         assertNotNull(rejectedHandshake.get());
+    }
+
+    @Test
+    void tokenWithRevokedJtiGetsUnauthorizedEnvelope() {
+        revokedJtis.add("jti-revoked");
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
+                .get("/api/v1/auth/me")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("usr_real", "jti-revoked")));
+
+        assertNull(forwarded(exchange));
+        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+        assertUnauthorizedEnvelope(exchange, JwtAuthenticationFilter.INVALID_TOKEN_MESSAGE);
+        assertNull(exchange.getAttribute(JwtAuthenticationFilter.AUTHENTICATED_USER_ATTR));
+    }
+
+    @Test
+    void tokenWithActiveJtiIsForwarded() {
+        revokedJtis.add("jti-other");
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
+                .get("/api/v1/events/evt_1")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("usr_real", "jti-active")));
+
+        ServerWebExchange downstream = forwarded(exchange);
+
+        assertNotNull(downstream);
+        assertEquals(List.of("usr_real"), downstream.getRequest().getHeaders().get("X-User-Id"));
+        assertEquals(List.of("jti-active"), consultedJtis);
+    }
+
+    @Test
+    void tokenWithoutJtiIsNotLookedUp() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
+                .get("/api/v1/events/evt_1")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("usr_real")));
+
+        assertNotNull(forwarded(exchange));
+        assertEquals(List.of(), consultedJtis);
+    }
+
+    @Test
+    void forgedTokenIsRejectedBeforeLookingUpRevocation() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
+                .get("/api/v1/events/evt_1")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer forged.token.value"));
+
+        assertNull(forwarded(exchange));
+        assertEquals(List.of(), consultedJtis);
+    }
+
+    @Test
+    void webSocketHandshakeWithRevokedTokenIsClosedWith4401() {
+        revokedJtis.add("jti-revoked");
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                handshake("/ws/chat/evt_1?token=" + token("usr_real", "jti-revoked")));
+
+        assertNull(forwarded(exchange));
+
+        WebSocketHandler handler = rejectedHandshake.get();
+        assertNotNull(handler, "el handshake debe aceptarse para poder cerrar con 4401");
+        WebSocketSession session = mock(WebSocketSession.class);
+        when(session.close(any())).thenReturn(Mono.empty());
+        handler.handle(session).block();
+        verify(session).close(JwtAuthenticationFilter.WS_UNAUTHORIZED);
     }
 
     @Test

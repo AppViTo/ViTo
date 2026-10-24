@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -151,11 +152,20 @@ public class AuthServiceImpl implements AuthService {
     public void logout(String token) {
         log.info("Logging out user");
         
-        String userId = tokenProvider.validateAccessToken(token);
-        
-        // Blacklist the token
-        cachePort.addToBlacklist(token, Duration.ofMillis(jwtExpiration));
-        
+        TokenProvider.AccessTokenClaims claims = tokenProvider.parseAccessToken(token);
+        String userId = claims.userId();
+
+        // T-B21: el gateway rechaza el jti revocado; la clave vive lo que le queda al token
+        if (claims.jti() != null && claims.expiresAt() != null) {
+            Duration remaining = Duration.between(Instant.now(), claims.expiresAt());
+            if (!remaining.isNegative() && !remaining.isZero()) {
+                cachePort.revokeAccessToken(claims.jti(), remaining);
+            }
+        } else {
+            // Token emitido antes de T-B21: no se puede revocar, vence solo
+            log.info("Access token without jti for user {}; it stays valid until it expires", userId);
+        }
+
         // Remove refresh token from cache
         cachePort.delete("refresh_token:" + userId);
         

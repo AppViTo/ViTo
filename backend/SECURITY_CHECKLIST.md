@@ -36,7 +36,7 @@ revisión. Las aprueban los dos leads en el PR que la agrega.
 
 | # | Ítem original | Estado real | Acción propuesta |
 |---|---------------|-------------|------------------|
-| M1 | Token blacklisting for immediate revocation | El refresh token se pone en la lista negra de Redis al rotarlo (`AuthServiceImpl`); el access token sigue válido hasta que vence (15–30 min) | Lista negra de access tokens por `jti`, consultada en el gateway; o access de 15 min como excepción aceptada |
+| M1 | Token blacklisting for immediate revocation | **Resuelto (T-B21).** El logout guarda el `jti` del access token en Redis (`revoked_jti:<jti>`, TTL = vida restante) y el gateway responde `401` / cierre `4401` a los tokens revocados. Si Redis no responde en 250 ms, el gateway falla abierto (sigue validando firma y vencimiento) y cuenta el fallo en `vito.gateway.revocation.check.errors` | Alertar sobre `vito.gateway.revocation.check.errors` junto con M7 |
 | M2 | Account lockout after failed attempts | Hay rate limit por IP en las rutas públicas (T-B01, T-B11); no hay límite por cuenta | Throttling por cuenta con espera creciente (no bloqueo duro, que permitiría bloquear cuentas ajenas) |
 | M3 | User-based rate limiting | El rate limit actual es por IP | Bucket por `X-User-Id` en las rutas autenticadas del gateway |
 | M4 | Database encryption at rest | MongoDB Community no cifra en reposo; el disco del VPS tampoco | Excepción documentada en Fase Tracción (acceso al VPS solo por llave, datastores sin puertos); revisar con D-12 |

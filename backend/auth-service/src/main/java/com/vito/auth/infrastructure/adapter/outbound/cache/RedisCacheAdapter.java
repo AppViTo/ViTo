@@ -17,7 +17,13 @@ public class RedisCacheAdapter implements CachePort {
     private final StringRedisTemplate redisTemplate;
     
     private static final String BLACKLIST_PREFIX = "blacklist:";
-    
+
+    /**
+     * Prefijo de los access tokens revocados. Lo lee api-gateway
+     * ({@code RedisRevokedAccessTokens.KEY_PREFIX}): si cambia aquí, cambia allá.
+     */
+    static final String REVOKED_JTI_PREFIX = "revoked_jti:";
+
     @Override
     public void set(String key, String value, Duration expiration) {
         redisTemplate.opsForValue().set(key, value, expiration);
@@ -55,5 +61,11 @@ public class RedisCacheAdapter implements CachePort {
         String key = BLACKLIST_PREFIX + token;
         Boolean exists = redisTemplate.hasKey(key);
         return Boolean.TRUE.equals(exists);
+    }
+
+    @Override
+    public void revokeAccessToken(String jti, Duration ttl) {
+        redisTemplate.opsForValue().set(REVOKED_JTI_PREFIX + jti, "1", ttl);
+        log.debug("Access token revoked for {}", ttl);
     }
 }
