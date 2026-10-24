@@ -195,6 +195,12 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `openapi.yaml`, frames/eventos en `asyncapi.yaml`, fixtures, ADR si aplica y handoff
   `docs/handoff/<ola>.md` desde `TEMPLATE.md`. Se ejecuta con Spec Kit
   (`/speckit-specify` referenciando la ola y las O-xx que cierra).
+- **Ola 3 incompleta tras #171 (revisado 2026-10-24):** #171 solo cambió `asyncapi.yaml` y el
+  handoff. Faltan en `openapi.yaml` las 7 rutas `PUBLICAR` del mosaico de
+  `endpoint-inventory.md` (`post`, `feed`, `grid`, `grid/{eventId}/initialize`, `item/{itemId}`
+  y el like `POST`/`DELETE`), sus fixtures en `docs/api/fixtures/mosaic/` y el endpoint de
+  moderación del organizador (T-B26). Hasta entonces siguen bloqueadas T-F05, T-B26 y T-F10, y
+  T-I21 espera en borrador.
 
 ---
 
