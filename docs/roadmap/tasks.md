@@ -65,7 +65,7 @@
 | T-B18 | Parent POM + `backend/shared-web`; borrar copias de filtro JWT y handler (ADR-017) | B/I | P1 | 🔴 BLOQUEADA (Ola 1) | — |
 | T-B19 | media-service: magic bytes, MIME de CONVENTIONS §8 y límite de 10 MB | B | P0 | ✅ HECHA (#155) | — |
 | T-B20 | chat-service: orígenes del WS desde configuración (hoy fijos en `localhost`) | B | P0 | ✅ HECHA (#163) | — |
-| T-B21 | Revocación inmediata de access tokens (lista negra por `jti` en el gateway) | B | P1 | 🔵 EN CURSO (backend/t-b21-access-token-revocation) | — |
+| T-B21 | Revocación inmediata de access tokens (lista negra por `jti` en el gateway) | B | P1 | ✅ HECHA (#168) | — |
 | T-B22 | Throttling de login por cuenta | B | P1 | 🟡 RFC | — |
 | T-B23 | Rate limit por usuario en las rutas autenticadas | B | P1 | 🟢 READY | — |
 | T-B24 | Audit log de eventos de seguridad | B | P1 | 🟢 READY | — |
@@ -432,7 +432,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** test de que un origen fuera de la lista recibe `403` en el handshake y uno de
   la lista conecta.
 
-### T-B21 · Revocación inmediata de access tokens — 🔵 EN CURSO (backend/t-b21-access-token-revocation) · P1 · T051 (M1)
+### T-B21 · Revocación inmediata de access tokens — ✅ HECHA (#168) · P1 · T051 (M1)
 - **Hallazgo:** al rotar o cerrar sesión, el refresh token va a la lista negra de Redis
   (`AuthServiceImpl`), pero el access token sigue valiendo hasta que vence (15–30 min).
 - **Qué:** `logoutUser` agrega el `jti` del access token a Redis con TTL igual a su vida
