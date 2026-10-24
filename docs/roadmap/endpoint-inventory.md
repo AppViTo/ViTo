@@ -93,15 +93,16 @@ Columna **Front**: ✔ = el código Flutter ya lo llama (`lib/**/datasources`, `
 
 | Método | Ruta | Contrato | Front | Decisión propuesta | Ola |
 |--------|------|:-------:|:-----:|--------------------|:---:|
-| POST | `/api/v1/mosaic/post` | | ✔ | `PUBLICAR` (con `mediaId`) | 3 |
+| POST | `/api/v1/mosaic/post` | ✔ | ✔ | `PUBLICAR` (con `mediaId`) | 3 |
 | POST | `/api/v1/mosaic/photo` | | ✔ | `FUSIONAR→/media/upload + /mosaic/post` (ADR-016) | 3 |
 | POST | `/api/v1/mosaic/checkin` | | ✔ | `INTERNO` (consumidor de `checkin-events`, ADR-016) | — |
-| GET | `/api/v1/mosaic/feed/{eventId}` | | ✔ | `PUBLICAR` (paginado) | 3 |
-| GET | `/api/v1/mosaic/grid/{eventId}` | | ✔ | `PUBLICAR` | 3 |
-| POST | `/api/v1/mosaic/grid/{eventId}/initialize` | | ✔ | `PUBLICAR` (solo organizador) | 3 |
-| GET | `/api/v1/mosaic/item/{itemId}` | | ✔ | `PUBLICAR` | 3 |
-| POST | `/api/v1/mosaic/item/{itemId}/like` | | ✔ | `PUBLICAR` | 3 |
-| DELETE | `/api/v1/mosaic/item/{itemId}/like` | | ✔ | `PUBLICAR` | 3 |
+| GET | `/api/v1/mosaic/feed/{eventId}` | ✔ | ✔ | `PUBLICAR` (paginado) | 3 |
+| GET | `/api/v1/mosaic/grid/{eventId}` | ✔ | ✔ | `PUBLICAR` | 3 |
+| POST | `/api/v1/mosaic/grid/{eventId}/initialize` | ✔ | ✔ | `PUBLICAR` (solo organizador) | 3 |
+| GET | `/api/v1/mosaic/item/{itemId}` | ✔ | ✔ | `PUBLICAR` | 3 |
+| POST | `/api/v1/mosaic/item/{itemId}/like` | ✔ | ✔ | `PUBLICAR` | 3 |
+| DELETE | `/api/v1/mosaic/item/{itemId}/like` | ✔ | ✔ | `PUBLICAR` | 3 |
+| DELETE | `/api/v1/mosaic/item/{itemId}` | ✔ | | `PUBLICAR` (moderación del organizador, excepción A3; #182) | 3 |
 
 ## Streaming — `streaming-service` (:8086)
 

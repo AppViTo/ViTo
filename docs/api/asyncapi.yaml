@@ -25,6 +25,7 @@ channels:
           - $ref: '#/components/messages/MosaicNewItem'
           - $ref: '#/components/messages/MosaicGridUpdate'
           - $ref: '#/components/messages/MosaicLikeUpdate'
+          - $ref: '#/components/messages/MosaicItemRemoved'
 
 components:
   messages:
@@ -54,8 +55,13 @@ components:
             type: string
           grid:
             type: array
+            description: Mismo formato que `MosaicGrid.grid` de `getMosaicGrid` (openapi.yaml).
             items:
               type: array
+              items:
+                oneOf:
+                  - $ref: '#/components/schemas/MosaicItem'
+                  - type: 'null'
     MosaicLikeUpdate:
       name: MosaicLikeUpdate
       title: Actualización de likes de un ítem
@@ -70,7 +76,67 @@ components:
             type: string
           likesCount:
             type: integer
+    MosaicItemRemoved:
+      name: MosaicItemRemoved
+      title: El organizador retiró un ítem
+      description: >
+        Se emite tras `removeMosaicItem` (moderación del organizador, excepción
+        A3). El cliente quita el ítem del feed y deja su celda vacía.
+      payload:
+        type: object
+        required: [type, eventId, itemId]
+        properties:
+          type:
+            type: string
+            enum: [ITEM_REMOVED]
+          eventId:
+            type: string
+          itemId:
+            type: string
   schemas:
+    MosaicItem:
+      type: object
+      required: [id, eventId, userId, type, timestamp, position]
+      description: Celda ocupada de la grilla (igual que `MosaicItem` en openapi.yaml).
+      properties:
+        id:
+          type: string
+        eventId:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: [string, 'null']
+        avatar:
+          type: [string, 'null']
+        type:
+          type: string
+          enum: [CHECK_IN, POST, PHOTO, REACTION, STORY, HIGHLIGHT]
+        content:
+          type: [string, 'null']
+        mediaUrl:
+          type: [string, 'null']
+        timestamp:
+          type: string
+          format: date-time
+        position:
+          type: object
+          required: [row, col, width, height]
+          properties:
+            row:
+              type: integer
+            col:
+              type: integer
+            width:
+              type: integer
+            height:
+              type: integer
+        likesCount:
+          type: integer
+        commentsCount:
+          type: integer
     MosaicFeedItem:
       type: object
       required: [id, eventId, userId, type, timestamp, likesCount, commentsCount, isLiked]

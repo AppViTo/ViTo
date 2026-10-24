@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "Solo se pueden publicar imágenes JPEG, PNG o WebP",
+  "status": 400,
+  "timestamp": "2026-10-16T22:15:00Z",
+  "details": {
+    "mediaId": "El archivo no es una imagen"
+  }
+}
