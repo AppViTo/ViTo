@@ -51,6 +51,21 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # Un workflow inválido falla en cada push con 0 jobs y sin logs (pasó con cd.yml).
+      # shellcheck fijado para que el lint no dependa de la imagen del runner.
+      # SC2029: expandir en el cliente es intencional al pasar comandos por ssh.
+      - name: Lint de workflows (actionlint)
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/actionlint.tar.gz" \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          curl -sSfL -o "$RUNNER_TEMP/shellcheck.tar.xz" \
+            https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz
+          echo "6c881ab0698e4e6ea235245f22832860544f17ba386442fe7e9d629f8cbedf87  $RUNNER_TEMP/shellcheck.tar.xz" | sha256sum -c -
+          tar -xJf "$RUNNER_TEMP/shellcheck.tar.xz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/actionlint" -shellcheck="$RUNNER_TEMP/shellcheck-v0.10.0/shellcheck" -ignore SC2029
+
       - name: ShellCheck
         run: |
           shopt -s globstar
