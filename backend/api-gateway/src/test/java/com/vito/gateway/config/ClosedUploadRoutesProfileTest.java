@@ -49,8 +49,8 @@ class ClosedUploadRoutesProfileTest {
     @DynamicPropertySource
     static void services(DynamicPropertyRegistry registry) {
         registry.add("JWT_SECRET", () -> JwtAuthenticationFilterTest.SECRET);
-        registry.add("MEDIA_SERVICE_URI", () -> "http://localhost:" + backend.port());
-        registry.add("MOSAIC_SERVICE_URI", () -> "http://localhost:" + backend.port());
+        registry.add("MEDIA_SERVICE_URI", () -> "http://127.0.0.1:" + backend.port());
+        registry.add("MOSAIC_SERVICE_URI", () -> "http://127.0.0.1:" + backend.port());
     }
 
     @AfterAll
