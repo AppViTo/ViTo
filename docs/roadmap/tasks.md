@@ -72,7 +72,7 @@
 | T-B24 | Audit log de eventos de seguridad | B | P1 | 🟢 READY | — |
 | T-B25 | media-service: re-codificar imágenes y quitar metadatos (excepción A3) | B | P0 | 🟢 READY | — |
 | T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | 🔴 BLOQUEADA (T-C07 Ola 3) | — |
-| T-B27 | Logs en INFO en `prod` en los 9 servicios Java restantes | B | P1 | 🟢 READY | — |
+| T-B27 | Logs en INFO en `prod` en los 9 servicios Java restantes | B | P1 | ✅ HECHA (#175) | — |
 | T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🟢 READY | — |
 | T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🟢 READY | — |
 | T-B30 | JWT con firma asimétrica (RS256/ES256 + JWKS) | B | P1 | 🔴 BLOQUEADA (requiere spec) | — |
@@ -515,7 +515,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** tests de autorización (`403` a quien no organiza), de que el elemento no sale
   en feed ni grid y de que el WS avisa el retiro.
 
-### T-B27 · Logs en INFO en producción — 🟢 READY · P1 · Principio VI
+### T-B27 · Logs en INFO en producción — ✅ HECHA (#175) · P1 · Principio VI
 - **Por qué:** los 9 servicios Java (todos menos el gateway, que lo resolvió #170) fijan
   `com.vito` y casi todos `org.springframework.security` en DEBUG en `application.yml`, sin un
   perfil `prod` que lo baje. Con el tope de logs por contenedor, el log rota en minutos.
