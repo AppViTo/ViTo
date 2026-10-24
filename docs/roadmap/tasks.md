@@ -70,7 +70,7 @@
 | T-B22 | Throttling de login por cuenta | B | P1 | 🟡 RFC | — |
 | T-B23 | Rate limit por usuario en las rutas autenticadas | B | P1 | 🟢 READY | — |
 | T-B24 | Audit log de eventos de seguridad | B | P1 | 🟢 READY | — |
-| T-B25 | media-service: re-codificar imágenes y quitar metadatos (excepción A3) | B | P0 | 🟢 READY | — |
+| T-B25 | media-service: re-codificar imágenes y quitar metadatos (excepción A3) | B | P0 | ✅ HECHA (#174) | — |
 | T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | 🔴 BLOQUEADA (T-C07 Ola 3) | — |
 | T-B27 | Logs en INFO en `prod` en los 9 servicios Java restantes | B | P1 | 🟢 READY | — |
 | T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🟢 READY | — |
@@ -496,7 +496,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** test de que cada evento produce una línea con los campos y sin datos
   prohibidos; consulta de ejemplo en Loki en `infrastructure/observability/README.md`.
 
-### T-B25 · Re-codificar las imágenes subidas — 🟢 READY · P0 · Principio III, T051 (excepción A3)
+### T-B25 · Re-codificar las imágenes subidas — ✅ HECHA (#174) · P0 · Principio III, T051 (excepción A3)
 - **Por qué:** la excepción A3 (aprobada en #169) publica la subida al mosaico sin antimalware
   a cambio de re-codificar cada imagen en el servidor antes de servirla.
 - **Qué:** en `POST /media/upload` (ya en el contrato), después de la validación de T-B19:
