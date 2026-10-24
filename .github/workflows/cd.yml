@@ -48,9 +48,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      
-      - name: Log in to Container Registry
-        uses: docker/login-action@v4
         with:
           fetch-depth: 0
 
@@ -165,20 +162,31 @@ jobs:
           file: ${{ steps.ctx.outputs.file }}
           push: false
           tags: |
-            type=ref,event=branch
-            type=sha,prefix=
-      
-      - name: Build and push Auth Service
-        uses: docker/build-push-action@v7
+            vito/${{ matrix.service }}:${{ github.sha }}
+            vito/${{ matrix.service }}:v${{ needs.changes.outputs.version }}
+          labels: |
+            org.opencontainers.image.version=${{ needs.changes.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          outputs: type=docker,dest=${{ runner.temp }}/image.tar
+
+      # Bloquea el despliegue ante CRITICAL/HIGH con arreglo disponible y sin excepción
+      # documentada en .trivyignore (Principio III)
+      - name: Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          context: backend/auth-service
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      
-      - name: Build and push Transcode Service
-        uses: docker/build-push-action@v7
+          input: ${{ runner.temp }}/image.tar
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+          trivyignores: .trivyignore
+
+      - name: Comprimir
+        run: zstd -T0 -19 -q "$RUNNER_TEMP/image.tar" -o "$RUNNER_TEMP/image-${{ matrix.service }}.tar.zst"
+
+      - uses: actions/upload-artifact@v7
         with:
           name: image-${{ matrix.service }}
           path: ${{ runner.temp }}/image-${{ matrix.service }}.tar.zst
@@ -214,26 +222,85 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      
-      - name: Deploy to Staging
-        run: |
-          echo "Deploying to staging environment..."
-          # Add your deployment commands here
-          # kubectl apply -f kubernetes/overlays/staging/
-          # or docker-compose -f docker-compose.staging.yml up -d
 
-  # Deploy to Production
-  deploy-production:
-    name: Deploy to Production
-    runs-on: ubuntu-latest
-    needs: deploy-staging
-    if: github.event.inputs.environment == 'production'
-    environment: production
-    
-    steps:
-      - uses: actions/checkout@v7
-      
-      - name: Deploy to Production
+      # Falla nombrando solo lo que falta (quickstart, paso 0)
+      - name: Secretos requeridos
+        env:
+          S_SSH_HOST: ${{ secrets.SSH_HOST }}
+          S_SSH_USER: ${{ secrets.SSH_USER }}
+          S_SSH_KEY: ${{ secrets.SSH_KEY }}
+          S_SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          S_DOTENV_PRODUCTION: ${{ secrets.DOTENV_PRODUCTION }}
+          S_MONGO_DEPLOY_RO_PASSWORD: ${{ secrets.MONGO_DEPLOY_RO_PASSWORD }}
+          S_TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          S_TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          missing=()
+          for n in SSH_HOST SSH_USER SSH_KEY SSH_KNOWN_HOSTS DOTENV_PRODUCTION MONGO_DEPLOY_RO_PASSWORD \
+                   TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID; do
+            v="S_$n"
+            [ -n "${!v}" ] || missing+=("$n")
+          done
+          if ((${#missing[@]})); then
+            echo "::error::Faltan secretos en el Environment $ENVIRONMENT: ${missing[*]}"
+            exit 1
+          fi
+          echo "Secretos requeridos: presentes"
+
+      # Quién aprobó; en hotfix, una autoaprobación exige comentario (R5, FR-002)
+      - name: Aprobación
+        id: approval
+        if: env.ENVIRONMENT != 'production-preflight'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.triggering_actor }}
+        run: |
+          rec=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/approvals" \
+            --jq "[.[] | select(any(.environments[]; .name == \"$ENVIRONMENT\"))] | last // {}")
+          approver=$(jq -r '.user.login // ""' <<<"$rec")
+          comment=$(jq -r '.comment // ""' <<<"$rec")
+          if [ -z "$approver" ]; then
+            echo "::error::El Environment $ENVIRONMENT no pidió aprobación: revisar sus revisores obligatorios (docs/runbooks/aprovisionamiento.md, paso 3)"
+            exit 1
+          fi
+          if [ "$ENVIRONMENT" = production-hotfix ] && [ "$approver" = "$ACTOR" ] && [ -z "${comment// }" ]; then
+            echo "::error::Autoaprobación sin motivo: en un hotfix, quien lo dispara solo puede aprobarlo escribiendo el motivo en el comentario de la aprobación"
+            exit 1
+          fi
+          echo "Aprobó: $approver"
+          echo "approver=$approver" >> "$GITHUB_OUTPUT"
+          jq -rn --arg c "$comment" '"comment=" + ($c | @json)' >> "$GITHUB_OUTPUT"
+
+      - uses: ./.github/actions/vps-ssh
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          user: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+      # El Environment es la fuente del .env (R15). La verificación previa usa una copia y
+      # no pisa el que usan los servicios.
+      - name: .env de producción
+        env:
+          DOTENV: ${{ secrets.DOTENV_PRODUCTION }}
+        run: |
+          target=/opt/vito/.env
+          [ "$MODE" = preflight ] && target=/opt/vito/.env.preflight
+          printf '%s\n' "$DOTENV" | ssh vps "umask 077 && cat > $target.tmp && mv -f $target.tmp $target"
+
+      # Bundle (R4): compose, VERSION, configuración montada y scripts remotos
+      - name: Subir el bundle
+        run: |
+          b="$RUNNER_TEMP/bundle"
+          mkdir -p "$b"
+          cp --parents docker-compose.prod.yml VERSION "$b"
+          for d in infrastructure/caddy infrastructure/docker/srs infrastructure/deploy/remote infrastructure/observability; do
+            [ -d "$d" ] && cp -r --parents "$d" "$b"
+          done
+          tar -C "$b" -czf - . | ssh vps "mkdir -p /opt/vito/releases/$SHA && tar -xzf - -C /opt/vito/releases/$SHA"
+
+      - name: Verificación previa
+        if: env.MODE == 'preflight'
         run: |
           rc=0
           ssh vps "DEPLOY_ENV_FILE=/opt/vito/.env.preflight $REMOTE/deploy.sh check $SHA" || rc=$?
