@@ -167,7 +167,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   type declara `examples` (validador y README actualizados). `listEvents.200.json` pasa a
   `listEvents.mine.200.json`.
 
-### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔴 BLOQUEADA por D-08 (por ola) · O-02, O-30, ADR-016
+### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔵 EN CURSO (contract/ola-3) · D-08 aprobada 2026-10-24 (por ola) · O-02, O-30, ADR-016
 - **Qué:** por cada ola aprobada en `endpoint-inventory.md`: paths + schemas en
   `openapi.yaml`, frames/eventos en `asyncapi.yaml`, fixtures, ADR si aplica y handoff
   `docs/handoff/<ola>.md` desde `TEMPLATE.md`. Se ejecuta con Spec Kit
