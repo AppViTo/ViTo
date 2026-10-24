@@ -75,9 +75,13 @@ db.createCollection("events", {
   }
 });
 
-db.events.createIndex({ "organizerId": 1, "schedule.start": -1 });
-db.events.createIndex({ "schedule.start": 1 });
-db.events.createIndex({ "location.coordinates": "2dsphere" });
+// Índices de listEvents (ADR-014, T-B07) en la base que usa event-service
+// (spring.data.mongodb.database: vito_events), no en la de este script.
+// scope=mine: organizerId + createdAt descendente
+// scope=upcoming: status + settings.isPublic + details.startDate ascendente
+const eventsDb = db.getSiblingDB("vito_events");
+eventsDb.events.createIndex({ "organizerId": 1, "createdAt": -1 });
+eventsDb.events.createIndex({ "status": 1, "settings.isPublic": 1, "details.startDate": 1 });
 
 // Create posts collection
 db.createCollection("posts", {

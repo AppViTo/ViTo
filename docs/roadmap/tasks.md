@@ -316,7 +316,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   cierra con `4401` si falta; se ignora `userId` en query y frames; cada frame de sala
   verifica que el usuario participe en ella.
 
-### T-B07 · Implementar listado de eventos — 🟢 READY (T-C06 hecha en #147) · P0 · O-26, ADR-014
+### T-B07 · Implementar listado de eventos — ✅ HECHA (#173) · P0 · O-26, ADR-014
 - **Qué:** `GET /events?scope=mine|upcoming` en event-service según ADR-014:
   identidad solo de `X-User-Id`; `mine` por defecto; `400 VALIDATION_ERROR` para un
   `scope` desconocido o `size` > 100; `forViewer` aplicado a cada evento listado.

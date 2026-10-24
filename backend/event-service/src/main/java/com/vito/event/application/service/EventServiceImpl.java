@@ -116,6 +116,24 @@ public class EventServiceImpl implements EventService {
     }
     
     @Override
+    public List<Event> listEvents(ListScope scope, String viewerId, int page, int size) {
+        // A diferencia de /my-events y /upcoming, listEvents rechaza size > 100 (ADR-014)
+        if (size > MAX_PAGE_SIZE) {
+            throw EventException.pageSizeTooLarge(MAX_PAGE_SIZE);
+        }
+        if (page < 0) {
+            throw EventException.negativePage();
+        }
+        List<Event> events = switch (scope) {
+            case MINE -> eventRepository.findByOrganizerId(viewerId, page, pageSize(size));
+            case UPCOMING -> eventRepository.findUpcomingEvents(page, pageSize(size));
+        };
+        return events.stream()
+                .map(event -> forViewer(event, viewerId))
+                .toList();
+    }
+
+    @Override
     public List<Event> getUserEvents(String userId, int page, int size) {
         return eventRepository.findByOrganizerId(userId, page, pageSize(size));
     }
