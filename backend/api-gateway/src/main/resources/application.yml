@@ -207,6 +207,14 @@ server:
 jwt:
   secret: ${JWT_SECRET}
 
+# T-B21: consulta de access tokens revocados (revoked_jti:<jti> en Redis). Si Redis no
+# responde en este tiempo, el gateway falla abierto: acepta el token con firma válida y
+# cuenta el fallo en vito.gateway.revocation.check.errors.
+vito:
+  security:
+    revocation:
+      redis-timeout: ${REVOCATION_REDIS_TIMEOUT:250ms}
+
 # Resilience4j Circuit Breaker
 resilience4j:
   circuitbreaker:

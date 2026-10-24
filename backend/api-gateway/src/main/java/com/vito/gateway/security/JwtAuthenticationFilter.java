@@ -50,10 +50,14 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private final String jwtSecret;
     private final WebSocketService webSocketService;
+    private final RevokedAccessTokens revokedAccessTokens;
 
-    public JwtAuthenticationFilter(@Value("${jwt.secret}") String jwtSecret, WebSocketService webSocketService) {
+    public JwtAuthenticationFilter(@Value("${jwt.secret}") String jwtSecret,
+                                   WebSocketService webSocketService,
+                                   RevokedAccessTokens revokedAccessTokens) {
         this.jwtSecret = jwtSecret;
         this.webSocketService = webSocketService;
+        this.revokedAccessTokens = revokedAccessTokens;
     }
 
     private static final List<String> PUBLIC_PATHS = List.of(
@@ -68,38 +72,56 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest().mutate()
                 .headers(headers -> USER_HEADERS.forEach(headers::remove))
                 .build();
-        exchange = exchange.mutate().request(request).build();
+        ServerWebExchange sanitized = exchange.mutate().request(request).build();
         String path = request.getURI().getPath();
 
         if (isPublicPath(path)) {
-            return chain.filter(exchange);
+            return chain.filter(sanitized);
         }
 
         boolean webSocket = path.startsWith(WS_PATH_PREFIX);
         String token = webSocket ? webSocketToken(request) : bearerToken(request);
         if (token == null) {
-            return reject(exchange, webSocket, MISSING_TOKEN_MESSAGE);
+            return reject(sanitized, webSocket, MISSING_TOKEN_MESSAGE);
         }
 
+        Claims claims;
         try {
-            Claims claims = validateToken(token);
-            exchange.getAttributes().put(AUTHENTICATED_USER_ATTR, claims.getSubject());
-
-            // Add user info to headers for downstream services
-            ServerHttpRequest.Builder modifiedRequest = request.mutate()
-                    .header("X-User-Id", claims.getSubject())
-                    .header("X-User-Email", claims.get("email", String.class))
-                    .header("X-User-Roles", rolesHeader(claims.get("roles")));
-            if (webSocket) {
-                // El servicio recibe la identidad por X-User-*; el token no viaja más allá del gateway
-                modifiedRequest.uri(withoutTokenParam(request.getURI()));
-            }
-
-            return chain.filter(exchange.mutate().request(modifiedRequest.build()).build());
+            claims = validateToken(token);
         } catch (JwtException | IllegalArgumentException e) {
             log.debug("Rejected token for {}: {}", path, e.getMessage());
-            return reject(exchange, webSocket, INVALID_TOKEN_MESSAGE);
+            return reject(sanitized, webSocket, INVALID_TOKEN_MESSAGE);
         }
+
+        // T-B21: un token con firma válida pero revocado en logout recibe el mismo 401 / 4401.
+        // Los tokens sin jti (emitidos antes de T-B21) no se pueden revocar y vencen solos.
+        String jti = claims.getId();
+        Mono<Boolean> revoked = jti == null ? Mono.just(false) : revokedAccessTokens.isRevoked(jti);
+        return revoked.flatMap(isRevoked -> {
+            if (isRevoked) {
+                log.debug("Rejected revoked token for {}", path);
+                return reject(sanitized, webSocket, INVALID_TOKEN_MESSAGE);
+            }
+            return forwardAuthenticated(sanitized, chain, claims, webSocket);
+        });
+    }
+
+    private static Mono<Void> forwardAuthenticated(ServerWebExchange exchange, GatewayFilterChain chain,
+                                                   Claims claims, boolean webSocket) {
+        ServerHttpRequest request = exchange.getRequest();
+        exchange.getAttributes().put(AUTHENTICATED_USER_ATTR, claims.getSubject());
+
+        // Add user info to headers for downstream services
+        ServerHttpRequest.Builder modifiedRequest = request.mutate()
+                .header("X-User-Id", claims.getSubject())
+                .header("X-User-Email", claims.get("email", String.class))
+                .header("X-User-Roles", rolesHeader(claims.get("roles")));
+        if (webSocket) {
+            // El servicio recibe la identidad por X-User-*; el token no viaja más allá del gateway
+            modifiedRequest.uri(withoutTokenParam(request.getURI()));
+        }
+
+        return chain.filter(exchange.mutate().request(modifiedRequest.build()).build());
     }
 
     private static String bearerToken(ServerHttpRequest request) {

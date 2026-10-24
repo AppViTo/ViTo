@@ -16,4 +16,10 @@ public interface CachePort {
     void addToBlacklist(String token, Duration expiration);
     
     boolean isBlacklisted(String token);
+
+    /**
+     * Revoca un access token por su {@code jti} durante {@code ttl} (su vida restante). El
+     * gateway rechaza con 401 los tokens cuyo {@code jti} está revocado (T-B21).
+     */
+    void revokeAccessToken(String jti, Duration ttl);
 }

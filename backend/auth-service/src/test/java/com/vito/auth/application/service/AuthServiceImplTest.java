@@ -13,6 +13,7 @@ import com.vito.auth.domain.port.outbound.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -20,6 +21,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -238,17 +240,44 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void logout_Success() {
+    void logout_RevokesAccessTokenJtiForItsRemainingLifetime() {
         // Arrange
         String token = "valid_token";
-        when(tokenProvider.validateAccessToken(token)).thenReturn("user123");
+        Instant expiresAt = Instant.now().plus(Duration.ofMinutes(10));
+        when(tokenProvider.parseAccessToken(token))
+                .thenReturn(new TokenProvider.AccessTokenClaims("user123", "jti-1", expiresAt));
 
         // Act
         authService.logout(token);
 
-        // Assert
-        verify(tokenProvider).validateAccessToken(token);
-        verify(cachePort).addToBlacklist(eq(token), any(Duration.class));
+        // Assert: TTL = vida restante del token, no la vida completa (T-B21)
+        ArgumentCaptor<Duration> ttl = ArgumentCaptor.forClass(Duration.class);
+        verify(cachePort).revokeAccessToken(eq("jti-1"), ttl.capture());
+        assertTrue(ttl.getValue().compareTo(Duration.ofMinutes(10)) <= 0, ttl.getValue().toString());
+        assertTrue(ttl.getValue().compareTo(Duration.ofMinutes(9)) > 0, ttl.getValue().toString());
         verify(cachePort).delete("refresh_token:user123");
+        // El JWT completo ya no se guarda como clave de Redis
+        verify(cachePort, never()).addToBlacklist(any(), any());
+    }
+
+    @Test
+    void logout_LegacyTokenWithoutJti_OnlyRemovesRefreshToken() {
+        String token = "legacy_token";
+        when(tokenProvider.parseAccessToken(token))
+                .thenReturn(new TokenProvider.AccessTokenClaims("user123", null, Instant.now().plusSeconds(60)));
+
+        authService.logout(token);
+
+        verify(cachePort, never()).revokeAccessToken(any(), any());
+        verify(cachePort).delete("refresh_token:user123");
+    }
+
+    @Test
+    void logout_InvalidToken_RevokesNothing() {
+        when(tokenProvider.parseAccessToken("bad")).thenThrow(AuthenticationException.invalidAccessToken());
+
+        assertThrows(AuthenticationException.class, () -> authService.logout("bad"));
+
+        verifyNoInteractions(cachePort);
     }
 }
