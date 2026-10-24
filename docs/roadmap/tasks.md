@@ -72,7 +72,7 @@
 | T-B23 | Rate limit por usuario en las rutas autenticadas | B | P1 | ✅ HECHA (#180) | — |
 | T-B24 | Audit log de eventos de seguridad | B | P1 | 🟢 READY | — |
 | T-B25 | media-service: re-codificar imágenes y quitar metadatos (excepción A3) | B | P0 | ✅ HECHA (#174) | — |
-| T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | 🟢 READY (contrato en #182) | — |
+| T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | ✅ HECHA (#189) | — |
 | T-B27 | Logs en INFO en `prod` en los 9 servicios Java restantes | B | P1 | ✅ HECHA (#175) | — |
 | T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🟢 READY | — |
 | T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🟢 READY | — |
@@ -539,7 +539,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   descompresión (las dos `400`); límite de memoria del servicio respetado
   (`docker-compose.prod.yml`).
 
-### T-B26 · Moderación por el organizador — 🟢 READY (contrato en #182) · P0 · Principio III, T051 (excepción A3)
+### T-B26 · Moderación por el organizador — ✅ HECHA (#189) · P0 · Principio III, T051 (excepción A3)
 - **Qué:** el organizador del evento oculta o retira un elemento del mosaico; deja de
   aparecer en feed, grid y WebSocket. Solo el organizador (autorización por recurso). El
   endpoint lo define la rama `contract/ola-3`.
