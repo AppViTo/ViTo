@@ -1,0 +1,9 @@
+# Perfil de producción (docker-compose.prod.yml activa prod,docker).
+# application.yml deja el gateway en DEBUG para desarrollo; en prod ese nivel registra datos
+# de cada petición (Spring Security incluido) y, con el tope de logs por contenedor, borra en
+# minutos lo que haría falta para diagnosticar un incidente (docs/runbooks/incident.md).
+logging:
+  level:
+    com.vito.gateway: INFO
+    org.springframework.cloud.gateway: INFO
+    org.springframework.security: INFO
