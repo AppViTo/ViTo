@@ -282,6 +282,7 @@ services:
     environment:
       <<: *java-env
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}  # handshake WebSocket (T-B20)
+      EVENT_SERVICE_URI: http://event-service:8083     # organizador para removeMosaicItem (T-B26)
     healthcheck:
       <<: *java-healthcheck
       test: ["CMD", "curl", "-fsS", "http://localhost:8085/actuator/health/readiness"]

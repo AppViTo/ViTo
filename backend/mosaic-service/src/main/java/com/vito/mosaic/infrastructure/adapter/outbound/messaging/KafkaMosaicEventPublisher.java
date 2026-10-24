@@ -35,6 +35,11 @@ public class KafkaMosaicEventPublisher implements MosaicEventPublisher {
         send(eventId, "MOSAIC_LIKES_UPDATED", Map.of("itemId", itemId, "likesCount", likesCount));
     }
 
+    @Override
+    public void publishItemRemoved(String eventId, String itemId) {
+        send(eventId, "MOSAIC_ITEM_REMOVED", Map.of("itemId", itemId));
+    }
+
     /** Clave = eventId: el orden de las actualizaciones del mosaico de un evento se conserva. */
     private void send(String eventId, String type, Map<String, Object> fields) {
         Map<String, Object> payload = new HashMap<>(fields);

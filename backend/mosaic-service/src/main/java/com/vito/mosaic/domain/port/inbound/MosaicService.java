@@ -29,6 +29,15 @@ public interface MosaicService {
     void unlikePost(String itemId, String userId);
     
     MosaicFeedItem getFeedItem(String itemId);
+
+    /**
+     * removeMosaicItem (T-B26, excepción A3): el organizador del evento retira un ítem. Borrado
+     * lógico; la celda de la grilla vuelve a {@code null} y los clientes reciben ITEM_REMOVED.
+     *
+     * @throws com.vito.mosaic.domain.exception.MosaicException NOT_FOUND si no existe o ya se
+     *         retiró; FORBIDDEN si {@code userId} no organiza el evento
+     */
+    void removeItem(String itemId, String userId);
     
     @Data
     @Builder

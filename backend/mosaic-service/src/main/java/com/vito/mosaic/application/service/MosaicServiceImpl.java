@@ -5,9 +5,11 @@ import com.vito.mosaic.domain.model.MosaicFeedItem;
 import com.vito.mosaic.domain.model.MosaicGrid;
 import com.vito.mosaic.domain.model.MosaicItem;
 import com.vito.mosaic.domain.port.inbound.MosaicService;
+import com.vito.mosaic.domain.port.outbound.EventOrganizerLookup;
 import com.vito.mosaic.domain.port.outbound.MosaicEventPublisher;
 import com.vito.mosaic.domain.port.outbound.MosaicFeedRepository;
 import com.vito.mosaic.domain.port.outbound.MosaicGridRepository;
+import com.vito.mosaic.domain.port.outbound.MosaicRealtimeNotifier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,8 @@ public class MosaicServiceImpl implements MosaicService {
     private final MosaicFeedRepository feedRepository;
     private final MosaicGridRepository gridRepository;
     private final MosaicEventPublisher eventPublisher;
+    private final EventOrganizerLookup eventOrganizerLookup;
+    private final MosaicRealtimeNotifier realtimeNotifier;
     
     @Override
     public MosaicFeedItem addPost(AddPostCommand command) {
@@ -157,8 +161,7 @@ public class MosaicServiceImpl implements MosaicService {
     public void likePost(String itemId, String userId) {
         log.info("Liking item: {} by user: {}", itemId, userId);
         
-        MosaicFeedItem item = feedRepository.findById(itemId)
-                .orElseThrow(MosaicException::itemNotFound);
+        MosaicFeedItem item = findActiveItem(itemId);
         
         item.like(userId);
         feedRepository.save(item);
@@ -170,8 +173,7 @@ public class MosaicServiceImpl implements MosaicService {
     public void unlikePost(String itemId, String userId) {
         log.info("Unliking item: {} by user: {}", itemId, userId);
         
-        MosaicFeedItem item = feedRepository.findById(itemId)
-                .orElseThrow(MosaicException::itemNotFound);
+        MosaicFeedItem item = findActiveItem(itemId);
         
         item.unlike(userId);
         feedRepository.save(item);
@@ -181,7 +183,44 @@ public class MosaicServiceImpl implements MosaicService {
     
     @Override
     public MosaicFeedItem getFeedItem(String itemId) {
+        return findActiveItem(itemId);
+    }
+
+    @Override
+    public void removeItem(String itemId, String userId) {
+        MosaicFeedItem item = findActiveItem(itemId);
+        String eventId = item.getEventId();
+
+        String organizerId = eventOrganizerLookup.findOrganizerId(eventId).orElse(null);
+        if (organizerId == null || !organizerId.equals(userId)) {
+            log.info("Removal of item {} denied: user {} is not the organizer of event {}", itemId, userId, eventId);
+            throw MosaicException.notOrganizer();
+        }
+
+        item.markRemoved(userId, LocalDateTime.now());
+        feedRepository.save(item);
+
+        gridRepository.findByEventId(eventId).ifPresent(grid -> {
+            if (grid.removeItem(itemId)) {
+                gridRepository.save(grid);
+            }
+        });
+
+        // Primero el WS: un Kafka caído no debe retrasar el aviso a los clientes conectados
+        realtimeNotifier.itemRemoved(eventId, itemId);
+        try {
+            eventPublisher.publishItemRemoved(eventId, itemId);
+        } catch (Exception e) {
+            log.error("Failed to publish removal of item {} for event {}", itemId, eventId, e);
+        }
+
+        log.info("Item {} removed from event {} by organizer {}", itemId, eventId, userId);
+    }
+
+    /** Un ítem retirado (T-B26) responde como inexistente: 404 en getMosaicItem y en los likes. */
+    private MosaicFeedItem findActiveItem(String itemId) {
         return feedRepository.findById(itemId)
+                .filter(item -> !item.isRemoved())
                 .orElseThrow(MosaicException::itemNotFound);
     }
     

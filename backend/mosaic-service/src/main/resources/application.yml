@@ -25,6 +25,10 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
 
+# Dueño del evento (ADR-016): de aquí sale el organizador para removeMosaicItem (T-B26)
+event-service:
+  uri: ${EVENT_SERVICE_URI:http://localhost:8083}
+
 logging:
   level:
     com.vito: DEBUG
