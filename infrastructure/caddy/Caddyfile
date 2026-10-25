@@ -23,6 +23,12 @@ api.{$DOMAIN} {
 	import security_headers
 	encode zstd gzip
 
+	# Uptime externo (T037, T-I13): solo la readiness del gateway, nada más del actuator
+	handle /healthz {
+		rewrite * /actuator/health/readiness
+		reverse_proxy api-gateway:9080
+	}
+
 	# El actuator del gateway está en el puerto de gestión 9080 (T-B14); por si acaso
 	@actuator path /actuator /actuator/*
 	respond @actuator 404
