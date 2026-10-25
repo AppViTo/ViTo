@@ -1,5 +1,6 @@
 package com.vito.gateway.security;
 
+import com.vito.gateway.error.ErrorResponses;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -9,12 +10,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
-import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.server.WebSocketService;
@@ -47,20 +45,25 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     static final String WS_TOKEN_PARAM = "token";
     static final CloseStatus WS_UNAUTHORIZED = new CloseStatus(4401, "Unauthorized");
 
+    static final String MISSING_TOKEN_MESSAGE = "Debes iniciar sesión para acceder a este recurso";
+    static final String INVALID_TOKEN_MESSAGE = "Tu sesión no es válida o expiró. Inicia sesión de nuevo";
+
     private final String jwtSecret;
     private final WebSocketService webSocketService;
+    private final RevokedAccessTokens revokedAccessTokens;
 
-    public JwtAuthenticationFilter(@Value("${jwt.secret}") String jwtSecret, WebSocketService webSocketService) {
+    public JwtAuthenticationFilter(@Value("${jwt.secret}") String jwtSecret,
+                                   WebSocketService webSocketService,
+                                   RevokedAccessTokens revokedAccessTokens) {
         this.jwtSecret = jwtSecret;
         this.webSocketService = webSocketService;
+        this.revokedAccessTokens = revokedAccessTokens;
     }
 
     private static final List<String> PUBLIC_PATHS = List.of(
             "/api/v1/auth/login",
             "/api/v1/auth/register",
-            "/api/v1/auth/refresh",
-            "/actuator/health",
-            "/actuator/info"
+            "/api/v1/auth/refresh"
     );
 
     @Override
@@ -69,38 +72,56 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest().mutate()
                 .headers(headers -> USER_HEADERS.forEach(headers::remove))
                 .build();
-        exchange = exchange.mutate().request(request).build();
+        ServerWebExchange sanitized = exchange.mutate().request(request).build();
         String path = request.getURI().getPath();
 
         if (isPublicPath(path)) {
-            return chain.filter(exchange);
+            return chain.filter(sanitized);
         }
 
         boolean webSocket = path.startsWith(WS_PATH_PREFIX);
         String token = webSocket ? webSocketToken(request) : bearerToken(request);
         if (token == null) {
-            return reject(exchange, webSocket, "Missing or invalid Authorization header");
+            return reject(sanitized, webSocket, MISSING_TOKEN_MESSAGE);
         }
 
+        Claims claims;
         try {
-            Claims claims = validateToken(token);
-            exchange.getAttributes().put(AUTHENTICATED_USER_ATTR, claims.getSubject());
-
-            // Add user info to headers for downstream services
-            ServerHttpRequest.Builder modifiedRequest = request.mutate()
-                    .header("X-User-Id", claims.getSubject())
-                    .header("X-User-Email", claims.get("email", String.class))
-                    .header("X-User-Roles", rolesHeader(claims.get("roles")));
-            if (webSocket) {
-                // El servicio recibe la identidad por X-User-*; el token no viaja más allá del gateway
-                modifiedRequest.uri(withoutTokenParam(request.getURI()));
-            }
-
-            return chain.filter(exchange.mutate().request(modifiedRequest.build()).build());
+            claims = validateToken(token);
         } catch (JwtException | IllegalArgumentException e) {
             log.debug("Rejected token for {}: {}", path, e.getMessage());
-            return reject(exchange, webSocket, "Invalid or expired token");
+            return reject(sanitized, webSocket, INVALID_TOKEN_MESSAGE);
         }
+
+        // T-B21: un token con firma válida pero revocado en logout recibe el mismo 401 / 4401.
+        // Los tokens sin jti (emitidos antes de T-B21) no se pueden revocar y vencen solos.
+        String jti = claims.getId();
+        Mono<Boolean> revoked = jti == null ? Mono.just(false) : revokedAccessTokens.isRevoked(jti);
+        return revoked.flatMap(isRevoked -> {
+            if (isRevoked) {
+                log.debug("Rejected revoked token for {}", path);
+                return reject(sanitized, webSocket, INVALID_TOKEN_MESSAGE);
+            }
+            return forwardAuthenticated(sanitized, chain, claims, webSocket);
+        });
+    }
+
+    private static Mono<Void> forwardAuthenticated(ServerWebExchange exchange, GatewayFilterChain chain,
+                                                   Claims claims, boolean webSocket) {
+        ServerHttpRequest request = exchange.getRequest();
+        exchange.getAttributes().put(AUTHENTICATED_USER_ATTR, claims.getSubject());
+
+        // Add user info to headers for downstream services
+        ServerHttpRequest.Builder modifiedRequest = request.mutate()
+                .header("X-User-Id", claims.getSubject())
+                .header("X-User-Email", claims.get("email", String.class))
+                .header("X-User-Roles", rolesHeader(claims.get("roles")));
+        if (webSocket) {
+            // El servicio recibe la identidad por X-User-*; el token no viaja más allá del gateway
+            modifiedRequest.uri(withoutTokenParam(request.getURI()));
+        }
+
+        return chain.filter(exchange.mutate().request(modifiedRequest.build()).build());
     }
 
     private static String bearerToken(ServerHttpRequest request) {
@@ -123,7 +144,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             // El navegador no expone el status HTTP de un handshake fallido: se acepta y se cierra con 4401
             return webSocketService.handleRequest(exchange, session -> session.close(WS_UNAUTHORIZED));
         }
-        return unauthorizedResponse(exchange, message);
+        return ErrorResponses.write(exchange.getResponse(), HttpStatus.UNAUTHORIZED, ErrorResponses.UNAUTHORIZED, message);
     }
 
     /**
@@ -151,16 +172,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-    }
-
-    private Mono<Void> unauthorizedResponse(ServerWebExchange exchange, String message) {
-        ServerHttpResponse response = exchange.getResponse();
-        response.setStatusCode(HttpStatus.UNAUTHORIZED);
-        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        
-        String body = String.format("{\"error\":\"%s\",\"status\":401}", message);
-        DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
-        return response.writeWith(Mono.just(buffer));
     }
 
     @Override

@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# docker falso para los tests de deploy.sh. Registra cada llamada en $DOCKER_LOG y simula:
+#   compose … config -q  → sale con $FAKE_CONFIG_RC (0 por defecto)
+#   compose … up …       → n-ésima llamada sale con el n-ésimo valor de $FAKE_UP_RCS
+#                          (se repite el último; "0" por defecto)
+#   compose … ps …       → una tabla fija
+#   image inspect <ref>  → 0 si <ref> está en $FAKE_DIR/images
+#   image ls …           → el contenido de $FAKE_DIR/images
+#   image rm <ref>…      → los quita de $FAKE_DIR/images
+#   ps …                 → "mongo-cid" si $FAKE_MONGO_RUNNING=1 (contenedor mongodb corriendo)
+#   exec … mongosh …     → sale con $FAKE_MONGOSH_RC; si es 0, imprime $FAKE_MONGOSH_OUT
+#                          (mongosh falso); guarda en $FAKE_DIR/exec-env las variables -e
+set -euo pipefail
+
+printf '%s\n' "$*" >>"$DOCKER_LOG"
+images="$FAKE_DIR/images"
+
+case "${1:-}" in
+  ps)
+    [[ "${FAKE_MONGO_RUNNING:-0}" == 1 ]] && echo mongo-cid
+    exit 0
+    ;;
+  exec)
+    # -e NOMBRE sin valor: docker toma el valor del entorno (nunca va en la línea de comandos)
+    : >"$FAKE_DIR/exec-env"
+    prev=''
+    for arg in "$@"; do
+      [[ "$prev" == -e ]] && printf '%s=%s\n' "$arg" "${!arg:-}" >>"$FAKE_DIR/exec-env"
+      prev=$arg
+    done
+    rc=${FAKE_MONGOSH_RC:-0}
+    ((rc == 0)) && printf '%s\n' "${FAKE_MONGOSH_OUT-}"
+    exit "$rc"
+    ;;
+esac
+
+if [[ "${1:-}" == image ]]; then
+  case "${2:-}" in
+    inspect) grep -qxF -- "$3" "$images" ;;
+    ls) cat "$images" ;;
+    rm)
+      shift 2
+      for ref in "$@"; do
+        grep -vxF -- "$ref" "$images" >"$images.tmp" || true
+        mv "$images.tmp" "$images"
+      done
+      ;;
+  esac
+  exit
+fi
+
+if [[ "${1:-}" == compose ]]; then
+  for arg in "$@"; do
+    case "$arg" in
+      config) exit "${FAKE_CONFIG_RC:-0}" ;;
+      up)
+        read -ra rcs <<<"${FAKE_UP_RCS:-0}"
+        n=$(cat "$FAKE_DIR/up-count" 2>/dev/null || echo 0)
+        echo $((n + 1)) >"$FAKE_DIR/up-count"
+        if ((n < ${#rcs[@]})); then exit "${rcs[n]}"; fi
+        exit "${rcs[-1]}"
+        ;;
+      ps) printf 'SERVICE STATUS\napi-gateway Up (healthy)\n'; exit 0 ;;
+    esac
+  done
+fi
+exit 0

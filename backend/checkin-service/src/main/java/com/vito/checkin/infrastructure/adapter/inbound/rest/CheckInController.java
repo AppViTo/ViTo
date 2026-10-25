@@ -3,6 +3,7 @@ package com.vito.checkin.infrastructure.adapter.inbound.rest;
 import com.vito.checkin.domain.model.CheckInEvent;
 import com.vito.checkin.domain.model.CheckInTicket;
 import com.vito.checkin.domain.port.inbound.CheckInService;
+import com.vito.checkin.domain.exception.CheckInException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -86,7 +87,7 @@ public class CheckInController {
     private String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("User not authenticated");
+            throw CheckInException.unauthenticated();
         }
         return authentication.getName();
     }

@@ -175,7 +175,7 @@ class MosaicServiceImplTest {
                 MosaicException.class,
                 () -> mosaicService.getEventGrid("event123")
         );
-        assertEquals("Mosaic grid is not initialized", exception.getMessage());
+        assertEquals("El mosaico de este evento no está inicializado", exception.getMessage());
     }
 
     @Test
@@ -237,7 +237,7 @@ class MosaicServiceImplTest {
                 MosaicException.class,
                 () -> mosaicService.likePost("nonexistent", "user456")
         );
-        assertEquals("Mosaic item not found", exception.getMessage());
+        assertEquals("El elemento del mosaico no existe", exception.getMessage());
     }
 
     @Test

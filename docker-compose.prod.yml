@@ -1,0 +1,406 @@
+# Producción — Fase Tracción (ADR-011): un VPS de 12 GB con Docker Compose.
+#
+#   docker compose -f docker-compose.prod.yml --env-file .env --env-file versions.env up -d
+#
+# - Variables en .env (ver .env.prod.example; chmod 600, fuera del repo). Falta una → no arranca.
+# - Una versión por servicio (TAG_<SERVICIO>, el SHA del commit que la construyó; nunca
+#   :latest). Llegan por un segundo archivo de entorno, el manifiesto versions.env de cada
+#   release (feature 001, research R1): solo cambia el tag de lo reconstruido, así Compose
+#   no recrea el resto. cd.yml construye en CI y copia con `docker save | ssh docker load`.
+# - En el VPS lo corre infrastructure/deploy/remote/deploy.sh:
+#     docker compose -p vito --project-directory /opt/vito/current #       --env-file /opt/vito/.env --env-file /opt/vito/current/versions.env up -d --wait
+# - CFG_CADDY y CFG_SRS: sha256 del archivo montado. Si cambia su contenido, cambia la
+#   etiqueta vito.config-hash y Compose recrea solo ese servicio (R4).
+# - Solo Caddy (80/443) y SRS (RTMP 1935, WebRTC 8000/udp) publican puertos.
+#   Mongo, Redis y Kafka exigen credenciales y no son alcanzables desde fuera.
+#
+# Memoria (mem_limit). Los límites son topes, no reservas; el consumo real está en el PR de T-I07.
+#
+#   10 servicios Java × 512m (heap 60 %) ....... 5.120 MiB
+#   mongodb (caché WiredTiger 0,4 GB) ........... 1.024 MiB
+#   kafka (heap 512m) ...........................   768 MiB
+#   transcode-service (ffmpeg) ..................   768 MiB
+#   moderation-service ..........................   512 MiB
+#   srs .........................................   384 MiB
+#   mongo-backup ................................   384 MiB
+#   redis (maxmemory 192mb) .....................   256 MiB
+#   caddy .......................................   128 MiB
+#   ─────────────────────────────────────────────────────────
+#   Total ....................................... 9.344 MiB (≈ 9,1 GiB de ~11,7 GiB del VPS;
+#                                                 ~2,5 GiB para el SO, Docker y caché de disco)
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-java-service: &java-service
+  restart: unless-stopped
+  logging: *logging
+  mem_limit: 512m
+  environment: &java-env
+    MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:?}:${MONGO_ROOT_PASSWORD:?}@mongodb:27017/?authSource=admin
+    REDIS_HOST: redis
+    SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD:?}
+    KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    SPRING_KAFKA_SECURITY_PROTOCOL: SASL_PLAINTEXT
+    SPRING_KAFKA_PROPERTIES_SASL_MECHANISM: PLAIN
+    SPRING_KAFKA_PROPERTIES_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username="vito" password="${KAFKA_PASSWORD:?}";
+    JWT_SECRET: ${JWT_SECRET:?}
+    SPRING_PROFILES_ACTIVE: prod
+    # Heap = 60 % del límite: el resto para metaspace, hilos y buffers. SerialGC: menos
+    # memoria y CPU con una sola instancia por servicio.
+    JAVA_OPTS: -XX:MaxRAMPercentage=60 -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError
+  depends_on: &java-deps
+    mongodb:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    kafka:
+      condition: service_healthy
+  networks: [vito]
+
+x-java-healthcheck: &java-healthcheck
+  interval: 15s
+  timeout: 5s
+  start_period: 120s
+  retries: 5
+
+services:
+  # ── Borde ─────────────────────────────────────────────────────
+  caddy:
+    image: caddy:2.8.4-alpine
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 128m
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    environment:
+      DOMAIN: ${DOMAIN:?}
+      ACME_EMAIL: ${ACME_EMAIL:?}
+    volumes:
+      - ./infrastructure/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    labels:
+      vito.config-hash: ${CFG_CADDY:?}
+    depends_on:
+      - api-gateway
+      - srs
+    networks: [vito]
+
+  # ── Datos ─────────────────────────────────────────────────────
+  mongodb:
+    image: mongo:7.0.14
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 1g
+    # Caché de WiredTiger acotada: por defecto toma el 50 % de la RAM del host
+    command: ["--wiredTigerCacheSizeGB", "0.4"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?}
+      MONGO_INITDB_DATABASE: vito_db
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      start_period: 90s   # el primer arranque inicializa la base y reinicia mongod
+      retries: 5
+    networks: [vito]
+
+  redis:
+    image: redis:7.2.6-alpine
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 256m
+    # noeviction: guarda la lista negra de tokens; antes fallar que olvidar una revocación
+    command:
+      - sh
+      - -c
+      - exec redis-server --appendonly yes --maxmemory 192mb --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [vito]
+
+  # Kafka KRaft, un broker (ADR-011 b). Clientes por SASL/PLAIN en kafka:9092; el
+  # controlador y el listener interno solo escuchan en 127.0.0.1 del contenedor.
+  kafka:
+    image: apache/kafka:3.8.1
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 768m
+    environment:
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:?}
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: CLIENT://:9092,BROKER://127.0.0.1:9094,CONTROLLER://127.0.0.1:9093
+      KAFKA_ADVERTISED_LISTENERS: CLIENT://kafka:9092,BROKER://127.0.0.1:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CLIENT:SASL_PLAINTEXT,BROKER:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@127.0.0.1:9093
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_LISTENER_NAME_CLIENT_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required user_vito="${KAFKA_PASSWORD:?}";
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      # TCP y no kafka-broker-api-versions.sh: esa herramienta arranca una JVM (>10 s y
+      # memoria dentro del límite del contenedor) en cada comprobación
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9092"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    networks: [vito]
+
+  # Backup diario a R2 (T-I09)
+  mongo-backup:
+    image: vito/mongo-backup:${TAG_MONGO_BACKUP:?}
+    build: ./infrastructure/backup
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 384m
+    environment:
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:?}:${MONGO_ROOT_PASSWORD:?}@mongodb:27017/?authSource=admin
+      S3_PROVIDER: Cloudflare
+      S3_ENDPOINT: ${S3_ENDPOINT:?}
+      S3_REGION: ${S3_REGION:-auto}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?}
+      S3_CREATE_BUCKET: "false"
+      BACKUP_BUCKET: ${BACKUP_BUCKET:-vito-backups}
+      BACKUP_AT: ${BACKUP_AT:-03:00}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks: [vito]
+
+  # ── Streaming ─────────────────────────────────────────────────
+  # La API de gestión (1985) no se publica: Caddy solo expone /rtc/ (WHIP/WHEP) y la
+  # reproducción HTTP (HLS/FLV) en live.${DOMAIN}.
+  srs:
+    image: ossrs/srs:5.0.213
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 384m
+    ports:
+      - "1935:1935"       # RTMP (publicación desde el host del evento)
+      - "8000:8000/udp"   # WebRTC
+    environment:
+      CANDIDATE: ${SRS_CANDIDATE:?IP pública del VPS}
+    volumes:
+      - ./infrastructure/docker/srs/srs.conf:/usr/local/srs/conf/docker.conf:ro
+    labels:
+      vito.config-hash: ${CFG_SRS:?}
+    networks: [vito]
+
+  # ── Servicios Spring Boot ─────────────────────────────────────
+  api-gateway:
+    <<: *java-service
+    image: vito/api-gateway:${TAG_API_GATEWAY:?}
+    build: { context: ./backend/api-gateway, dockerfile: ../Dockerfile }
+    environment:
+      <<: *java-env
+      # Perfil docker: URIs de los servicios por DNS de Compose
+      SPRING_PROFILES_ACTIVE: prod,docker
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}
+      # T-I21 (excepción A3): subida al mosaico cerrada si falta o vale false
+      MOSAIC_UPLOADS_ENABLED: ${MOSAIC_UPLOADS_ENABLED:-false}
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      <<: *java-healthcheck
+      # Actuator en el puerto de gestión (T-B14): Caddy no lo alcanza
+      test: ["CMD", "curl", "-fsS", "http://localhost:9080/actuator/health/readiness"]
+
+  auth-service:
+    <<: *java-service
+    image: vito/auth-service:${TAG_AUTH_SERVICE:?}
+    build: { context: ./backend/auth-service, dockerfile: ../Dockerfile }
+    healthcheck:
+      <<: *java-healthcheck
+      test: ["CMD", "curl", "-fsS", "http://localhost:8081/actuator/health/readiness"]
+
+  social-service:
+    <<: *java-service
+    image: vito/social-service:${TAG_SOCIAL_SERVICE:?}
+    build: { context: ./backend/social-service, dockerfile: ../Dockerfile }
+    healthcheck:
+      <<: *java-healthcheck
+      test: ["CMD", "curl", "-fsS", "http://localhost:8082/actuator/health/readiness"]
+
+  event-service:
+    <<: *java-service
+    image: vito/event-service:${TAG_EVENT_SERVICE:?}
+    build: { context: ./backend/event-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *java-env
+      QR_SECRET: ${QR_SECRET:?}
+    healthcheck:
+      <<: *java-healthcheck
+      test: ["CMD", "curl", "-fsS", "http://localhost:8083/actuator/health/readiness"]
+
+  checkin-service:
+    <<: *java-service
+    image: vito/checkin-service:${TAG_CHECKIN_SERVICE:?}
+    build: { context: ./backend/checkin-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *java-env
+      QR_SECRET: ${QR_SECRET:?}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}  # handshake WebSocket (T-B20)
+    healthcheck:
+      <<: *java-healthcheck
+      test: ["CMD", "curl", "-fsS", "http://localhost:8084/actuator/health/readiness"]
+
+  mosaic-service:
+    <<: *java-service
+    image: vito/mosaic-service:${TAG_MOSAIC_SERVICE:?}
+    build: { context: ./backend/mosaic-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *java-env
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}  # handshake WebSocket (T-B20)
+      EVENT_SERVICE_URI: http://event-service:8083     # organizador para removeMosaicItem (T-B26)
+    healthcheck:
+      <<: *java-healthcheck
+      test: ["CMD", "curl", "-fsS", "http://localhost:8085/actuator/health/readiness"]
+
+  streaming-service:
+    <<: *java-service
+    image: vito/streaming-service:${TAG_STREAMING_SERVICE:?}
+    build: { context: ./backend/streaming-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *java-env
+      SRS_API_URL: http://srs:1985
+      SRS_STREAM_URL: rtmp://live.${DOMAIN:?}:1935
+      SRS_PLAYBACK_URL: https://live.${DOMAIN:?}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}  # handshake WebSocket (T-B20)
+    depends_on:
+      <<: *java-deps
+      srs:
+        condition: service_started
+    healthcheck:
+      <<: *java-healthcheck
+      test: ["CMD", "curl", "-fsS", "http://localhost:8086/actuator/health/readiness"]
+
+  archive-service:
+    <<: *java-service
+    image: vito/archive-service:${TAG_ARCHIVE_SERVICE:?}
+    build: { context: ./backend/archive-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *java-env
+      ARCHIVE_SHARE_BASE_URL: https://${DOMAIN:?}/archive
+    healthcheck:
+      <<: *java-healthcheck
+      test: ["CMD", "curl", "-fsS", "http://localhost:8087/actuator/health/readiness"]
+
+  chat-service:
+    <<: *java-service
+    image: vito/chat-service:${TAG_CHAT_SERVICE:?}
+    build: { context: ./backend/chat-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *java-env
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?}  # handshake WebSocket (T-B20)
+    healthcheck:
+      <<: *java-healthcheck
+      test: ["CMD", "curl", "-fsS", "http://localhost:8088/actuator/health/readiness"]
+
+  media-service:
+    <<: *java-service
+    image: vito/media-service:${TAG_MEDIA_SERVICE:?}
+    build: { context: ./backend/media-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *java-env
+      S3_ENDPOINT: ${S3_ENDPOINT:?}
+      S3_REGION: ${S3_REGION:-auto}
+      S3_BUCKET: ${S3_BUCKET:-vito-media}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?}
+      S3_CREATE_BUCKET: "false"
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:?}
+    healthcheck:
+      <<: *java-healthcheck
+      test: ["CMD", "curl", "-fsS", "http://localhost:8089/actuator/health/readiness"]
+
+  # ── Servicios Python ──────────────────────────────────────────
+  transcode-service:
+    image: vito/transcode-service:${TAG_TRANSCODE_SERVICE:?}
+    build: ./ai-services/transcode-service
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 768m   # ffmpeg
+    environment:
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:?}:${MONGO_ROOT_PASSWORD:?}@mongodb:27017/?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD:?}@redis:6379
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_SASL_USERNAME: vito
+      KAFKA_SASL_PASSWORD: ${KAFKA_PASSWORD:?}
+      S3_ENDPOINT: ${S3_ENDPOINT:?}
+      S3_REGION: ${S3_REGION:-auto}
+      S3_BUCKET: ${S3_BUCKET:-vito-media}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?}
+    depends_on: *java-deps
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    networks: [vito]
+
+  moderation-service:
+    image: vito/moderation-service:${TAG_MODERATION_SERVICE:?}
+    build: ./ai-services/moderation-service
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 512m
+    # Sin --reload (el CMD de la imagen es de desarrollo)
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
+    environment:
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:?}:${MONGO_ROOT_PASSWORD:?}@mongodb:27017/?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD:?}@redis:6379
+      JWT_SECRET: ${JWT_SECRET:?}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health', timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    networks: [vito]
+
+volumes:
+  mongodb_data:
+  redis_data:
+  kafka_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  vito:

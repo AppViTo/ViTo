@@ -31,7 +31,9 @@ server:
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET}
-  expiration: 86400000  # 24 hours
+  # 15 min (ADR-004: expiresIn 900). El cliente renueva con el refresh token ante 401/4401;
+  # acota cuánto sirve un token revocado si el gateway no puede consultar Redis (T-B21).
+  expiration: ${JWT_EXPIRATION_MS:900000}
   refresh-expiration: 604800000  # 7 days
 
 # Logging
@@ -45,7 +47,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
       probes:

@@ -1,6 +1,7 @@
 package com.vito.auth.application.service;
 
 import com.vito.auth.domain.exception.AuthenticationException;
+import com.vito.auth.domain.exception.UserAlreadyExistsException;
 import com.vito.auth.domain.model.User;
 import com.vito.auth.domain.port.inbound.AuthService;
 import com.vito.auth.domain.port.outbound.CachePort;
@@ -13,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -36,11 +38,11 @@ public class AuthServiceImpl implements AuthService {
         
         // Validate unique constraints
         if (userRepository.existsByUsername(command.getUsername())) {
-            throw new IllegalArgumentException("Username already exists");
+            throw UserAlreadyExistsException.usernameTaken();
         }
         
         if (userRepository.existsByEmail(command.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
+            throw UserAlreadyExistsException.emailTaken();
         }
         
         // Create user
@@ -80,7 +82,7 @@ public class AuthServiceImpl implements AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .user(savedUser)
-                .expiresIn(jwtExpiration)
+                .expiresIn(expiresInSeconds())
                 .build();
     }
     
@@ -109,7 +111,7 @@ public class AuthServiceImpl implements AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .user(user)
-                .expiresIn(jwtExpiration)
+                .expiresIn(expiresInSeconds())
                 .build();
     }
     
@@ -120,11 +122,11 @@ public class AuthServiceImpl implements AuthService {
         String userId = tokenProvider.validateRefreshToken(command.getRefreshToken());
         
         User user = userRepository.findById(userId)
-                .orElseThrow(AuthenticationException::userNotFound);
+                .orElseThrow(AuthenticationException::invalidRefreshToken);
         
         // Check if refresh token is blacklisted
         if (cachePort.isBlacklisted(command.getRefreshToken())) {
-            throw AuthenticationException.tokenExpired();
+            throw AuthenticationException.invalidRefreshToken();
         }
         
         // Blacklist old refresh token
@@ -142,7 +144,7 @@ public class AuthServiceImpl implements AuthService {
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)
                 .user(user)
-                .expiresIn(jwtExpiration)
+                .expiresIn(expiresInSeconds())
                 .build();
     }
     
@@ -150,11 +152,20 @@ public class AuthServiceImpl implements AuthService {
     public void logout(String token) {
         log.info("Logging out user");
         
-        String userId = tokenProvider.validateAccessToken(token);
-        
-        // Blacklist the token
-        cachePort.addToBlacklist(token, Duration.ofMillis(jwtExpiration));
-        
+        TokenProvider.AccessTokenClaims claims = tokenProvider.parseAccessToken(token);
+        String userId = claims.userId();
+
+        // T-B21: el gateway rechaza el jti revocado; la clave vive lo que le queda al token
+        if (claims.jti() != null && claims.expiresAt() != null) {
+            Duration remaining = Duration.between(Instant.now(), claims.expiresAt());
+            if (!remaining.isNegative() && !remaining.isZero()) {
+                cachePort.revokeAccessToken(claims.jti(), remaining);
+            }
+        } else {
+            // Token emitido antes de T-B21: no se puede revocar, vence solo
+            log.info("Access token without jti for user {}; it stays valid until it expires", userId);
+        }
+
         // Remove refresh token from cache
         cachePort.delete("refresh_token:" + userId);
         
@@ -170,6 +181,11 @@ public class AuthServiceImpl implements AuthService {
     public User getUserById(String userId) {
         return userRepository.findById(userId)
                 .orElseThrow(AuthenticationException::userNotFound);
+    }
+    
+    /** ADR-004: segundos hasta que expira el access token; jwt.expiration está en milisegundos. */
+    private long expiresInSeconds() {
+        return Duration.ofMillis(jwtExpiration).toSeconds();
     }
     
     public record UserRegisteredEvent(String userId, String email) {}

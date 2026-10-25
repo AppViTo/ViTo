@@ -40,8 +40,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
       probes:
         enabled: true
+
+# Orígenes de la web para el handshake WebSocket (T-B20): los mismos que el CORS del gateway
+websocket:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}

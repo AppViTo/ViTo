@@ -114,7 +114,9 @@ Códigos de error canónicos: `VALIDATION_ERROR`, `UNAUTHORIZED`, `FORBIDDEN`, `
   - `page` base **0**, default `0`
   - `size` default `20`, máximo `100`
   - Un endpoint sin `page`/`size` es un error de contrato (a menosque el ADR diga lo contrario).
-- Orden por defecto: `createdAt` descendente.
+- Orden por defecto: `createdAt` descendente. Excepción documentada:
+  `listEvents?scope=upcoming` ordena por `details.startDate` ascendente
+  (ADR-014).
 - La respuesta es un array plano (§3.2), por lo que el cliente pagina con `page`/`size` y no con `total`.
 
 ---
@@ -140,6 +142,7 @@ Códigos de error canónicos: `VALIDATION_ERROR`, `UNAUTHORIZED`, `FORBIDDEN`, `
 | `Invitation.status` | `PENDING` `ACCEPTED` `DECLINED` `EXPIRED` |
 | `CheckInTicket.status` | `PENDING` `ACTIVE` `USED` `EXPIRED` `REVOKED` |
 | `MosaicFeedItem.type` | `CHECK_IN` `POST` `PHOTO` `REACTION` `STORY` `LIVE_UPDATE` `ANNOUNCEMENT` |
+| `MosaicItem.type` (celda de la grilla) | `CHECK_IN` `POST` `PHOTO` `REACTION` `STORY` `HIGHLIGHT` |
 | `LiveStream.status` | `IDLE` `CONNECTING` `LIVE` `BUFFERING` `ENDED` `ERROR` |
 | `Reaction.type` | `LIKE` `HEART` `FIRE` `CLAP` `CELEBRATION` `CUSTOM` |
 | `StreamChatMessage.type` | `NORMAL` `SUPER_CHAT` `SYSTEM` `JOIN` `LEAVE` |
@@ -197,10 +200,11 @@ No existen `name`, `date`, `endDate`, `isPublic`, `maxAttendees`, `currentAttend
 - Todas las rutas WS se exponen **a través del gateway** (`ws://localhost:8080/ws/...`). El gateway debe tener ruta `/ws/**`; sin ella el handshake da 404 (RFC pendiente del equipo backend).
 - Autenticación: query param `?token=<accessToken>` en el handshake. El gateway lo valida y rechaza con `4401` si es inválido.
 - El cliente conecta con `Env.wsBaseUrl`; **nunca** se hardcodea un host o puerto.
+- **El cliente nunca envía su identidad** (`userId`, `senderId`) ni en la query ni en los frames: el servicio la toma de `X-User-Id`, que inyecta el gateway al validar el token (ADR-007, ADR-015).
 
 | Recurso | Ruta |
 |---------|------|
-| Chat | `/ws/chat?userId=<id>&token=<jwt>` |
+| Chat | `/ws/chat?token=<jwt>` |
 | Check-in | `/ws/checkin/{eventId}?token=<jwt>` |
 | Mosaico | `/ws/mosaic/{eventId}?token=<jwt>` |
 | Streaming | `/ws/streaming/{streamId}?token=<jwt>` |
@@ -226,8 +230,13 @@ Frames por recurso: ver `asyncapi.yaml` y los handoffs (`docs/handoff/`).
 
 - `POST /api/v1/media/upload` con `multipart/form-data`: campo `file` (binario) + `eventId`.
 - Respuesta `201` con `Media { id, url, thumbnailUrl, mimeType, size, ... }`.
-- Tamaño máximo **10 MB** por archivo; formatos: `image/jpeg`, `image/png`, `image/webp`, `video/mp4`.
-- El flujo del mosaico es: subir a media → usar la URL devuelta en `POST /mosaic/photo`.
+- Tamaño máximo **10 MB** por archivo; formatos: `image/jpeg`, `image/png`, `image/webp`.
+  `video/mp4` queda fuera mientras rija la excepción A3 (T051): el servidor re-codifica cada
+  imagen antes de servirla y no hay antimalware para video.
+- El flujo del mosaico es de dos pasos (ADR-016): subir a media → publicar el `id` devuelto con
+  `POST /mosaic/post` (`{ eventId, mediaId, content? }`). `/mosaic/photo` no existe.
+- **Post-moderación (excepción A3):** la foto aparece al instante; el organizador la retira con
+  `DELETE /mosaic/item/{itemId}` y los clientes reciben `ITEM_REMOVED` por `/ws/mosaic/{eventId}`.
 
 ---
 

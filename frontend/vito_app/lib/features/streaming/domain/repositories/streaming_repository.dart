@@ -53,7 +53,7 @@ abstract class StreamingRepository {
   Stream<ChatMessage> get chatStream;
   Stream<int> get viewerCountStream;
   
-  void connectToWebSocket(String streamId, String baseUrl);
+  void connectToWebSocket(String streamId);
   void disconnectFromWebSocket();
 }
 

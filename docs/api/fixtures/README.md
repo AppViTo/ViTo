@@ -12,13 +12,14 @@ contrato, cambian los fixtures; los dos lados se enteran en CI.
 ## Convención de nombres
 
 ```
-docs/api/fixtures/<tag-en-kebab>/<operationId>.<extensión>.json
+docs/api/fixtures/<tag-en-kebab>/<operationId>[.<ejemplo>].<extensión>.json
 ```
 
 | Parte | Regla |
 |-------|-------|
 | `<tag-en-kebab>` | `tags[0]` de la operación, en minúsculas: `authentication`, `events`, `chat`, `media`, `recommendations`, `moderation`. |
 | `<operationId>` | Tal cual figura en el YAML. Es el identificador único de la operación. |
+| `<ejemplo>` | Solo para respuestas con variantes: la clave de `content.<media>.examples`. Ver §Variantes de respuesta. |
 | `<extensión>` | `request` = cuerpo del request. Un código HTTP (`200`, `201`, `400`, `401`, `404`, `409`, `429`) = cuerpo de la respuesta de ese status. |
 
 Ejemplos:
@@ -27,7 +28,9 @@ Ejemplos:
 authentication/registerUser.request.json    → body de POST /api/v1/auth/register
 authentication/registerUser.201.json        → respuesta 201 de la misma operación
 authentication/registerUser.409.json        → respuesta 409 (CONFLICT)
-events/listEvents.200.json                  → array plano (ADR-002)
+events/listEvents.mine.200.json             → `scope=mine` (por defecto)
+events/listEvents.upcoming.200.json         → `scope=upcoming`
+events/listEvents.400.json                  → `scope` inválido o `size` > 100
 ```
 
 ## Reglas
@@ -54,15 +57,42 @@ events/listEvents.200.json                  → array plano (ADR-002)
    `room_*`, fechas ISO-8601 UTC con `Z`): un test que cargue varios fixtures
    no debe encontrar identidades contradictorias.
 
+## Variantes de respuesta
+
+Cuando una misma operación devuelve respuestas con la misma forma pero contenido
+distinto (p. ej. `listEvents?scope=mine|upcoming`), el YAML lo declara con
+`examples` en el media type y **cada clave tiene su fixture**; en ese status no
+existe el `<operationId>.<status>.json` canónico:
+
+```yaml
+content:
+  application/json:
+    schema: { ... }
+    examples:
+      mine: { summary: ..., value: ... }
+      upcoming: { summary: ..., value: ... }
+```
+
+```
+events/listEvents.mine.200.json       → example `mine`
+events/listEvents.upcoming.200.json   → example `upcoming`
+events/listEvents.400.json            → 400 (sin variantes: nombre canónico)
+```
+
+El validador exige un fixture por cada clave de `examples`, valida todos contra
+el mismo schema del media type y marca como huérfano cualquier variante que el
+YAML no declare. Prism sirve una variante concreta con
+`Prefer: example=upcoming`.
+
 ## Respuestas sin cuerpo
 
-Cuando el YAML declara un status **sin `content`** (p. ej. `logoutUser.200`),
+Cuando el YAML declara un status **sin `content`** (p. ej. `logoutUser.204`),
 el fixture existe y contiene el literal JSON `null`. Así se mantiene la regla
 «todo status declarado tiene fixture» y el validador sabe, por el propio YAML,
 que ahí **no** hay schema que aplicar.
 
 ```
-authentication/logoutUser.200.json   → null
+authentication/logoutUser.204.json   → null
 ```
 
 ## Requests multipart
@@ -76,13 +106,24 @@ el `description` del YAML (CONVENTIONS §8).
 ## Cobertura actual (Ola 0)
 
 Las **15 operaciones** de `openapi.yaml` están cubiertas: 8 requests (las 7 con
-body JSON + los casos ya citados) y 45 responses. Verificación:
+body JSON + los casos ya citados) y 47 fixtures de respuesta (55 en total,
+contando variantes de `examples`). Verificación:
 
 ```bash
-# que cada operationId del YAML tenga al menos un 2xx y un 4xx
-# y que cada fixture valide contra su schema → T-C03 (job "contract" de CI)
-npm run lint:api
+npm ci
+npm run contract            # = lint:api (Spectral) + validate:fixtures
 ```
+
+`validate:fixtures` ([`scripts/validate-fixtures.mjs`](../../../scripts/validate-fixtures.mjs))
+es el mismo paso del job **Contract** de CI y falla si:
+
+- falta el fixture de un status, de un `requestBody` JSON o de un `examples` que el YAML declara;
+- hay un fixture **huérfano** (operación o status que el YAML no declara);
+- un fixture no valida contra su schema, **incluidas propiedades que el schema no
+  declara** (el validador trata todo objeto con `properties` como cerrado, salvo
+  que el YAML diga `additionalProperties`);
+- un status sin `content` tiene un fixture distinto de `null`;
+- una operación no tiene al menos un fixture 2xx y uno de error.
 
 ## Cómo añadir un fixture
 

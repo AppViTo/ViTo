@@ -40,6 +40,15 @@ class AuthenticationException implements Exception {
   });
 }
 
+/// 409 `CONFLICT` (ADR-009): p. ej. email o username ya registrados.
+class ConflictException implements Exception {
+  final String message;
+
+  const ConflictException({
+    this.message = 'Conflict',
+  });
+}
+
 class AuthorizationException implements Exception {
   final String message;
   

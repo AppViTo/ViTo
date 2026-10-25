@@ -53,4 +53,28 @@ class MosaicWebSocketIntegrationTest {
         assertEquals(JSON.readTree("{\"type\":\"LIKE_UPDATE\",\"data\":{\"itemId\":\"itm_1\",\"likesCount\":3}}"),
                 JSON.readTree(frame));
     }
+
+    /** T-B26: ITEM_REMOVED es plano, como {@code MosaicItemRemoved} de asyncapi.yaml. */
+    @Test
+    void organizerRemovalReachesClientsAsFlatItemRemovedFrame() throws Exception {
+        BlockingQueue<String> frames = new LinkedBlockingQueue<>();
+        WebSocketSession session = new StandardWebSocketClient()
+                .execute(new TextWebSocketHandler() {
+                    @Override
+                    protected void handleTextMessage(WebSocketSession s, TextMessage message) {
+                        frames.add(message.getPayload());
+                    }
+                }, "ws://localhost:" + port + "/ws/mosaic/evt_removed")
+                .get(5, TimeUnit.SECONDS);
+
+        String frame = null;
+        for (int i = 0; i < 50 && frame == null; i++) {
+            handler.itemRemoved("evt_removed", "itm_9");
+            frame = frames.poll(100, TimeUnit.MILLISECONDS);
+        }
+        session.close();
+
+        assertEquals(JSON.readTree("{\"type\":\"ITEM_REMOVED\",\"eventId\":\"evt_removed\",\"itemId\":\"itm_9\"}"),
+                JSON.readTree(frame));
+    }
 }

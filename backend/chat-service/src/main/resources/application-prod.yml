@@ -1,0 +1,8 @@
+# Perfil de producción (docker-compose.prod.yml activa prod).
+# application.yml deja estos loggers en DEBUG para desarrollo; en prod ese nivel registra datos
+# de cada mensaje y conexión WebSocket y, con el tope de logs por contenedor, borra en minutos
+# lo que haría falta para diagnosticar un incidente (docs/runbooks/incident.md).
+logging:
+  level:
+    com.vito.chat: INFO
+    org.springframework.web.socket: INFO

@@ -1,0 +1,121 @@
+# Actualizaciones de dependencias (feature 001, T050, research R18; Principio III).
+# Los PR van a develop y entran con el release semanal (ADR-012). Las alertas de seguridad
+# se activan en Settings (docs/runbooks/aprovisionamiento.md, paso 9).
+#
+# Agrupado: como máximo un PR de menores y parches y uno de mayores por ecosistema. Sin
+# grupos, la primera corrida abrió 30 PR y cada uno corre los 30 checks de CI, lo que
+# llenó la cola de runners.
+#
+# Límites del stack (constitución §stack, ADR-011): los `ignore` impiden que Dependabot proponga
+# versiones fuera de lo definido. Subir JDK, Spring Boot o Spring Cloud de línea es T-B10
+# (requiere spec propio): poms, java.version y backend/Dockerfile se cambian juntos. La imagen
+# de backup lleva la misma versión mayor que el Mongo de docker-compose.prod.yml (se fija a mano).
+version: 2
+
+updates:
+  - package-ecosystem: maven
+    directories:
+      - /backend/api-gateway
+      - /backend/auth-service
+      - /backend/social-service
+      - /backend/event-service
+      - /backend/checkin-service
+      - /backend/mosaic-service
+      - /backend/streaming-service
+      - /backend/archive-service
+      - /backend/chat-service
+      - /backend/media-service
+    schedule: { interval: weekly }
+    ignore:
+      # Spring Boot y su Spring Cloud compatible: subir de línea (3.2 → 3.5) es T-B10, que pide
+      # spec propio. Cada línea de Boot exige otro tren de Spring Cloud (#154 rompió el gateway).
+      # Los parches de 3.2.x sí llegan.
+      - dependency-name: "org.springframework.boot:*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "org.springframework.cloud:*"
+        update-types: ["version-update:semver-major"]
+    target-branch: develop
+    open-pull-requests-limit: 2
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      major:
+        patterns: ["*"]
+        update-types: [major]
+    commit-message: { prefix: chore, include: scope }
+
+  - package-ecosystem: pip
+    directories:
+      - /ai-services/transcode-service
+      - /ai-services/moderation-service
+    schedule: { interval: weekly }
+    target-branch: develop
+    open-pull-requests-limit: 3
+    # Cada dependencia cae en el primer grupo que la cubre, así que fastapi-stack va primero.
+    # FastAPI fija el rango de starlette y el instrumentator exige su propio rango: separados
+    # en menores y mayores, ninguno de los dos PR instala (#140 y #142, unidos en #144).
+    groups:
+      fastapi-stack:
+        patterns: [fastapi, starlette, prometheus-fastapi-instrumentator]
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      major:
+        patterns: ["*"]
+        update-types: [major]
+    commit-message: { prefix: chore, include: scope }
+
+  - package-ecosystem: pub
+    directory: /frontend/vito_app
+    schedule: { interval: weekly }
+    target-branch: develop
+    open-pull-requests-limit: 2
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      major:
+        patterns: ["*"]
+        update-types: [major]
+    commit-message: { prefix: chore, include: scope }
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    target-branch: develop
+    open-pull-requests-limit: 2
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      major:
+        patterns: ["*"]
+        update-types: [major]
+    commit-message: { prefix: ci, include: scope }
+
+  # Imágenes base de los Dockerfile (las de terceros en docker-compose.prod.yml se fijan a mano)
+  - package-ecosystem: docker
+    directories:
+      - /backend
+      - /ai-services/transcode-service
+      - /ai-services/moderation-service
+      - /infrastructure/backup
+    schedule: { interval: weekly }
+    ignore:
+      # El JDK de la imagen va con java.version de los poms (T-B10)
+      - dependency-name: "eclipse-temurin"
+        update-types: ["version-update:semver-major"]
+      # Debe coincidir con el servidor (mongo:7.0.x en docker-compose.prod.yml)
+      - dependency-name: "mongo"
+        update-types: ["version-update:semver-major"]
+    target-branch: develop
+    open-pull-requests-limit: 2
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      major:
+        patterns: ["*"]
+        update-types: [major]
+    commit-message: { prefix: chore, include: scope }

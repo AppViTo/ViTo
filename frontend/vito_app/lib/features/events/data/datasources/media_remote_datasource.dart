@@ -11,6 +11,15 @@ abstract class MediaRemoteDataSource {
     required String fileName,
     required String mimeType,
   });
+
+  /// `uploadMedia` (`POST /media/upload`) y devuelve el `Media.id`, que es el
+  /// `mediaId` de `createMosaicPost` (ADR-016). Cadena vacía si no llega.
+  Future<String> uploadMedia({
+    required String eventId,
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+  });
 }
 
 class MediaRemoteDataSourceImpl implements MediaRemoteDataSource {
@@ -20,6 +29,44 @@ class MediaRemoteDataSourceImpl implements MediaRemoteDataSource {
 
   @override
   Future<String> uploadEventCover({
+    required String eventId,
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+  }) async {
+    final data = await _upload(
+      eventId: eventId,
+      bytes: bytes,
+      fileName: fileName,
+      mimeType: mimeType,
+    );
+    if (data == null) return '';
+
+    final location = data['location'];
+    if (location is! Map) return '';
+
+    final url = location['url'];
+    return url is String ? url : '';
+  }
+
+  @override
+  Future<String> uploadMedia({
+    required String eventId,
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+  }) async {
+    final data = await _upload(
+      eventId: eventId,
+      bytes: bytes,
+      fileName: fileName,
+      mimeType: mimeType,
+    );
+    final id = data?['id'];
+    return id is String ? id : '';
+  }
+
+  Future<Map<dynamic, dynamic>?> _upload({
     required String eventId,
     required Uint8List bytes,
     required String fileName,
@@ -37,13 +84,7 @@ class MediaRemoteDataSourceImpl implements MediaRemoteDataSource {
 
       final response = await dio.post('/media/upload', data: form);
       final data = response.data;
-      if (data is! Map) return '';
-
-      final location = data['location'];
-      if (location is! Map) return '';
-
-      final url = location['url'];
-      return url is String ? url : '';
+      return data is Map ? data : null;
     } on DioException catch (e) {
       throw handleDioError(e);
     }

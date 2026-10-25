@@ -44,6 +44,9 @@ components:
         password:
           type: string
           minLength: 8
+        displayName:
+          type: string
+          description: Nombre visible. Opcional (ADR-004).
 
     LoginRequest:
       type: object
@@ -55,21 +58,39 @@ components:
         password:
           type: string
 
+    # ADR-004: misma forma en register, login y refresh. Sin `tokenType`
+    # (el cliente siempre usa Bearer).
     AuthResponse:
       type: object
+      required: [accessToken, refreshToken, expiresIn, user]
       properties:
         accessToken:
           type: string
         refreshToken:
           type: string
-        tokenType:
-          type: string
-          example: Bearer
         expiresIn:
           type: integer
+          description: Segundos hasta que expira el access token (ADR-004).
           example: 86400
         user:
-          $ref: '#/components/schemas/User'
+          $ref: '#/components/schemas/AuthUser'
+
+    # Usuario de auth (ADR-004), plano. El perfil completo con stats es `User`
+    # y lo sirve social-service (Ola 2).
+    AuthUser:
+      type: object
+      required: [id, username, email]
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        displayName:
+          type: [string, 'null']
+        avatar:
+          type: [string, 'null']
 
     User:
       type: object
@@ -374,6 +395,163 @@ components:
           type: string
           format: date-time
 
+    # Mosaic Schemas — Ola 3 (T-C07). Mismo MosaicFeedItem que asyncapi.yaml.
+    MosaicFeedItem:
+      type: object
+      required: [id, eventId, userId, type, timestamp, likesCount, commentsCount, isLiked]
+      description: >
+        Elemento del feed del mosaico. `isLiked` es relativo al usuario que
+        consulta (`X-User-Id`). Los elementos retirados por el organizador no
+        aparecen en ninguna respuesta.
+      properties:
+        id:
+          type: string
+          example: mos_01H8X2K4QJ
+        eventId:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: [string, 'null']
+        avatar:
+          type: [string, 'null']
+        type:
+          type: string
+          enum: [CHECK_IN, POST, PHOTO, REACTION, STORY, LIVE_UPDATE, ANNOUNCEMENT]
+        content:
+          type: [string, 'null']
+        mediaUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        timestamp:
+          type: string
+          format: date-time
+        likesCount:
+          type: integer
+          minimum: 0
+        commentsCount:
+          type: integer
+          minimum: 0
+        isLiked:
+          type: boolean
+
+    MosaicItem:
+      type: object
+      required: [id, eventId, userId, type, timestamp, position]
+      description: Celda ocupada de la grilla del mosaico.
+      properties:
+        id:
+          type: string
+          description: Mismo `id` que el `MosaicFeedItem` que la ocupa.
+        eventId:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: [string, 'null']
+        avatar:
+          type: [string, 'null']
+        type:
+          type: string
+          enum: [CHECK_IN, POST, PHOTO, REACTION, STORY, HIGHLIGHT]
+        content:
+          type: [string, 'null']
+        mediaUrl:
+          type: [string, 'null']
+          format: uri
+        timestamp:
+          type: string
+          format: date-time
+        position:
+          type: object
+          required: [row, col, width, height]
+          properties:
+            row:
+              type: integer
+              minimum: 0
+            col:
+              type: integer
+              minimum: 0
+            width:
+              type: integer
+              minimum: 1
+            height:
+              type: integer
+              minimum: 1
+        likesCount:
+          type: integer
+          minimum: 0
+        commentsCount:
+          type: integer
+          minimum: 0
+
+    MosaicGrid:
+      type: object
+      required: [eventId, grid, totalItems, lastUpdatedIndex]
+      description: >
+        Retícula del mosaico: `grid[fila][columna]`, con `null` en las celdas
+        vacías. `lastUpdatedIndex` es `fila * columnas + columna` de la última
+        celda ocupada, o `-1` si no hay ninguna.
+      properties:
+        eventId:
+          type: string
+        grid:
+          type: array
+          items:
+            type: array
+            items:
+              oneOf:
+                - $ref: '#/components/schemas/MosaicItem'
+                - type: 'null'
+        totalItems:
+          type: integer
+          minimum: 0
+        lastUpdatedIndex:
+          type: integer
+          minimum: -1
+        lastUpdatedAt:
+          type: [string, 'null']
+          format: date-time
+
+    CreateMosaicPostRequest:
+      type: object
+      required: [eventId, mediaId]
+      description: >
+        Publica en el mosaico una imagen ya subida con `uploadMedia`
+        (ADR-016). Mientras rija la excepción A3 solo se aceptan imágenes.
+      properties:
+        eventId:
+          type: string
+        mediaId:
+          type: string
+          description: >
+            `id` del `Media` devuelto por `uploadMedia`. Debe ser del mismo
+            `eventId`, subido por el mismo usuario y de tipo `image/jpeg`,
+            `image/png` o `image/webp`.
+        content:
+          type: [string, 'null']
+          maxLength: 500
+          description: Texto opcional que acompaña la foto.
+
+    MosaicLikeState:
+      type: object
+      required: [itemId, likesCount, isLiked]
+      description: Estado del like tras la acción. Dar o quitar el like es idempotente.
+      properties:
+        itemId:
+          type: string
+        likesCount:
+          type: integer
+          minimum: 0
+        isLiked:
+          type: boolean
+
     # Error Response — ADR-003 (docs/decisions/adr-003-error-envelope.md)
     ErrorResponse:
       type: object
@@ -519,8 +697,8 @@ paths:
         Revoca el token actual. Debe ir en la blacklist de Redis.
       operationId: logoutUser
       responses:
-        '200':
-          description: Sesión cerrada
+        '204':
+          description: Sesión cerrada (sin cuerpo, ADR-004)
         '401':
           description: Unauthorized
           content:
@@ -632,11 +810,30 @@ paths:
       tags: [Events]
       summary: List user events
       description: >
-        Lista los eventos del usuario autenticado. Devuelve **array plano**
-        (ADR-002), no un envelope `{events, total}`: el frontend parsea
-        `(response.data as List)`.
+        Lista eventos como **array plano** (ADR-002), no un envelope
+        `{events, total}`: el frontend parsea `(response.data as List)`.
+        `scope=mine` (por defecto) devuelve los eventos organizados por el
+        usuario autenticado, en cualquier estado, orden `createdAt`
+        descendente (CONVENTIONS §5). `scope=upcoming` devuelve los eventos
+        `PUBLISHED`, públicos (`settings.isPublic: true`) y con
+        `details.startDate` mayor o igual a ahora, orden `details.startDate`
+        ascendente (excepción documentada a CONVENTIONS §5). La identidad sale
+        solo de `X-User-Id` (ADR-007): no se aceptan `organizerId` ni `userId`.
+        `hideAddressUntilAccepted` aplica igual que en `getEvent` (ADR-014).
       operationId: listEvents
       parameters:
+        - name: scope
+          in: query
+          required: false
+          description: >
+            `mine`: eventos del usuario autenticado (cualquier estado).
+            `upcoming`: eventos públicos publicados con `details.startDate`
+            mayor o igual a ahora. Por defecto `mine`, para no listar nunca un
+            catálogo global (ADR-014).
+          schema:
+            type: string
+            enum: [mine, upcoming]
+            default: mine
         - name: page
           in: query
           description: Base 0.
@@ -652,18 +849,52 @@ paths:
             maximum: 100
       responses:
         '200':
-          description: Array plano de eventos, orden `createdAt` descendente
+          description: >
+            Array plano de `Event`. `scope=mine` ordena por `createdAt`
+            descendente; `scope=upcoming` por `details.startDate` ascendente.
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/Event'
+              examples:
+                mine:
+                  summary: Eventos que organiza el usuario
+                  value:
+                    - id: evt_01H8X2K4QJ
+                      organizerId: usr_01H8X2K4QJ
+                      title: Los 30 de Marta
+                      status: PUBLISHED
+                      settings:
+                        isPublic: false
+                upcoming:
+                  summary: Próximos eventos públicos
+                  value:
+                    - id: evt_01H9A1B2C3
+                      organizerId: usr_01H8X2K4QK
+                      title: Sunset Session en la terraza
+                      status: PUBLISHED
+                      details:
+                        startDate: '2027-02-14T21:00:00.000Z'
+                        endDate: '2027-02-15T03:00:00.000Z'
+                        category: PARTY
+                      settings:
+                        isPublic: true
+        '400':
+          description: >
+            `scope` fuera del enum o `size` mayor que 100 (ADR-003, ADR-008).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
               example:
-                - id: evt_01H8X2K4QJ
-                  organizerId: usr_01H8X2K4QJ
-                  title: Los 30 de Marta
-                  status: PUBLISHED
+                error: VALIDATION_ERROR
+                message: El scope debe ser mine o upcoming
+                status: 400
+                timestamp: '2026-10-22T14:03:22Z'
+                details:
+                  scope: 'Valores permitidos: mine, upcoming'
         '401':
           description: Unauthorized
           content:
@@ -892,9 +1123,11 @@ paths:
       tags: [Media]
       summary: Upload media file
       description: >
-        Sube la portada de un evento. Multipart con `file` + `eventId`.
-        Tamaño máximo 10 MB; formatos `image/jpeg`, `image/png`,
-        `image/webp`, `video/mp4`. Toma la identidad del header
+        Sube la portada de un evento o una foto del mosaico (primer paso de
+        `createMosaicPost`, ADR-016). Multipart con `file` + `eventId`.
+        Tamaño máximo 10 MB; formatos `image/jpeg`, `image/png` e
+        `image/webp`. Mientras rija la excepción A3 no se acepta `video/mp4`
+        (CONVENTIONS §8). Toma la identidad del header
         `X-User-Id` inyectado por el gateway (CONVENTIONS §2.2): sin ese
         header devuelve 400.
       operationId: uploadMedia
@@ -978,6 +1211,436 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Mosaic Endpoints — Ola 3 (T-C07, ADR-016, excepción A3)
+  /api/v1/mosaic/post:
+    post:
+      tags: [Mosaic]
+      summary: Publish a photo in the mosaic
+      description: >
+        Segundo paso de la subida (ADR-016): el cliente sube la imagen con
+        `uploadMedia` y publica su `mediaId` aquí. Crea un elemento `PHOTO`
+        que aparece al instante en feed y grilla y se avisa por
+        `/ws/mosaic/{eventId}` con `NEW_ITEM` (post-moderación, excepción
+        A3: no hay cola de aprobación). Pueden publicar el organizador y los
+        usuarios con RSVP `ACCEPTED`. La identidad sale de `X-User-Id`
+        (ADR-007).
+      operationId: createMosaicPost
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMosaicPostRequest'
+            example:
+              eventId: evt_01H8X2K4QJ
+              mediaId: med_01H8X2K4QJ
+              content: ¡Qué noche!
+      responses:
+        '201':
+          description: Elemento creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MosaicFeedItem'
+              example:
+                id: mos_01H8X2K4QJ
+                eventId: evt_01H8X2K4QJ
+                userId: usr_01H8X2K4QJ
+                username: marta
+                displayName: Marta Ruiz
+                type: PHOTO
+                content: ¡Qué noche!
+                mediaUrls:
+                  - https://cdn.vito.com/evt_01H8X/portada.jpg
+                timestamp: '2026-10-16T22:15:00Z'
+                likesCount: 0
+                commentsCount: 0
+                isLiked: false
+        '400':
+          description: >
+            `eventId` o `mediaId` vacíos, `content` de más de 500 caracteres,
+            o el `Media` no es una imagen, es de otro evento o lo subió otro
+            usuario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: VALIDATION_ERROR
+                message: Solo se pueden publicar imágenes JPEG, PNG o WebP
+                status: 400
+                timestamp: '2026-10-16T22:15:00Z'
+                details:
+                  mediaId: El archivo no es una imagen
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: >
+            El usuario no es el organizador ni tiene RSVP `ACCEPTED`, o el
+            evento tiene `settings.enableMosaic: false`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: FORBIDDEN
+                message: Solo los asistentes confirmados pueden publicar en el mosaico
+                status: 403
+                timestamp: '2026-10-16T22:15:00Z'
+        '404':
+          description: El evento o el `Media` no existen
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/mosaic/feed/{eventId}:
+    get:
+      tags: [Mosaic]
+      summary: List the mosaic feed
+      description: >
+        Feed del mosaico como **array plano** (ADR-002), orden `timestamp`
+        descendente, paginado con `page`/`size` (ADR-008). No incluye los
+        elementos retirados por el organizador. Lo ven el organizador y los
+        invitados; si el evento es público, cualquier usuario autenticado.
+      operationId: listMosaicFeed
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Base 0.
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Máximo 100 (ADR-008).
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Array plano de `MosaicFeedItem`
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MosaicFeedItem'
+              example:
+                - id: mos_01H8X2K4QK
+                  eventId: evt_01H8X2K4QJ
+                  userId: usr_01H8X2K4QL
+                  username: luis
+                  type: PHOTO
+                  mediaUrls:
+                    - https://cdn.vito.com/evt_01H8X/brindis.jpg
+                  timestamp: '2026-10-16T22:20:00Z'
+                  likesCount: 3
+                  commentsCount: 0
+                  isLiked: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: >
+            Evento privado del que el usuario no es organizador ni invitado, o
+            `settings.enableMosaic: false`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/mosaic/grid/{eventId}:
+    get:
+      tags: [Mosaic]
+      summary: Get the mosaic grid
+      description: >
+        Estado actual de la grilla. Mismo acceso que `listMosaicFeed`. Una
+        celda cuyo elemento retiró el organizador vuelve a `null`.
+      operationId: getMosaicGrid
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Grilla del evento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MosaicGrid'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Sin acceso al mosaico del evento (ver `listMosaicFeed`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El evento no existe o su grilla no se inicializó
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: NOT_FOUND
+                message: El mosaico de este evento todavía no está listo
+                status: 404
+                timestamp: '2026-10-16T22:15:00Z'
+
+  /api/v1/mosaic/grid/{eventId}/initialize:
+    post:
+      tags: [Mosaic]
+      summary: Initialize the mosaic grid
+      description: >
+        Crea la grilla vacía de `rows` × `cols` celdas. Solo el organizador
+        del evento. Una sola vez por evento: si ya existe responde `409`.
+      operationId: initializeMosaicGrid
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: rows
+          in: query
+          schema:
+            type: integer
+            default: 4
+            minimum: 1
+            maximum: 10
+        - name: cols
+          in: query
+          schema:
+            type: integer
+            default: 4
+            minimum: 1
+            maximum: 10
+      responses:
+        '201':
+          description: Grilla creada, con todas las celdas en `null`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MosaicGrid'
+              example:
+                eventId: evt_01H8X2K4QJ
+                grid:
+                  - [null, null]
+                  - [null, null]
+                totalItems: 0
+                lastUpdatedIndex: -1
+                lastUpdatedAt: '2026-10-16T20:00:00Z'
+        '400':
+          description: "`rows` o `cols` fuera de 1..10"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es el organizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: La grilla ya estaba inicializada (ADR-009)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/mosaic/item/{itemId}:
+    get:
+      tags: [Mosaic]
+      summary: Get a mosaic item
+      description: >
+        Detalle de un elemento del feed. Mismo acceso que `listMosaicFeed`.
+        Un elemento retirado responde `404`.
+      operationId: getMosaicItem
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Elemento del mosaico
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MosaicFeedItem'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe, fue retirado o el usuario no tiene acceso al mosaico
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Mosaic]
+      summary: Remove a mosaic item (organizer moderation)
+      description: >
+        Moderación por el organizador (excepción A3, T-B26). Retira el
+        elemento: deja de salir en feed, grilla y `getMosaicItem`, su celda
+        vuelve a `null` y los clientes conectados reciben `ITEM_REMOVED` por
+        `/ws/mosaic/{eventId}`. Solo el organizador del evento del elemento.
+        Es un borrado lógico: el servicio conserva el registro para auditoría.
+      operationId: removeMosaicItem
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Elemento retirado
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es el organizador del evento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: FORBIDDEN
+                message: Solo el organizador puede retirar fotos del mosaico
+                status: 403
+                timestamp: '2026-10-16T22:30:00Z'
+        '404':
+          description: El elemento no existe o ya fue retirado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/mosaic/item/{itemId}/like:
+    post:
+      tags: [Mosaic]
+      summary: Like a mosaic item
+      description: >
+        Da like al elemento. Idempotente: repetirlo no suma otro. Los
+        clientes conectados reciben `LIKE_UPDATE`. Mismo acceso que
+        `listMosaicFeed`.
+      operationId: likeMosaicItem
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Estado del like
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MosaicLikeState'
+              example:
+                itemId: mos_01H8X2K4QK
+                likesCount: 4
+                isLiked: true
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe, fue retirado o el usuario no tiene acceso al mosaico
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Mosaic]
+      summary: Remove a like from a mosaic item
+      description: >
+        Quita el like. Idempotente: sin like previo responde igual `200`.
+        Los clientes conectados reciben `LIKE_UPDATE`.
+      operationId: unlikeMosaicItem
+      parameters:
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Estado del like
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MosaicLikeState'
+              example:
+                itemId: mos_01H8X2K4QK
+                likesCount: 3
+                isLiked: false
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No existe, fue retirado o el usuario no tiene acceso al mosaico
           content:
             application/json:
               schema:
@@ -1105,6 +1768,8 @@ tags:
     description: Real-time messaging
   - name: Media
     description: File upload and management
+  - name: Mosaic
+    description: Live event mosaic (Ola 3, ADR-016)
   - name: Recommendations
     description: AI-powered recommendations
   - name: Moderation

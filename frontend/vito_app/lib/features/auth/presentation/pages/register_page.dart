@@ -405,7 +405,6 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
           username: _nameController.text.trim(),
           email: _emailController.text.trim(),
           password: _passwordController.text,
-          displayName: _nameController.text.trim(),
         ),
       );
     }

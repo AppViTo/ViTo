@@ -1,5 +1,4 @@
 import 'dart:async';
-import '../../../../config/env/env.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/entities/chat_room.dart';
 import '../../domain/repositories/chat_repository.dart';
@@ -20,7 +19,7 @@ class ChatRepositoryImpl implements ChatRepository {
   Stream<ChatRoom> get roomUpdates => _roomController.stream;
   
   @override
-  void connect(String userId) {
+  void connect() {
     remoteDataSource.messageStream.listen((message) {
       _messageController.add(message.toEntity());
     });
@@ -29,7 +28,7 @@ class ChatRepositoryImpl implements ChatRepository {
       _roomController.add(room.toEntity());
     });
     
-    remoteDataSource.connect(userId, Env.wsBaseUrl);
+    remoteDataSource.connect();
   }
   
   @override

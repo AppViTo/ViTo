@@ -28,7 +28,20 @@ Esto está codificado en `.github/CODEOWNERS`. Cuando una ruta tiene varios due�
 
 **Revisión cruzada:** ambos leads figuran como dueños de todas las áreas de código, porque GitHub no cuenta la aprobación del autor y un área con un solo dueño dejaría sin revisor posible los PR de ese mismo lead. El lead del área sigue siendo el revisor por defecto. La aprobación se registra con **"Approve" en GitHub** antes del merge; el merge por sí solo no cuenta como aprobación.
 
-> Nota: la protección de rama no está disponible en el plan actual de la organización (repo privado en plan Free), así que esta regla hoy se cumple por acuerdo del equipo, no por GitHub. Al pasar a GitHub Team se activará en `main` y `develop`: aprobación requerida de CODEOWNERS, mínimo 1 aprobación, sin push directo y CI en verde.
+### Protección de rama (`main` y `develop`)
+
+Desde el 2026-10-19 el repo es público y GitHub aplica estas reglas (Settings → Branches); ya no dependen de un acuerdo del equipo:
+
+| Regla | Valor |
+|-------|-------|
+| PR obligatorio | Sí. Nadie hace push directo, ni los admins. |
+| Aprobaciones | 1, de un CODEOWNER distinto del autor. |
+| Checks obligatorios | Los 30 jobs de `ViTo CI`: `Contract`, `Deploy Scripts`, `Secrets Scan`, `Version Check`, `Flutter App Tests`, `Transcode Service Tests`, `Moderation Service Tests`, `Backend Tests (<servicio>)` ×10 y `Docker Build (<servicio>)` ×13 (se suman `moderation-service` y `mongo-backup`). |
+| Rama al día con la base | No se exige: con merge squash obligaría a rebasear tras cada merge. |
+| Force push y borrado de la rama | Bloqueados. |
+
+- **Emergencia:** si hay que saltarse la protección (CI de GitHub caído en pleno hotfix), un admin desactiva "Do not allow bypassing the above settings", mergea, la reactiva en el momento y lo deja escrito en el PR.
+- **Cambiar los jobs de CI:** el nombre de cada job es un check obligatorio. Si un PR renombra, agrega o quita jobs, o les pone filtros `paths` (T-I12), en el mismo PR se actualiza la lista de checks en la protección de las dos ramas. Un check obligatorio que no corre deja el PR en "pending" para siempre; con filtros `paths`, lo correcto es un job agregador que siempre corra y sea el único obligatorio.
 
 ---
 
@@ -58,12 +71,21 @@ Convenciones:
 1. Crear rama desde develop:     git checkout develop && git pull && git checkout -b frontend/<id>-<nombre>
 2. Trabajar y commitear          convención de commits abajo
 3. Push y abrir PR → develop     checklist del PR template + "Closes T-xx"
-4. Aprobación del CODEOWNERS     al menos 1 dueño de las rutas tocadas (el autor no cuenta)
+4. CI verde + Approve CODEOWNER  al menos 1 dueño de las rutas tocadas (el autor no cuenta); GitHub lo exige
 5. Merge (squash)                tarea ✅ HECHA (#PR) en tasks.md; borrar la rama
 ```
 
-> La estrategia `develop` → `main` está en revisión (D-07 en `docs/roadmap/decisions-pending.md`).
-> Hasta que se cierre, los PR de feature apuntan a `develop`.
+### Release y hotfix (ADR-012)
+
+```
+Release semanal (viernes)    PR "release: AAAA-MM-DD"  develop → main
+                             CI verde + Approve de 1 CODEOWNER distinto del autor
+                             merge commit (no squash) → tag v0.MINOR.PATCH → despliegue (ADR-011)
+Hotfix                       hotfix/<nombre> desde main → PR a main → PR main → develop
+```
+
+La aprobación del PR de release es la aprobación manual de producción. Nadie hace push
+directo a `main` ni a `develop`: lo impide la protección de rama (§1).
 
 ---
 

@@ -13,6 +13,163 @@ env:
   FLUTTER_VERSION: '3.47.x'
 
 jobs:
+  # Contrato (T-C03): Spectral sobre openapi.yaml + fixtures validados contra su schema.
+  # Corre en todos los PR (es barato) para poder marcarlo como check requerido.
+  contract:
+    name: Contract
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install contract tooling
+        run: npm ci
+
+      - name: Lint openapi.yaml (Spectral)
+        run: npm run lint:api
+
+      - name: Validate fixtures against openapi.yaml
+        run: npm run validate:fixtures
+
+      # Se activa sola cuando T-C05 cree el archivo
+      - name: Validate asyncapi.yaml
+        if: hashFiles('docs/api/asyncapi.yaml') != ''
+        run: npm run lint:async
+
+  # Scripts de despliegue (feature 001): shellcheck, tests bats con un docker falso, el
+  # compose de producción validado con fixtures sin secretos (T011) y bootstrap.sh (T022).
+  deploy-scripts:
+    name: Deploy Scripts
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Un workflow inválido falla en cada push con 0 jobs y sin logs (pasó con cd.yml).
+      # shellcheck fijado para que el lint no dependa de la imagen del runner.
+      # SC2029: expandir en el cliente es intencional al pasar comandos por ssh.
+      - name: Lint de workflows (actionlint)
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/actionlint.tar.gz" \
+            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
+          echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $RUNNER_TEMP/actionlint.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          curl -sSfL -o "$RUNNER_TEMP/shellcheck.tar.xz" \
+            https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz
+          echo "6c881ab0698e4e6ea235245f22832860544f17ba386442fe7e9d629f8cbedf87  $RUNNER_TEMP/shellcheck.tar.xz" | sha256sum -c -
+          tar -xJf "$RUNNER_TEMP/shellcheck.tar.xz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/actionlint" -shellcheck="$RUNNER_TEMP/shellcheck-v0.10.0/shellcheck" -ignore SC2029
+
+      - name: ShellCheck
+        run: |
+          shopt -s globstar
+          shellcheck infrastructure/**/*.sh infrastructure/deploy/tests/fake-docker
+
+      - name: Install bats
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq bats
+
+      # VITO_TEST_MONGO: live-check-mongo.bats corre contra mongo:7.0.14 real
+      - name: bats
+        env:
+          VITO_TEST_MONGO: '1'
+        run: bats infrastructure/deploy/tests
+
+      - name: Validate docker-compose.prod.yml
+        run: >
+          docker compose -f docker-compose.prod.yml
+          --env-file infrastructure/deploy/tests/fixtures/.env.test
+          --env-file infrastructure/deploy/tests/fixtures/versions.env
+          config -q
+
+      # Caddyfile real con backends falsos: HSTS, nosniff, Referrer-Policy y sin Server (T-I18)
+      - name: Cabeceras de seguridad de Caddy
+        run: bash infrastructure/caddy/tests/security-headers.sh
+
+      # Sin Docker instalado, --check-only debe fallar sin tocar el sistema (T022)
+      - name: bootstrap.sh --check-only en ubuntu:24.04
+        run: |
+          docker run --rm -v "$PWD/infrastructure/vps:/vps:ro" ubuntu:24.04 bash -euc '
+            snap() { find /etc /opt /home /root /usr/local -xdev -printf "%p %m %s %T@\n" | sort; }
+            snap > /tmp/before
+            rc=0; bash /vps/bootstrap.sh --check-only || rc=$?
+            snap > /tmp/after
+            diff /tmp/before /tmp/after
+            echo "exit code: $rc"
+            test "$rc" -eq 1'
+
+  # Secretos en la historia del PR (T048, research R13). Imagen y no gitleaks-action, que
+  # pide licencia en repos de organización. --redact: el hallazgo no se imprime.
+  secrets-scan:
+    name: Secrets Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: gitleaks
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            range="$PR_BASE..$PR_HEAD"
+          elif [ -n "$PUSH_BEFORE" ] && [ "$PUSH_BEFORE" != 0000000000000000000000000000000000000000 ]; then
+            range="$PUSH_BEFORE..$SHA"
+          else
+            range="-1 $SHA"
+          fi
+          echo "Rango: $range"
+          # safe.directory: el checkout es de otro usuario que el del contenedor
+          docker run --rm -v "$PWD:/repo" \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0='*' \
+            zricethezav/gitleaks:v8.21.2 \
+            detect --source /repo --log-opts="$range" --redact --exit-code 1 --no-banner
+
+  # Semver del release (T052, research R1): en un PR a main, VERSION tiene que ser semver
+  # y mayor que el último tag v*. En el resto de PR y en push no hace nada.
+  version-check:
+    name: Version Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        if: github.base_ref == 'main'
+        with:
+          fetch-depth: 0
+
+      - name: VERSION mayor que el último tag
+        if: github.base_ref == 'main'
+        run: |
+          version=$(tr -d '[:space:]' < VERSION)
+          if ! [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error file=VERSION::'$version' no es semver (MAYOR.MENOR.PARCHE)"
+            exit 1
+          fi
+          last=$(git tag -l 'v*' --sort=-v:refname | head -n1)
+          echo "VERSION=$version · último tag=${last:-ninguno}"
+          if [ -n "$last" ]; then
+            top=$(printf '%s\n%s\n' "${last#v}" "$version" | sort -V | tail -n1)
+            if [ "$top" != "$version" ] || [ "${last#v}" = "$version" ]; then
+              echo "::error file=VERSION::VERSION ($version) tiene que ser mayor que $last"
+              exit 1
+            fi
+          fi
+
+      - name: Fuera de un PR a main no aplica
+        if: github.base_ref != 'main'
+        run: echo "Solo se exige en los PR con base main."
+
   # Servicios Spring Boot: compilación limpia + tests de cada uno
   backend:
     name: Backend Tests (${{ matrix.service }})
@@ -51,10 +208,10 @@ jobs:
           - 6379:6379
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
@@ -68,7 +225,7 @@ jobs:
 
       - name: Upload test reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.service }}-surefire-reports
           path: backend/${{ matrix.service }}/target/surefire-reports/
@@ -89,10 +246,10 @@ jobs:
           - 6379:6379
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -114,10 +271,41 @@ jobs:
       
       - name: Upload coverage reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: transcode-service-coverage
           path: ai-services/transcode-service/htmlcov/
+
+  # Moderation Service (FastAPI) — ADR-011 lo despliega, así que entra a CI (T-B14)
+  moderation-service:
+    name: Moderation Service Tests
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ai-services/moderation-service
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests
+        run: |
+          pytest --cov=app --cov-report=xml
+        env:
+          MONGODB_URI: mongodb://localhost:27017/test_db
+          JWT_SECRET: test-secret-key-for-unit-tests-only-256-bits-long
 
   # Flutter App
   flutter-app:
@@ -129,7 +317,7 @@ jobs:
         working-directory: frontend/vito_app
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -145,19 +333,44 @@ jobs:
       
       - name: Run tests
         run: flutter test --coverage
+
+      # T030 (feature 001, T-I11): el artefacto que sube deploy-frontend.yml a Pages trae
+      # _redirects (rutas internas sin 404), _headers con la CSP completable y CanvasKit
+      # servido desde el propio sitio. URLs de ejemplo: no se publica nada.
+      - name: Build web (Pages)
+        run: |
+          flutter build web --release --no-web-resources-cdn \
+            --dart-define=ENVIRONMENT=production \
+            --dart-define=API_BASE_URL=https://api.example.test/api/v1 \
+            --dart-define=WS_BASE_URL=wss://api.example.test
+
+      - name: Verify Pages files
+        env:
+          VITO_API_BASE_URL: https://api.example.test/api/v1
+          VITO_WS_BASE_URL: wss://api.example.test
+          VITO_MEDIA_ORIGIN: https://media.example.test
+        run: |
+          grep -qxF '/* /index.html 200' build/web/_redirects
+          test -f build/web/canvaskit/canvaskit.wasm
+          cp build/web/_headers "$RUNNER_TEMP/_headers"
+          ../../infrastructure/deploy/render-web-headers.sh "$RUNNER_TEMP/_headers"
       
       - name: Upload coverage reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: flutter-coverage
           path: frontend/vito_app/coverage/lcov.info
 
-  # Docker Build: imágenes de los 10 servicios Java (Dockerfile común) y de transcode
+  # Docker Build: las 13 imágenes de docker-compose.prod.yml (10 Java con el Dockerfile
+  # común, transcode, moderation y mongo-backup; research R14)
   docker-build:
     name: Docker Build (${{ matrix.service }})
     runs-on: ubuntu-latest
     needs: [backend, transcode-service]
+    permissions:
+      contents: read
+      security-events: write   # SARIF de Trivy a Code Scanning (T049)
     strategy:
       fail-fast: false
       matrix:
@@ -173,15 +386,17 @@ jobs:
           - { service: chat-service,      context: backend/chat-service,      dockerfile: backend/Dockerfile }
           - { service: media-service,     context: backend/media-service,     dockerfile: backend/Dockerfile }
           - { service: transcode-service, context: ai-services/transcode-service, dockerfile: ai-services/transcode-service/Dockerfile }
+          - { service: moderation-service, context: ai-services/moderation-service, dockerfile: ai-services/moderation-service/Dockerfile }
+          - { service: mongo-backup,      context: infrastructure/backup,     dockerfile: infrastructure/backup/Dockerfile }
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build ${{ matrix.service }} image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
@@ -189,3 +404,25 @@ jobs:
           tags: vito/${{ matrix.service }}:ci
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          outputs: type=docker,dest=${{ runner.temp }}/image.tar
+
+      # Informativo (T049, research R17): el mismo escaneo que bloquea en cd.yml, aquí sin
+      # bloquear, para ver el problema en el PR antes del release
+      - name: Trivy
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          input: ${{ runner.temp }}/image.tar
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '0'
+          trivyignores: .trivyignore
+          format: sarif
+          output: ${{ runner.temp }}/trivy.sarif
+
+      # Los PR desde un fork no tienen permiso de escritura en Code Scanning
+      - name: Subir a Code Scanning
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: ${{ runner.temp }}/trivy.sarif
+          category: trivy-${{ matrix.service }}

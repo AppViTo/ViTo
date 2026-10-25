@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "La grilla debe tener entre 1 y 10 filas y columnas",
+  "status": 400,
+  "timestamp": "2026-10-16T20:00:00Z",
+  "details": {
+    "rows": "Máximo 10"
+  }
+}

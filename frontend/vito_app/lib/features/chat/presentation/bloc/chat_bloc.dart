@@ -109,7 +109,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   }
   
   void _onSendTypingIndicator(SendTypingIndicator event, Emitter<ChatState> emit) {
-    repository.connect(''); // This should be handled by WebSocket
+    repository.connect();
   }
   
   Future<void> _onMarkAsRead(MarkAsRead event, Emitter<ChatState> emit) async {

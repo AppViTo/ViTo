@@ -2,9 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 import 'package:dartz/dartz.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-
 import '../../../../core/error/exceptions.dart';
+import '../../../../core/network/ws_connection.dart';
 import '../../../../core/error/failures.dart';
 import '../datasources/checkin_remote_datasource.dart';
 import '../models/checkin_event_model.dart';
@@ -18,9 +17,12 @@ class CheckInRepositoryImpl implements CheckInRepository {
   final _checkInController = StreamController<CheckInEvent>.broadcast();
   final _statsController = StreamController<CheckInStats>.broadcast();
   
-  WebSocketChannel? _webSocketChannel;
+  final WsConnection wsConnection;
   
-  CheckInRepositoryImpl({required this.remoteDataSource});
+  CheckInRepositoryImpl({
+    required this.remoteDataSource,
+    required this.wsConnection,
+  });
   
   @override
   Future<Either<Failure, CheckInTicket>> generateTicket(String eventId) async {
@@ -145,37 +147,31 @@ class CheckInRepositoryImpl implements CheckInRepository {
   Stream<CheckInStats> get statsStream => _statsController.stream;
   
   @override
-  void connectToWebSocket(String eventId, String baseUrl) {
-    final wsUrl = '${baseUrl.replaceFirst('http', 'ws')}/ws/checkin/$eventId';
-    _webSocketChannel = WebSocketChannel.connect(Uri.parse(wsUrl));
-    
-    _webSocketChannel!.stream.listen(
-      (message) {
-        final data = Map<String, dynamic>.from(
-          Map<String, dynamic>.from(message as Map),
-        );
-        
-        if (data['type'] == 'CHECK_IN') {
-          final checkInEvent = CheckInEventModel.fromJson(data['data']);
-          _checkInController.add(checkInEvent);
-        } else if (data['type'] == 'STATS_UPDATE') {
-          final stats = CheckInStatsModel.fromJson(data['data']);
-          _statsController.add(stats);
-        }
-      },
-      onError: (error) {
-        debugPrint('WebSocket error: $error');
-      },
-      onDone: () {
-        debugPrint('WebSocket connection closed');
-      },
+  void connectToWebSocket(String eventId) {
+    unawaited(wsConnection.connect(
+      '/ws/checkin/$eventId',
+      onData: _handleSocketMessage,
+      onError: (error) => debugPrint('WebSocket error: $error'),
+    ));
+  }
+  
+  void _handleSocketMessage(dynamic message) {
+    final data = Map<String, dynamic>.from(
+      Map<String, dynamic>.from(message as Map),
     );
+    
+    if (data['type'] == 'CHECK_IN') {
+      final checkInEvent = CheckInEventModel.fromJson(data['data']);
+      _checkInController.add(checkInEvent);
+    } else if (data['type'] == 'STATS_UPDATE') {
+      final stats = CheckInStatsModel.fromJson(data['data']);
+      _statsController.add(stats);
+    }
   }
   
   @override
   void disconnectFromWebSocket() {
-    _webSocketChannel?.sink.close();
-    _webSocketChannel = null;
+    unawaited(wsConnection.disconnect());
   }
   
   void dispose() {

@@ -1,25 +1,21 @@
+import 'dart:typed_data';
+
 import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
 import '../entities/mosaic.dart';
 
 abstract class MosaicRepository {
-  Future<Either<Failure, MosaicFeedItem>> addPost({
+  /// Subida en dos pasos (ADR-016): `uploadMedia` y luego `createMosaicPost`
+  /// con el `mediaId`. Solo [mosaicAllowedImageTypes] (excepción A3).
+  Future<Either<Failure, MosaicFeedItem>> uploadPhoto({
     required String eventId,
-    required String content,
-  });
-  
-  Future<Either<Failure, MosaicFeedItem>> addPhoto({
-    required String eventId,
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
     String? content,
-    required List<String> mediaUrls,
   });
-  
-  Future<Either<Failure, MosaicFeedItem>> addCheckIn({
-    required String eventId,
-    String? location,
-  });
-  
+
   Future<Either<Failure, List<MosaicFeedItem>>> getEventFeed({
     required String eventId,
     int page = 0,
@@ -34,16 +30,22 @@ abstract class MosaicRepository {
     int cols = 4,
   });
   
-  Future<Either<Failure, void>> likePost(String itemId);
-  
-  Future<Either<Failure, void>> unlikePost(String itemId);
+  Future<Either<Failure, MosaicLikeState>> likePost(String itemId);
+
+  Future<Either<Failure, MosaicLikeState>> unlikePost(String itemId);
   
   Future<Either<Failure, MosaicFeedItem>> getFeedItem(String itemId);
+
+  /// El organizador retira una foto del mosaico (T-F10, excepción A3).
+  Future<Either<Failure, void>> removeMosaicItem(String itemId);
   
   Stream<MosaicFeedItem> get feedStream;
   Stream<MosaicGrid> get gridStream;
-  Stream<int> get likeStream;
+  Stream<MosaicLikeCountUpdate> get likeStream;
+
+  /// `itemId` de cada frame `ITEM_REMOVED` del WebSocket del mosaico.
+  Stream<String> get itemRemovedStream;
   
-  void connectToWebSocket(String eventId, String baseUrl);
+  void connectToWebSocket(String eventId);
   void disconnectFromWebSocket();
 }

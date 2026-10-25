@@ -1,13 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 
 import '../../../../core/error/failures.dart';
+import '../../../../core/network/session_expired_notifier.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../../domain/entities/user.dart';
-import '../../domain/repositories/auth_repository.dart';
 import '../../domain/usecases/login.dart';
 import '../../domain/usecases/register.dart';
 import '../../domain/usecases/logout.dart';
+import '../../domain/usecases/restore_session.dart';
 
 // Events
 abstract class AuthEvent extends Equatable {
@@ -34,17 +37,15 @@ class RegisterRequested extends AuthEvent {
   final String username;
   final String email;
   final String password;
-  final String? displayName;
   
   const RegisterRequested({
     required this.username,
     required this.email,
     required this.password,
-    this.displayName,
   });
   
   @override
-  List<Object> get props => [username, email, password, displayName ?? ''];
+  List<Object> get props => [username, email, password];
 }
 
 class LogoutRequested extends AuthEvent {
@@ -53,6 +54,11 @@ class LogoutRequested extends AuthEvent {
 
 class AuthCheckRequested extends AuthEvent {
   const AuthCheckRequested();
+}
+
+/// El interceptor no pudo renovar el token y limpió la sesión.
+class AuthSessionExpired extends AuthEvent {
+  const AuthSessionExpired();
 }
 
 // States
@@ -93,23 +99,30 @@ class AuthError extends AuthState {
   List<Object> get props => [message];
 }
 
+
 // BLoC
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final LoginUseCase loginUseCase;
   final RegisterUseCase registerUseCase;
   final LogoutUseCase logoutUseCase;
-  final AuthRepository authRepository;
+  final RestoreSessionUseCase restoreSessionUseCase;
+  StreamSubscription<void>? _sessionExpiredSubscription;
   
   AuthBloc({
     required this.loginUseCase,
     required this.registerUseCase,
     required this.logoutUseCase,
-    required this.authRepository,
+    required this.restoreSessionUseCase,
+    SessionExpiredNotifier? sessionExpiredNotifier,
   }) : super(const AuthInitial()) {
     on<LoginRequested>(_onLoginRequested);
     on<RegisterRequested>(_onRegisterRequested);
     on<LogoutRequested>(_onLogoutRequested);
     on<AuthCheckRequested>(_onAuthCheckRequested);
+    on<AuthSessionExpired>(_onSessionExpired);
+    
+    _sessionExpiredSubscription = sessionExpiredNotifier?.stream
+        .listen((_) => add(const AuthSessionExpired()));
   }
   
   Future<void> _onLoginRequested(
@@ -118,36 +131,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
     
-    // MOCK: Simular login exitoso sin backend
-    await Future.delayed(const Duration(milliseconds: 800));
-    
-    final testUser = User(
-      id: 'usr_test_001',
-      username: 'alex_villa',
-      email: event.email,
-      profile: const UserProfile(
-        displayName: 'Alex Villa',
-        bio: 'Amante de las fiestas y los buenos momentos 🎉',
-        avatar: null,
-        coverImage: null,
-        location: UserLocation(
-          type: 'Point',
-          coordinates: [-74.006, 4.609],
-          city: 'Bogotá',
-          country: 'Colombia',
-        ),
-      ),
-      stats: const UserStats(
-        followersCount: 128,
-        followingCount: 95,
-        postsCount: 42,
-        streamsCount: 7,
-      ),
-      roles: const ['user'],
-      createdAt: DateTime(2024, 1, 15),
+    final result = await loginUseCase(
+      LoginParams(email: event.email, password: event.password),
     );
     
-    emit(AuthAuthenticated(user: testUser));
+    result.fold(
+      (failure) => emit(AuthError(message: _mapFailureToMessage(failure))),
+      (user) => emit(AuthAuthenticated(user: user)),
+    );
   }
   
   Future<void> _onRegisterRequested(
@@ -161,7 +152,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         username: event.username,
         email: event.email,
         password: event.password,
-        displayName: event.displayName,
       ),
     );
     
@@ -182,48 +172,36 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthUnauthenticated());
   }
   
+  /// Auto-login: sin `GET /auth/me` (Ola 1), el usuario sale del refresh.
   Future<void> _onAuthCheckRequested(
     AuthCheckRequested event,
     Emitter<AuthState> emit,
   ) async {
-    // MOCK: Simular usuario ya logueado
-    final testUser = User(
-      id: 'usr_test_001',
-      username: 'alex_villa',
-      email: 'alex@vito.com',
-      profile: const UserProfile(
-        displayName: 'Alex Villa',
-        bio: 'Amante de las fiestas y los buenos momentos',
-        avatar: null,
-        coverImage: null,
-        location: UserLocation(
-          type: 'Point',
-          coordinates: [-74.006, 4.609],
-          city: 'Bogotá',
-          country: 'Colombia',
-        ),
-      ),
-      stats: const UserStats(
-        followersCount: 128,
-        followingCount: 95,
-        postsCount: 42,
-        streamsCount: 7,
-      ),
-      roles: const ['user'],
-      createdAt: DateTime(2024, 1, 15),
+    final result = await restoreSessionUseCase(const NoParams());
+    
+    result.fold(
+      (_) => emit(const AuthUnauthenticated()),
+      (user) => emit(AuthAuthenticated(user: user)),
     );
-    emit(AuthAuthenticated(user: testUser));
   }
   
+  void _onSessionExpired(
+    AuthSessionExpired event,
+    Emitter<AuthState> emit,
+  ) {
+    if (state is! AuthUnauthenticated) emit(const AuthUnauthenticated());
+  }
+  
+  /// `message` viene del envelope ADR-003 (es-ES) o del datasource.
   String _mapFailureToMessage(Failure failure) {
-    if (failure is ServerFailure) {
-      return failure.message;
-    } else if (failure is AuthenticationFailure) {
-      return failure.message;
-    } else if (failure is NetworkFailure) {
-      return failure.message;
-    } else {
-      return 'Unexpected error occurred';
-    }
+    return failure.message.isNotEmpty
+        ? failure.message
+        : 'Ocurrió un error inesperado';
+  }
+  
+  @override
+  Future<void> close() async {
+    await _sessionExpiredSubscription?.cancel();
+    return super.close();
   }
 }

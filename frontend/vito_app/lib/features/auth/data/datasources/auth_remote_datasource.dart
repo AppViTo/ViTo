@@ -1,37 +1,40 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/error/exceptions.dart';
+import '../models/auth_response_model.dart';
 import '../models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
-  Future<UserModel> login({
+  Future<AuthResponseModel> login({
     required String email,
     required String password,
   });
-  
-  Future<UserModel> register({
+
+  /// `RegisterRequest` del contrato solo declara `username`, `email` y
+  /// `password`: no se envía `displayName`.
+  Future<AuthResponseModel> register({
     required String username,
     required String email,
     required String password,
-    String? displayName,
   });
-  
+
   Future<void> logout();
-  
-  Future<UserModel> refreshToken({
+
+  Future<AuthResponseModel> refreshToken({
     required String refreshToken,
   });
-  
+
+  /// `GET /auth/me` — fuera del contrato hasta la Ola 1; no se usa.
   Future<UserModel> getCurrentUser();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final Dio dio;
-  
+
   AuthRemoteDataSourceImpl({required this.dio});
-  
+
   @override
-  Future<UserModel> login({
+  Future<AuthResponseModel> login({
     required String email,
     required String password,
   }) async {
@@ -43,19 +46,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'password': password,
         },
       );
-      
-      return UserModel.fromJson(response.data['user']);
+
+      return AuthResponseModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
     }
   }
-  
+
   @override
-  Future<UserModel> register({
+  Future<AuthResponseModel> register({
     required String username,
     required String email,
     required String password,
-    String? displayName,
   }) async {
     try {
       final response = await dio.post(
@@ -64,16 +66,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'username': username,
           'email': email,
           'password': password,
-          'displayName': displayName,
         },
       );
-      
-      return UserModel.fromJson(response.data['user']);
+
+      return AuthResponseModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
     }
   }
-  
+
   @override
   Future<void> logout() async {
     try {
@@ -82,9 +83,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       throw _handleError(e);
     }
   }
-  
+
   @override
-  Future<UserModel> refreshToken({
+  Future<AuthResponseModel> refreshToken({
     required String refreshToken,
   }) async {
     try {
@@ -94,43 +95,53 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'refreshToken': refreshToken,
         },
       );
-      
-      return UserModel.fromJson(response.data['user']);
+
+      return AuthResponseModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
     }
   }
-  
+
   @override
   Future<UserModel> getCurrentUser() async {
     try {
       final response = await dio.get('/auth/me');
-      
+
       return UserModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
     }
   }
-  
+
+  /// Traduce el envelope de error de ADR-003 (`{error, message, status, …}`)
+  /// a la excepción de cada status. `message` ya viene en es-ES del backend.
   Exception _handleError(DioException e) {
-    if (e.response != null) {
-      final statusCode = e.response!.statusCode;
-      final message = e.response!.data['message'] ?? 'Unknown error';
-      
-      if (statusCode == 401) {
-        throw AuthenticationException(message: message);
-      } else if (statusCode == 400) {
-        throw ValidationException(message: message);
-      } else {
-        throw ServerException(message: message, statusCode: statusCode);
+    final response = e.response;
+    if (response != null) {
+      final data = response.data;
+      final message = data is Map && data['message'] is String
+          ? data['message'] as String
+          : 'Error inesperado del servidor';
+
+      switch (response.statusCode) {
+        case 400:
+          return ValidationException(message: message);
+        case 401:
+          return AuthenticationException(message: message);
+        case 403:
+          return AuthorizationException(message: message);
+        case 409:
+          return ConflictException(message: message);
+        default:
+          return ServerException(message: message, statusCode: response.statusCode);
       }
     }
-    
+
     if (e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
-      throw const NetworkException(message: 'Connection timeout. Please check your internet connection.');
+      return const NetworkException(message: 'Connection timeout. Please check your internet connection.');
     }
-    
-    throw const NetworkException(message: 'Network error. Please try again.');
+
+    return const NetworkException(message: 'Network error. Please try again.');
   }
 }

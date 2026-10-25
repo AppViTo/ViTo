@@ -1,13 +1,27 @@
 <!--
-Sync Impact Report — v1.0.0 → v1.1.0 (MINOR) · 2026-10-16
-- Añadido: sección "Reglas en Revisión por Costo" (D-02) — reglas congeladas, no eliminadas.
-- Añadido: observaciones O-26..O-36 (validación cruzada con el análisis del agente frontend).
-- Modificado: inventario actual (Dockerfile compartido, SeaweedFS, versiones reales);
-  O-12 marcado como parcialmente cerrado; O-03 amplía a almacenamiento de objetos.
-- Modificado: Principio X remite a la sección de revisión por costo.
-- Modificado: Flujo SDD y Governance incorporan docs/roadmap/ como guía operativa.
+Sync Impact Report — v1.2.1 → v1.3.0 (MINOR) · 2026-10-22
+- Modificado: Principio VIII, Fase Tracción. Producción requiere, además del PR aprobado
+  que entra a `main`, la aprobación de un lead en el GitHub Environment `production`
+  protegido. Es posible porque el repo es público desde el 2026-10-19 (ADR-011,
+  actualización del 2026-10-22).
+- Observaciones: O-24 cerrada (protección de rama activa en `main` y `develop` desde el
+  2026-10-19, sin GitHub Team).
 - Plantillas: .specify/templates/* sin cambios requeridos.
-- Ratificada el 2026-10-16 (America/Bogota): PR #17 aprobado y mergeado por @alexvilla01.
+
+Sync Impact Report anterior — v1.2.0 → v1.2.1 (PATCH) · 2026-10-17
+- O-24 cerrada en su parte de flujo por ADR-012 (ramas y release); sigue pendiente la
+  protección de rama, que depende del plan de GitHub.
+
+Sync Impact Report anterior — v1.1.0 → v1.2.0 (MINOR) · 2026-10-17
+- Reemplazado: "Reglas en Revisión por Costo" → "Perfiles de Despliegue" (Fase Tracción
+  vigente según ADR-011; Fase Crecimiento = reglas originales, activadas por disparadores).
+- Modificado: Principio V (replicación de tópicos según perfil), VII (carga de medición
+  según perfil), VIII (despliegue y promoción según perfil; frontend en Cloudflare Pages),
+  IX (MongoDB según perfil), X (stack canónico por perfil).
+- Modificado: Production Readiness Review se mide contra el perfil vigente.
+- Observaciones: O-03, O-13, O-17 y O-32 resueltas o redefinidas por ADR-011.
+- Historial: v1.1.0 ratificada el 2026-10-16 (PR #17); v1.0.0 en PR #15.
+- Plantillas: .specify/templates/* sin cambios requeridos.
 -->
 
 # ViTo (VibeTogether) Constitution
@@ -74,7 +88,7 @@ automáticamente evita que la presión de llegar a producción la erosione.
   solo por `auth-service` y publicada vía JWKS; los demás servicios solo verifican. Prohibido
   compartir un secreto HMAC entre servicios en producción. Los tokens QR DEBEN usar un par de
   claves distinto (RSA) del de sesión. Revocación (blacklist / rotación de refresh) en
-  Redis/Dragonfly es obligatoria antes de producción.
+  Redis es obligatoria antes de producción.
 - **Defensa en profundidad:** cada servicio DEBE validar igualmente la identidad recibida
   (JWT o mTLS/red de malla) y aplicar autorización por recurso (p. ej. solo el organizador
   edita su evento; solo staff del evento valida QR). `anyExchange().permitAll()` está
@@ -87,7 +101,7 @@ automáticamente evita que la presión de llegar a producción la erosione.
   archivos limitada a 10 MB y a los MIME de CONVENTIONS §8, verificando magic bytes, con
   escaneo antimalware y moderación antes de publicar en el mosaico.
 - **Transporte y red:** TLS en todo tráfico externo; Kafka con SASL/TLS y ACL por tópico;
-  Redis/Dragonfly y MongoDB con autenticación y sin puertos públicos; CORS con lista
+  Redis y MongoDB con autenticación y sin puertos públicos; CORS con lista
   explícita de orígenes de producción (no `localhost`); cabeceras de seguridad (CSP, HSTS,
   X-Frame-Options) en el frontend web.
 - **Cadena de suministro:** escaneo de dependencias (Dependabot/OWASP/pip-audit), escaneo de
@@ -132,10 +146,12 @@ automatizada permite desplegar con frecuencia sin regresiones.
   (deduplicación por `eventId`), con reintentos acotados y Dead Letter Topic por tópico.
 - Cambios incompatibles en un evento ⇒ nueva `version` y coexistencia hasta que todos los
   consumidores migren; nunca se reinterpreta un campo existente.
-- Todo tópico se crea de forma declarativa (nombre, particiones, replicación ≥ 3 y
+- Todo tópico se crea de forma declarativa (nombre, particiones, replicación y
   retención) — nunca por auto-creación en producción. Producción usa Kafka en modo KRaft.
+  Replicación según el perfil de despliegue: 1 en Fase Tracción (un broker), ≥ 3 en Fase
+  Crecimiento.
 - Realtime de baja latencia (mosaico, reacciones, check-in en vivo) usa Pub/Sub de
-  Redis/Dragonfly + WebSocket; Kafka es el registro durable, no el canal de UI.
+  Redis + WebSocket; Kafka es el registro durable, no el canal de UI.
 
 **Rationale:** hoy 9 servicios publican eventos con payloads ad-hoc (timestamp en epoch,
 sin versión) y no existe ningún consumidor Java; formalizarlo ahora es barato, hacerlo con
@@ -160,8 +176,9 @@ inverificables sin métricas; hoy solo el gateway incluye Actuator.
 
 ### VII. Rendimiento Medible contra SLO
 
-Objetivos de servicio vinculantes (p95 salvo indicación, medidos en staging con carga
-representativa de un evento de 500 asistentes concurrentes):
+Objetivos de servicio vinculantes (p95 salvo indicación), medidos con la carga del perfil
+de despliegue vigente: **Fase Tracción** — eventos de 150 asistentes y 100 espectadores por
+stream; **Fase Crecimiento** — 500 asistentes concurrentes, en staging:
 
 | Flujo | SLO |
 |-------|-----|
@@ -185,12 +202,19 @@ criterios de aceptación verificables.
 ### VIII. Entrega Inmutable y Reproducible
 
 - Cada servicio desplegable DEBE tener Dockerfile multi-stage, imagen base mínima,
-  usuario no-root, `HEALTHCHECK`, y se publica en GHCR con **un nombre de imagen por
-  servicio** y tag inmutable (SHA del commit + semver). Prohibido `:latest` en manifiestos.
+  usuario no-root, `HEALTHCHECK`, y **un nombre de imagen por servicio** con tag inmutable
+  (SHA del commit + semver). Prohibido `:latest` en manifiestos y archivos Compose. La
+  distribución de imágenes sigue el perfil de despliegue (Tracción: `docker save | ssh
+  docker load`; Crecimiento: registro de contenedores).
 - Configuración por variables de entorno (12-factor); los perfiles Spring no contienen
-  hosts `localhost` para producción; las URLs entre servicios se resuelven por DNS de
-  Kubernetes (o Eureka si se ratifica).
-- Despliegue GitOps: manifiestos Kustomize `base` + `overlays/{dev,staging,production}`
+  hosts `localhost` para producción; las URLs entre servicios se resuelven por DNS de la
+  plataforma (Docker Compose en Tracción, Kubernetes en Crecimiento).
+- **Fase Tracción (ADR-011):** un VPS con `docker-compose.prod.yml`; límites de memoria y
+  healthcheck por servicio; solo el borde (Caddy) y SRS exponen puertos; el despliegue sale
+  de `main` por GitHub Actions vía SSH; producción requiere dos aprobaciones: la del PR
+  que entra a `main` (ADR-012) y la de un lead en el GitHub Environment `production`
+  protegido, que el job de despliegue DEBE usar; rollback = redesplegar el SHA anterior.
+- **Fase Crecimiento** — despliegue GitOps: manifiestos Kustomize `base` + `overlays/{dev,staging,production}`
   sincronizados por ArgoCD; GitHub Actions construye, prueba, escanea y publica imágenes,
   pero no hace `kubectl apply` contra producción.
 - Promoción obligatoria `dev → staging → production`; producción requiere aprobación manual
@@ -199,7 +223,7 @@ criterios de aceptación verificables.
 - Todo Deployment declara `requests`/`limits`, probes, `PodDisruptionBudget`, HPA para
   servicios con estado de carga variable (gateway, mosaic, checkin, streaming) y
   `NetworkPolicy` de denegación por defecto.
-- El frontend web (Vercel) se despliega solo desde `main` tras pasar las mismas puertas de
+- El frontend web (Cloudflare Pages, ADR-011) se despliega solo desde `main` tras pasar las mismas puertas de
   CI y con `API_BASE_URL`/`WS_BASE_URL` de producción obligatorios (el build DEBE fallar si
   están vacíos, nunca caer al default `localhost`). Las apps móviles se versionan con
   semver + build number y se distribuyen por canales de prueba antes de tienda.
@@ -217,9 +241,10 @@ hay ruta reproducible a producción.
 - Contenido multimedia en S3/MinIO privado; acceso solo por URLs prefirmadas de vida corta.
   La dirección de eventos con `hideAddressUntilAccepted=true` nunca se envía a quien no ha
   aceptado.
-- MongoDB en producción: replica set (Atlas o equivalente), cifrado en reposo, backups
-  automáticos diarios con restauración probada al menos una vez por trimestre
-  (RPO ≤ 24 h, RTO ≤ 4 h).
+- MongoDB en producción: backups automáticos diarios fuera del servidor de base de datos,
+  con restauración probada (RPO ≤ 24 h, RTO ≤ 4 h). Fase Tracción: Mongo autoalojado con
+  autenticación, `mongodump` diario a R2 y prueba de restauración mensual. Fase
+  Crecimiento: replica set (Atlas o equivalente) con cifrado en reposo.
 - Comunicación síncrona entre servicios con timeouts, circuit breaker (Resilience4j) y
   reintentos solo en operaciones idempotentes; cada fallback DEBE devolver el envelope de
   error de ADR-003 (`503 SERVICE_UNAVAILABLE`).
@@ -232,12 +257,12 @@ servicio secundario.
 
 ### X. Simplicidad y Stack Canónico
 
-- El stack canónico de producción es: Flutter (Dart) · Spring Boot 3.x LTS soportado sobre
-  Java 21 · FastAPI (Python 3.11+) · MongoDB · Redis-compatible (Dragonfly o Redis, ver
-  TODO) · Kafka (KRaft) · Spring Cloud Gateway · SRS para media · S3/MinIO · Docker ·
-  Kubernetes + ArgoCD · GitHub Actions · OpenTelemetry + Prometheus + Grafana.
-  Los componentes marcados en la sección *Reglas en Revisión por Costo* están en revisión
-  (D-02) y pueden sustituirse por ADR sin enmienda MAJOR.
+- El stack canónico es: Flutter (Dart) · Spring Boot 3.x LTS soportado sobre Java 21 ·
+  FastAPI (Python 3.11+) · MongoDB · Redis · Kafka (KRaft) · Spring Cloud Gateway · SRS
+  para media · almacenamiento S3-compatible (Cloudflare R2 en producción, SeaweedFS en
+  local) · Docker · GitHub Actions · OpenTelemetry + Grafana. La plataforma de despliegue
+  depende del perfil: Docker Compose en un VPS (Tracción) o Kubernetes + ArgoCD
+  (Crecimiento). Ver *Perfiles de Despliegue* y ADR-011.
 - Añadir una tecnología, servicio o base de datos fuera del stack exige ADR aprobado por
   al menos 1 lead (CODEOWNER) con justificación de por qué lo existente no basta.
 - Un servicio nuevo solo se crea si tiene datos propios y ciclo de despliegue
@@ -276,7 +301,7 @@ en CI o staging.
 |----|-----------|-----------|-------------|--------------------|
 | O-01 | P0 | I | Faltan `docs/api/asyncapi.yaml` y `docs/api/fixtures/`, citados como obligatorios por AGENTS, CONTRIBUTING y CONVENTIONS. | Ambos existen, validan en CI y cubren chat, checkin, mosaic, streaming y Kafka. |
 | O-02 | P0 | I | ~93 mappings REST en código vs 14 rutas en `openapi.yaml` (event-service, checkin, social, mosaic, streaming, archive casi sin contrato). | Cada endpoint del gateway de producción tiene `operationId` + fixture, o se retira. |
-| O-03 | P2 | X | `AGENTS.md` declara Dragonfly y Eureka; el código usa Redis 7.2 y rutas estáticas. AGENTS lista estructura sin `checkin/mosaic/archive-service`. | ADR que fije cache y discovery; AGENTS.md actualizado. |
+| O-03 | P2 | X | `AGENTS.md` declara Dragonfly y Eureka; el código usa Redis 7.2 y rutas estáticas. AGENTS lista estructura sin `checkin/mosaic/archive-service`. | ~~ADR que fije cache y discovery~~ (ADR-011: Redis + DNS de Compose); falta AGENTS.md actualizado. |
 | O-04 | P2 | I | No existe `package.json` para `npm run mock:api` / `mock:ws` que documenta CONTRIBUTING. | Mocks Prism + WS operativos desde fixtures. |
 | O-05 | P0 | III | El gateway no elimina `X-User-*` entrantes en rutas públicas (spoofing de identidad hacia servicios que confían en el header). | Filtro que borra `X-User-*` en todas las rutas + test. |
 | O-06 | P0 | III | `SecurityConfig` del gateway usa `anyExchange().permitAll()`; la autorización depende solo de un `GlobalFilter`. | Reglas explícitas por ruta; autorización por recurso en servicios. |
@@ -285,19 +310,19 @@ en CI o staging.
 | O-09 | P1 | III | CORS limitado a `localhost`; blacklist de tokens, lockout de cuenta, validación de archivos y escaneo de dependencias aparecen como TODO en `SECURITY_CHECKLIST.md`. | Checklist sin TODO de severidad alta. |
 | O-10 | P1 | I/III | El 401 del gateway devuelve `{"error":"<mensaje>","status":401}` sin `message` ni `timestamp` (viola ADR-003). | Envelope ADR-003 en todas las respuestas del gateway y fallbacks. |
 | O-11 | P0 | VI | Solo `api-gateway` incluye Actuator; los manifiestos K8s sondean `/actuator/health/*` en servicios que no lo exponen (los pods nunca estarán Ready). Sin Micrometer/Prometheus ni OpenTelemetry. | Actuator + Prometheus + OTel en todos los servicios; probes verdes en staging. |
-| O-12 | P0 | VIII | ~~Ningún servicio Java tiene Dockerfile~~ (**parcialmente cerrado** 2026-10-16: `backend/Dockerfile` compartido, CI construye 11 imágenes). Sigue abierto: el CD publica auth y transcode con **el mismo nombre de imagen**, construye auth sin `file: backend/Dockerfile` y los jobs de deploy son `echo`. | Imagen por servicio publicada con tag inmutable y pipeline de despliegue funcional (destino según D-02). |
-| O-13 | P0 | VIII | Kubernetes: solo 4 de 13 servicios, imágenes `:latest`, sin overlays, sin Ingress, HPA, PDB ni NetworkPolicy; ArgoCD no configurado. | Kustomize base+overlays completos sincronizados por ArgoCD. |
+| O-12 | P0 | VIII | ~~Ningún servicio Java tiene Dockerfile~~ (**parcialmente cerrado** 2026-10-16: `backend/Dockerfile` compartido, CI construye 11 imágenes). Sigue abierto: el CD publica auth y transcode con **el mismo nombre de imagen**, construye auth sin `file: backend/Dockerfile` y los jobs de deploy son `echo`. | Imagen por servicio publicada con tag inmutable y pipeline de despliegue funcional (Fase Tracción: VPS por SSH, ADR-011). |
+| O-13 | P0 | VIII | No existe un despliegue de producción reproducible. (Redefinida por ADR-011: los manifiestos Kubernetes pasan a Fase Crecimiento.) | `docker-compose.prod.yml` con límites, healthchecks y Caddy; despliegue desde `main` por SSH; runbook de restauración. |
 | O-14 | P1 | VIII | Rutas del gateway con `localhost:808x` en el perfil base; SRS publica el puerto 8080 en compose (colisiona con el gateway). | URLs por DNS de servicio; puertos sin conflicto. |
 | O-15 | P1 | VIII | El build web cae a `http://localhost:8080` si faltan `VITO_API_BASE_URL`/`VITO_WS_BASE_URL`. | Build de producción falla si faltan. |
 | O-16 | P0 | V | Eventos Kafka publicados "dispara y olvida", sin outbox, sin versión, `timestamp` en epoch (contrario a CONVENTIONS §6); no hay consumidores Java. | Outbox + sobre versionado en AsyncAPI + consumidores idempotentes con DLT. |
-| O-17 | P2 | V/X | Kafka con ZooKeeper (cp 7.5); producción debe usar KRaft. | Compose y producción en KRaft. |
+| O-17 | P2 | V/X | Kafka con ZooKeeper (cp 7.5); producción debe usar KRaft. | Compose y producción en KRaft (1 broker en Fase Tracción, ADR-011). |
 | O-18 | P0 | VII | No se encontró control atómico de capacidad en checkin/event-service (solo social usa `$inc`). | Operación condicional atómica + test de concurrencia. |
 | O-19 | P1 | IV | 1–2 tests por servicio; sin Testcontainers, JaCoCo ni ArchUnit; moderation y recommendation sin tests ni CI; `integration-tests` y `load-tests` no corren en CI. | Umbrales del Principio IV aplicados en CI. |
 | O-20 | P1 | IV | Flutter incluye `mock_api_service.dart` en `features/home`. | Pantallas de producción conectadas al backend real. |
 | O-21 | P1 | X | Spring Boot 3.2.1 y Java 17 en CI; la línea 3.2 ya no recibe soporte OSS. | Spring Boot en versión soportada, Java 21. |
 | O-22 | P1 | III/IX | Redis sin `requirepass` efectivo en compose (el `redis.conf` montado no se usa en `command`); Mongo y Kafka exponen puertos en el host. | Auth y red privada en todos los datastores. |
 | O-23 | P2 | II | `JwtAuthenticationFilter` duplicado en 7 servicios; `backend/java/` sin uso aparente. | Librería compartida; directorios huérfanos eliminados. |
-| O-24 | P1 | — | `CONTRIBUTING.md` exige `develop` pero los PR recientes van a `main`. | Protección de rama activa con CODEOWNERS y flujo de ramas acordado. |
+| O-24 | P1 | — | `CONTRIBUTING.md` exige `develop` pero los PR recientes van a `main`. | ~~Flujo de ramas acordado~~ (ADR-012: feature → `develop`, release semanal a `main`); ~~protección de rama activa con CODEOWNERS~~ (activa desde el 2026-10-19: el repo es público). **Cerrada.** |
 | O-25 | P2 | IX | Documentos binarios (`*.docx`) versionados en la raíz; sin política de datos personales ni retención. | Documentos movidos a `docs/` o fuera del repo; política publicada. |
 | O-26 | P0 | I | `GET /api/v1/events` (`listEvents`) está en el contrato y lo consume el frontend, pero el backend no lo implementa (solo `/my-events` y `/upcoming`) → 405. | Contrato y backend coinciden (D-03) con fixture y test. |
 | O-27 | P0 | III | El rate limiter del gateway toma `X-User-Id` del cliente como clave; en rutas públicas (`/auth/**`) basta rotar el header para evadir el límite de login. | Clave = usuario autenticado por el gateway o IP; test de evasión. |
@@ -305,7 +330,7 @@ en CI o staging.
 | O-29 | P1 | I/III | Solo 3 de 9 servicios (auth, chat, media) tienen `@RestControllerAdvice`; los demás devuelven el error por defecto de Spring (viola ADR-003). | Envelope ADR-003 en todos los servicios (D-05). |
 | O-30 | P0 | I/II | Dominios duplicados entre servicios: QR/check-in (event vs checkin), subida (media vs mosaic `/photo`), chat (chat vs streaming), info de stream duplicada. | Dueño único por capacidad (D-01, ADR) y rutas sobrantes retiradas. |
 | O-31 | P1 | IV/VIII | El gateway rutea recommendation (:8001), moderation (:8002) y transcode (:8000), pero ninguno está en `docker-compose.yml`. | Los 3 en compose con healthcheck, o rutas retiradas. |
-| O-32 | P2 | X | Almacenamiento de objetos real = SeaweedFS; constitución y AGENTS dicen S3/MinIO, sin ADR. | ADR de almacenamiento (D-02.e) y docs alineados. |
+| O-32 | P2 | X | Almacenamiento de objetos real = SeaweedFS; constitución y AGENTS dicen S3/MinIO, sin ADR. | ~~ADR de almacenamiento~~ (ADR-011: R2 en producción, SeaweedFS en local); falta media-service configurable por endpoint S3 y docs alineados. |
 | O-33 | P1 | IX | `settings.hideAddressUntilAccepted` está en contrato, ADR-001 y Flutter, pero no en el modelo de event-service: la dirección se envía a cualquiera. | Campo persistido y dirección omitida para no aceptados; test. |
 | O-34 | P2 | — | Artefactos y archivos sueltos: `backend/out/` sin ignorar, `backend/java/` huérfano, `serve.js`, `Creación`, `img/` en la raíz; README raíz con cola UTF-16. | Repo limpio tras build; README en UTF-8. |
 | O-35 | P1 | X | Versiones de Spring Boot mezcladas (3.2.1 ×10, 3.5.3 ×2) sobre Java 17. | Una versión soportada en todos los servicios (amplía O-21). |
@@ -314,30 +339,35 @@ en CI o staging.
 El backlog ejecutable de estas observaciones vive en `docs/roadmap/tasks.md` (cada tarea
 cita sus O-xx) y las decisiones abiertas en `docs/roadmap/decisions-pending.md`.
 
-### Reglas en Revisión por Costo
+### Perfiles de Despliegue
 
-Las reglas siguientes quedan **congeladas** hasta que los leads cierren la decisión D-02
-(`docs/roadmap/decisions-pending.md`) con uno o varios ADR. Mientras estén congeladas:
-**no se invierte trabajo de implementación en ellas, no bloquean merges y no cuentan para
-la Production Readiness Review**; tampoco se eliminan. Cada ADR que las resuelva se refleja
-aquí con una enmienda PATCH (si confirma la regla) o MINOR (si la sustituye).
+Las reglas sensibles a costo se aplican según el perfil vigente. **Perfil vigente: Fase
+Tracción** (ADR-011, presupuesto 100.000 COP/mes). Se pasa a Fase Crecimiento, total o por
+partes, cuando se cumple un disparador de ADR-011 (regla general: los ingresos del mes
+cubren dos veces el costo del siguiente nivel). Cada paso se registra como actualización de
+ADR-011 y con una enmienda PATCH de esta tabla.
 
-| Regla | Principio | Sub-decisión D-02 |
-|-------|-----------|-------------------|
-| Kubernetes + ArgoCD, Kustomize `base` + `overlays/{dev,staging,production}`, HPA, PDB, NetworkPolicy | VIII | a |
-| Kafka KRaft con replicación ≥ 3 en producción | V, X | b (D-04) |
-| MongoDB replica set gestionado, backups diarios, RPO ≤ 24 h / RTO ≤ 4 h | IX | c |
-| Número de servicios desplegables independientes | X | d |
-| S3/MinIO como almacenamiento de objetos | IX, X | e |
-| Dragonfly vs Redis; Eureka vs DNS | X | f, g |
-| Stack de observabilidad (Prometheus + Grafana + alertas como código) — **health checks, métricas y logs JSON siguen vigentes** | VI | h |
-| Gestor de secretos concreto — **la prohibición de secretos en repo/imágenes sigue vigente** | III | i |
-| Registro de imágenes GHCR | VIII | j |
-| Ant Media Server | X | k |
+| Tema | Fase Tracción (vigente) | Fase Crecimiento | Principio |
+|------|-------------------------|------------------|-----------|
+| Plataforma | 1 VPS (Contabo 12 GB, EE. UU.) con Docker Compose | Kubernetes + ArgoCD, Kustomize `base` + `overlays`, HPA, PDB, NetworkPolicy | VIII |
+| Ambientes | Producción + CI + Compose local; staging opcional (Oracle Free) | `dev → staging → production` con E2E y carga en staging | VIII |
+| Mensajería | Kafka KRaft, 1 broker, replicación 1 | Kafka KRaft, replicación ≥ 3 (gestionado o en clúster) | V |
+| MongoDB | Autoalojado, `mongodump` diario a R2, restauración mensual | Replica set gestionado, cifrado en reposo | IX |
+| Servicios desplegados | 10 Java + transcode + moderation; recommendation diferido | Según demanda; fusión o división por ADR | X |
+| Almacenamiento | Cloudflare R2 (producción), SeaweedFS (local) | R2 u otro S3 según costo | IX, X |
+| Caché / discovery | Redis; DNS de Compose | Redis/Valkey gestionado; DNS de Kubernetes | X |
+| Observabilidad | Grafana Cloud free + monitor de uptime | Stack propio o plan pago, dashboards y alertas como código | VI |
+| Secretos | GitHub Environments + `.env` en el VPS (`chmod 600`) | Sealed Secrets / External Secrets / gestor cloud | III |
+| Imágenes | `docker save` → `docker load` por SSH, tag = SHA | Registro de contenedores con tags inmutables | VIII |
+| Streaming | SRS en el VPS, sin transcodificar, ≤ 100 espectadores | SRS dedicado o CDN | X |
+| Frontend web | Cloudflare Pages | Cloudflare Pages | VIII |
+| Carga de referencia (VII) | 150 asistentes, 100 espectadores | 500 asistentes concurrentes | VII |
 
-No entran en revisión (siguen plenamente vigentes): Principios I, II, III (salvo el gestor
-concreto), IV y VII, y en VIII la imagen por servicio con tag inmutable, sin `:latest`, sin
-`localhost` en perfiles de producción y build web estricto.
+Siguen plenamente vigentes en ambos perfiles: Principios I, II y IV; en III la prohibición de
+secretos en repo/imágenes, TLS, autenticación de datastores sin puertos públicos y el escaneo
+de la cadena de suministro; en VI health checks, métricas Prometheus, trazas OTel y logs
+JSON; en VII todos los SLO de latencia; en VIII imagen por servicio con tag inmutable, sin
+`:latest`, sin `localhost` en producción y build web estricto.
 
 ## Flujo de Desarrollo SDD y Puertas de Calidad
 
@@ -375,7 +405,9 @@ implementan directamente; las olas de contrato siguen el ciclo Spec Kit.
 staging, manifiestos/overlays actualizados, y escenario k6 en verde si toca un SLO.
 
 **Production Readiness Review (antes del primer release y de cada servicio nuevo):**
-todas las observaciones P0 cerradas, SLO medidos en staging, backup restaurado con éxito,
+todas las observaciones P0 cerradas, SLO medidos con la carga del perfil vigente (Fase
+Tracción: k6 contra Compose local o contra producción antes de abrirla al público; Fase
+Crecimiento: en staging), backup restaurado con éxito,
 runbook de incidentes por servicio en `docs/runbooks/`, alertas enrutadas a un responsable
 de guardia.
 
@@ -401,4 +433,4 @@ de guardia.
 - Guía operativa en tiempo de desarrollo: `AGENTS.md`, `CONTRIBUTING.md` y
   `docs/api/CONVENTIONS.md`.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-16
+**Version**: 1.3.0 | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-22

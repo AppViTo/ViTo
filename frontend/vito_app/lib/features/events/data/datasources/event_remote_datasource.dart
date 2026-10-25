@@ -141,31 +141,28 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   }
   
   @override
-  Future<List<EventModel>> getMyEvents({int page = 0, int size = 20}) async {
+  Future<List<EventModel>> getMyEvents({int page = 0, int size = 20}) =>
+      _listEvents(scope: 'mine', page: page, size: size);
+
+  @override
+  Future<List<EventModel>> getUpcomingEvents({int page = 0, int size = 20}) =>
+      _listEvents(scope: 'upcoming', page: page, size: size);
+
+  /// `listEvents` del contrato: `GET /events?scope=mine|upcoming` (ADR-014).
+  /// La respuesta es un array plano de `Event` (ADR-002).
+  Future<List<EventModel>> _listEvents({
+    required String scope,
+    required int page,
+    required int size,
+  }) async {
     try {
       final response = await dio.get(
         '/events',
-        queryParameters: {'page': page, 'size': size},
+        queryParameters: {'scope': scope, 'page': page, 'size': size},
       );
-      
+
       return (response.data as List)
-          .map((json) => EventModel.fromJson(json))
-          .toList();
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-  
-  @override
-  Future<List<EventModel>> getUpcomingEvents({int page = 0, int size = 20}) async {
-    try {
-      final response = await dio.get(
-        '/events/upcoming',
-        queryParameters: {'page': page, 'size': size},
-      );
-      
-      return (response.data as List)
-          .map((json) => EventModel.fromJson(json))
+          .map((json) => EventModel.fromJson(json as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       throw _handleError(e);

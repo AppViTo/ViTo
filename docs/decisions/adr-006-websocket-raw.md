@@ -20,7 +20,7 @@
 
    | Recurso | Ruta |
    |---------|------|
-   | Chat | `/ws/chat?userId=<id>&token=<jwt>` |
+   | Chat | `/ws/chat?token=<jwt>` (ver ADR-015) |
    | Check-in | `/ws/checkin/{eventId}?token=<jwt>` |
    | Mosaico | `/ws/mosaic/{eventId}?token=<jwt>` |
    | Streaming | `/ws/streaming/{streamId}?token=<jwt>` |
@@ -43,3 +43,12 @@
 | **Migrar el frontend a STOMP** (`stomp_dart_client`) | Reescribe los 4 repositorios realtime + sus blocs. Además habría que añadir SockJS al cliente o forzar WebSocket puro. |
 | **Dejar STOMP en chat y raw en el resto** | Dos protocolos distintos en la misma app; el cliente tendría dos stacks. |
 | **`/ws` por servicio (8088, 8084…) sin gateway** | Rompe la regla "todo pasa por el gateway" y obliga a CORS/CORS-equivalente en WS por puerto, además de hardcodear puertos en el cliente. |
+
+## Actualizaciones
+
+### 2026-10-20 — el chat deja de llevar `?userId=` (ADR-015)
+
+La ruta original del chat era `/ws/chat?userId=<id>&token=<jwt>`. El `userId` lo elegía el
+cliente y permitía suplantar a otro usuario. [ADR-015](./adr-015-chat-ws-identity.md) lo
+retira: la ruta queda `/ws/chat?token=<jwt>` y el servicio toma la identidad de
+`X-User-Id` (ADR-007).

@@ -9,9 +9,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -51,6 +53,8 @@ public class TokenProvider {
     private String createToken(Map<String, Object> claims, String subject, Long expiration) {
         return Jwts.builder()
                 .setClaims(claims)
+                // jti único: el logout revoca el access token por este id (T-B21)
+                .id(UUID.randomUUID().toString())
                 .setSubject(subject)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
@@ -59,20 +63,33 @@ public class TokenProvider {
     }
     
     public String validateAccessToken(String token) {
+        return parseAccessToken(token).userId();
+    }
+
+    /**
+     * Valida el access token y devuelve lo necesario para revocarlo. {@code jti} es null en
+     * los tokens emitidos antes de T-B21.
+     */
+    public AccessTokenClaims parseAccessToken(String token) {
         try {
             Claims claims = parseToken(token);
-            
+
             // Check if it's an access token (not refresh)
             if (claims.containsKey("type") && "refresh".equals(claims.get("type"))) {
-                throw AuthenticationException.invalidToken();
+                throw AuthenticationException.invalidAccessToken();
             }
-            
-            return claims.getSubject();
-        } catch (ExpiredJwtException e) {
-            throw AuthenticationException.tokenExpired();
-        } catch (JwtException e) {
-            throw AuthenticationException.invalidToken();
+
+            Date expiration = claims.getExpiration();
+            return new AccessTokenClaims(claims.getSubject(), claims.getId(),
+                    expiration != null ? expiration.toInstant() : null);
+        } catch (JwtException | IllegalArgumentException e) {
+            // IllegalArgumentException: token vacío ("Bearer " sin valor)
+            throw AuthenticationException.invalidAccessToken();
         }
+    }
+
+    /** Datos de un access token válido: sujeto, {@code jti} y vencimiento. */
+    public record AccessTokenClaims(String userId, String jti, Instant expiresAt) {
     }
     
     public String validateRefreshToken(String token) {
@@ -81,14 +98,12 @@ public class TokenProvider {
             
             // Check if it's a refresh token
             if (!claims.containsKey("type") || !"refresh".equals(claims.get("type"))) {
-                throw AuthenticationException.invalidToken();
+                throw AuthenticationException.invalidRefreshToken();
             }
             
             return claims.getSubject();
-        } catch (ExpiredJwtException e) {
-            throw AuthenticationException.tokenExpired();
-        } catch (JwtException e) {
-            throw AuthenticationException.invalidToken();
+        } catch (JwtException | IllegalArgumentException e) {
+            throw AuthenticationException.invalidRefreshToken();
         }
     }
     

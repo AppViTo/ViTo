@@ -1,8 +1,10 @@
 package com.vito.auth.application.service;
 
 import com.vito.auth.domain.exception.AuthenticationException;
+import com.vito.auth.domain.exception.UserAlreadyExistsException;
 import com.vito.auth.domain.model.User;
 import com.vito.auth.domain.port.inbound.AuthService.LoginCommand;
+import com.vito.auth.domain.port.inbound.AuthService.RefreshTokenCommand;
 import com.vito.auth.domain.port.inbound.AuthService.RegisterCommand;
 import com.vito.auth.domain.port.inbound.AuthService.AuthResult;
 import com.vito.auth.domain.port.outbound.CachePort;
@@ -11,6 +13,7 @@ import com.vito.auth.domain.port.outbound.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -18,6 +21,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -91,6 +95,7 @@ class AuthServiceImplTest {
         assertEquals("access_token", result.getAccessToken());
         assertEquals("refresh_token", result.getRefreshToken());
         assertEquals(testUser, result.getUser());
+        assertEquals(900L, result.getExpiresIn(), "ADR-004: segundos (jwt.expiration = 900000 ms)");
 
         verify(userRepository).existsByUsername("newuser");
         verify(userRepository).existsByEmail("new@example.com");
@@ -112,11 +117,11 @@ class AuthServiceImplTest {
         when(userRepository.existsByUsername("existinguser")).thenReturn(true);
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        UserAlreadyExistsException exception = assertThrows(
+                UserAlreadyExistsException.class,
                 () -> authService.register(command)
         );
-        assertEquals("Username already exists", exception.getMessage());
+        assertEquals("El nombre de usuario ya está en uso", exception.getMessage());
 
         verify(userRepository).existsByUsername("existinguser");
         verify(userRepository, never()).existsByEmail(any());
@@ -136,11 +141,11 @@ class AuthServiceImplTest {
         when(userRepository.existsByEmail("existing@example.com")).thenReturn(true);
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        UserAlreadyExistsException exception = assertThrows(
+                UserAlreadyExistsException.class,
                 () -> authService.register(command)
         );
-        assertEquals("Email already exists", exception.getMessage());
+        assertEquals("El email ya está registrado", exception.getMessage());
 
         verify(userRepository).existsByUsername("newuser");
         verify(userRepository).existsByEmail("existing@example.com");
@@ -168,10 +173,28 @@ class AuthServiceImplTest {
         assertEquals("access_token", result.getAccessToken());
         assertEquals("refresh_token", result.getRefreshToken());
         assertEquals(testUser, result.getUser());
+        assertEquals(900L, result.getExpiresIn());
 
         verify(userRepository).findByEmail("test@example.com");
         verify(passwordEncoder).matches("Password123", testUser.getPasswordHash());
         verify(cachePort).set(eq("refresh_token:user123"), eq("refresh_token"), any(Duration.class));
+    }
+
+    @Test
+    void refreshToken_Success_ExpiresInSeconds() {
+        when(tokenProvider.validateRefreshToken("old_refresh")).thenReturn("user123");
+        when(userRepository.findById("user123")).thenReturn(Optional.of(testUser));
+        when(cachePort.isBlacklisted("old_refresh")).thenReturn(false);
+        when(tokenProvider.generateAccessToken(any())).thenReturn("access_token");
+        when(tokenProvider.generateRefreshToken(any())).thenReturn("refresh_token");
+
+        AuthResult result = authService.refreshToken(RefreshTokenCommand.builder()
+                .refreshToken("old_refresh")
+                .build());
+
+        assertEquals("access_token", result.getAccessToken());
+        assertEquals(900L, result.getExpiresIn());
+        verify(cachePort).addToBlacklist(eq("old_refresh"), any(Duration.class));
     }
 
     @Test
@@ -217,17 +240,44 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void logout_Success() {
+    void logout_RevokesAccessTokenJtiForItsRemainingLifetime() {
         // Arrange
         String token = "valid_token";
-        when(tokenProvider.validateAccessToken(token)).thenReturn("user123");
+        Instant expiresAt = Instant.now().plus(Duration.ofMinutes(10));
+        when(tokenProvider.parseAccessToken(token))
+                .thenReturn(new TokenProvider.AccessTokenClaims("user123", "jti-1", expiresAt));
 
         // Act
         authService.logout(token);
 
-        // Assert
-        verify(tokenProvider).validateAccessToken(token);
-        verify(cachePort).addToBlacklist(eq(token), any(Duration.class));
+        // Assert: TTL = vida restante del token, no la vida completa (T-B21)
+        ArgumentCaptor<Duration> ttl = ArgumentCaptor.forClass(Duration.class);
+        verify(cachePort).revokeAccessToken(eq("jti-1"), ttl.capture());
+        assertTrue(ttl.getValue().compareTo(Duration.ofMinutes(10)) <= 0, ttl.getValue().toString());
+        assertTrue(ttl.getValue().compareTo(Duration.ofMinutes(9)) > 0, ttl.getValue().toString());
         verify(cachePort).delete("refresh_token:user123");
+        // El JWT completo ya no se guarda como clave de Redis
+        verify(cachePort, never()).addToBlacklist(any(), any());
+    }
+
+    @Test
+    void logout_LegacyTokenWithoutJti_OnlyRemovesRefreshToken() {
+        String token = "legacy_token";
+        when(tokenProvider.parseAccessToken(token))
+                .thenReturn(new TokenProvider.AccessTokenClaims("user123", null, Instant.now().plusSeconds(60)));
+
+        authService.logout(token);
+
+        verify(cachePort, never()).revokeAccessToken(any(), any());
+        verify(cachePort).delete("refresh_token:user123");
+    }
+
+    @Test
+    void logout_InvalidToken_RevokesNothing() {
+        when(tokenProvider.parseAccessToken("bad")).thenThrow(AuthenticationException.invalidAccessToken());
+
+        assertThrows(AuthenticationException.class, () -> authService.logout("bad"));
+
+        verifyNoInteractions(cachePort);
     }
 }

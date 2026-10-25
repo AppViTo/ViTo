@@ -28,10 +28,7 @@ class _StreamViewerPageState extends State<StreamViewerPage> {
     super.initState();
     _streamingBloc = sl<StreamingBloc>();
     _streamingBloc.add(LoadStream(streamId: widget.streamId));
-    _streamingBloc.add(ConnectToStream(
-      streamId: widget.streamId,
-      baseUrl: 'http://localhost:8086',
-    ));
+    _streamingBloc.add(ConnectToStream(streamId: widget.streamId));
   }
   
   @override

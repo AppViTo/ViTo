@@ -74,3 +74,19 @@ logout
 
 - **Devolver `user` con `profile`/`stats` anidados (OpenAPI actual):** acoplamiento innecesario entre auth y social; auth no debe conocer las estadísticas de seguidores.
 - **Cookie httpOnly en vez de Bearer:** mejor seguridad teórica, pero el frontend ya está construido con interceptor Bearer y con WebSocket autenticado por query param.
+
+## Actualizaciones
+
+### 2026-10-18 — `openapi.yaml` alineado (T-C08, issue #41)
+
+Se aplicaron las consecuencias de contrato que faltaban:
+
+- `AuthResponse` sin `tokenType`, con `accessToken`, `refreshToken`, `expiresIn` y `user`
+  obligatorios; `expiresIn` documentado en segundos.
+- `user` es el nuevo schema **`AuthUser`** plano (`id`, `username`, `email` obligatorios;
+  `displayName` y `avatar` opcionales y que pueden ser `null`). El schema `User` con
+  `profile`/`stats` queda para social-service.
+- `logoutUser` → `204` sin cuerpo.
+- `RegisterRequest` acepta `displayName` opcional.
+
+Fixtures `authentication/*` y tests Dart de contrato actualizados a esta forma.

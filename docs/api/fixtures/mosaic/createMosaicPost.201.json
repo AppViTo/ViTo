@@ -1,0 +1,17 @@
+{
+  "id": "mos_01H8X2K4QJ",
+  "eventId": "evt_01H8X2K4QJ",
+  "userId": "usr_01H8X2K4QJ",
+  "username": "marta",
+  "displayName": "Marta Ruiz",
+  "avatar": "https://cdn.vito.com/users/usr_01H8X2K4QJ/avatar.jpg",
+  "type": "PHOTO",
+  "content": "¡Qué noche!",
+  "mediaUrls": [
+    "https://cdn.vito.com/evt_01H8X/portada.jpg"
+  ],
+  "timestamp": "2026-10-16T22:15:00Z",
+  "likesCount": 0,
+  "commentsCount": 0,
+  "isLiked": false
+}

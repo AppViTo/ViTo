@@ -81,13 +81,14 @@ a través del contrato**.
 | Todos los WS son crudos | chat usa STOMP/SockJS; mosaic y streaming tienen handler pero **no** están registrados (T-B05, T-B06) |
 | Todo error sigue ADR-003 | Solo auth, chat y media tienen handler; el gateway responde `{error,status}` (T-B02, T-B03) |
 | `GET /api/v1/events` existe | Está en el contrato y el front lo llama, pero el backend no lo implementa → 405 (D-03) |
-| Stack: Dragonfly, Eureka, S3/MinIO, Kubernetes+ArgoCD | Redis 7.2, rutas estáticas, SeaweedFS, solo compose. **En revisión por costo (D-02).** |
+| Stack: Dragonfly, Eureka, S3/MinIO, Kubernetes+ArgoCD | **Resuelto por ADR-011 (Fase Tracción):** VPS + Docker Compose, Redis, DNS de Compose, Kafka de 1 broker, R2 en producción y SeaweedFS en local. Kubernetes/ArgoCD quedan para la Fase Crecimiento: no trabajar en `infrastructure/kubernetes/`. |
 | Java 21 / Spring Boot soportado | Java 17; Spring Boot 3.2.1 (10 poms) y 3.5.3 (2) |
-| CD despliega | `cd.yml` solo construye 2 imágenes (una rota) y el deploy es `echo` |
+| CD despliega | `cd.yml` solo construye 2 imágenes (una rota) y el deploy es `echo`; se rehace en T-I08 |
 
 **Lo que sí funciona:** CI (`ci.yml`) con `mvn clean verify` ×10, pytest de transcode,
 `flutter analyze --fatal-infos` + `flutter test`, build de 11 imágenes con
-`backend/Dockerfile`; deploy web a Vercel desde `main`; compose `--profile app`.
+`backend/Dockerfile`; compose `--profile app`. El deploy web de `deploy-frontend.yml`
+aún apunta a Vercel; pasa a Cloudflare Pages en T-I11 (ADR-011).
 
 **Mapa rápido de código:**
 
@@ -141,9 +142,10 @@ docker compose --profile app up -d --build
 cd frontend/vito_app && flutter pub get && flutter analyze --fatal-infos && flutter test
 
 # Contrato
-npx @stoplight/spectral-cli lint docs/api/openapi.yaml      # hoy: 0 problemas
-npx @asyncapi/cli validate docs/api/asyncapi.yaml            # cuando exista
-npm run mock:api                                             # cuando exista (T-C02)
+npm ci
+npm run contract            # Spectral + fixtures contra su schema (= job "Contract" de CI)
+npm run lint:async          # cuando exista asyncapi.yaml (T-C05)
+npm run mock:api            # Prism en :4010
 
 # Python
 cd ai-services/transcode-service && pytest

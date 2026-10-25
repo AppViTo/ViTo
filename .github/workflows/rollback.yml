@@ -1,0 +1,183 @@
+name: ViTo Rollback
+
+# Volver a uno de los últimos 3 releases desplegados con éxito, sin reconstruir (feature 001,
+# Historia 2, FR-008). Environment production-hotfix (D-13): lo aprueba cualquiera de los dos
+# leads, también quien lo dispara, para poder volver atrás con un solo lead disponible; el
+# motivo queda en el registro. La base de datos no se revierte.
+# Operación: docs/runbooks/despliegue.md, sección Rollback.
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'SHA completo (40 caracteres) del release al que volver (ver deploy.sh status o Deployments)'
+        type: string
+        required: true
+      reason:
+        description: 'Motivo (queda en el registro)'
+        type: string
+        required: true
+      force_live_event:
+        description: 'Volver aunque haya un evento en vivo (el motivo es reason)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    name: Rollback (production-hotfix)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production-hotfix
+    concurrency:
+      group: vps-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+    env:
+      SHA: ${{ inputs.sha }}
+      REASON: ${{ inputs.reason }}
+      FORCE: ${{ inputs.force_live_event }}
+      # Los scripts del release activo: el destino puede ser más viejo
+      REMOTE: /opt/vito/current/infrastructure/deploy/remote
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Entradas
+        run: |
+          if ! [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::sha tiene que ser el SHA completo de 40 caracteres en minúsculas"
+            exit 1
+          fi
+          if [ -z "${REASON// }" ]; then
+            echo "::error::reason es obligatorio"
+            exit 1
+          fi
+
+      - name: Secretos requeridos
+        env:
+          S_SSH_HOST: ${{ secrets.SSH_HOST }}
+          S_SSH_USER: ${{ secrets.SSH_USER }}
+          S_SSH_KEY: ${{ secrets.SSH_KEY }}
+          S_SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+          S_DOTENV_PRODUCTION: ${{ secrets.DOTENV_PRODUCTION }}
+          S_MONGO_DEPLOY_RO_PASSWORD: ${{ secrets.MONGO_DEPLOY_RO_PASSWORD }}
+          S_TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          S_TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          missing=()
+          for n in SSH_HOST SSH_USER SSH_KEY SSH_KNOWN_HOSTS DOTENV_PRODUCTION MONGO_DEPLOY_RO_PASSWORD \
+                   TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID; do
+            v="S_$n"
+            [ -n "${!v}" ] || missing+=("$n")
+          done
+          if ((${#missing[@]})); then
+            echo "::error::Faltan secretos en el Environment production-hotfix: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Aprobación
+        id: approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          approver=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/approvals" \
+            --jq '[.[] | select(any(.environments[]; .name == "production-hotfix"))] | last | .user.login // ""')
+          if [ -z "$approver" ]; then
+            echo "::error::El Environment production-hotfix no pidió aprobación: revisar sus revisores obligatorios (docs/runbooks/aprovisionamiento.md, paso 3)"
+            exit 1
+          fi
+          echo "Aprobó: $approver"
+          echo "approver=$approver" >> "$GITHUB_OUTPUT"
+
+      - uses: ./.github/actions/vps-ssh
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          user: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          known-hosts: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+      - name: .env de producción
+        env:
+          DOTENV: ${{ secrets.DOTENV_PRODUCTION }}
+        run: printf '%s\n' "$DOTENV" | ssh vps 'umask 077 && cat > /opt/vito/.env.tmp && mv -f /opt/vito/.env.tmp /opt/vito/.env'
+
+      - name: Evento en vivo
+        id: live
+        env:
+          RO_PW: ${{ secrets.MONGO_DEPLOY_RO_PASSWORD }}
+        run: |
+          rc=0
+          out=$(printf '%s\n' "$RO_PW" | ssh vps \
+            "read -r MONGO_DEPLOY_RO_PASSWORD && export MONGO_DEPLOY_RO_PASSWORD && $REMOTE/ensure-ro-user.sh && $REMOTE/live-check.sh") || rc=$?
+          json=$(tail -n1 <<<"$out")
+          echo "$json"
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          jq -e . >/dev/null 2>&1 <<<"$json" && echo "json=$json" >> "$GITHUB_OUTPUT"
+          case "$rc" in
+            0) ;;
+            3|7)
+              if [ "$FORCE" = true ]; then
+                echo "::warning::Evento en vivo (código $rc): se vuelve igual por force_live_event. Motivo: $REASON"
+                echo "forced=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "::error::Hay un evento en vivo o no se pudo comprobar (código $rc): no se hace el rollback. Relanzar con force_live_event si es urgente."
+                exit "$rc"
+              fi
+              ;;
+            *) echo "::error::live-check o ensure-ro-user fallaron (código $rc)"; exit "$rc" ;;
+          esac
+
+      - name: Rollback
+        id: apply
+        env:
+          APPROVER: ${{ steps.approval.outputs.approver }}
+          TRIGGERED_BY: ${{ github.triggering_actor }}
+          LIVE: ${{ steps.live.outputs.json }}
+          FORCED: ${{ steps.live.outputs.forced }}
+        run: |
+          meta=$(jq -cn --arg approver "$APPROVER" --arg by "$TRIGGERED_BY" --arg reason "$REASON" \
+            --arg run "$RUN_URL" --arg forced "${FORCED:-false}" --arg live "${LIVE:-null}" \
+            '{approver: $approver, triggered_by: $by, reason: $reason, run_url: $run,
+              forced_live_event: ($forced == "true"), live_check: ($live | fromjson? // null)}')
+          rc=0
+          out=$(ssh vps "$(printf '%q ' "$REMOTE/deploy.sh" rollback "$SHA" --meta "$meta")") || rc=$?
+          record=$(tail -n1 <<<"$out")
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+          if jq -e . >/dev/null 2>&1 <<<"$record"; then
+            infrastructure/deploy/summary.sh <<<"$record" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          case "$rc" in
+            0) echo "Rollback a $SHA hecho" ;;
+            4) echo "::error::$SHA no es uno de los últimos 3 releases con éxito, o faltan sus imágenes (código 4): no se tocó nada" ;;
+            5) echo "::error::La salud falló y se volvió al release que estaba (código 5)" ;;
+            6) echo "::error::La salud falló y no se pudo volver (código 6): requiere un lead" ;;
+            *) echo "::error::deploy.sh salió con $rc" ;;
+          esac
+          exit "$rc"
+
+      - name: Avisar
+        if: always()
+        uses: ./.github/actions/notify
+        with:
+          subject: "ViTo · rollback ${{ job.status == 'success' && 'hecho' || 'falló' }}"
+          message: |
+            Destino: ${{ inputs.sha }}
+            Motivo: ${{ inputs.reason }}
+            Evento en vivo: código ${{ steps.live.outputs.rc || '—' }}${{ steps.live.outputs.forced == 'true' && ' (forzado)' || '' }} · deploy.sh: código ${{ steps.apply.outputs.exit_code || '—' }}
+            Disparó: ${{ github.triggering_actor }} · aprobó: ${{ steps.approval.outputs.approver || '—' }}
+            ${{ env.RUN_URL }}
+          telegram-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          resend-api-key: ${{ secrets.RESEND_API_KEY }}
+          alert-emails: ${{ secrets.ALERT_EMAILS }}
+          alert-from: ${{ vars.ALERT_FROM }}
+
+      - name: Borrar la llave
+        if: always()
+        run: rm -f ~/.ssh/vito_key ~/.ssh/vito_known_hosts ~/.ssh/config

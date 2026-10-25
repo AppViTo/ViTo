@@ -1,18 +1,20 @@
 package com.vito.media.infrastructure.adapter.outbound;
 
 import com.vito.media.domain.port.outbound.StoragePort;
+import com.vito.media.infrastructure.config.S3Settings;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
+import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
-import jakarta.annotation.PostConstruct;
 import java.net.URI;
 import java.time.Duration;
 
@@ -20,39 +22,47 @@ import java.time.Duration;
 @Component
 public class S3StorageAdapter implements StoragePort {
 
-    @Value("${s3.endpoint:http://localhost:9000}")
-    private String s3Endpoint;
+    private final String bucketName;
+    private final String publicBaseUrl;
+    private final S3Client s3Client;
+    private final S3Presigner presigner;
 
-    @Value("${s3.access-key}")
-    private String accessKey;
+    public S3StorageAdapter(S3Settings settings) {
+        this.bucketName = settings.bucket();
+        this.publicBaseUrl = settings.publicBaseUrl();
 
-    @Value("${s3.secret-key}")
-    private String secretKey;
+        URI endpoint = URI.create(settings.endpoint());
+        StaticCredentialsProvider credentials = StaticCredentialsProvider.create(
+                AwsBasicCredentials.create(settings.accessKey(), settings.secretKey()));
+        Region region = Region.of(settings.region());
+        // El presigner necesita el mismo estilo de URL que el cliente: si no, firma
+        // <bucket>.<host> y SeaweedFS no lo resuelve
+        S3Configuration s3Configuration = S3Configuration.builder()
+                .pathStyleAccessEnabled(settings.pathStyle())
+                .build();
 
-    @Value("${s3.bucket:vito-media}")
-    private String bucketName;
-
-    private S3Client s3Client;
-    private S3Presigner presigner;
-
-    @PostConstruct
-    public void init() {
-        AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
-        
+        // Desde el SDK 2.30 los PUT llevan checksum CRC en un cuerpo aws-chunked; SeaweedFS
+        // guarda ese cuerpo tal cual ("4;chunk-signature=...") y el archivo queda corrupto.
+        // WHEN_REQUIRED: checksum solo en las operaciones que lo exigen, como los S3 no-AWS.
         this.s3Client = S3Client.builder()
-                .endpointOverride(URI.create(s3Endpoint))
-                .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                .region(Region.US_EAST_1)
-                .forcePathStyle(true)
+                .endpointOverride(endpoint)
+                .credentialsProvider(credentials)
+                .region(region)
+                .serviceConfiguration(s3Configuration)
+                .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
+                .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
                 .build();
 
         this.presigner = S3Presigner.builder()
-                .endpointOverride(URI.create(s3Endpoint))
-                .credentialsProvider(StaticCredentialsProvider.create(credentials))
-                .region(Region.US_EAST_1)
+                .endpointOverride(endpoint)
+                .credentialsProvider(credentials)
+                .region(region)
+                .serviceConfiguration(s3Configuration)
                 .build();
 
-        createBucketIfNotExists();
+        if (settings.createBucket()) {
+            createBucketIfNotExists();
+        }
     }
 
     @Override
@@ -133,7 +143,7 @@ public class S3StorageAdapter implements StoragePort {
 
     @Override
     public String getPublicUrl(String key) {
-        return String.format("%s/%s/%s", s3Endpoint, bucketName, key);
+        return publicBaseUrl + "/" + key;
     }
 
     private void createBucketIfNotExists() {

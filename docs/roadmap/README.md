@@ -25,13 +25,15 @@ define qué puede implementarse **ya** y qué espera una decisión.
 
 ```
 Etapa 0  Gobierno         constitución v1.1.0 · hoja de ruta · brief        ✅ este PR
-Etapa 1  Decisiones       D-01..D-08 resueltas por leads → ADR-011+         ⏳ leads
+Etapa 1  Decisiones       D-01..D-07/09 ✅ (ADR-011..017);                    ⏳ leads
+                          quedan D-08, D-10..D-12
 Etapa 2  Circuito cerrado fixtures + Prism + Spectral/AsyncAPI en CI          🟢 se puede empezar ya
          + tests Dart de fixtures, sobre las 15 operaciones existentes
 Etapa 3  Endurecimiento   gateway (X-User-*, /ws/**, ADR-003), WS crudos,    🟢 se puede empezar ya
          sin cambio de contrato  errores ADR-003, hideAddressUntilAccepted
-Etapa 4  Contrato por ola contract/<ola> → handoff → back + front mismo sprint 🔴 tras D-01/D-03/D-08
-Etapa 5  Infra / CD       depende de D-02 (costo)                            🔴 tras D-02
+Etapa 4  Contrato por ola contract/<ola> → handoff → back + front mismo sprint 🔴 tras D-08 (por ola)
+Etapa 5  Infra / CD       Fase Tracción (ADR-011): VPS + Compose + R2        🟡 T-B14, T-I07, T-I09,
+                          T-I10, T-I12 listas; el resto tras T-I06 (leads)
 ```
 
 ### Olas de contrato (Etapa 4)
@@ -42,10 +44,10 @@ Cada ola es **una feature Spec Kit** (`/speckit-specify` → … → `/speckit-i
 | Ola | Alcance | Hito MVP (AGENTS.md) | Bloqueada por |
 |-----|---------|----------------------|---------------|
 | 0 | Cerrar las 15 ops existentes: fixtures, mock, `GET /events` (O-26) | — | D-03 (solo `GET /events`) |
-| 1 | Auth completo (`/auth/me`) + Events CRUD + RSVP + Invitaciones | 1, 3, 4, 5 | D-01, D-03, D-08 |
-| 2 | Check-in/QR + Social | 2, 6, 7 | D-01, D-08 |
-| 3 | Media + Mosaico (REST + WS + Kafka) | 8 | D-01, D-04, D-08 |
-| 4 | Streaming (REST + WS) | 9 | D-01, D-08 |
+| 1 | Auth completo (`/auth/me`) + Events CRUD + RSVP + Invitaciones | 1, 3, 4, 5 | D-08 |
+| 2 | Check-in/QR + Social | 2, 6, 7 | D-08 |
+| 3 | Media + Mosaico (REST + WS + Kafka) | 8 | D-08 |
+| 4 | Streaming (REST + WS) | 9 | D-08 |
 | 5 | Archivo post-evento | 10 | D-08 |
 | 6 | Chat, recomendaciones, moderación (post-MVP) | — | D-08 |
 

@@ -10,4 +10,7 @@ public interface MosaicEventPublisher {
     void publishGridUpdate(String eventId, MosaicItem item, int position);
     
     void publishLikeUpdate(String eventId, String itemId, int likesCount);
+
+    /** El organizador retiró un ítem (T-B26). */
+    void publishItemRemoved(String eventId, String itemId);
 }

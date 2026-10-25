@@ -4,6 +4,7 @@ import com.vito.streaming.domain.model.ChatMessage;
 import com.vito.streaming.domain.model.LiveStream;
 import com.vito.streaming.domain.model.Reaction;
 import com.vito.streaming.domain.port.inbound.StreamingService;
+import com.vito.streaming.domain.exception.StreamingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -123,7 +124,7 @@ public class StreamingController {
     private String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            throw new RuntimeException("User not authenticated");
+            throw StreamingException.unauthenticated();
         }
         return authentication.getName();
     }

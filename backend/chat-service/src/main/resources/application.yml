@@ -32,9 +32,9 @@ server:
 jwt:
   secret: ${JWT_SECRET}
 
-# WebSocket Configuration
+# Orígenes de la web para el handshake WebSocket (T-B20): los mismos que el CORS del gateway
 websocket:
-  allowed-origins: http://localhost:3000,http://localhost:8080
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
 
 # Chat Configuration
 chat:
@@ -53,7 +53,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
   endpoint:
     health:
       probes:

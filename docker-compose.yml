@@ -23,6 +23,21 @@ x-java-service: &java-service
       limits:
         memory: 512m
 
+x-python-service: &python-service
+  profiles: ["app"]
+  restart: unless-stopped
+  environment: &python-env
+    MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:?definir en .env}:${MONGO_ROOT_PASSWORD:?definir en .env}@mongodb:27017/?authSource=admin
+    REDIS_URL: redis://redis:6379
+    KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+    JWT_SECRET: ${JWT_SECRET:?definir en .env}
+  depends_on:
+    - mongodb
+    - redis
+    - kafka
+  networks:
+    - vito-network
+
 services:
   # MongoDB
   mongodb:
@@ -101,6 +116,8 @@ services:
   # ── Object storage (S3 compatible) ─────────────────────────────
   # MinIO ya no publica imágenes comunitarias (minio/minio pide login). SeaweedFS (Apache-2.0)
   # expone una API S3; las credenciales salen de S3_ACCESS_KEY / S3_SECRET_KEY del .env.
+  # Cada bucket reserva 7 volúmenes: con el máximo por defecto (8) solo cabe uno, así que
+  # -volume.max=0 los calcula según el disco libre (vito-media + vito-backups).
   object-storage:
     image: chrislusf/seaweedfs:3.97
     container_name: vito-object-storage
@@ -114,9 +131,33 @@ services:
       - >
         printf '{"identities":[{"name":"vito","credentials":[{"accessKey":"%s","secretKey":"%s"}],"actions":["Admin","Read","Write","List","Tagging"]}]}'
         "$$S3_ACCESS_KEY" "$$S3_SECRET_KEY" > /tmp/s3.json
-        && exec weed server -dir=/data -s3 -s3.port=8333 -s3.config=/tmp/s3.json
+        && exec weed server -dir=/data -volume.max=0 -master.volumeSizeLimitMB=1024
+        -s3 -s3.port=8333 -s3.config=/tmp/s3.json
     volumes:
       - object_storage_data:/data
+    networks:
+      - vito-network
+
+  # ── Backup de Mongo (perfil "backup", T-I09) ──────────────────
+  # Local contra SeaweedFS:  docker compose --profile backup run --rm mongo-backup backup
+  #                          docker compose --profile backup run --rm mongo-backup restore --yes
+  mongo-backup:
+    profiles: ["backup"]
+    build: ./infrastructure/backup
+    image: vito/mongo-backup:local
+    container_name: vito-mongo-backup
+    environment:
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:?definir en .env}:${MONGO_ROOT_PASSWORD:?definir en .env}@mongodb:27017/?authSource=admin
+      S3_ENDPOINT: http://object-storage:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?definir en .env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?definir en .env}
+      S3_CREATE_BUCKET: "true"
+      BACKUP_BUCKET: ${BACKUP_BUCKET:-vito-backups}
+      BACKUP_AT: ${BACKUP_AT:-03:00}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+    depends_on:
+      - mongodb
+      - object-storage
     networks:
       - vito-network
 
@@ -193,6 +234,7 @@ services:
     container_name: vito-mosaic-service
     environment:
       <<: *java-env
+      EVENT_SERVICE_URI: http://event-service:8083  # organizador para removeMosaicItem (T-B26)
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8085/actuator/health/readiness"]
       interval: 15s
@@ -294,10 +336,60 @@ services:
       - chat-service
       - media-service
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:9080/actuator/health/readiness"]
       interval: 15s
       timeout: 5s
       start_period: 180s   # 10 JVM arrancando a la vez en un portátil
+      retries: 5
+
+  # ── Servicios FastAPI (T-B09). Puertos de contenedor = los que espera el gateway (8000/8001/8002).
+  transcode-service:
+    <<: *python-service
+    build:
+      context: ./ai-services/transcode-service
+    image: vito/transcode-service:local
+    container_name: vito-transcode-service
+    environment:
+      <<: *python-env
+      S3_ENDPOINT: http://object-storage:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?definir en .env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?definir en .env}
+    depends_on:
+      - mongodb
+      - redis
+      - kafka
+      - object-storage
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  recommendation-service:
+    <<: *python-service
+    build:
+      context: ./ai-services/recommendation-service
+    image: vito/recommendation-service:local
+    container_name: vito-recommendation-service
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health', timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  moderation-service:
+    <<: *python-service
+    build:
+      context: ./ai-services/moderation-service
+    image: vito/moderation-service:local
+    container_name: vito-moderation-service
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health', timeout=5)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 30s
       retries: 5
 
 volumes:

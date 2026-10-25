@@ -88,7 +88,7 @@ class SocialServiceImplTest {
                 SocialException.class,
                 () -> socialService.follow(command)
         );
-        assertEquals("You cannot follow yourself", exception.getMessage());
+        assertEquals("No puedes seguirte a ti mismo", exception.getMessage());
 
         verify(followRepository, never()).existsByFollowerIdAndFollowingId(any(), any());
         verify(followRepository, never()).save(any());
@@ -110,7 +110,7 @@ class SocialServiceImplTest {
                 SocialException.class,
                 () -> socialService.follow(command)
         );
-        assertEquals("You are already following this user", exception.getMessage());
+        assertEquals("Ya sigues a este usuario", exception.getMessage());
 
         verify(followRepository).existsByFollowerIdAndFollowingId("follower123", "following123");
         verify(followRepository, never()).save(any());
@@ -154,7 +154,7 @@ class SocialServiceImplTest {
                 SocialException.class,
                 () -> socialService.unfollow(command)
         );
-        assertEquals("You are not following this user", exception.getMessage());
+        assertEquals("No sigues a este usuario", exception.getMessage());
 
         verify(followRepository).existsByFollowerIdAndFollowingId("follower123", "following123");
         verify(followRepository, never()).delete(any());
@@ -197,7 +197,7 @@ class SocialServiceImplTest {
                 SocialException.class,
                 () -> socialService.getSocialProfile(userId, currentUserId)
         );
-        assertEquals("User not found", exception.getMessage());
+        assertEquals("El usuario no existe", exception.getMessage());
 
         verify(userProfileRepository).findByUserId(userId);
     }

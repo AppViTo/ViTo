@@ -120,15 +120,13 @@ class ViewerCountUpdated extends StreamingEvent {
 
 class ConnectToStream extends StreamingEvent {
   final String streamId;
-  final String baseUrl;
   
   const ConnectToStream({
     required this.streamId,
-    required this.baseUrl,
   });
   
   @override
-  List<Object?> get props => [streamId, baseUrl];
+  List<Object?> get props => [streamId];
 }
 
 class DisconnectFromStream extends StreamingEvent {
