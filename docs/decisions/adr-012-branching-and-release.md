@@ -84,3 +84,8 @@ y la volvió a activar de inmediato. Se comprobó con la API que `enforce_admins
 producción: la del PR, de un lead distinto del autor, y la del Environment. Aquí faltó la
 primera. No sienta precedente. Si se repite, hay que resolver la falta de un segundo revisor
 (D-13 lo resolvió para el rollback, no para los PRs a `main`) en lugar de volver a hacer bypass.
+
+**Segundo PR con la misma excepción (#194).** Con `fail-fast: false`, el despliegue siguiente
+mostró que Trivy rechazaba las 13 imágenes. Se usó el mismo procedimiento, con el mismo acuerdo
+entre los leads, para mergear #194: Trivy en modo informe hasta el 2026-11-07, con la excepción
+A9 de `backend/SECURITY_CHECKLIST.md` y la tarea T-B31. Alex revisa #194 junto con #192.
