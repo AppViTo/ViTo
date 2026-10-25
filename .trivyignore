@@ -7,3 +7,20 @@
 #   # Motivo: <por qué no aplica o por qué no se puede arreglar todavía>
 #   # Aprobó: @lead1, @lead2 (PR #N) · Vence: AAAA-MM-DD
 #   CVE-AAAA-NNNNN
+
+# Motivo: Go stdlib y golang.org/x/net dentro de mongodump/mongorestore de la imagen oficial
+# mongo:7.0 (database tools). Solo hablan con Mongo por la red interna de Compose, sin TLS, y
+# no sirven HTTP: no aplican la denegación de servicio por HTTP/2, Range ni ECH. El x509
+# (CVE-2026-111943) exige TLS, que esa conexión no usa. Se quita al subir la imagen base cuando
+# MongoDB publique las tools con Go >= 1.27.3 y x/net >= 0.60.0.
+# Aprobó: @bamg359, @alexvilla01 (PR del hotfix mongo-backup) · Vence: 2026-11-23
+CVE-2026-78667
+CVE-2026-78669
+CVE-2026-97031
+
+# Motivo: crypto/x509 (MITM con intermedios no confiables) en mongodump/mongorestore (ver
+# arriba) y en rclone 1.75.2, la última versión publicada, compilada con Go 1.27.2. rclone
+# solo se conecta al endpoint de R2; el ataque exige estar en la ruta VPS → Cloudflare. Se quita
+# al subir rclone a una versión compilada con Go >= 1.27.3.
+# Aprobó: @bamg359, @alexvilla01 (PR del hotfix mongo-backup) · Vence: 2026-11-23
+CVE-2026-111943

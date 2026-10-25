@@ -131,7 +131,9 @@ jobs:
     permissions:
       contents: read
     strategy:
-      fail-fast: true
+      # Sin fail-fast: una imagen rechazada por Trivy no cancela el escaneo de las demás, así
+      # una sola corrida muestra todas. Deploy igual exige que todo el build salga bien.
+      fail-fast: false
       matrix:
         service: ${{ fromJSON(needs.changes.outputs.matrix) }}
 
