@@ -77,6 +77,7 @@
 | T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🟢 READY | — |
 | T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🟢 READY | — |
 | T-B30 | JWT con firma asimétrica (RS256/ES256 + JWKS) | B | P1 | 🔴 BLOQUEADA (requiere spec) | — |
+| T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | 🟢 READY (empieza por la spec) | — |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
@@ -580,6 +581,21 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   convivencia con los tokens vigentes. Relacionado: el refresh no revoca el access token
   anterior (el request no lo trae; requiere RFC al contrato) y las copias de
   `JwtAuthenticationFilter` no consultan la revocación (se resuelve con T-B18).
+
+### T-B31 · Spring Boot con soporte en los 10 servicios Java — 🟢 READY (empieza por la spec, Principio X) · P0 · Principio III, excepción A9
+- **Por qué:** el primer escaneo real de Trivy (release 0.1.0) encontró de 39 a 57 CVE
+  HIGH/CRITICAL con arreglo por imagen Java: Spring Boot 3.2.12 ya no tiene soporte. Algunos
+  CRITICAL (`spring-webmvc`, `spring-webflux`) solo tienen arreglo en Spring Framework 7. La
+  excepción A9 deja Trivy en modo informe **hasta el 2026-11-07**; desde el 2026-11-08
+  vuelve a bloquear todo despliegue.
+- **Qué:** spec corta con Spec Kit (absorbe T-B10, versiones unificadas): versión destino
+  (Spring Boot 4.0.x con Spring Cloud compatible para el gateway, o la 3.5.x más reciente si
+  cubre los CRITICAL), pasos de migración por servicio y riesgos (Jackson 3, Jakarta, Spring
+  Security 7, propiedades del gateway). Luego la migración, con un parent POM si T-B18 ya
+  existe.
+- **Cierre:** los 10 servicios en la versión destino, CI verde y un `cd.yml` con Trivy
+  bloqueante sin CVE HIGH/CRITICAL con arreglo fuera de `.trivyignore`. Se cierran la
+  excepción A9 y T-B10.
 
 ---
 
