@@ -20,6 +20,9 @@ WORKDIR /app
 COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
 
+# setuptools y wheel solo hacen falta para instalar; sus copias vendorizadas tienen CVE (Trivy)
+RUN pip uninstall -y setuptools wheel
+
 # Copy application code
 COPY . .
 
