@@ -726,6 +726,10 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** un PR que solo toca `frontend/` no ejecuta jobs de backend, y viceversa.
 
 ### T-I13 · Observabilidad con Grafana Cloud — 🟢 READY · P1 · Principio VI
+- **Avance (2026-10-24, mínimo para el evento):** `https://api.<dominio>/healthz` (T037 de la
+  feature 001, hotfix #192) expone solo la readiness del gateway para el check de uptime de
+  Grafana Cloud, con aviso a Telegram. Falta lo demás: Alloy, OTel, logs JSON, tablero y
+  alertas (T034–T036, T038–T041, T053).
 - **Qué:** Grafana Alloy (u OTel Collector) en el VPS que envía métricas, logs y trazas a
   Grafana Cloud free; dashboard RED del gateway; alertas de caída y de disco/RAM > 80 % a
   ambos leads; monitor de uptime externo. Alertas de picos de `401` y `429` en el gateway
