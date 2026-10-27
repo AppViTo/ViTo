@@ -15,16 +15,6 @@ class HomeUser extends Equatable {
     this.notificationCount = 0,
   });
 
-  factory HomeUser.mock() {
-    return const HomeUser(
-      id: 'u1',
-      displayName: 'Alex',
-      username: '@alex_villa',
-      avatar: null,
-      notificationCount: 5,
-    );
-  }
-
   @override
   List<Object?> get props => [id, displayName, avatar, username, notificationCount];
 }

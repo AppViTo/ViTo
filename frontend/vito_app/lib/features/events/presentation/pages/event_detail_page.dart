@@ -33,20 +33,43 @@ class _EventDetailPageState extends State<EventDetailPage> {
             );
           }
 
+          // Sin AppBar en este estado: el botón de volver evita que el usuario
+          // quede atrapado cuando el evento no existe (Bug-F01).
           if (state is EventError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+            return SafeArea(
+              child: Stack(
                 children: [
-                  const Icon(Icons.error_outline, size: 64, color: AppColors.error),
-                  const SizedBox(height: 16),
-                  Text(state.message),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<EventBloc>().add(LoadEvent(widget.eventId));
-                    },
-                    child: const Text('Retry'),
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      tooltip: 'Volver',
+                      onPressed: () => Navigator.of(context).maybePop(),
+                    ),
+                  ),
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+                          const SizedBox(height: 16),
+                          Text(state.message, textAlign: TextAlign.center),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () {
+                              context.read<EventBloc>().add(LoadEvent(widget.eventId));
+                            },
+                            child: const Text('Reintentar'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).maybePop(),
+                            child: const Text('Volver'),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),

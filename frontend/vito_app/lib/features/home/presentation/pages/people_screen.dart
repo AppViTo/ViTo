@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../data/models/home_models.dart';
-import '../../data/services/mock_api_service.dart';
 
 class PeopleScreen extends StatefulWidget {
   const PeopleScreen({super.key});
@@ -14,27 +12,11 @@ class PeopleScreen extends StatefulWidget {
 
 enum PeopleFilter { amigos, seguidos, sugerencias }
 
+/// El grafo social (amigos, seguidos, sugerencias) aún no está en el contrato
+/// (Ola 2, T-F02). Hasta entonces la pantalla muestra estados vacíos: nunca
+/// datos de ejemplo, que se le mostraban a cualquier usuario (Bug-F06).
 class _PeopleScreenState extends State<PeopleScreen> {
-  final MockApiService _api = MockApiService();
-  List<ActiveFriend> _friends = [];
-  bool _isLoading = true;
   PeopleFilter _selectedFilter = PeopleFilter.amigos;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadFriends();
-  }
-
-  Future<void> _loadFriends() async {
-    final friends = await _api.getActiveFriends();
-    if (mounted) {
-      setState(() {
-        _friends = friends;
-        _isLoading = false;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,96 +141,34 @@ class _PeopleScreenState extends State<PeopleScreen> {
   }
 
   Widget _buildContent() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.coralNeon));
-    }
+    final (icon, message) = switch (_selectedFilter) {
+      PeopleFilter.amigos => (Icons.people_outline_rounded, 'Aún no tienes amigos'),
+      PeopleFilter.seguidos => (Icons.person_add_alt_rounded, 'Aún no sigues a nadie'),
+      PeopleFilter.sugerencias => (Icons.explore_outlined, 'Aún no hay sugerencias para ti'),
+    };
 
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      itemCount: _friends.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 4),
-      itemBuilder: (context, index) {
-        final friend = _friends[index];
-        return _buildFriendTile(friend);
-      },
-    );
-  }
-
-  Widget _buildFriendTile(ActiveFriend friend) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161D2F),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.lavandaPale.withValues(alpha: 0.2),
-                ),
-                child: Center(
-                  child: Text(
-                    friend.displayName[0].toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.blancoHielo,
-                    ),
-                  ),
-                ),
-              ),
-              if (friend.isOnline)
-                Positioned(
-                  bottom: 0,
-                  right: 0,
-                  child: Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.online,
-                      border: Border.all(color: const Color(0xFF161D2F), width: 2),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  friend.displayName,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.blancoHielo,
-                  ),
-                ),
-                if (friend.currentActivity != null)
-                  Text(
-                    friend.currentActivity!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.coralNeon,
-                    ),
-                  ),
-              ],
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 48,
+              color: AppColors.textSecondary.withValues(alpha: 0.3),
             ),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.message_rounded, size: 20, color: AppColors.textSecondary),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
