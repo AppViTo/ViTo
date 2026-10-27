@@ -133,12 +133,12 @@ depende del contrato.
 
 | ID | Bug | Prioridad | Estado | Jira |
 |----|-----|-----------|--------|------|
-| Bug-F01 | Eventos mock en producción que dan 404 y Retry no permite volver | P0 | 🔵 EN CURSO (frontend/fix-dashboard-mocks) | [VITO-76](https://bernardo-mira.atlassian.net/browse/VITO-76) |
-| Bug-F02 | El nombre del dashboard es fijo, no el del usuario con sesión | P0 | 🔵 EN CURSO (frontend/fix-dashboard-mocks) | [VITO-77](https://bernardo-mira.atlassian.net/browse/VITO-77) |
+| Bug-F01 | Eventos mock en producción que dan 404 y Retry no permite volver | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-76](https://bernardo-mira.atlassian.net/browse/VITO-76) |
+| Bug-F02 | El nombre del dashboard es fijo, no el del usuario con sesión | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-77](https://bernardo-mira.atlassian.net/browse/VITO-77) |
 | Bug-F03 | El evento creado no aparece en próximos eventos ni hay lista de "mis eventos" | P0 | 🟢 READY (el home ya carga `scope=mine`; falta la sección propia) | [VITO-78](https://bernardo-mira.atlassian.net/browse/VITO-78) |
-| Bug-F04 | Quitar los datos mock del dashboard y mostrar estados vacíos | P0 | 🔵 EN CURSO (frontend/fix-dashboard-mocks) | [VITO-79](https://bernardo-mira.atlassian.net/browse/VITO-79) |
-| Bug-F05 | El buscador solo encuentra eventos mock | P0 | 🔵 EN CURSO (frontend/fix-dashboard-mocks) | [VITO-80](https://bernardo-mira.atlassian.net/browse/VITO-80) |
-| Bug-F06 | "Mi Gente" muestra amigos mock a cualquier usuario (privacidad) | P0 | 🔵 EN CURSO (frontend/fix-dashboard-mocks) | [VITO-81](https://bernardo-mira.atlassian.net/browse/VITO-81) |
+| Bug-F04 | Quitar los datos mock del dashboard y mostrar estados vacíos | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-79](https://bernardo-mira.atlassian.net/browse/VITO-79) |
+| Bug-F05 | El buscador solo encuentra eventos mock | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-80](https://bernardo-mira.atlassian.net/browse/VITO-80) |
+| Bug-F06 | "Mi Gente" muestra amigos mock a cualquier usuario (privacidad) | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-81](https://bernardo-mira.atlassian.net/browse/VITO-81) |
 
 - **Bug-F04 y Bug-F06:** retirar `MockApiService`. Sin datos reales, mostrar "Aún no tienes
   eventos para asistir", "Aún no tienes amigos", "Aún no hay historias por mostrar" y "No hay
@@ -148,6 +148,38 @@ depende del contrato.
 - **Bug-F02:** el saludo toma el nombre del `AuthBloc` (como ya hace `people_screen.dart`).
 - **Bug-F03 y Bug-F05:** el home carga `scope=upcoming` y `scope=mine`, y el buscador filtra
   sobre esos datos. Si "mis eventos" necesita una sección propia en el home, se diseña ahí.
+
+### Triage del 2026-10-27: Bug-F07 y la hora de los eventos
+
+| ID | Bug | Prioridad | Estado | Jira |
+|----|-----|-----------|--------|------|
+| Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | 🟢 READY | — (reportado junto con [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82); falta su issue) |
+| Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟡 RFC (`updateEvent` entra al contrato en la Ola 1) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
+
+- **Bug-B01, causa:** la app envía bien la hora. `create_event_screen.dart` toma las 20:00
+  locales y `EventDetailsModel.toJson` las manda en UTC (`2026-12-10T01:00:00.000Z`), como pide
+  el contrato. Pero `event-service` guarda `details.startDate`/`endDate` como `LocalDateTime`:
+  Jackson descarta la `Z` y responde `2026-12-10T01:00:00`, sin zona. La app lo lee con
+  `DateTime.parse`, que interpreta un texto sin zona como hora local, y muestra la 1:00 am. La
+  diferencia de 5 h es la de Bogotá (UTC−5) con UTC. Coincide con Londres solo porque en
+  diciembre Londres está en UTC.
+- **Bug-B01, arreglo (sin RFC, el contrato ya dice "ISO-8601 UTC con sufijo Z"):**
+  - Backend: `startDate`, `endDate`, `createdAt` y `updatedAt` del evento como `Instant`, y
+    `Instant.now()` en el filtro de `/events?scope=upcoming` (`EventMongoAdapter`). Los
+    contenedores corren en UTC, así que los documentos guardados ya representan el instante
+    correcto y no hace falta migrar datos.
+  - Frontend: `EventDetailsModel.fromJson` y `EventModel.fromJson` convierten con `.toLocal()`
+    para mostrar la hora del dispositivo.
+  - Prueba: crear a las 20:00 en Bogotá, leer `getEvent` y ver `01:00:00Z` en la respuesta y
+    8:00 pm en la app.
+  - Los eventos ya creados se corrigen solos con el arreglo, porque el dato guardado era correcto.
+- **Bug-F07:** procede como defecto (un organizador no puede corregir su propio evento), pero
+  `PUT /events/{eventId}` no está en el contrato: el inventario lo marca para publicar en la
+  Ola 1. `event-service` ya tiene el `@PutMapping` y la app tiene `UpdateEvent` en el bloc, sin
+  pantalla. Requiere el RFC de `updateEvent` (o adelantar esa operación de la Ola 1) antes de
+  implementar la pantalla de edición.
+- **Notificar a los invitados de los cambios** (pedido en VITO-82) **no procede como bug:** es
+  una feature nueva sin contrato de notificaciones. Va al backlog de features, no a esta tabla.
 
 ---
 
