@@ -18,6 +18,20 @@
 | ✅ `HECHA` | Mergeada con su criterio de cierre verificado. |
 | ⚪ `REEMPLAZADA` / `DIFERIDA` | Ya no aplica en la fase actual (se indica qué la reemplaza o cuándo vuelve). |
 
+## Bugs reportados en Jira
+
+Un issue de VITO cuyo resumen empieza con `Bug-` (p. ej. `Bug-F01 · …`) es la única
+excepción al sentido repo → Jira: nace en Jira y entra al backlog por triage.
+
+1. **Triage:** leer el reporte y sus capturas, ubicar la causa en el código y decidir si
+   procede (es reproducible o evidente en el código, y es un defecto, no una feature nueva).
+2. **Si procede:** se registra en la sección [Bugs de producción](#bugs-de-producción) con su
+   mismo ID (`Bug-F01`, `Bug-B01`…), prioridad **P0** y enlace al issue. Queda 🟢 `READY` si se
+   arregla con lo que ya está en el contrato; si necesita un endpoint nuevo, la parte que falta
+   va como 🟡 `RFC` y el resto se arregla igual.
+3. **Si no procede:** se comenta en el issue el motivo (duplicado, no reproducible, es una
+   feature) y no entra al backlog.
+
 ## Pistas y dueño sugerido
 
 | Pista | Prefijo | Dueño sugerido | Rama |
@@ -105,6 +119,34 @@ Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-B0
 Desbloqueadas el 2026-10-24: T-C07 Ola 3 (D-08), T-B07 y T-F08 (T-C06 hecha en #147), y T-I11
 (Pages, dominio, secretos y variables listos en T-I06).
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
+
+---
+
+## Bugs de producción
+
+Triage del 2026-10-26 (release 0.1.0). Causa común: `home_screen.dart` y `people_screen.dart`
+leen de `MockApiService` en vez del backend. Los eventos ya tienen contrato
+(`GET /events?scope=mine|upcoming`, T-C06/T-F08); amigos, historias y transmisiones en vivo
+todavía no (Olas 1–2), así que se muestran vacíos. Esto adelanta la parte de T-F02 que no
+depende del contrato.
+
+| ID | Bug | Prioridad | Estado | Jira |
+|----|-----|-----------|--------|------|
+| Bug-F01 | Eventos mock en producción que dan 404 y Retry no permite volver | P0 | 🔵 EN CURSO (frontend/fix-dashboard-mocks) | [VITO-76](https://bernardo-mira.atlassian.net/browse/VITO-76) |
+| Bug-F02 | El nombre del dashboard es fijo, no el del usuario con sesión | P0 | 🔵 EN CURSO (frontend/fix-dashboard-mocks) | [VITO-77](https://bernardo-mira.atlassian.net/browse/VITO-77) |
+| Bug-F03 | El evento creado no aparece en próximos eventos ni hay lista de "mis eventos" | P0 | 🟢 READY (el home ya carga `scope=mine`; falta la sección propia) | [VITO-78](https://bernardo-mira.atlassian.net/browse/VITO-78) |
+| Bug-F04 | Quitar los datos mock del dashboard y mostrar estados vacíos | P0 | 🔵 EN CURSO (frontend/fix-dashboard-mocks) | [VITO-79](https://bernardo-mira.atlassian.net/browse/VITO-79) |
+| Bug-F05 | El buscador solo encuentra eventos mock | P0 | 🔵 EN CURSO (frontend/fix-dashboard-mocks) | [VITO-80](https://bernardo-mira.atlassian.net/browse/VITO-80) |
+| Bug-F06 | "Mi Gente" muestra amigos mock a cualquier usuario (privacidad) | P0 | 🔵 EN CURSO (frontend/fix-dashboard-mocks) | [VITO-81](https://bernardo-mira.atlassian.net/browse/VITO-81) |
+
+- **Bug-F04 y Bug-F06:** retirar `MockApiService`. Sin datos reales, mostrar "Aún no tienes
+  eventos para asistir", "Aún no tienes amigos", "Aún no hay historias por mostrar" y "No hay
+  transmisiones en vivo de tus eventos".
+- **Bug-F01:** desaparece con Bug-F04. Además, Retry en el detalle de un evento 404 debe
+  permitir volver atrás.
+- **Bug-F02:** el saludo toma el nombre del `AuthBloc` (como ya hace `people_screen.dart`).
+- **Bug-F03 y Bug-F05:** el home carga `scope=upcoming` y `scope=mine`, y el buscador filtra
+  sobre esos datos. Si "mis eventos" necesita una sección propia en el home, se diseña ahí.
 
 ---
 
