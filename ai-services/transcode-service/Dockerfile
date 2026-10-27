@@ -21,14 +21,18 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install runtime dependencies
+# Install runtime dependencies (con las actualizaciones de seguridad de Debian: Trivy)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
+    && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
+
+# setuptools y wheel solo hacen falta para instalar; sus copias vendorizadas tienen CVE (Trivy)
+RUN pip uninstall -y setuptools wheel
 
 # Copy application code
 COPY . .

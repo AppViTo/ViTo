@@ -24,8 +24,10 @@ trap cleanup EXIT
 
 docker network create "$NAME" >/dev/null
 
-docker run -d --name "$NAME-gateway" --network "$NAME" --network-alias api-gateway "$IMAGE" \
-  caddy respond --listen :8080 --header "Server: upstream-gateway" gateway >/dev/null
+# gateway: borde en 8080 y actuator en 9080, que responde la ruta que recibe (T037)
+docker run -d --name "$NAME-gateway" --network "$NAME" --network-alias api-gateway --entrypoint sh "$IMAGE" -c \
+  'caddy respond --listen :9080 --header "Server: upstream-gateway" "{http.request.uri.path}" & exec caddy respond --listen :8080 --header "Server: upstream-gateway" gateway' \
+  >/dev/null
 
 # srs: señalización WebRTC en 1985 y reproducción en 8080, como en el Caddyfile
 docker run -d --name "$NAME-srs" --network "$NAME" --network-alias srs --entrypoint sh "$IMAGE" -c \
@@ -71,6 +73,14 @@ check() {
 
 check api.localhost / 200                  # proxied al gateway
 check api.localhost /actuator/health 404   # respond de Caddy
+check api.localhost /healthz 200           # readiness del gateway por 9080 (T037)
+
+# /healthz llega al gateway como /actuator/health/readiness y nada más
+body="$(curl -ksS --resolve "api.localhost:$PORT:127.0.0.1" "https://api.localhost:$PORT/healthz")"
+if [ "$body" != "/actuator/health/readiness" ]; then
+  echo "  ✗ /healthz llegó al gateway como '$body'"
+  failures=$((failures + 1))
+fi
 check live.localhost /rtc/v1/whip/ 200     # proxied a srs:1985
 check live.localhost /live/evt_1.m3u8 200  # proxied a srs:8080
 check live.localhost /api/v1/clients 404   # API de gestión de SRS, cerrada

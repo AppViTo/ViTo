@@ -91,6 +91,7 @@ excepción al sentido repo → Jira: nace en Jira y entra al backlog por triage.
 | T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🟢 READY | — |
 | T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🟢 READY | — |
 | T-B30 | JWT con firma asimétrica (RS256/ES256 + JWKS) | B | P1 | 🔴 BLOQUEADA (requiere spec) | — |
+| T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | 🟢 READY (empieza por la spec) | — |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
@@ -623,6 +624,21 @@ depende del contrato.
   anterior (el request no lo trae; requiere RFC al contrato) y las copias de
   `JwtAuthenticationFilter` no consultan la revocación (se resuelve con T-B18).
 
+### T-B31 · Spring Boot con soporte en los 10 servicios Java — 🟢 READY (empieza por la spec, Principio X) · P0 · Principio III, excepción A9
+- **Por qué:** el primer escaneo real de Trivy (release 0.1.0) encontró de 39 a 57 CVE
+  HIGH/CRITICAL con arreglo por imagen Java: Spring Boot 3.2.12 ya no tiene soporte. Algunos
+  CRITICAL (`spring-webmvc`, `spring-webflux`) solo tienen arreglo en Spring Framework 7. La
+  excepción A9 deja Trivy en modo informe **hasta el 2026-11-07**; desde el 2026-11-08
+  vuelve a bloquear todo despliegue.
+- **Qué:** spec corta con Spec Kit (absorbe T-B10, versiones unificadas): versión destino
+  (Spring Boot 4.0.x con Spring Cloud compatible para el gateway, o la 3.5.x más reciente si
+  cubre los CRITICAL), pasos de migración por servicio y riesgos (Jackson 3, Jakarta, Spring
+  Security 7, propiedades del gateway). Luego la migración, con un parent POM si T-B18 ya
+  existe.
+- **Cierre:** los 10 servicios en la versión destino, CI verde y un `cd.yml` con Trivy
+  bloqueante sin CVE HIGH/CRITICAL con arreglo fuera de `.trivyignore`. Se cierran la
+  excepción A9 y T-B10.
+
 ---
 
 ## Pista I — Infra, CI/CD e higiene
@@ -768,6 +784,10 @@ depende del contrato.
 - **Cierre:** un PR que solo toca `frontend/` no ejecuta jobs de backend, y viceversa.
 
 ### T-I13 · Observabilidad con Grafana Cloud — 🟢 READY · P1 · Principio VI
+- **Avance (2026-10-24, mínimo para el evento):** `https://api.<dominio>/healthz` (T037 de la
+  feature 001, hotfix #192) expone solo la readiness del gateway para el check de uptime de
+  Grafana Cloud, con aviso a Telegram. Falta lo demás: Alloy, OTel, logs JSON, tablero y
+  alertas (T034–T036, T038–T041, T053).
 - **Qué:** Grafana Alloy (u OTel Collector) en el VPS que envía métricas, logs y trazas a
   Grafana Cloud free; dashboard RED del gateway; alertas de caída y de disco/RAM > 80 % a
   ambos leads; monitor de uptime externo. Alertas de picos de `401` y `429` en el gateway

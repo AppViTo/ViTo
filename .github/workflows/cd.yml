@@ -131,7 +131,9 @@ jobs:
     permissions:
       contents: read
     strategy:
-      fail-fast: true
+      # Sin fail-fast: una imagen rechazada por Trivy no cancela el escaneo de las demás, así
+      # una sola corrida muestra todas. Deploy igual exige que todo el build salga bien.
+      fail-fast: false
       matrix:
         service: ${{ fromJSON(needs.changes.outputs.matrix) }}
 
@@ -172,15 +174,28 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
           outputs: type=docker,dest=${{ runner.temp }}/image.tar
 
+      # Excepción A9 de backend/SECURITY_CHECKLIST.md (release 0.1.0): hasta el 2026-11-07
+      # inclusive Trivy informa sin bloquear, mientras se sube Spring Boot (T-B31). Desde el
+      # 2026-11-08 vuelve a bloquear solo, sin tocar este archivo.
+      - name: Trivy (modo)
+        id: trivy_mode
+        run: |
+          if [[ "$(date -u +%F)" < 2026-11-08 ]]; then
+            echo "::warning::Trivy en modo informe (excepción A9, vence el 2026-11-07): no bloquea el despliegue"
+            echo "exit_code=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "exit_code=1" >> "$GITHUB_OUTPUT"
+          fi
+
       # Bloquea el despliegue ante CRITICAL/HIGH con arreglo disponible y sin excepción
-      # documentada en .trivyignore (Principio III)
+      # documentada en .trivyignore (Principio III), salvo durante la excepción A9
       - name: Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           input: ${{ runner.temp }}/image.tar
           severity: CRITICAL,HIGH
           ignore-unfixed: true
-          exit-code: '1'
+          exit-code: ${{ steps.trivy_mode.outputs.exit_code }}
           trivyignores: .trivyignore
 
       - name: Comprimir
