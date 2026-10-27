@@ -10,9 +10,13 @@
 # - El origen de media también en connect-src: CanvasKit descarga las imágenes con fetch
 #   (requiere la política CORS del bucket vito-media, runbook de aprovisionamiento, paso 5).
 #
-# Sin caché larga en /assets/*: Flutter no pone hash en esos nombres y una versión nueva no
-# llegaría a quien ya los tiene en caché. Pages revalida con ETag.
+# Cache-Control: no-cache en todo el sitio. Flutter no pone hash en ningún nombre
+# (main.dart.js, flutter_bootstrap.js, /assets/*, /canvaskit/*) y Pages los sirve por defecto
+# con max-age=14400: tras un despliegue, quien abrió la app en las últimas 4 h seguía con la
+# versión anterior (hotfix #199). Con no-cache el navegador revalida con ETag en cada carga y
+# recibe un 304 si nada cambió.
 /*
+  Cache-Control: no-cache
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   Content-Security-Policy: default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: __MEDIA_ORIGIN__; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' __API_ORIGIN__ __WS_ORIGIN__ __MEDIA_ORIGIN__ https://fonts.gstatic.com; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
   X-Frame-Options: DENY
