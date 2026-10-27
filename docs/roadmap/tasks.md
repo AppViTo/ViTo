@@ -155,6 +155,9 @@ depende del contrato.
 |----|-----|-----------|--------|------|
 | Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | 🟢 READY | — (reportado junto con [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82); falta su issue) |
 | Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟡 RFC (`updateEvent` entra al contrato en la Ola 1) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
+| Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | 🟢 READY | — (visto en la evidencia de VITO-82; falta su issue) |
+| Bug-F08 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🟢 READY | — (visto en la evidencia de VITO-82; falta su issue) |
+| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🟢 READY (ocultarlos); el enlace real, 🟡 RFC con la Ola 1 | — (falta su issue) |
 
 - **Bug-B01, causa:** la app envía bien la hora. `create_event_screen.dart` toma las 20:00
   locales y `EventDetailsModel.toJson` las manda en UTC (`2026-12-10T01:00:00.000Z`), como pide
@@ -180,6 +183,29 @@ depende del contrato.
   implementar la pantalla de edición.
 - **Notificar a los invitados de los cambios** (pedido en VITO-82) **no procede como bug:** es
   una feature nueva sin contrato de notificaciones. Va al backlog de features, no a esta tabla.
+- **Bug-B02:** `EventServiceImpl.createEvent` fija `status(DRAFT)`, pero el contrato responde
+  `PUBLISHED` (fixture `createEvent.201.json`) y no existe ninguna operación para publicar
+  (`UpdateEventCommand` ni siquiera tiene `status`). `scope=upcoming` solo lista `PUBLISHED` y
+  públicos, así que ningún evento creado desde la app aparece ahí; solo se ven en
+  `scope=mine`. Gana el contrato (ADR-010): crear en `PUBLISHED`. Los eventos ya creados en
+  `DRAFT` necesitan una actualización de una vez en Mongo (`DRAFT` → `PUBLISHED`), que se corre
+  con el despliegue. Si los leads quieren borradores de verdad, eso es una feature nueva con RFC.
+- **Bug-F08:** la app está en español (`app_localization_test.dart`), pero
+  `event_detail_page.dart` tiene los textos en inglés. Pasarlos al español, incluidos los estados
+  (`Draft` → "Borrador", `Private` → "Privado") y la fecha, que sale como "Saturday, December 26"
+  porque el `DateFormat` no recibe la locale `es`.
+- **Bug-F09:** `create_event_screen.dart` muestra "Copiar enlace de invitación" ("Se crea con el
+  evento y caduca en 7 días") y "Enviar por WhatsApp", pero `_inviteLink` nunca se asigna: los
+  dos botones solo dicen "El enlace se genera al crear el evento". Arreglo inmediato: ocultarlos
+  hasta que exista el enlace.
+- **Invitar después de crear el evento y compartir su enlace:** no es un bug, es la Ola 1 del
+  inventario. `POST /events/{eventId}/invitations` ("app + link externo") y
+  `GET /events/{eventId}/invitations` están marcados `PUBLICAR`, pero la Ola 1 no está aprobada
+  (D-08 solo aprobó la Ola 3). El backend tiene los endpoints, aunque `Invitation` solo invita a
+  usuarios registrados (`inviteeId`): no hay token ni enlace externo. Para adelantarlo: aprobar la
+  Ola 1 por D-08 (o solo estas operaciones), RFC `contract-change` con las rutas, el modelo del
+  enlace (token, caducidad de 7 días, quién puede usarlo) y sus fixtures, y después backend y
+  pantalla.
 
 ---
 
