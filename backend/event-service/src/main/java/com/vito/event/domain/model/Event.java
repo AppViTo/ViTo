@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -30,9 +30,9 @@ public class Event {
     
     private EventStatus status;
     
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
     
     /**
      * ADR-001 / Principio IX: con {@code hideAddressUntilAccepted}, la dirección exacta solo
@@ -67,8 +67,8 @@ public class Event {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class EventDetails {
-        private LocalDateTime startDate;
-        private LocalDateTime endDate;
+        private Instant startDate;
+        private Instant endDate;
         private String location;
         private String address;
         private Double latitude;

@@ -13,7 +13,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -51,7 +53,7 @@ class EventServiceImplTest {
                 .title("Test Event")
                 .description("Test Description")
                 .details(Event.EventDetails.builder()
-                        .startDate(LocalDateTime.now().plusDays(7))
+                        .startDate(Instant.now().plus(7, ChronoUnit.DAYS))
                         .location("Test Location")
                         .build())
                 .settings(Event.EventSettings.builder()
@@ -60,8 +62,8 @@ class EventServiceImplTest {
                         .build())
                 .stats(Event.EventStats.builder().build())
                 .status(Event.EventStatus.PUBLISHED)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
                 .build();
     }
 
