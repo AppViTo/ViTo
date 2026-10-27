@@ -31,9 +31,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -147,6 +145,29 @@ class ListEventsContractTest {
     }
 
     @Test
+    void scopeMine_SerializesEventDatesInUtcWithZ() throws Exception {
+        authenticateAs(ORGANIZER);
+        when(eventRepository.findByOrganizerId(ORGANIZER, 0, 20)).thenReturn(fixtureEvents("listEvents.mine.200.json"));
+
+        JsonNode event = perform(get("/api/v1/events").param("scope", "mine"), 200).get(0);
+
+        // Bug-B01: sin la Z, la app interpretaba la hora UTC como hora local (8 pm en Bogotá → 1 am)
+        assertEquals("2026-08-23T01:00:00Z", event.get("details").get("startDate").asText());
+        assertEquals("2026-08-23T07:00:00Z", event.get("details").get("endDate").asText());
+        assertTrue(event.get("createdAt").asText().endsWith("Z"));
+    }
+
+    @Test
+    void createEventDate_KeepsTheInstantSentByTheClient() throws Exception {
+        // 20:00 en Bogotá (UTC−5), como lo envía la app
+        Event.EventDetails details = mapper.readValue(
+                "{\"startDate\":\"2026-12-10T01:00:00.000Z\"}", Event.EventDetails.class);
+
+        assertEquals(Instant.parse("2026-12-10T01:00:00Z"), details.getStartDate());
+        assertTrue(mapper.writeValueAsString(details).contains("\"startDate\":\"2026-12-10T01:00:00Z\""));
+    }
+
+    @Test
     void unknownScope_Is400_AsFixture() throws Exception {
         authenticateAs(ORGANIZER);
 
@@ -213,8 +234,7 @@ class ListEventsContractTest {
 
     /**
      * CONVENTIONS §6: un campo en {@code null} equivale a uno ausente, y las fechas se comparan
-     * como instantes. event-service guarda {@code LocalDateTime} y lo serializa sin {@code Z};
-     * se interpreta como UTC, igual que el {@code Z} del cliente al deserializar.
+     * como instantes ({@code .000Z} del fixture y {@code Z} de la respuesta son el mismo).
      */
     private static JsonNode normalize(JsonNode node) {
         if (node.isObject()) {
@@ -239,11 +259,7 @@ class ListEventsContractTest {
     }
 
     private static Instant toInstant(String value) {
-        try {
-            return OffsetDateTime.parse(value).toInstant();
-        } catch (java.time.format.DateTimeParseException withoutOffset) {
-            return LocalDateTime.parse(value).toInstant(ZoneOffset.UTC);
-        }
+        return OffsetDateTime.parse(value).toInstant();
     }
 
     private static boolean isAbsentOrNull(JsonNode node, String field) {

@@ -9,7 +9,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,7 +55,7 @@ public class EventMongoAdapter implements EventRepository {
         // Solo eventos públicos: los privados se ven por invitación (T-B17, ADR-014)
         Query query = new Query(Criteria.where("status").is(Event.EventStatus.PUBLISHED)
                 .and("settings.isPublic").is(true)
-                .and("details.startDate").gte(LocalDateTime.now()))
+                .and("details.startDate").gte(Instant.now()))
                 .with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "details.startDate"))
                 .skip((long) page * size)
                 .limit(size);
