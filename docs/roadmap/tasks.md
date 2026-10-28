@@ -156,7 +156,7 @@ depende del contrato.
 | Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | 🟢 READY | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
 | Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟡 RFC (`updateEvent` entra al contrato en la Ola 1) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
 | Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | 🟢 READY | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
-| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🟢 READY (avisar en la pantalla); la búsqueda real, 🟡 RFC (`/social/search` es Ola 2) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
+| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🟢 READY (avisar en la pantalla); la búsqueda real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
 | Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🟢 READY | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
 | Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🟢 READY (ocultarlos); el enlace real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
 
@@ -198,9 +198,10 @@ depende del contrato.
   algo que no funciona.
   - Arreglo inmediato (READY): cuando la búsqueda vuelva vacía, decir que la búsqueda de usuarios
     aún no está disponible en lugar de "no encontramos a nadie", o esconder la caja.
-  - Arreglo real (RFC): adelantar `searchUsers` de la Ola 2 (o sumarlo al RFC #204 de
-    invitaciones) e implementar la búsqueda en `social-service` (índice de texto sobre nombre y
-    `@usuario`, sin exponer email).
+  - Arreglo real: `searchUsers` se sumó al RFC #204 como adelanto de la Ola 2. Implementarlo
+    no basta: `social-service` busca en su colección `user_profiles` y nadie la llena
+    (`auth-service` publica el registro en `user-events`, pero ningún servicio lo consume). El
+    RFC pide consumir ese tópico y hacer una carga inicial de los usuarios que ya existen.
 - **Bug-F10** (antes se registró como Bug-F08; se renombró porque VITO-83 ya usaba ese ID):
   la app está en español (`app_localization_test.dart`), pero
   `event_detail_page.dart` tiene los textos en inglés. Pasarlos al español, incluidos los estados
