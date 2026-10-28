@@ -97,7 +97,7 @@ excepción al sentido repo → Jira: nace en Jira y entra al backlog por triage.
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
 | T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY | [VITO-51](https://bernardo-mira.atlassian.net/browse/VITO-51) |
 | T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | ✅ HECHA (manual, 2026-10-24; pendientes menores en ADR-013) | [VITO-45](https://bernardo-mira.atlassian.net/browse/VITO-45) |
-| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔵 EN CURSO (release 0.1.0: falta el preflight y el primer despliegue) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
+| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔵 EN CURSO (despliegue verificado; falta ensayar el rollback) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
 | T-I11 | Frontend web en Cloudflare Pages, con la CSP/HSTS de la web (antes en T-I18) | I/F | P1 | 🔵 EN CURSO (#179 · falta verificar en prod) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
 | T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🟢 READY | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔵 EN CURSO (#167 · falta el ensayo manual) | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
@@ -756,13 +756,18 @@ depende del contrato.
   `docker compose ... up` en local con un `.env` de prueba levanta todo dentro de 12 GB
   (`docker stats` en el PR).
 
-### T-I08 · Pipeline de despliegue — 🔵 EN CURSO (release 0.1.0) · P0 · O-12, ADR-011, ADR-012
+### T-I08 · Pipeline de despliegue — 🔵 EN CURSO (despliegue verificado; falta ensayar el rollback) · P0 · O-12, ADR-011, ADR-012
 - **Qué:** rehacer `cd.yml`: al entrar un commit a `main`, construir solo las imágenes de
   los servicios cambiados (tag = SHA), copiarlas al VPS con `docker save | ssh docker load`,
   ejecutar `docker compose up -d` con el nuevo `IMAGE_TAG` y verificar los healthchecks.
   Rollback manual con `workflow_dispatch` indicando un SHA anterior.
-- **Cierre:** un merge a `main` despliega sin intervención; el rollback a un SHA anterior
-  funciona y queda documentado en el runbook.
+- **Avance (verificado en GitHub, 2026-10-28):** preflight con `mode=preflight` en
+  `production-preflight` (run 40146636934, `success`, 2026-10-25). Despliegues a `production-hotfix`
+  exitosos: run 40159629811 (#194, tag `v0.1.0`, 2026-10-25) y run 40438818788 (#199, 0.1.1,
+  2026-10-27). Pendiente: el hotfix #201 (cabeceras de la web) no salió; su aprobación venció
+  (`Expire Approvals`) y el despliegue quedó en `error`.
+- **Cierre:** un merge a `main` despliega sin intervención (cumplido); el rollback a un SHA anterior
+  funciona y queda documentado en el runbook (pendiente: `rollback.yml` no tiene ninguna ejecución).
 - **Diseño y tareas:** [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md).
   El triage de seguridad (T051) exige Trivy, gitleaks y Dependabot (T048–T050) antes del
   primer release.
