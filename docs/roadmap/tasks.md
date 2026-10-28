@@ -153,11 +153,12 @@ depende del contrato.
 
 | ID | Bug | Prioridad | Estado | Jira |
 |----|-----|-----------|--------|------|
-| Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | 🟢 READY | — (reportado junto con [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82); falta su issue) |
+| Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | 🟢 READY | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
 | Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟡 RFC (`updateEvent` entra al contrato en la Ola 1) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
-| Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | 🟢 READY | — (visto en la evidencia de VITO-82; falta su issue) |
-| Bug-F08 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🟢 READY | — (visto en la evidencia de VITO-82; falta su issue) |
-| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🟢 READY (ocultarlos); el enlace real, 🟡 RFC con la Ola 1 | — (falta su issue) |
+| Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | 🟢 READY | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
+| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🟢 READY (avisar en la pantalla); la búsqueda real, 🟡 RFC (`/social/search` es Ola 2) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
+| Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🟢 READY | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
+| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🟢 READY (ocultarlos); el enlace real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
 
 - **Bug-B01, causa:** la app envía bien la hora. `create_event_screen.dart` toma las 20:00
   locales y `EventDetailsModel.toJson` las manda en UTC (`2026-12-10T01:00:00.000Z`), como pide
@@ -190,7 +191,18 @@ depende del contrato.
   `scope=mine`. Gana el contrato (ADR-010): crear en `PUBLISHED`. Los eventos ya creados en
   `DRAFT` necesitan una actualización de una vez en Mongo (`DRAFT` → `PUBLISHED`), que se corre
   con el despliegue. Si los leads quieren borradores de verdad, eso es una feature nueva con RFC.
-- **Bug-F08:** la app está en español (`app_localization_test.dart`), pero
+- **Bug-F08 (VITO-83):** `create_event_screen.dart` busca invitados con `GET /social/search`, pero
+  `SocialServiceImpl.searchUsers` es un stub que siempre devuelve una lista vacía ("For now, we'll
+  return an empty list"). Además, la operación no está en el contrato: el inventario la marca
+  `PUBLICAR` en la Ola 2, sin aprobar por D-08. Procede como defecto, porque la pantalla ofrece
+  algo que no funciona.
+  - Arreglo inmediato (READY): cuando la búsqueda vuelva vacía, decir que la búsqueda de usuarios
+    aún no está disponible en lugar de "no encontramos a nadie", o esconder la caja.
+  - Arreglo real (RFC): adelantar `searchUsers` de la Ola 2 (o sumarlo al RFC #204 de
+    invitaciones) e implementar la búsqueda en `social-service` (índice de texto sobre nombre y
+    `@usuario`, sin exponer email).
+- **Bug-F10** (antes se registró como Bug-F08; se renombró porque VITO-83 ya usaba ese ID):
+  la app está en español (`app_localization_test.dart`), pero
   `event_detail_page.dart` tiene los textos en inglés. Pasarlos al español, incluidos los estados
   (`Draft` → "Borrador", `Private` → "Privado") y la fecha, que sale como "Saturday, December 26"
   porque el `DateFormat` no recibe la locale `es`.
