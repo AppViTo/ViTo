@@ -220,6 +220,29 @@ depende del contrato.
   enlace (token, caducidad de 7 días, quién puede usarlo) y sus fixtures, y después backend y
   pantalla.
 
+### Triage del 2026-10-28: recuperar contraseña
+
+| ID | Bug | Prioridad | Estado | Jira |
+|----|-----|-----------|--------|------|
+| Bug-F11 | "¿Olvidaste tu contraseña?" no hace nada: quien olvida su contraseña pierde la cuenta | P0 | 🟢 READY (decir qué hacer); el flujo real, 🟡 RFC | [VITO-89](https://bernardo-mira.atlassian.net/browse/VITO-89) |
+
+- **Causa:** en `login_page.dart`, `_buildForgotPassword` tiene `onPressed: () {}`. Detrás no hay
+  nada en ninguna capa: el contrato no tiene operaciones de recuperación, el inventario no las
+  lista en ninguna ola, `auth-service` no tiene endpoints ni tokens de restablecimiento, y no hay
+  correo transaccional (Resend está elegido en ADR-011, pero su configuración sigue pendiente en
+  T-I06).
+- **Arreglo inmediato (READY, solo frontend):** que el botón abra un aviso con qué hacer mientras
+  tanto (escribir al correo de soporte del equipo, sin ponerlo en el repo) en lugar de no
+  responder. Sin contrato no se puede más.
+- **Arreglo real (RFC `contract-change`, fuera de las olas actuales):**
+  - `POST /api/v1/auth/password/forgot` `{email}`: siempre `202`, exista o no la cuenta, para no
+    revelar qué correos están registrados. Rate limit por IP y por correo.
+  - `POST /api/v1/auth/password/reset` `{token, newPassword}`: `204`; token de un solo uso,
+    aleatorio, guardado como hash, que caduca en 30–60 min; revoca los refresh tokens del usuario.
+  - Las dos rutas, públicas en el gateway (`PUBLIC_PATHS`).
+  - Correo con Resend (terminar T-I06), con el enlace `https://<app>/reset-password?token=…`.
+  - App: pantallas "Olvidé mi contraseña" y "Nueva contraseña", y la ruta web del enlace.
+
 ---
 
 ## Pista C — Contrato y tooling
