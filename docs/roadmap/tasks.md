@@ -41,6 +41,25 @@ excepción al sentido repo → Jira: nace en Jira y entra al backlog por triage.
 | Backend Java/Python | `T-B` | Agente backend | `backend/<nombre>` |
 | Infra, CI/CD, higiene | `T-I` | DevOps / cualquiera | `docs/<nombre>`, `backend/<nombre>` o `chore` |
 
+### Asignación del 2026-10-28 (agente frontend)
+
+Reparto para el agente que trabaja con Alex Villa (`@alexvilla01`, dueño de `frontend/**`,
+`docs/api/**` y `docs/roadmap/**` en CODEOWNERS). Esta sección solo indica el dueño sugerido
+de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR que tome la tarea.
+
+| ID | Tarea | Asignada a | Qué puede avanzar hoy |
+|----|-------|------------|------------------------|
+| T-C05 | `asyncapi.yaml` v0 (🟡 RFC) | Agente frontend | Redactar la propuesta con las 4 rutas WS y abrir el issue `contract-change`. No se mergea sin aprobación de 1 CODEOWNER. |
+| T-I15 | Protocolo de bloqueos entre agentes | Agente frontend | AGENT-BRIEF §7 y §9, enlace desde CONTRIBUTING y `.github/ISSUE_TEMPLATE/blocked.md`. Un solo PR. |
+| T-F09 | Prueba en dispositivo de `mobile_scanner` 7 y `share_plus` 10 | Alex Villa (manual) | Requiere teléfono físico; el agente no puede ejecutarla. Resultado por plataforma en el issue o PR. |
+
+**Sin asignar al agente frontend:**
+- **T-I23** (recomendaciones sin servicio en prod): `frontend/vito_app/lib` no consume
+  `GET /recommendations/events`, así que la parte de la app no existe todavía. El fallback
+  es del gateway (backend/infra).
+- **T-C07 Ola 3:** figura en curso en `contract/ola-3`. Confirmar con Alex antes de tocar nada
+  del contrato.
+
 ---
 
 ## Resumen: qué se puede hacer desde ya
