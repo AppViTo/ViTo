@@ -28,7 +28,6 @@ Pillow==13.0.0
 
 # Utilities
 python-dotenv==1.2.4
-python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
 
 # Monitoring
