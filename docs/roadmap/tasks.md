@@ -229,8 +229,8 @@ depende del contrato.
 - **Causa:** en `login_page.dart`, `_buildForgotPassword` tiene `onPressed: () {}`. Detrás no hay
   nada en ninguna capa: el contrato no tiene operaciones de recuperación, el inventario no las
   lista en ninguna ola, `auth-service` no tiene endpoints ni tokens de restablecimiento, y no hay
-  correo transaccional (Resend está elegido en ADR-011, pero su configuración sigue pendiente en
-  T-I06).
+  correo transaccional (Resend está elegido en ADR-011, pero su configuración quedó como
+  pendiente menor de T-I06 y figura "Por configurar" en ADR-013).
 - **Arreglo inmediato (READY, solo frontend):** que el botón abra un aviso con qué hacer mientras
   tanto (escribir al correo de soporte del equipo, sin ponerlo en el repo) en lugar de no
   responder. Sin contrato no se puede más.
