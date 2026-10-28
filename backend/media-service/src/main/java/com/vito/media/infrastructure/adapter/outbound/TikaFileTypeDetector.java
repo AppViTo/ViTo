@@ -6,6 +6,7 @@ import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
 import org.apache.tika.mime.MimeTypesFactory;
+import org.apache.tika.parser.ParseContext;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -35,7 +36,7 @@ public class TikaFileTypeDetector implements FileTypeDetectorPort {
     @Override
     public String detect(byte[] data) {
         try (TikaInputStream stream = TikaInputStream.get(data)) {
-            return mimeTypes.detect(stream, new Metadata()).getBaseType().toString();
+            return mimeTypes.detect(stream, new Metadata(), new ParseContext()).getBaseType().toString();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
