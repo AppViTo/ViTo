@@ -118,7 +118,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | ✅ HECHA (manual, 2026-10-24; pendientes menores en ADR-013) | [VITO-45](https://bernardo-mira.atlassian.net/browse/VITO-45) |
 | T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔵 EN CURSO (despliegue verificado; falta ensayar el rollback) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
 | T-I11 | Frontend web en Cloudflare Pages, con la CSP/HSTS de la web (antes en T-I18) | I/F | P1 | 🔵 EN CURSO (#179 · falta verificar en prod) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
-| T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🟢 READY | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
+| T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🟡 EN CURSO (falta T041) | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔵 EN CURSO (#167 · falta el ensayo manual) | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
 | T-I16 | Protección de rama en `main` y `develop` (tarea manual de leads) | I | P0 | ✅ HECHA (#49, manual) | [VITO-55](https://bernardo-mira.atlassian.net/browse/VITO-55) |
@@ -839,11 +839,12 @@ depende del contrato.
   feedback rápido.
 - **Cierre:** un PR que solo toca `frontend/` no ejecuta jobs de backend, y viceversa.
 
-### T-I13 · Observabilidad con Grafana Cloud — 🟢 READY · P1 · Principio VI
-- **Avance (2026-10-24, mínimo para el evento):** `https://api.<dominio>/healthz` (T037 de la
-  feature 001, hotfix #192) expone solo la readiness del gateway para el check de uptime de
-  Grafana Cloud, con aviso a Telegram. Falta lo demás: Alloy, OTel, logs JSON, tablero y
-  alertas (T034–T036, T038–T041, T053).
+### T-I13 · Observabilidad con Grafana Cloud — 🟡 EN CURSO (implementación local; falta T041) · P1 · Principio VI
+- **Avance (2026-10-29):** `https://api.<dominio>/healthz` (T037 de la feature 001, hotfix #192)
+  expone solo la readiness del gateway para el check de uptime. Implementados Alloy, OTel,
+  logs JSON, tableros y plantilla de alertas (T034–T036, T038–T040, T053). Falta crear el
+  contact point, las alertas, el check sintético y el tablero en Grafana Cloud, y probar
+  `api-down` (T041).
 - **Qué:** Grafana Alloy (u OTel Collector) en el VPS que envía métricas, logs y trazas a
   Grafana Cloud free; dashboard RED del gateway; alertas de caída y de disco/RAM > 80 % a
   ambos leads; monitor de uptime externo. Alertas de picos de `401` y `429` en el gateway

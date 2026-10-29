@@ -25,9 +25,11 @@
 #   mongo-backup ................................   384 MiB
 #   redis (maxmemory 192mb) .....................   256 MiB
 #   caddy .......................................   128 MiB
+#   alloy .......................................   256 MiB
+#   docker-socket-proxy .........................    32 MiB
 #   ─────────────────────────────────────────────────────────
-#   Total ....................................... 9.344 MiB (≈ 9,1 GiB de ~11,7 GiB del VPS;
-#                                                 ~2,5 GiB para el SO, Docker y caché de disco)
+#   Total ....................................... 9.632 MiB (≈ 9,4 GiB de ~11,7 GiB del VPS;
+#                                                 ~2,3 GiB para el SO, Docker y caché de disco)
 
 x-logging: &logging
   driver: json-file
@@ -395,12 +397,63 @@ services:
       retries: 5
     networks: [vito]
 
+  # ── Observabilidad (T-I13) ───────────────────────────────────
+  # Proxy de solo lectura para que Alloy descubra contenedores y lea logs sin
+  # montar el socket de Docker. Solo se permiten endpoints de lectura.
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:v0.5.0
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 32m
+    environment:
+      CONTAINERS: "1"
+      EVENTS: "1"
+      INFO: "1"
+      VERSION: "1"
+      PING: "1"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [vito]
+
+  # Alloy envía métricas, logs y trazas a Grafana Cloud. No publica puertos: los
+  # servicios Java lo alcanzan en alloy:4318 dentro de la red de Compose.
+  alloy:
+    image: grafana/alloy:v1.21.3
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 256m
+    command:
+      - run
+      - --server.http.listen-addr=127.0.0.1:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    environment:
+      GRAFANA_CLOUD_PROM_URL: ${GRAFANA_CLOUD_PROM_URL:?}
+      GRAFANA_CLOUD_PROM_USER: ${GRAFANA_CLOUD_PROM_USER:?}
+      GRAFANA_CLOUD_LOKI_URL: ${GRAFANA_CLOUD_LOKI_URL:?}
+      GRAFANA_CLOUD_LOKI_USER: ${GRAFANA_CLOUD_LOKI_USER:?}
+      GRAFANA_CLOUD_OTLP_URL: ${GRAFANA_CLOUD_OTLP_URL:?}
+      GRAFANA_CLOUD_OTLP_USER: ${GRAFANA_CLOUD_OTLP_USER:?}
+      GRAFANA_CLOUD_TOKEN: ${GRAFANA_CLOUD_TOKEN:?}
+    volumes:
+      - ./infrastructure/observability/config.alloy:/etc/alloy/config.alloy:ro
+      - /:/host/root:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - alloy_data:/var/lib/alloy/data
+    labels:
+      vito.config-hash: ${CFG_ALLOY:?}
+    depends_on:
+      - docker-socket-proxy
+    networks: [vito]
+
 volumes:
   mongodb_data:
   redis_data:
   kafka_data:
   caddy_data:
   caddy_config:
+  alloy_data:
 
 networks:
   vito:

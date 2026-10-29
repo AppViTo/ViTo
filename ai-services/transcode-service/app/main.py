@@ -5,11 +5,12 @@ from contextlib import asynccontextmanager
 import logging
 
 from app.core.config import settings
+from app.core.logging import configure_logging
 from app.api.v1.router import router as api_router
 from app.infrastructure.kafka.consumer import KafkaConsumer
 from app.infrastructure.kafka.producer import KafkaProducer
 
-logging.basicConfig(level=logging.INFO)
+configure_logging("transcode-service")
 logger = logging.getLogger(__name__)
 
 kafka_consumer = KafkaConsumer()
