@@ -224,7 +224,7 @@ depende del contrato.
 
 | ID | Bug | Prioridad | Estado | Jira |
 |----|-----|-----------|--------|------|
-| Bug-F11 | "¿Olvidaste tu contraseña?" no hace nada: quien olvida su contraseña pierde la cuenta | P0 | 🟢 READY (decir qué hacer); el flujo real, 🟡 RFC | [VITO-89](https://bernardo-mira.atlassian.net/browse/VITO-89) |
+| Bug-F11 | "¿Olvidaste tu contraseña?" no hace nada: quien olvida su contraseña pierde la cuenta | P0 | 🟢 READY (decir qué hacer); el flujo real, 🟡 RFC [AppViTo/ViTo#213](https://github.com/AppViTo/ViTo/issues/213) | [VITO-89](https://bernardo-mira.atlassian.net/browse/VITO-89) |
 
 - **Causa:** en `login_page.dart`, `_buildForgotPassword` tiene `onPressed: () {}`. Detrás no hay
   nada en ninguna capa: el contrato no tiene operaciones de recuperación, el inventario no las
@@ -234,7 +234,7 @@ depende del contrato.
 - **Arreglo inmediato (READY, solo frontend):** que el botón abra un aviso con qué hacer mientras
   tanto (escribir al correo de soporte del equipo, sin ponerlo en el repo) en lugar de no
   responder. Sin contrato no se puede más.
-- **Arreglo real (RFC `contract-change`, fuera de las olas actuales):**
+- **Arreglo real (RFC [AppViTo/ViTo#213](https://github.com/AppViTo/ViTo/issues/213), fuera de las olas actuales):**
   - `POST /api/v1/auth/password/forgot` `{email}`: siempre `202`, exista o no la cuenta, para no
     revelar qué correos están registrados. Rate limit por IP y por correo.
   - `POST /api/v1/auth/password/reset` `{token, newPassword}`: `204`; token de un solo uso,
