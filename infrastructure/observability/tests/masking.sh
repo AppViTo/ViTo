@@ -6,7 +6,7 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 ALLOY_IMAGE=${ALLOY_IMAGE:-grafana/alloy:v1.21.3}
 tmp=$(mktemp -d)
-trap 'rm -rf "$tmp"' EXIT
+trap 'rm -rf "$tmp" 2>/dev/null || true' EXIT
 
 cat >"$tmp/input.log" <<'EOF'
 {"level":"INFO","service":"auth-service","msg":"Authorization: Bearer abc123"}
@@ -54,7 +54,7 @@ PY
 if [[ -n ${ALLOY_BIN:-} ]]; then
   alloy=("$ALLOY_BIN")
 else
-  alloy=(docker run --rm -v "$tmp:$tmp" -w "$tmp" "$ALLOY_IMAGE")
+  alloy=(docker run --rm --user "$(id -u):$(id -g)" -v "$tmp:$tmp" -w "$tmp" "$ALLOY_IMAGE")
 fi
 
 "${alloy[@]}" validate "$tmp/mask-test.alloy"
