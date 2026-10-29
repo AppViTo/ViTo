@@ -1,0 +1,104 @@
+name: ViTo Smoke E2E
+
+# Smoke de producción (T-I21): login, listado, detalle, refresh y revocación por logout,
+# solo con endpoints de docs/api/openapi.yaml. Corre cada 15 min y tras cada despliegue.
+# Si faltan los secretos E2E_* del repositorio, no falla: avisa y se salta.
+# Operación: docs/runbooks/aprovisionamiento.md (paso 12) e incident.md (antes del evento).
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+  workflow_call:
+    secrets:
+      E2E_BASE_URL:
+        required: false
+      E2E_EMAIL:
+        required: false
+      E2E_PASSWORD:
+        required: false
+      TELEGRAM_BOT_TOKEN:
+        required: false
+      TELEGRAM_CHAT_ID:
+        required: false
+      RESEND_API_KEY:
+        required: false
+      ALERT_EMAILS:
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke-e2e
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Smoke E2E (producción)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: ¿Configurado?
+        id: cfg
+        env:
+          BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          EMAIL: ${{ secrets.E2E_EMAIL }}
+          PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: |
+          missing=()
+          if [ -z "$BASE_URL" ]; then missing+=(E2E_BASE_URL); fi
+          if [ -z "$EMAIL" ]; then missing+=(E2E_EMAIL); fi
+          if [ -z "$PASSWORD" ]; then missing+=(E2E_PASSWORD); fi
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::notice::Smoke omitido: faltan secretos del repositorio ${missing[*]} (docs/runbooks/aprovisionamiento.md, paso 12)"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Smoke E2E
+        if: steps.cfg.outputs.run == 'true'
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_EVENT_ID: ${{ vars.E2E_EVENT_ID }}
+          E2E_STRICT: ${{ vars.E2E_STRICT }}
+          E2E_TIMEOUT_MS: ${{ vars.E2E_TIMEOUT_MS }}
+        run: |
+          set -o pipefail
+          node scripts/smoke-e2e.mjs | tee smoke.log
+
+      - name: Resumen
+        if: always() && steps.cfg.outputs.run == 'true'
+        run: |
+          {
+            echo '### Smoke E2E'
+            echo ''
+            echo '```'
+            cat smoke.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Avisar
+        if: failure()
+        uses: ./.github/actions/notify
+        with:
+          subject: "ViTo · smoke E2E falló"
+          message: |
+            El smoke E2E contra producción falló.
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          telegram-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          resend-api-key: ${{ secrets.RESEND_API_KEY }}
+          alert-emails: ${{ secrets.ALERT_EMAILS }}
+          alert-from: ${{ vars.ALERT_FROM }}
