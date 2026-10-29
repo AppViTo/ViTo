@@ -172,8 +172,12 @@ depende del contrato.
 
 | ID | Bug | Prioridad | Estado | Jira |
 |----|-----|-----------|--------|------|
-| Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | 🟢 READY | — (reportado junto con [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82); falta su issue) |
+| Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | 🟢 READY | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
 | Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟡 RFC (`updateEvent` entra al contrato en la Ola 1) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
+| Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | 🟢 READY | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
+| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🟢 READY (avisar en la pantalla); la búsqueda real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
+| Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🟢 READY | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
+| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🟢 READY (ocultarlos); el enlace real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
 
 - **Bug-B01, causa:** la app envía bien la hora. `create_event_screen.dart` toma las 20:00
   locales y `EventDetailsModel.toJson` las manda en UTC (`2026-12-10T01:00:00.000Z`), como pide
@@ -199,6 +203,64 @@ depende del contrato.
   implementar la pantalla de edición.
 - **Notificar a los invitados de los cambios** (pedido en VITO-82) **no procede como bug:** es
   una feature nueva sin contrato de notificaciones. Va al backlog de features, no a esta tabla.
+- **Bug-B02:** `EventServiceImpl.createEvent` fija `status(DRAFT)`, pero el contrato responde
+  `PUBLISHED` (fixture `createEvent.201.json`) y no existe ninguna operación para publicar
+  (`UpdateEventCommand` ni siquiera tiene `status`). `scope=upcoming` solo lista `PUBLISHED` y
+  públicos, así que ningún evento creado desde la app aparece ahí; solo se ven en
+  `scope=mine`. Gana el contrato (ADR-010): crear en `PUBLISHED`. Los eventos ya creados en
+  `DRAFT` necesitan una actualización de una vez en Mongo (`DRAFT` → `PUBLISHED`), que se corre
+  con el despliegue. Si los leads quieren borradores de verdad, eso es una feature nueva con RFC.
+- **Bug-F08 (VITO-83):** `create_event_screen.dart` busca invitados con `GET /social/search`, pero
+  `SocialServiceImpl.searchUsers` es un stub que siempre devuelve una lista vacía ("For now, we'll
+  return an empty list"). Además, la operación no está en el contrato: el inventario la marca
+  `PUBLICAR` en la Ola 2, sin aprobar por D-08. Procede como defecto, porque la pantalla ofrece
+  algo que no funciona.
+  - Arreglo inmediato (READY): cuando la búsqueda vuelva vacía, decir que la búsqueda de usuarios
+    aún no está disponible en lugar de "no encontramos a nadie", o esconder la caja.
+  - Arreglo real: `searchUsers` se sumó al RFC #204 como adelanto de la Ola 2. Implementarlo
+    no basta: `social-service` busca en su colección `user_profiles` y nadie la llena
+    (`auth-service` publica el registro en `user-events`, pero ningún servicio lo consume). El
+    RFC pide consumir ese tópico y hacer una carga inicial de los usuarios que ya existen.
+- **Bug-F10** (antes se registró como Bug-F08; se renombró porque VITO-83 ya usaba ese ID):
+  la app está en español (`app_localization_test.dart`), pero
+  `event_detail_page.dart` tiene los textos en inglés. Pasarlos al español, incluidos los estados
+  (`Draft` → "Borrador", `Private` → "Privado") y la fecha, que sale como "Saturday, December 26"
+  porque el `DateFormat` no recibe la locale `es`.
+- **Bug-F09:** `create_event_screen.dart` muestra "Copiar enlace de invitación" ("Se crea con el
+  evento y caduca en 7 días") y "Enviar por WhatsApp", pero `_inviteLink` nunca se asigna: los
+  dos botones solo dicen "El enlace se genera al crear el evento". Arreglo inmediato: ocultarlos
+  hasta que exista el enlace.
+- **Invitar después de crear el evento y compartir su enlace:** no es un bug, es la Ola 1 del
+  inventario. `POST /events/{eventId}/invitations` ("app + link externo") y
+  `GET /events/{eventId}/invitations` están marcados `PUBLICAR`, pero la Ola 1 no está aprobada
+  (D-08 solo aprobó la Ola 3). El backend tiene los endpoints, aunque `Invitation` solo invita a
+  usuarios registrados (`inviteeId`): no hay token ni enlace externo. Para adelantarlo: aprobar la
+  Ola 1 por D-08 (o solo estas operaciones), RFC `contract-change` con las rutas, el modelo del
+  enlace (token, caducidad de 7 días, quién puede usarlo) y sus fixtures, y después backend y
+  pantalla.
+
+### Triage del 2026-10-28: recuperar contraseña
+
+| ID | Bug | Prioridad | Estado | Jira |
+|----|-----|-----------|--------|------|
+| Bug-F11 | "¿Olvidaste tu contraseña?" no hace nada: quien olvida su contraseña pierde la cuenta | P0 | 🟢 READY (decir qué hacer); el flujo real, 🟡 RFC [AppViTo/ViTo#213](https://github.com/AppViTo/ViTo/issues/213) | [VITO-89](https://bernardo-mira.atlassian.net/browse/VITO-89) |
+
+- **Causa:** en `login_page.dart`, `_buildForgotPassword` tiene `onPressed: () {}`. Detrás no hay
+  nada en ninguna capa: el contrato no tiene operaciones de recuperación, el inventario no las
+  lista en ninguna ola, `auth-service` no tiene endpoints ni tokens de restablecimiento, y no hay
+  correo transaccional (Resend está elegido en ADR-011, pero su configuración quedó como
+  pendiente menor de T-I06 y figura "Por configurar" en ADR-013).
+- **Arreglo inmediato (READY, solo frontend):** que el botón abra un aviso con qué hacer mientras
+  tanto (escribir al correo de soporte del equipo, sin ponerlo en el repo) en lugar de no
+  responder. Sin contrato no se puede más.
+- **Arreglo real (RFC [AppViTo/ViTo#213](https://github.com/AppViTo/ViTo/issues/213), fuera de las olas actuales):**
+  - `POST /api/v1/auth/password/forgot` `{email}`: siempre `202`, exista o no la cuenta, para no
+    revelar qué correos están registrados. Rate limit por IP y por correo.
+  - `POST /api/v1/auth/password/reset` `{token, newPassword}`: `204`; token de un solo uso,
+    aleatorio, guardado como hash, que caduca en 30–60 min; revoca los refresh tokens del usuario.
+  - Las dos rutas, públicas en el gateway (`PUBLIC_PATHS`).
+  - Correo con Resend (terminar T-I06), con el enlace `https://<app>/reset-password?token=…`.
+  - App: pantallas "Olvidé mi contraseña" y "Nueva contraseña", y la ruta web del enlace.
 
 ---
 
