@@ -85,6 +85,7 @@ jobs:
       WS_BASE_URL: ${{ vars.VITO_WS_BASE_URL }}
       MEDIA_ORIGIN: ${{ vars.VITO_MEDIA_ORIGIN }}
       PAGES_PROJECT: ${{ vars.PAGES_PROJECT }}
+      SUPPORT_EMAIL: ${{ vars.VITO_SUPPORT_EMAIL }}
 
     steps:
       - uses: actions/checkout@v7
@@ -120,7 +121,7 @@ jobs:
           flutter build web --release --no-web-resources-cdn \
             --dart-define=ENVIRONMENT=production \
             --dart-define=API_BASE_URL="$API_BASE_URL" \
-            --dart-define=WS_BASE_URL="$WS_BASE_URL"
+            --dart-define=WS_BASE_URL="$WS_BASE_URL" \n            --dart-define=SUPPORT_EMAIL="$SUPPORT_EMAIL"
 
       - name: Complete CSP origins
         env:
