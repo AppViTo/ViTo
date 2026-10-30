@@ -121,7 +121,8 @@ jobs:
           flutter build web --release --no-web-resources-cdn \
             --dart-define=ENVIRONMENT=production \
             --dart-define=API_BASE_URL="$API_BASE_URL" \
-            --dart-define=WS_BASE_URL="$WS_BASE_URL" \n            --dart-define=SUPPORT_EMAIL="$SUPPORT_EMAIL"
+            --dart-define=WS_BASE_URL="$WS_BASE_URL" \
+            --dart-define=SUPPORT_EMAIL="$SUPPORT_EMAIL"
 
       - name: Complete CSP origins
         env:
