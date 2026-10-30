@@ -76,14 +76,14 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
-            <version>2.57.0</version>
+            <version>2.57.3</version>
         </dependency>
         
         <!-- Tipo real del archivo por magic bytes (T-B19); tika-core no trae parsers -->
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
-            <version>4.1.0</version>
+            <version>4.2.0</version>
         </dependency>
         
         <!--
