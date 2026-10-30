@@ -108,7 +108,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | ✅ HECHA (#189) | — |
 | T-B27 | Logs en INFO en `prod` en los 9 servicios Java restantes | B | P1 | ✅ HECHA (#175) | — |
 | T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🟢 READY | — |
-| T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🟢 READY | — |
+| T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🔵 EN CURSO (backend/t-b29-create-event-valid) | — |
 | T-B30 | JWT con firma asimétrica (RS256/ES256 + JWKS) | B | P1 | 🔴 BLOQUEADA (requiere spec) | — |
 | T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | 🔵 EN CURSO (backend/t-b31-spring-boot-soporte, spec) | — |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
@@ -723,7 +723,7 @@ depende del contrato.
 - **Cierre:** tests de ruta inexistente (`404`), método no soportado (`405`) y petición sin
   token (`401`) con envelope en los tres servicios.
 
-### T-B29 · Validación del cuerpo en `createEvent` — 🟢 READY · P1 · CONVENTIONS §3.3
+### T-B29 · Validación del cuerpo en `createEvent` — 🔵 EN CURSO (backend/t-b29-create-event-valid) · P1 · CONVENTIONS §3.3
 - **Por qué (hallazgo de T-B03):** `createEvent` no tiene `@Valid`, así que nunca produce el
   `400` "El campo title es obligatorio" del fixture `createEvent.400`.
 - **Cierre:** test que reproduce el fixture.
