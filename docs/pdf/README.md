@@ -18,4 +18,4 @@ node tools/docs-pdf/build.mjs docs/pdf/src/<doc>.md
 
 | Documento | Audiencia | Fuentes principales | Versión | Fecha |
 |-----------|-----------|---------------------|---------|-------|
-| arquitectura | Técnica | ADR-001 a 018, CONVENTIONS, constitución (Perfiles de Despliegue), AGENT-BRIEF, tasks.md, docker-compose*.yml, Caddyfile | 1.2 (Borrador) | 2026-10-30 |
+| arquitectura | Técnica | ADR-001 a 018, CONVENTIONS, constitución (Perfiles de Despliegue), AGENT-BRIEF, tasks.md, docker-compose*.yml, Caddyfile | 1.3 (Borrador) | 2026-10-30 |

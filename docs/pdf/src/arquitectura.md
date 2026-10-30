@@ -1,7 +1,7 @@
 ---
 title: Arquitectura de ViTo
 subtitle: Fase Tracción
-version: 1.2
+version: 1.3
 date: 2026-10-30
 audience: Técnica
 status: Borrador
@@ -345,7 +345,7 @@ Fuente: docs/api/CONVENTIONS.md, docs/decisions/adr-001, 002, 003, 005, 008, 009
 | Capa | Tecnología |
 |------|------------|
 | Frontend | Flutter (Dart), Clean Architecture por feature, BLoC |
-| Backend | Java con Spring Boot, arquitectura hexagonal. Vigente en `main`: Spring Boot 3.2.12 (10 servicios); destino: 4.0.9 vía T-B31 (ver ADR-018) |
+| Backend | Java con Spring Boot, arquitectura hexagonal. En producción (`main`): Spring Boot 3.2.12; en `develop`: 4.0.9 desde T-B31 (PR #224), pendiente del release semanal (ver ADR-018) |
 | Servicios de procesamiento | Python FastAPI (transcode, moderation; recommendation diferido) |
 | Datos | MongoDB 7, Redis 7, Kafka (KRaft en producción) |
 | Streaming | SRS 5 (WebRTC y RTMP), sin transcodificar |
@@ -365,7 +365,7 @@ El ADR-018 propone llevar los 10 servicios a **Spring Boot 4.0.9** (Spring Frame
 | Tarea | T-B31, en curso en la rama `backend/t-b31-spring-boot-soporte` |
 | Riesgo | El soporte OSS de la línea 4.0 terminaría el 2026-12-31 según fuentes secundarias, no verificado contra la página oficial |
 
-**Versión vigente:** en `main` los 10 servicios usan Spring Boot **3.2.12**. **Destino:** 4.0.9, que la rama `backend/t-b31-spring-boot-soporte` (T-B31, en curso) aplica a los 10 servicios. ADR-018 sigue en estado Propuesta; este documento describe el destino y no lo presenta como ya desplegado.
+**Versión vigente:** en producción (`main`) los 10 servicios usan Spring Boot **3.2.12**. En `develop` ya están en **4.0.9** (T-B31, PR #224, mergeado el 2026-10-30) y llegarán a `main` con el siguiente release semanal (ADR-012). El ADR-018 sigue en estado Propuesta en su texto.
 
 ## Código Java compartido (ADR-017)
 
@@ -423,7 +423,7 @@ Fotografía al 2026-10-30, contrastada con `docs/roadmap/tasks.md` y el repo. La
 | Tarea | Estado |
 |-------|--------|
 | T-C07 Ola 3 (mosaico), ramas `contract/ola-N` (1 a 6) | En curso (`contract/ola-3`) |
-| T-B31 Spring Boot con soporte (ADR-018) | En curso |
+| T-B31 Spring Boot con soporte (ADR-018) | Mergeado en `develop` (PR #224); pendiente de release |
 | T-I08 Pipeline de despliegue por SSH | Despliegue verificado; falta ensayar el rollback |
 | T-I11 Frontend web en Cloudflare Pages | En curso; falta verificar en producción |
 | T-I14 Runbooks | En curso; falta el ensayo manual |
@@ -471,7 +471,6 @@ Fuente: docs/roadmap/tasks.md, docs/handoff/AGENT-BRIEF.md §6, docs/decisions/a
 | 017 | Código Java compartido: copia temporal, `shared-web` después | Aceptada | 2026-10-22 |
 | 018 | Spring Boot 4.0.x y Java 21 parcheado | Propuesta | 2026-10-29 |
 
-El ADR-018 aún no figura en la tabla de `docs/decisions/README.md`.
 
 Fuente: docs/decisions/README.md y cada ADR.
 
