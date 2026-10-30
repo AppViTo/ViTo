@@ -107,7 +107,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-B25 | media-service: re-codificar imágenes y quitar metadatos (excepción A3) | B | P0 | ✅ HECHA (#174) | — |
 | T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | ✅ HECHA (#189) | — |
 | T-B27 | Logs en INFO en `prod` en los 9 servicios Java restantes | B | P1 | ✅ HECHA (#175) | — |
-| T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🟢 READY | — |
+| T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🔵 EN CURSO (backend/t-b28-envelope-spring-errores) | — |
 | T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🟢 READY | — |
 | T-B30 | JWT con firma asimétrica (RS256/ES256 + JWKS) | B | P1 | 🔴 BLOQUEADA (requiere spec) | — |
 | T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | 🔵 EN CURSO (backend/t-b31-spring-boot-soporte, spec) | — |
@@ -712,7 +712,7 @@ depende del contrato.
 - **Cierre:** un test por servicio con los perfiles de `docker-compose.prod.yml` que verifique
   que no hay DEBUG.
 
-### T-B28 · Errores de Spring con envelope en auth, chat y media — 🟢 READY · P1 · ADR-003, ADR-017
+### T-B28 · Errores de Spring con envelope en auth, chat y media — 🔵 EN CURSO (backend/t-b28-envelope-spring-errores) · P1 · ADR-003, ADR-017
 - **Por qué (hallazgo de T-B03, #164):** el handler de esos tres servicios convierte en `500`
   una ruta inexistente o un método no soportado; las copias de los otros 6 conservan el
   status de Spring. ADR-017 pide que las copias no diverjan. Además, los `401`/`403` que
