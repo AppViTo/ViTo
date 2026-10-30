@@ -20,6 +20,10 @@ on:
         description: 'Desplegar aunque haya un evento en vivo (solo hotfix; exige reason)'
         type: boolean
         default: false
+      rebuild_all:
+        description: 'Reconstruir las imágenes de todos los servicios, no solo las cambiadas (VPS vacío o reconstruido)'
+        type: boolean
+        default: false
       reason:
         description: 'Motivo (obligatorio con force_live_event)'
         type: string
@@ -71,10 +75,11 @@ jobs:
           echo "Último despliegue exitoso: ${sha:-ninguno (se construye todo)}"
           echo "sha=${sha:--}" >> "$GITHUB_OUTPUT"
 
+      # rebuild_all ignora el despliegue previo: "-" hace que changed-services.sh marque todo
       - name: Servicios cambiados
         id: svc
         env:
-          PREV: ${{ steps.prev.outputs.sha }}
+          PREV: ${{ inputs.rebuild_all && '-' || steps.prev.outputs.sha }}
         run: |
           out=$(infrastructure/deploy/changed-services.sh "$PREV" "$GITHUB_SHA")
           echo "$out"
