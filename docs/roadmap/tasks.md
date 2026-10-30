@@ -174,7 +174,7 @@ depende del contrato.
 |----|-----|-----------|--------|------|
 | Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | 🟢 READY | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
 | Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟡 RFC (`updateEvent` entra al contrato en la Ola 1) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
-| Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | 🟢 READY | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
+| Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | 🔵 EN CURSO (backend/bug-b02-publicar-al-crear) | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
 | Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🟢 READY (avisar en la pantalla); la búsqueda real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
 | Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🟢 READY | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
 | Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🟢 READY (ocultarlos); el enlace real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
