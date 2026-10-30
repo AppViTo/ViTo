@@ -110,7 +110,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🟢 READY | — |
 | T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🟢 READY | — |
 | T-B30 | JWT con firma asimétrica (RS256/ES256 + JWKS) | B | P1 | 🔴 BLOQUEADA (requiere spec) | — |
-| T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | 🟢 READY (empieza por la spec) | — |
+| T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | 🔵 EN CURSO (backend/t-b31-spring-boot-soporte, spec) | — |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
@@ -737,7 +737,7 @@ depende del contrato.
   anterior (el request no lo trae; requiere RFC al contrato) y las copias de
   `JwtAuthenticationFilter` no consultan la revocación (se resuelve con T-B18).
 
-### T-B31 · Spring Boot con soporte en los 10 servicios Java — 🟢 READY (empieza por la spec, Principio X) · P0 · Principio III, excepción A9
+### T-B31 · Spring Boot con soporte en los 10 servicios Java — 🔵 EN CURSO (backend/t-b31-spring-boot-soporte, spec; Principio X) · P0 · Principio III, excepción A9
 - **Por qué:** el primer escaneo real de Trivy (release 0.1.0) encontró de 39 a 57 CVE
   HIGH/CRITICAL con arreglo por imagen Java: Spring Boot 3.2.12 ya no tiene soporte. Algunos
   CRITICAL (`spring-webmvc`, `spring-webflux`) solo tienen arreglo en Spring Framework 7. La

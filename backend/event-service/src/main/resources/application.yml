@@ -5,10 +5,15 @@ spring:
   application:
     name: event-service
   
+  # Jackson 3 falla con null en primitivos; Jackson 2 lo tomaba como false (contrato: default false)
+  jackson:
+    deserialization:
+      fail-on-null-for-primitives: false
+
+  mongodb:
+    uri: ${MONGODB_URI}
+    database: vito_events
   data:
-    mongodb:
-      uri: ${MONGODB_URI}
-      database: vito_events
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}

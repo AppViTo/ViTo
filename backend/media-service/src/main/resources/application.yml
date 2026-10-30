@@ -5,10 +5,10 @@ spring:
   profiles:
     active: dev
   
+  mongodb:
+    uri: ${MONGODB_URI}
+    database: vito_db
   data:
-    mongodb:
-      uri: ${MONGODB_URI}
-      database: vito_db
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}

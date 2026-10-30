@@ -1,11 +1,12 @@
 package com.vito.event.infrastructure.adapter.inbound.rest;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 import com.vito.event.application.service.EventServiceImpl;
 import com.vito.event.domain.model.Event;
 import com.vito.event.domain.model.RSVP;
@@ -19,7 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -65,7 +66,7 @@ class ListEventsContractTest {
     private static final Pattern UTC_TIMESTAMP = Pattern.compile("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z");
 
     @Autowired
-    ObjectMapper mapper;
+    JsonMapper mapper;
 
     private final EventRepository eventRepository = mock(EventRepository.class);
     private final RSVPRepository rsvpRepository = mock(RSVPRepository.class);
@@ -77,7 +78,7 @@ class ListEventsContractTest {
                 mock(InvitationRepository.class), mock(EventPublisherPort.class), mock(QRCodeGenerator.class));
         mvc = MockMvcBuilders.standaloneSetup(new EventController(service))
                 .setControllerAdvice(new GlobalExceptionHandler())
-                .setMessageConverters(new MappingJackson2HttpMessageConverter(mapper))
+                .setMessageConverters(new JacksonJsonHttpMessageConverter(mapper))
                 .build();
     }
 
@@ -239,7 +240,7 @@ class ListEventsContractTest {
     private static JsonNode normalize(JsonNode node) {
         if (node.isObject()) {
             ObjectNode copy = JsonNodeFactory.instance.objectNode();
-            for (Iterator<Map.Entry<String, JsonNode>> it = node.fields(); it.hasNext(); ) {
+            for (Iterator<Map.Entry<String, JsonNode>> it = node.properties().iterator(); it.hasNext(); ) {
                 Map.Entry<String, JsonNode> field = it.next();
                 if (!field.getValue().isNull()) {
                     copy.set(field.getKey(), normalize(field.getValue()));

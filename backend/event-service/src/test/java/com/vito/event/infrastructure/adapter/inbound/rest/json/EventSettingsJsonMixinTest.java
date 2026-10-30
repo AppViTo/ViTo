@@ -1,7 +1,7 @@
 package com.vito.event.infrastructure.adapter.inbound.rest.json;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.vito.event.domain.model.Event;
 import com.vito.event.domain.port.inbound.EventService.CreateEventCommand;
 import org.junit.jupiter.api.Test;
@@ -57,7 +57,7 @@ class EventSettingsJsonMixinTest {
 
     private static Set<String> fieldNames(JsonNode node) {
         Set<String> names = new HashSet<>();
-        node.fieldNames().forEachRemaining(names::add);
+        node.propertyNames().forEach(names::add);
         return names;
     }
 }

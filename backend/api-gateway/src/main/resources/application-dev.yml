@@ -1,5 +1,5 @@
 # Perfil de desarrollo local: servicios en localhost (valores por defecto de application.yml).
-# No redefinir spring.cloud.gateway.routes aquí: reemplazaría la lista completa y se
+# No redefinir spring.cloud.gateway.server.webflux.routes aquí: reemplazaría la lista completa y se
 # perderían RequestRateLimiter y CircuitBreaker (T-B11).
 spring:
   data:

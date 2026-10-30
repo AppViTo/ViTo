@@ -1,7 +1,6 @@
 spring:
-  data:
-    mongodb:
-      uri: mongodb://admin:test_password@localhost:27017/test_db?authSource=admin
+  mongodb:
+    uri: mongodb://admin:test_password@localhost:27017/test_db?authSource=admin
   
   redis:
     host: localhost

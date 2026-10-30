@@ -5,7 +5,7 @@ import com.vito.gateway.security.JwtAuthenticationFilterTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -52,7 +52,7 @@ class CircuitBreakerFallbackIntegrationTest {
 
     private static void route(DynamicPropertyRegistry registry, int i, String id, String uri, String path,
                               String fallback) {
-        String prefix = "spring.cloud.gateway.routes[" + i + "].";
+        String prefix = "spring.cloud.gateway.server.webflux.routes[" + i + "].";
         registry.add(prefix + "id", () -> id);
         registry.add(prefix + "uri", () -> uri);
         registry.add(prefix + "predicates[0]", () -> "Path=" + path);
