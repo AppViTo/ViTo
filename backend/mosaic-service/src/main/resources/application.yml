@@ -5,10 +5,10 @@ spring:
   application:
     name: mosaic-service
   
+  mongodb:
+    uri: ${MONGODB_URI}
+    database: vito_mosaic
   data:
-    mongodb:
-      uri: ${MONGODB_URI}
-      database: vito_mosaic
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}

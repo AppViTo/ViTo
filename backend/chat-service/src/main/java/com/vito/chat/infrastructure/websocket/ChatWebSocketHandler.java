@@ -1,6 +1,6 @@
 package com.vito.chat.infrastructure.websocket;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.vito.chat.application.dto.SendMessageRequest;
 import com.vito.chat.application.dto.TypingIndicatorRequest;
 import com.vito.chat.domain.model.ChatMessage;

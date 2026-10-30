@@ -2,9 +2,8 @@ spring:
   application:
     name: archive-service-test
   
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/vito_archive_test
+  mongodb:
+    uri: mongodb://localhost:27017/vito_archive_test
   
   redis:
     host: localhost

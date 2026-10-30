@@ -5,10 +5,10 @@ spring:
   application:
     name: streaming-service
   
+  mongodb:
+    uri: ${MONGODB_URI}
+    database: vito_streaming
   data:
-    mongodb:
-      uri: ${MONGODB_URI}
-      database: vito_streaming
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}

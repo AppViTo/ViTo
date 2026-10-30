@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 env:
-  JAVA_VERSION: '17'
+  JAVA_VERSION: '21.0.13+9'
   PYTHON_VERSION: '3.11'
   # pubspec.lock fija intl 0.20.3; Flutter 3.44 trae 0.20.2 y pub get falla
   FLUTTER_VERSION: '3.47.x'
