@@ -107,10 +107,11 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-B25 | media-service: re-codificar imágenes y quitar metadatos (excepción A3) | B | P0 | ✅ HECHA (#174) | — |
 | T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | ✅ HECHA (#189) | — |
 | T-B27 | Logs en INFO en `prod` en los 9 servicios Java restantes | B | P1 | ✅ HECHA (#175) | — |
-| T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🔵 EN CURSO (backend/t-b28-envelope-spring-errores) | — |
-| T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🟢 READY | — |
+| T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🟢 READY | — |
+| T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🔵 EN CURSO (backend/t-b29-create-event-valid) | — |
 | T-B30 | JWT con firma asimétrica (RS256/ES256 + JWKS) | B | P1 | 🔴 BLOQUEADA (requiere spec) | — |
 | T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | 🔵 EN CURSO (backend/t-b31-spring-boot-soporte, spec) | — |
+| T-B32 | Reacciones y mensajes del streaming no llegan en vivo a los espectadores (fan-out sin Redis Pub/Sub ni consumidor Kafka) | B | P1 | 🟡 RFC (contrato de reacciones; T-C05) | — |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
@@ -174,7 +175,7 @@ depende del contrato.
 |----|-----|-----------|--------|------|
 | Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | 🟢 READY | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
 | Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟡 RFC (`updateEvent` entra al contrato en la Ola 1) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
-| Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | 🟢 READY | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
+| Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | 🔵 EN CURSO (backend/bug-b02-publicar-al-crear) | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
 | Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🟢 READY (avisar en la pantalla); la búsqueda real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
 | Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🟢 READY | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
 | Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🟢 READY (ocultarlos); el enlace real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
@@ -723,7 +724,7 @@ depende del contrato.
 - **Cierre:** tests de ruta inexistente (`404`), método no soportado (`405`) y petición sin
   token (`401`) con envelope en los tres servicios.
 
-### T-B29 · Validación del cuerpo en `createEvent` — 🟢 READY · P1 · CONVENTIONS §3.3
+### T-B29 · Validación del cuerpo en `createEvent` — 🔵 EN CURSO (backend/t-b29-create-event-valid) · P1 · CONVENTIONS §3.3
 - **Por qué (hallazgo de T-B03):** `createEvent` no tiene `@Valid`, así que nunca produce el
   `400` "El campo title es obligatorio" del fixture `createEvent.400`.
 - **Cierre:** test que reproduce el fixture.
@@ -751,6 +752,26 @@ depende del contrato.
 - **Cierre:** los 10 servicios en la versión destino, CI verde y un `cd.yml` con Trivy
   bloqueante sin CVE HIGH/CRITICAL con arreglo fuera de `.trivyignore`. Se cierran la
   excepción A9 y T-B10.
+
+### T-B32 · Fan-out en vivo de reacciones y mensajes del streaming — 🟡 RFC · P1 · Principio III, ADR-006, O-28
+- **Por qué:** una reacción enviada por REST no llega en vivo a ningún espectador. Revisado
+  contra el código: `StreamingServiceImpl.addReaction` guarda en Mongo y publica
+  `STREAM_REACTION` en Kafka, pero no hay ningún `@KafkaListener` en `backend/`, así que nadie
+  lo consume. Por WS, `StreamingWebSocketHandler` guarda las sesiones en un `ConcurrentHashMap`
+  en memoria y reenvía el frame `REACTION` solo a las sesiones de esa misma instancia. Con más
+  de una réplica, o en un cruce REST→WS, la reacción se pierde. `publishChatMessage` y
+  `publishViewerCount` parecen tener el mismo problema (por revisar en esta tarea).
+- **Qué:** un único canal de fan-out para todas las rutas de entrada (REST y WS), con Redis
+  Pub/Sub, como indica el diseño de la Fase 6 de AGENTS.md. Usar `chat-service`
+  (`RedisCacheAdapter`) como referencia. Revisar en la misma tarea los eventos `chat` y
+  `viewerCount`.
+- **Contrato (bloqueante):** `docs/api/openapi.yaml` no tiene ruta REST de reacciones; solo
+  aparece `REACTION` como valor de enum. `asyncapi.yaml` sigue en RFC por T-C05. Antes de
+  implementar hay que abrir un issue `contract-change` que defina la ruta y el frame.
+- **Cierre:** una reacción enviada por REST o por WS llega a todos los espectadores del stream
+  en menos de 1 s, aunque estén en otra instancia. Hay un test de integración que lo prueba con
+  dos instancias o con dos sesiones en réplicas distintas. Se cumple el KPI "Latencia
+  reacciones stream < 1 s" y el criterio MVP n.º 9.
 
 ---
 
