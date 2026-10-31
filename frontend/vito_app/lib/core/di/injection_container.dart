@@ -206,7 +206,11 @@ Future<void> init() async {
     () => MosaicRemoteDataSourceImpl(dio: sl()),
   );
   sl.registerLazySingleton<MosaicRepository>(
-    () => MosaicRepositoryImpl(remoteDataSource: sl(), wsConnection: sl()),
+    () => MosaicRepositoryImpl(
+      remoteDataSource: sl(),
+      mediaDataSource: sl(),
+      wsConnection: sl(),
+    ),
   );
   sl.registerFactory(
     () => MosaicBloc(

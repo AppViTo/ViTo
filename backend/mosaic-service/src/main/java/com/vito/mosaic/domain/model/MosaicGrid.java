@@ -55,6 +55,32 @@ public class MosaicGrid {
         }
     }
     
+    /**
+     * Deja en {@code null} la celda del ítem retirado (T-B26).
+     *
+     * @return {@code true} si el ítem estaba en la grilla
+     */
+    public boolean removeItem(String itemId) {
+        if (itemId == null || grid == null) {
+            return false;
+        }
+        boolean found = false;
+        for (List<MosaicItem> row : grid) {
+            for (int col = 0; col < row.size(); col++) {
+                MosaicItem cell = row.get(col);
+                if (cell != null && itemId.equals(cell.getId())) {
+                    row.set(col, null);
+                    found = true;
+                }
+            }
+        }
+        if (found) {
+            totalItems = Math.max(0, totalItems - 1);
+            lastUpdatedAt = LocalDateTime.now();
+        }
+        return found;
+    }
+
     public MosaicItem getLatestItem() {
         if (lastUpdatedIndex >= 0) {
             int row = lastUpdatedIndex / 4;

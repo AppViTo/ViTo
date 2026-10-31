@@ -1,0 +1,16 @@
+# Perfil de producción (docker-compose.prod.yml activa prod,docker).
+# application.yml deja el gateway en DEBUG para desarrollo; en prod ese nivel registra datos
+# de cada petición (Spring Security incluido) y, con el tope de logs por contenedor, borra en
+# minutos lo que haría falta para diagnosticar un incidente (docs/runbooks/incident.md).
+logging:
+  level:
+    com.vito.gateway: INFO
+    org.springframework.cloud.gateway: INFO
+    org.springframework.security: INFO
+
+# T-B23: Caddy es el único salto delante del gateway (api. está en DNS only) y reescribe
+# X-Forwarded-For con la IP del cliente. Sin esto, todo internet comparte el bucket de la IP
+# de Caddy en /auth/login y /auth/register.
+vito:
+  rate-limit:
+    trusted-proxies: 1

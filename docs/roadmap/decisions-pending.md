@@ -16,11 +16,12 @@ Las opciones listadas son las que salieron del análisis del 2026-10-16. **La co
 | D-05 | Estrategia de código compartido Java (`shared-*`) | T-B03, O-23 | ver §D-05 | ✅ [ADR-017](../decisions/adr-017-shared-java-code.md) (C ahora; A en T-B18 tras la Ola 1) |
 | D-06 | Identidad en el WS de chat (`?userId=`) | T-B06, T-F04 (parte chat) | ver §D-06 | ✅ [ADR-015](../decisions/adr-015-chat-ws-identity.md) (se retira `userId`; identidad de `X-User-Id`) |
 | D-07 | Estrategia de ramas (`develop` vs `main`) | O-24, **T-I08 (deploy)** | ver §D-07 | ✅ [ADR-012](../decisions/adr-012-branching-and-release.md) |
-| D-08 | Aprobación del triage de `endpoint-inventory.md` | Olas 1–6 | aprobar por ola | ⏳ |
+| D-08 | Aprobación del triage de `endpoint-inventory.md` | Olas 1–6 | aprobar por ola | ✅ **Ola 3 aprobada** el 2026-10-24; olas 1-2, 4-6 pendientes |
 | D-09 | Titularidad de cuentas y medio de pago de la infraestructura | T-I06 (aprovisionar) | ver §D-09 | ✅ [ADR-013](../decisions/adr-013-account-ownership.md) |
 | D-10 | Tipo de cuenta de Google Play (personal u organización) | Publicación Android | ver §D-10 | ⏳ **prioritaria** · pospuesta el 2026-10-22 |
 | D-11 | Modelo de monetización (qué se cobra y a quién) | Ola de pagos (nueva), primeros ingresos | ver §D-11 | ⏳ pospuesta el 2026-10-22 |
 | D-12 | Política de privacidad, términos y transferencia de datos (Ley 1581) | Publicación en tiendas, lanzamiento | ver §D-12 | ⏳ |
+| D-13 | Rollback con un solo lead disponible | Operación del evento, `rollback.yml` | ver §D-13 | ✅ `production-hotfix` (2026-10-24) |
 
 ---
 
@@ -129,6 +130,7 @@ semanal (viernes), que dispara el deploy.
 
 Aprobar (o corregir) la columna "Decisión propuesta" de `endpoint-inventory.md`, **ola
 por ola**. Aprobar la ola N desbloquea su rama `contract/<ola>`.
+**Actualización (2026-10-24):** Se aprueba la **Ola 3** (mosaico y subida de contenido) por D-08.
 
 ## D-09 — Titularidad de cuentas y medio de pago
 
@@ -200,3 +202,23 @@ publicar.
 | Responsable del tratamiento | Persona natural (lead) o la empresa, según D-09 y D-10. |
 | Borrado de cuenta | Google Play exige un mecanismo de eliminación de cuenta; coincide con el flujo `USER_DELETED` del Principio IX. Planificarlo en la Ola 1. |
 | Insumos del triage de seguridad (T051) | M4 (cifrado en reposo: excepción en Fase Tracción), M5 (qué dato es sensible y si se cifra por campo), M10 (Ley 1581 en lugar de GDPR/CCPA) y M11 (retención, exportación y borrado) de `backend/SECURITY_CHECKLIST.md` se resuelven con esta decisión. |
+
+---
+
+## D-13 — Rollback con un solo lead disponible
+
+`production` exige la aprobación de un revisor distinto de quien lanza el workflow, así que
+un rollback necesita a los dos leads (hallazgo de T-I14, #167). Si el día del evento solo
+hay uno disponible, no puede volver atrás por `rollback.yml`.
+
+| Opción | Efecto |
+|--------|--------|
+| Los dos leads de guardia durante el evento | Sin cambios; depende de la disponibilidad |
+| Que `rollback.yml` pueda usar `production-hotfix` | Ese Environment ya permite la autoaprobación (con comentario obligatorio en `cd.yml`, FR-002), pero `rollback.yml` hoy usa siempre `production`: requiere cambiar el workflow y `incident.md` |
+| Tercer revisor de confianza | Más personas con acceso a producción (ADR-013) |
+
+**Decisión (2026-10-24, Bernardo):** `rollback.yml` usa siempre `production-hotfix`. Un
+rollback solo vuelve a un release que ya estuvo en producción con éxito (uno de los últimos 3)
+y no reconstruye nada, así que basta con un lead; `reason` es obligatorio y queda en
+`deployments.log` con quien aprobó. Los releases normales siguen en `production`, con
+aprobación del otro lead.

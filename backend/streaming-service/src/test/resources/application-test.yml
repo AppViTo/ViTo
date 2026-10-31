@@ -2,9 +2,8 @@ spring:
   application:
     name: streaming-service-test
   
-  data:
-    mongodb:
-      uri: mongodb://localhost:27017/vito_streaming_test
+  mongodb:
+    uri: mongodb://localhost:27017/vito_streaming_test
   
   redis:
     host: localhost

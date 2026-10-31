@@ -62,7 +62,10 @@ class AppRouter {
       case mosaic:
         final args = settings.arguments as Map<String, dynamic>?;
         return MaterialPageRoute(
-          builder: (_) => MosaicPage(eventId: args?['eventId'] ?? ''),
+          builder: (_) => MosaicPage(
+            eventId: args?['eventId'] ?? '',
+            organizerId: args?['organizerId'] as String?,
+          ),
         );
       case streamHost:
         final args = settings.arguments as Map<String, dynamic>?;

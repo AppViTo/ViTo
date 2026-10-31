@@ -5,6 +5,7 @@ import com.vito.media.domain.model.Media;
 import com.vito.media.domain.port.inbound.MediaService;
 import com.vito.media.domain.port.outbound.FileTypeDetectorPort;
 import com.vito.media.domain.port.outbound.ImageProcessingPort;
+import com.vito.media.domain.port.outbound.ImageReencoderPort;
 import com.vito.media.domain.port.outbound.MediaEventPublisher;
 import com.vito.media.domain.port.outbound.MediaRepository;
 import com.vito.media.domain.port.outbound.StoragePort;
@@ -32,6 +33,7 @@ public class MediaServiceImpl implements MediaService {
     private final MediaEventPublisher eventPublisher;
     private final ImageProcessingPort imageProcessingPort;
     private final FileTypeDetectorPort fileTypeDetector;
+    private final ImageReencoderPort imageReencoder;
 
     // CONVENTIONS §8: 10 MB y estos cuatro formatos
     @Value("${media.max-file-size:10485760}")
@@ -52,17 +54,24 @@ public class MediaServiceImpl implements MediaService {
             byte[] data = file.getBytes();
             String contentType = verifiedContentType(file.getContentType(), data);
 
-            String fileName = generateFileName(file.getOriginalFilename());
+            // T-B25 (excepción A3): solo se publica lo que se re-codifica; el vídeo no, en esta ola
+            if (!imageReencoder.supports(contentType)) {
+                throw new MediaException.VideoNotAllowedException();
+            }
+            ImageReencoderPort.ReencodedImage image = imageReencoder.reencode(data, contentType);
+            data = image.data();
+            contentType = image.contentType();
+            Media.MediaMetadata metadata = Media.MediaMetadata.builder()
+                    .width(image.width())
+                    .height(image.height())
+                    .format(contentType.substring("image/".length()))
+                    .build();
+
+            String fileName = generateFileName(contentType);
             String key = String.format("events/%s/%s/%s", eventId, userId, fileName);
 
             // Upload to S3
             String url = storagePort.uploadFile(key, data, contentType);
-
-            // Extract metadata for images
-            Media.MediaMetadata metadata = null;
-            if (imageProcessingPort.isImage(contentType)) {
-                metadata = imageProcessingPort.extractMetadata(data, contentType);
-            }
 
             // Create thumbnail for images
             Media.S3Location.S3LocationBuilder locationBuilder = Media.S3Location.builder()
@@ -84,7 +93,7 @@ public class MediaServiceImpl implements MediaService {
                     .fileName(fileName)
                     .originalFileName(file.getOriginalFilename())
                     .contentType(contentType)
-                    .fileSize(file.getSize())
+                    .fileSize(data.length)
                     .status(Media.MediaStatus.UPLOADED)
                     .metadata(metadata)
                     .location(locationBuilder.build())
@@ -244,11 +253,9 @@ public class MediaServiceImpl implements MediaService {
                 .toList();
     }
 
-    private String generateFileName(String originalFileName) {
-        String extension = "";
-        if (originalFileName != null && originalFileName.contains(".")) {
-            extension = originalFileName.substring(originalFileName.lastIndexOf("."));
-        }
+    /** La extensión sale del tipo guardado (JPEG o PNG tras re-codificar), no del nombre del cliente. */
+    private String generateFileName(String contentType) {
+        String extension = "image/png".equals(contentType) ? ".png" : ".jpg";
         return UUID.randomUUID().toString() + extension;
     }
 

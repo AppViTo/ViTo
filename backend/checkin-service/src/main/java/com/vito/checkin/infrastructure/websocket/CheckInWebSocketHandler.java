@@ -1,6 +1,6 @@
 package com.vito.checkin.infrastructure.websocket;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.vito.checkin.domain.model.CheckInEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

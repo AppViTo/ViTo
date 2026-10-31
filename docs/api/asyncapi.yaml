@@ -1,0 +1,174 @@
+asyncapi: 2.6.0
+info:
+  title: ViTo Real-Time WebSocket API
+  version: 1.0.0
+  description: Canales WebSocket para chat, check-in, mosaico y streaming (ADR-006).
+
+servers:
+  gateway:
+    url: wss://api.vito.com
+    protocol: wss
+    description: API Gateway WebSocket entrypoint
+
+channels:
+  /ws/mosaic/{eventId}:
+    parameters:
+      eventId:
+        schema:
+          type: string
+        description: ID del evento
+    description: Canal en tiempo real del mosaico en vivo para recibir actualizaciones de grilla y feed.
+    publish:
+      summary: Mensajes del servidor al cliente (eventos push)
+      message:
+        oneOf:
+          - $ref: '#/components/messages/MosaicNewItem'
+          - $ref: '#/components/messages/MosaicGridUpdate'
+          - $ref: '#/components/messages/MosaicLikeUpdate'
+          - $ref: '#/components/messages/MosaicItemRemoved'
+
+components:
+  messages:
+    MosaicNewItem:
+      name: MosaicNewItem
+      title: Nuevo ítem en el mosaico
+      payload:
+        type: object
+        required: [type, item]
+        properties:
+          type:
+            type: string
+            enum: [NEW_ITEM]
+          item:
+            $ref: '#/components/schemas/MosaicFeedItem'
+    MosaicGridUpdate:
+      name: MosaicGridUpdate
+      title: Actualización de celda en la grilla
+      payload:
+        type: object
+        required: [type, eventId, grid]
+        properties:
+          type:
+            type: string
+            enum: [GRID_UPDATE]
+          eventId:
+            type: string
+          grid:
+            type: array
+            description: Mismo formato que `MosaicGrid.grid` de `getMosaicGrid` (openapi.yaml).
+            items:
+              type: array
+              items:
+                oneOf:
+                  - $ref: '#/components/schemas/MosaicItem'
+                  - type: 'null'
+    MosaicLikeUpdate:
+      name: MosaicLikeUpdate
+      title: Actualización de likes de un ítem
+      payload:
+        type: object
+        required: [type, itemId, likesCount]
+        properties:
+          type:
+            type: string
+            enum: [LIKE_UPDATE]
+          itemId:
+            type: string
+          likesCount:
+            type: integer
+    MosaicItemRemoved:
+      name: MosaicItemRemoved
+      title: El organizador retiró un ítem
+      description: >
+        Se emite tras `removeMosaicItem` (moderación del organizador, excepción
+        A3). El cliente quita el ítem del feed y deja su celda vacía.
+      payload:
+        type: object
+        required: [type, eventId, itemId]
+        properties:
+          type:
+            type: string
+            enum: [ITEM_REMOVED]
+          eventId:
+            type: string
+          itemId:
+            type: string
+  schemas:
+    MosaicItem:
+      type: object
+      required: [id, eventId, userId, type, timestamp, position]
+      description: Celda ocupada de la grilla (igual que `MosaicItem` en openapi.yaml).
+      properties:
+        id:
+          type: string
+        eventId:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: [string, 'null']
+        avatar:
+          type: [string, 'null']
+        type:
+          type: string
+          enum: [CHECK_IN, POST, PHOTO, REACTION, STORY, HIGHLIGHT]
+        content:
+          type: [string, 'null']
+        mediaUrl:
+          type: [string, 'null']
+        timestamp:
+          type: string
+          format: date-time
+        position:
+          type: object
+          required: [row, col, width, height]
+          properties:
+            row:
+              type: integer
+            col:
+              type: integer
+            width:
+              type: integer
+            height:
+              type: integer
+        likesCount:
+          type: integer
+        commentsCount:
+          type: integer
+    MosaicFeedItem:
+      type: object
+      required: [id, eventId, userId, type, timestamp, likesCount, commentsCount, isLiked]
+      properties:
+        id:
+          type: string
+        eventId:
+          type: string
+        userId:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: [string, 'null']
+        avatar:
+          type: [string, 'null']
+        type:
+          type: string
+          enum: [CHECK_IN, POST, PHOTO, REACTION, STORY, LIVE_UPDATE, ANNOUNCEMENT]
+        content:
+          type: [string, 'null']
+        mediaUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        timestamp:
+          type: string
+          format: date-time
+        likesCount:
+          type: integer
+        commentsCount:
+          type: integer
+        isLiked:
+          type: boolean

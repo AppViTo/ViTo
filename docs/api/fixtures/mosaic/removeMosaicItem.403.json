@@ -1,0 +1,6 @@
+{
+  "error": "FORBIDDEN",
+  "message": "Solo el organizador puede retirar fotos del mosaico",
+  "status": 403,
+  "timestamp": "2026-10-16T22:30:00Z"
+}

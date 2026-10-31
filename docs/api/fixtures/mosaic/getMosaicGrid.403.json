@@ -1,0 +1,6 @@
+{
+  "error": "FORBIDDEN",
+  "message": "No tienes acceso al mosaico de este evento",
+  "status": 403,
+  "timestamp": "2026-10-16T22:15:00Z"
+}

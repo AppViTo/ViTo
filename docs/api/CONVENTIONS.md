@@ -142,6 +142,7 @@ Códigos de error canónicos: `VALIDATION_ERROR`, `UNAUTHORIZED`, `FORBIDDEN`, `
 | `Invitation.status` | `PENDING` `ACCEPTED` `DECLINED` `EXPIRED` |
 | `CheckInTicket.status` | `PENDING` `ACTIVE` `USED` `EXPIRED` `REVOKED` |
 | `MosaicFeedItem.type` | `CHECK_IN` `POST` `PHOTO` `REACTION` `STORY` `LIVE_UPDATE` `ANNOUNCEMENT` |
+| `MosaicItem.type` (celda de la grilla) | `CHECK_IN` `POST` `PHOTO` `REACTION` `STORY` `HIGHLIGHT` |
 | `LiveStream.status` | `IDLE` `CONNECTING` `LIVE` `BUFFERING` `ENDED` `ERROR` |
 | `Reaction.type` | `LIKE` `HEART` `FIRE` `CLAP` `CELEBRATION` `CUSTOM` |
 | `StreamChatMessage.type` | `NORMAL` `SUPER_CHAT` `SYSTEM` `JOIN` `LEAVE` |
@@ -229,8 +230,13 @@ Frames por recurso: ver `asyncapi.yaml` y los handoffs (`docs/handoff/`).
 
 - `POST /api/v1/media/upload` con `multipart/form-data`: campo `file` (binario) + `eventId`.
 - Respuesta `201` con `Media { id, url, thumbnailUrl, mimeType, size, ... }`.
-- Tamaño máximo **10 MB** por archivo; formatos: `image/jpeg`, `image/png`, `image/webp`, `video/mp4`.
-- El flujo del mosaico es: subir a media → usar la URL devuelta en `POST /mosaic/photo`.
+- Tamaño máximo **10 MB** por archivo; formatos: `image/jpeg`, `image/png`, `image/webp`.
+  `video/mp4` queda fuera mientras rija la excepción A3 (T051): el servidor re-codifica cada
+  imagen antes de servirla y no hay antimalware para video.
+- El flujo del mosaico es de dos pasos (ADR-016): subir a media → publicar el `id` devuelto con
+  `POST /mosaic/post` (`{ eventId, mediaId, content? }`). `/mosaic/photo` no existe.
+- **Post-moderación (excepción A3):** la foto aparece al instante; el organizador la retira con
+  `DELETE /mosaic/item/{itemId}` y los clientes reciben `ITEM_REMOVED` por `/ws/mosaic/{eventId}`.
 
 ---
 

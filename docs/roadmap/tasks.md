@@ -18,6 +18,20 @@
 | ✅ `HECHA` | Mergeada con su criterio de cierre verificado. |
 | ⚪ `REEMPLAZADA` / `DIFERIDA` | Ya no aplica en la fase actual (se indica qué la reemplaza o cuándo vuelve). |
 
+## Bugs reportados en Jira
+
+Un issue de VITO cuyo resumen empieza con `Bug-` (p. ej. `Bug-F01 · …`) es la única
+excepción al sentido repo → Jira: nace en Jira y entra al backlog por triage.
+
+1. **Triage:** leer el reporte y sus capturas, ubicar la causa en el código y decidir si
+   procede (es reproducible o evidente en el código, y es un defecto, no una feature nueva).
+2. **Si procede:** se registra en la sección [Bugs de producción](#bugs-de-producción) con su
+   mismo ID (`Bug-F01`, `Bug-B01`…), prioridad **P0** y enlace al issue. Queda 🟢 `READY` si se
+   arregla con lo que ya está en el contrato; si necesita un endpoint nuevo, la parte que falta
+   va como 🟡 `RFC` y el resto se arregla igual.
+3. **Si no procede:** se comenta en el issue el motivo (duplicado, no reproducible, es una
+   feature) y no entra al backlog.
+
 ## Pistas y dueño sugerido
 
 | Pista | Prefijo | Dueño sugerido | Rama |
@@ -26,6 +40,25 @@
 | Frontend Flutter | `T-F` | Agente frontend | `frontend/<nombre>` |
 | Backend Java/Python | `T-B` | Agente backend | `backend/<nombre>` |
 | Infra, CI/CD, higiene | `T-I` | DevOps / cualquiera | `docs/<nombre>`, `backend/<nombre>` o `chore` |
+
+### Asignación del 2026-10-28 (agente frontend)
+
+Reparto para el agente que trabaja con Alex Villa (`@alexvilla01`, dueño de `frontend/**`,
+`docs/api/**` y `docs/roadmap/**` en CODEOWNERS). Esta sección solo indica el dueño sugerido
+de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR que tome la tarea.
+
+| ID | Tarea | Asignada a | Qué puede avanzar hoy |
+|----|-------|------------|------------------------|
+| T-C05 | `asyncapi.yaml` v0 (🟡 RFC) | Agente frontend | Redactar la propuesta con las 4 rutas WS y abrir el issue `contract-change`. No se mergea sin aprobación de 1 CODEOWNER. |
+| T-I15 | Protocolo de bloqueos entre agentes | Agente frontend | AGENT-BRIEF §7 y §9, enlace desde CONTRIBUTING y `.github/ISSUE_TEMPLATE/blocked.md`. Un solo PR. |
+| T-F09 | Prueba en dispositivo de `mobile_scanner` 7 y `share_plus` 10 | Alex Villa (manual) | Requiere teléfono físico; el agente no puede ejecutarla. Resultado por plataforma en el issue o PR. |
+
+**Sin asignar al agente frontend:**
+- **T-I23** (recomendaciones sin servicio en prod): `frontend/vito_app/lib` no consume
+  `GET /recommendations/events`, así que la parte de la app no existe todavía. El fallback
+  es del gateway (backend/infra).
+- **T-C07 Ola 3:** figura en curso en `contract/ola-3`. Confirmar con Alex antes de tocar nada
+  del contrato.
 
 ---
 
@@ -45,6 +78,8 @@
 | T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming, chat sin `?userId=`) | F | P0 | ✅ HECHA (#60) | [VITO-21](https://bernardo-mira.atlassian.net/browse/VITO-21) |
 | T-F06 | Build web falla si faltan `API_BASE_URL`/`WS_BASE_URL` | F | P1 | ✅ HECHA (#64) | [VITO-23](https://bernardo-mira.atlassian.net/browse/VITO-23) |
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | ✅ HECHA (#65) | [VITO-24](https://bernardo-mira.atlassian.net/browse/VITO-24) |
+| T-F09 | Probar en dispositivo `mobile_scanner` 7 y `share_plus` 10 (#158) antes del evento | F | P0 | 🟢 READY (manual) | — |
+| T-F10 | Moderación del mosaico en la app del organizador (excepción A3) | F | P0 | ✅ HECHA (#185) | — |
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) | [VITO-26](https://bernardo-mira.atlassian.net/browse/VITO-26) |
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | ✅ HECHA (#38) | [VITO-27](https://bernardo-mira.atlassian.net/browse/VITO-27) |
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) | [VITO-29](https://bernardo-mira.atlassian.net/browse/VITO-29) |
@@ -67,16 +102,24 @@
 | T-B20 | chat-service: orígenes del WS desde configuración (hoy fijos en `localhost`) | B | P0 | ✅ HECHA (#163) | — |
 | T-B21 | Revocación inmediata de access tokens (lista negra por `jti` en el gateway) | B | P1 | ✅ HECHA (#168) | — |
 | T-B22 | Throttling de login por cuenta | B | P1 | 🟡 RFC | — |
-| T-B23 | Rate limit por usuario en las rutas autenticadas | B | P1 | 🟢 READY | — |
+| T-B23 | Rate limit por usuario en las rutas autenticadas | B | P1 | ✅ HECHA (#180) | — |
 | T-B24 | Audit log de eventos de seguridad | B | P1 | 🟢 READY | — |
+| T-B25 | media-service: re-codificar imágenes y quitar metadatos (excepción A3) | B | P0 | ✅ HECHA (#174) | — |
+| T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | ✅ HECHA (#189) | — |
+| T-B27 | Logs en INFO en `prod` en los 9 servicios Java restantes | B | P1 | ✅ HECHA (#175) | — |
+| T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🟢 READY | — |
+| T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🔵 EN CURSO (backend/t-b29-create-event-valid) | — |
+| T-B30 | JWT con firma asimétrica (RS256/ES256 + JWKS) | B | P1 | 🔴 BLOQUEADA (requiere spec) | — |
+| T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | 🔵 EN CURSO (backend/t-b31-spring-boot-soporte, spec) | — |
+| T-B32 | Reacciones y mensajes del streaming no llegan en vivo a los espectadores (fan-out sin Redis Pub/Sub ni consumidor Kafka) | B | P1 | 🟡 RFC (contrato de reacciones; T-C05) | — |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
 | T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY | [VITO-51](https://bernardo-mira.atlassian.net/browse/VITO-51) |
-| T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | 🟢 READY (manual, leads) | [VITO-45](https://bernardo-mira.atlassian.net/browse/VITO-45) |
-| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔴 BLOQUEADA (T-I06) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
-| T-I11 | Frontend web en Cloudflare Pages, con la CSP/HSTS de la web (antes en T-I18) | I/F | P1 | 🔴 BLOQUEADA (T-I06) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
-| T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔴 BLOQUEADA (T-I06) | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
+| T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | ✅ HECHA (manual, 2026-10-24; pendientes menores en ADR-013) | [VITO-45](https://bernardo-mira.atlassian.net/browse/VITO-45) |
+| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔵 EN CURSO (despliegue verificado; falta ensayar el rollback) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
+| T-I11 | Frontend web en Cloudflare Pages, con la CSP/HSTS de la web (antes en T-I18) | I/F | P1 | 🔵 EN CURSO (#179 · falta verificar en prod) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
+| T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🟢 READY | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔵 EN CURSO (#167 · falta el ensayo manual) | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
 | T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
 | T-I16 | Protección de rama en `main` y `develop` (tarea manual de leads) | I | P0 | ✅ HECHA (#49, manual) | [VITO-55](https://bernardo-mira.atlassian.net/browse/VITO-55) |
@@ -84,14 +127,142 @@
 | T-I18 | Cabeceras de seguridad en Caddy (`api.`, `live.`); la CSP/HSTS de la web pasó a T-I11 | I | P0 | ✅ HECHA (#157) | — |
 | T-I19 | Un usuario de Mongo por servicio (sin root) | I/B | P1 | 🟢 READY | — |
 | T-I20 | Kafka con TLS y ACL por tópico (excepción A7) | I | P2 | ⚪ DIFERIDA (Fase Crecimiento; revisión 2027-04-22) | — |
-| T-I21 | Smoke E2E automático contra producción (post-deploy + cron) | I | P1 | 🔵 EN CURSO (infra/t-i21-smoke-e2e-produccion) | — |
+| T-I21 | Subida al mosaico en `prod` detrás de una propiedad (excepción A3) | I/B | P0 | ✅ HECHA (#177, #183 · activar tras T-B26) | — |
+| T-I22 | `cd.yml`: opción para reconstruir todas las imágenes (VPS vacío) | I | P1 | 🟢 READY | — |
+| T-I23 | Recomendaciones en `prod` sin `recommendation-service`: fallback y degradación | I/F | P2 | 🟢 READY | — |
+| T-I24 | Registro de imágenes para no depender del VPS | I | P2 | ⚪ DIFERIDA (Fase Crecimiento) | — |
+| T-I25 | Smoke E2E automático contra producción (post-deploy + cron) | I | P1 | 🔵 EN CURSO (infra/t-i21-smoke-e2e-produccion) | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
 gitleaks, Dependabot). Las de P1 del triage bloquean la apertura a usuarios reales.
 
-Bloqueadas (no tomar): T-C07 (VITO-16), T-F02 (VITO-19), T-F05 (VITO-22), T-F08 (VITO-25), T-B06 (VITO-31), T-B07 (VITO-32), T-B10 (VITO-35), T-B13 (VITO-38), T-B18, T-I08 (VITO-47), T-I11 (VITO-50), T-I13 (VITO-52).
+Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-B06 (VITO-31), T-B10 (VITO-35), T-B13 (VITO-38), T-B18, T-B30.
+Desbloqueadas el 2026-10-24: T-C07 Ola 3 (D-08), T-B07 y T-F08 (T-C06 hecha en #147), y T-I11
+(Pages, dominio, secretos y variables listos en T-I06).
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
+
+---
+
+## Bugs de producción
+
+Triage del 2026-10-26 (release 0.1.0). Causa común: `home_screen.dart` y `people_screen.dart`
+leen de `MockApiService` en vez del backend. Los eventos ya tienen contrato
+(`GET /events?scope=mine|upcoming`, T-C06/T-F08); amigos, historias y transmisiones en vivo
+todavía no (Olas 1–2), así que se muestran vacíos. Esto adelanta la parte de T-F02 que no
+depende del contrato.
+
+| ID | Bug | Prioridad | Estado | Jira |
+|----|-----|-----------|--------|------|
+| Bug-F01 | Eventos mock en producción que dan 404 y Retry no permite volver | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-76](https://bernardo-mira.atlassian.net/browse/VITO-76) |
+| Bug-F02 | El nombre del dashboard es fijo, no el del usuario con sesión | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-77](https://bernardo-mira.atlassian.net/browse/VITO-77) |
+| Bug-F03 | El evento creado no aparece en próximos eventos ni hay lista de "mis eventos" | P0 | 🟢 READY (el home ya carga `scope=mine`; falta la sección propia) | [VITO-78](https://bernardo-mira.atlassian.net/browse/VITO-78) |
+| Bug-F04 | Quitar los datos mock del dashboard y mostrar estados vacíos | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-79](https://bernardo-mira.atlassian.net/browse/VITO-79) |
+| Bug-F05 | El buscador solo encuentra eventos mock | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-80](https://bernardo-mira.atlassian.net/browse/VITO-80) |
+| Bug-F06 | "Mi Gente" muestra amigos mock a cualquier usuario (privacidad) | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-81](https://bernardo-mira.atlassian.net/browse/VITO-81) |
+
+- **Bug-F04 y Bug-F06:** retirar `MockApiService`. Sin datos reales, mostrar "Aún no tienes
+  eventos para asistir", "Aún no tienes amigos", "Aún no hay historias por mostrar" y "No hay
+  transmisiones en vivo de tus eventos".
+- **Bug-F01:** desaparece con Bug-F04. Además, Retry en el detalle de un evento 404 debe
+  permitir volver atrás.
+- **Bug-F02:** el saludo toma el nombre del `AuthBloc` (como ya hace `people_screen.dart`).
+- **Bug-F03 y Bug-F05:** el home carga `scope=upcoming` y `scope=mine`, y el buscador filtra
+  sobre esos datos. Si "mis eventos" necesita una sección propia en el home, se diseña ahí.
+
+### Triage del 2026-10-27: Bug-F07 y la hora de los eventos
+
+| ID | Bug | Prioridad | Estado | Jira |
+|----|-----|-----------|--------|------|
+| Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | 🟢 READY | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
+| Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟡 RFC (`updateEvent` entra al contrato en la Ola 1) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
+| Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | 🔵 EN CURSO (backend/bug-b02-publicar-al-crear) | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
+| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🟢 READY (avisar en la pantalla); la búsqueda real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
+| Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🟢 READY | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
+| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🟢 READY (ocultarlos); el enlace real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
+
+- **Bug-B01, causa:** la app envía bien la hora. `create_event_screen.dart` toma las 20:00
+  locales y `EventDetailsModel.toJson` las manda en UTC (`2026-12-10T01:00:00.000Z`), como pide
+  el contrato. Pero `event-service` guarda `details.startDate`/`endDate` como `LocalDateTime`:
+  Jackson descarta la `Z` y responde `2026-12-10T01:00:00`, sin zona. La app lo lee con
+  `DateTime.parse`, que interpreta un texto sin zona como hora local, y muestra la 1:00 am. La
+  diferencia de 5 h es la de Bogotá (UTC−5) con UTC. Coincide con Londres solo porque en
+  diciembre Londres está en UTC.
+- **Bug-B01, arreglo (sin RFC, el contrato ya dice "ISO-8601 UTC con sufijo Z"):**
+  - Backend: `startDate`, `endDate`, `createdAt` y `updatedAt` del evento como `Instant`, y
+    `Instant.now()` en el filtro de `/events?scope=upcoming` (`EventMongoAdapter`). Los
+    contenedores corren en UTC, así que los documentos guardados ya representan el instante
+    correcto y no hace falta migrar datos.
+  - Frontend: `EventDetailsModel.fromJson` y `EventModel.fromJson` convierten con `.toLocal()`
+    para mostrar la hora del dispositivo.
+  - Prueba: crear a las 20:00 en Bogotá, leer `getEvent` y ver `01:00:00Z` en la respuesta y
+    8:00 pm en la app.
+  - Los eventos ya creados se corrigen solos con el arreglo, porque el dato guardado era correcto.
+- **Bug-F07:** procede como defecto (un organizador no puede corregir su propio evento), pero
+  `PUT /events/{eventId}` no está en el contrato: el inventario lo marca para publicar en la
+  Ola 1. `event-service` ya tiene el `@PutMapping` y la app tiene `UpdateEvent` en el bloc, sin
+  pantalla. Requiere el RFC de `updateEvent` (o adelantar esa operación de la Ola 1) antes de
+  implementar la pantalla de edición.
+- **Notificar a los invitados de los cambios** (pedido en VITO-82) **no procede como bug:** es
+  una feature nueva sin contrato de notificaciones. Va al backlog de features, no a esta tabla.
+- **Bug-B02:** `EventServiceImpl.createEvent` fija `status(DRAFT)`, pero el contrato responde
+  `PUBLISHED` (fixture `createEvent.201.json`) y no existe ninguna operación para publicar
+  (`UpdateEventCommand` ni siquiera tiene `status`). `scope=upcoming` solo lista `PUBLISHED` y
+  públicos, así que ningún evento creado desde la app aparece ahí; solo se ven en
+  `scope=mine`. Gana el contrato (ADR-010): crear en `PUBLISHED`. Los eventos ya creados en
+  `DRAFT` necesitan una actualización de una vez en Mongo (`DRAFT` → `PUBLISHED`), que se corre
+  con el despliegue. Si los leads quieren borradores de verdad, eso es una feature nueva con RFC.
+- **Bug-F08 (VITO-83):** `create_event_screen.dart` busca invitados con `GET /social/search`, pero
+  `SocialServiceImpl.searchUsers` es un stub que siempre devuelve una lista vacía ("For now, we'll
+  return an empty list"). Además, la operación no está en el contrato: el inventario la marca
+  `PUBLICAR` en la Ola 2, sin aprobar por D-08. Procede como defecto, porque la pantalla ofrece
+  algo que no funciona.
+  - Arreglo inmediato (READY): cuando la búsqueda vuelva vacía, decir que la búsqueda de usuarios
+    aún no está disponible en lugar de "no encontramos a nadie", o esconder la caja.
+  - Arreglo real: `searchUsers` se sumó al RFC #204 como adelanto de la Ola 2. Implementarlo
+    no basta: `social-service` busca en su colección `user_profiles` y nadie la llena
+    (`auth-service` publica el registro en `user-events`, pero ningún servicio lo consume). El
+    RFC pide consumir ese tópico y hacer una carga inicial de los usuarios que ya existen.
+- **Bug-F10** (antes se registró como Bug-F08; se renombró porque VITO-83 ya usaba ese ID):
+  la app está en español (`app_localization_test.dart`), pero
+  `event_detail_page.dart` tiene los textos en inglés. Pasarlos al español, incluidos los estados
+  (`Draft` → "Borrador", `Private` → "Privado") y la fecha, que sale como "Saturday, December 26"
+  porque el `DateFormat` no recibe la locale `es`.
+- **Bug-F09:** `create_event_screen.dart` muestra "Copiar enlace de invitación" ("Se crea con el
+  evento y caduca en 7 días") y "Enviar por WhatsApp", pero `_inviteLink` nunca se asigna: los
+  dos botones solo dicen "El enlace se genera al crear el evento". Arreglo inmediato: ocultarlos
+  hasta que exista el enlace.
+- **Invitar después de crear el evento y compartir su enlace:** no es un bug, es la Ola 1 del
+  inventario. `POST /events/{eventId}/invitations` ("app + link externo") y
+  `GET /events/{eventId}/invitations` están marcados `PUBLICAR`, pero la Ola 1 no está aprobada
+  (D-08 solo aprobó la Ola 3). El backend tiene los endpoints, aunque `Invitation` solo invita a
+  usuarios registrados (`inviteeId`): no hay token ni enlace externo. Para adelantarlo: aprobar la
+  Ola 1 por D-08 (o solo estas operaciones), RFC `contract-change` con las rutas, el modelo del
+  enlace (token, caducidad de 7 días, quién puede usarlo) y sus fixtures, y después backend y
+  pantalla.
+
+### Triage del 2026-10-28: recuperar contraseña
+
+| ID | Bug | Prioridad | Estado | Jira |
+|----|-----|-----------|--------|------|
+| Bug-F11 | "¿Olvidaste tu contraseña?" no hace nada: quien olvida su contraseña pierde la cuenta | P0 | 🟢 READY (decir qué hacer); el flujo real, 🟡 RFC [AppViTo/ViTo#213](https://github.com/AppViTo/ViTo/issues/213) | [VITO-89](https://bernardo-mira.atlassian.net/browse/VITO-89) |
+
+- **Causa:** en `login_page.dart`, `_buildForgotPassword` tiene `onPressed: () {}`. Detrás no hay
+  nada en ninguna capa: el contrato no tiene operaciones de recuperación, el inventario no las
+  lista en ninguna ola, `auth-service` no tiene endpoints ni tokens de restablecimiento, y no hay
+  correo transaccional (Resend está elegido en ADR-011, pero su configuración quedó como
+  pendiente menor de T-I06 y figura "Por configurar" en ADR-013).
+- **Arreglo inmediato (READY, solo frontend):** que el botón abra un aviso con qué hacer mientras
+  tanto (escribir al correo de soporte del equipo, sin ponerlo en el repo) en lugar de no
+  responder. Sin contrato no se puede más.
+- **Arreglo real (RFC [AppViTo/ViTo#213](https://github.com/AppViTo/ViTo/issues/213), fuera de las olas actuales):**
+  - `POST /api/v1/auth/password/forgot` `{email}`: siempre `202`, exista o no la cuenta, para no
+    revelar qué correos están registrados. Rate limit por IP y por correo.
+  - `POST /api/v1/auth/password/reset` `{token, newPassword}`: `204`; token de un solo uso,
+    aleatorio, guardado como hash, que caduca en 30–60 min; revoca los refresh tokens del usuario.
+  - Las dos rutas, públicas en el gateway (`PUBLIC_PATHS`).
+  - Correo con Resend (terminar T-I06), con el enlace `https://<app>/reset-password?token=…`.
+  - App: pantallas "Olvidé mi contraseña" y "Nueva contraseña", y la ruta web del enlace.
 
 ---
 
@@ -168,11 +339,28 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   type declara `examples` (validador y README actualizados). `listEvents.200.json` pasa a
   `listEvents.mine.200.json`.
 
-### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔴 BLOQUEADA por D-08 (por ola) · O-02, O-30, ADR-016
+### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔵 EN CURSO (contract/ola-3) · D-08 aprobada 2026-10-24 (por ola) · O-02, O-30, ADR-016
+- **Ola 3 REST (#182):** las 7 rutas del handoff más `removeMosaicItem`
+  (`DELETE /mosaic/item/{itemId}`, moderación del organizador), `ITEM_REMOVED` en
+  `asyncapi.yaml`, 33 fixtures en `fixtures/mosaic/` y CONVENTIONS §8 sin `video/mp4`. La
+  escribió la sesión de terminal; el lead la aprueba. Quedan de la ola `DELETE /media/{mediaId}`
+  y `GET /media/{mediaId}/presigned-url`, que el evento de prueba no necesita.
+- **Ola 3 (aprobada por D-08 el 2026-10-24, #169):** #171 incorporó `/ws/mosaic/{eventId}` en
+  `asyncapi.yaml` y el handoff `docs/handoff/ola-3-mosaico.md`. Falta el endpoint de moderación
+  del organizador que pide la excepción A3 (lo implementa T-B26).
+  Prioridad P0: el evento de prueba necesita el mosaico. Desbloquea T-F05, T-B26 y T-F10.
+- **Definiciones de la excepción A3 para la Ola 3 (leads, 2026-10-24):**
+  - **Post-moderación:** la foto aparece en el mosaico al instante y el organizador la oculta
+    o la retira después. No hay cola de aprobación previa.
+  - **Solo imágenes:** sacar `video/mp4` de CONVENTIONS §8 mientras rija la excepción (quedan
+    `image/jpeg`, `image/png` e `image/webp`).
 - **Qué:** por cada ola aprobada en `endpoint-inventory.md`: paths + schemas en
   `openapi.yaml`, frames/eventos en `asyncapi.yaml`, fixtures, ADR si aplica y handoff
   `docs/handoff/<ola>.md` desde `TEMPLATE.md`. Se ejecuta con Spec Kit
   (`/speckit-specify` referenciando la ola y las O-xx que cierra).
+- **Ola 3 incompleta tras #171 (revisado 2026-10-24, #178):** #171 solo cambió `asyncapi.yaml`
+  y el handoff; faltaban las rutas REST, sus fixtures y la moderación. Lo resuelve #182 (viñeta
+  "Ola 3 REST" de arriba).
 
 ---
 
@@ -219,11 +407,13 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `ConnectToWebSocket` (check-in y mosaico no conectan desde la UI) y
   `ChatBloc._onSendTypingIndicator` conecta en vez de enviar el frame.
 
-### T-F05 · Subida al mosaico — 🔴 BLOQUEADA por Ola 3 · ADR-016
+### T-F05 · Subida al mosaico — ✅ HECHA (#186) · ADR-016
 - **Qué:** subir en dos pasos: `POST /media/upload` y luego `POST /mosaic/post` con el
   `mediaId`. Deja de llamar a `/mosaic/photo` y `/mosaic/checkin`.
+- **Excepción A3:** solo `image/jpeg`, `image/png` e `image/webp`; el selector no ofrece video
+  ni otros formatos en esta ola.
 
-### T-F08 · Lista "mis eventos" — 🔴 BLOQUEADA por T-C06 · ADR-014
+### T-F08 · Lista "mis eventos" — ✅ HECHA (#181) · ADR-014
 - **Qué:** `getMyEvents` envía `scope=mine`; `getUpcomingEvents` deja de llamar a
   `/events/upcoming` (fuera de contrato) y usa `GET /events?scope=upcoming`.
 - **Cierre:** tests del datasource contra los fixtures de T-C06.
@@ -234,6 +424,23 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** el job de Vercel falla sin las variables; pasa con ellas.
 - **Complemento (#64):** el workflow tiene un paso `Validate production URLs` que corta el
   deploy si faltan, y `Env` ya no cae a `localhost` en release (lanza `StateError`).
+
+### T-F09 · Prueba en dispositivo de `mobile_scanner` y `share_plus` — 🟢 READY (manual) · P0
+- **Por qué:** #158 subió `mobile_scanner` de 3 a 7 y `share_plus` de 7 a 10; nadie los probó
+  en un teléfono. El escáner QR es el check-in del evento.
+- **Qué:** en Android y en iOS (si hay equipo), escanear un QR de check-in real, negar y
+  conceder el permiso de cámara, y compartir el link de un evento.
+- **Cierre:** resultado por plataforma en el PR o en el issue; si algo falla, issue
+  `blocked-by-frontend` antes del release.
+
+### T-F10 · Moderación del mosaico en la app — ✅ HECHA (#185) · P0 · Principio III, T051 (excepción A3)
+- **Por qué:** la excepción A3 exige moderación por el organizador. T-B26 la implementa en el
+  backend, pero sin una pantalla el organizador no puede usarla durante el evento.
+- **Qué:** en el mosaico (grid y feed), solo para el organizador del evento, una acción para
+  ocultar o retirar una foto con el endpoint de la Ola 3. La foto desaparece también en los
+  demás clientes por el aviso del WebSocket. Post-moderación: no hay cola de aprobación.
+- **Cierre:** tests de widget (la acción solo aparece al organizador) y del bloc (la foto sale
+  del estado al recibir el aviso de retiro), contra los fixtures de la Ola 3.
 
 ### T-F07 · Tests vacíos y cobertura — ✅ HECHA (#65) · P1 · O-19
 - **Qué (ajustado 2026-10-22):** la premisa de O-19 está desactualizada:
@@ -291,7 +498,7 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   cierra con `4401` si falta; se ignora `userId` en query y frames; cada frame de sala
   verifica que el usuario participe en ella.
 
-### T-B07 · Implementar listado de eventos — 🔴 BLOQUEADA por T-C06 · P0 · O-26, ADR-014
+### T-B07 · Implementar listado de eventos — ✅ HECHA (#173) · P0 · O-26, ADR-014
 - **Qué:** `GET /events?scope=mine|upcoming` en event-service según ADR-014:
   identidad solo de `X-User-Id`; `mine` por defecto; `400 VALIDATION_ERROR` para un
   `scope` desconocido o `size` > 100; `forViewer` aplicado a cada evento listado.
@@ -456,12 +663,16 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** test del sexto intento con `429` y `Retry-After`, y de que un login correcto
   reinicia el contador.
 
-### T-B23 · Rate limit por usuario — 🟢 READY · P1 · T051 (M3)
+### T-B23 · Rate limit por usuario — ✅ HECHA (#180) · P1 · T051 (M3)
 - **Qué:** en las rutas autenticadas del gateway, el `KeyResolver` usa el `X-User-Id` que
   el propio gateway deriva del JWT (nunca el que manda el cliente, T-B01), con los límites de
   CONVENTIONS §9. Las rutas públicas siguen por IP.
 - **Cierre:** test de que dos usuarios desde la misma IP tienen buckets distintos y de que un
   `X-User-Id` falso del cliente no cambia el bucket.
+- **Hallazgo (#180):** detrás de Caddy, la IP de la conexión es siempre la de Caddy, y las rutas
+  públicas compartían un solo bucket para todo internet. `vito.rate-limit.trusted-proxies` (1 en
+  `prod`) toma la IP de `X-Forwarded-For`. Si `api.` deja de estar en *DNS only*, hay que revisarlo.
+  Los handshakes `/ws/**` siguen sin rate limit.
 
 ### T-B24 · Audit log de seguridad — 🟢 READY · P1 · Principios VI y IX, T051 (M6)
 - **Qué:** auth-service registra en un logger `AUDIT` (JSON, T053 de la feature 001):
@@ -470,6 +681,98 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   correo, la contraseña ni el token (Principio VI).
 - **Cierre:** test de que cada evento produce una línea con los campos y sin datos
   prohibidos; consulta de ejemplo en Loki en `infrastructure/observability/README.md`.
+
+### T-B25 · Re-codificar las imágenes subidas — ✅ HECHA (#174) · P0 · Principio III, T051 (excepción A3)
+- **Por qué:** la excepción A3 (aprobada en #169) publica la subida al mosaico sin antimalware
+  a cambio de re-codificar cada imagen en el servidor antes de servirla.
+- **Qué:** en `POST /media/upload` (ya en el contrato), después de la validación de T-B19:
+  decodificar `jpeg`/`png`/`webp`, rechazar lo que no decodifica o supera un tope de píxeles
+  (bomba de descompresión) con `400 VALIDATION_ERROR`, re-codificar y guardar solo la versión
+  re-codificada, sin metadatos (EXIF, GPS incluido: Principio IX). No cambia el contrato.
+- **Sin video (excepción A3):** rechazar `video/mp4` con `400 VALIDATION_ERROR` aunque
+  CONVENTIONS §8 todavía lo liste. Sacarlo de §8 le toca a `contract/ola-3` (T-C07).
+- **Cierre:** tests con una imagen con EXIF/GPS (la salida no los tiene), un `video/mp4`
+  (`400`), un políglota
+  (imagen válida con datos anexados: se eliminan), una imagen corrupta y una bomba de
+  descompresión (las dos `400`); límite de memoria del servicio respetado
+  (`docker-compose.prod.yml`).
+
+### T-B26 · Moderación por el organizador — ✅ HECHA (#189) · P0 · Principio III, T051 (excepción A3)
+- **Qué:** el organizador del evento oculta o retira un elemento del mosaico; deja de
+  aparecer en feed, grid y WebSocket. Solo el organizador (autorización por recurso). El
+  endpoint lo define la rama `contract/ola-3`.
+- **Post-moderación (leads, 2026-10-24):** los elementos se publican al instante; no hay
+  estado "pendiente de aprobación". La pantalla del organizador es T-F10.
+- **Cierre:** tests de autorización (`403` a quien no organiza), de que el elemento no sale
+  en feed ni grid y de que el WS avisa el retiro.
+
+### T-B27 · Logs en INFO en producción — ✅ HECHA (#175) · P1 · Principio VI
+- **Por qué:** los 9 servicios Java (todos menos el gateway, que lo resolvió #170) fijan
+  `com.vito` y casi todos `org.springframework.security` en DEBUG en `application.yml`, sin un
+  perfil `prod` que lo baje. Con el tope de logs por contenedor, el log rota en minutos.
+- **Qué:** `application-prod.yml` por servicio con esos loggers en INFO (el patrón de #170).
+- **Cierre:** un test por servicio con los perfiles de `docker-compose.prod.yml` que verifique
+  que no hay DEBUG.
+
+### T-B28 · Errores de Spring con envelope en auth, chat y media — 🔵 EN CURSO (backend/t-b28-envelope-spring-errores) · P1 · ADR-003, ADR-017
+- **Por qué (hallazgo de T-B03, #164):** el handler de esos tres servicios convierte en `500`
+  una ruta inexistente o un método no soportado; las copias de los otros 6 conservan el
+  status de Spring. ADR-017 pide que las copias no diverjan. Además, los `401`/`403` que
+  genera Spring Security no pasan por el handler en ningún servicio.
+- **Qué:** llevar a auth, chat y media la rama de T-B03 que respeta el status de las
+  `ErrorResponse` 4xx de Spring, y un `AuthenticationEntryPoint`/`AccessDeniedHandler` que
+  responda con el envelope de ADR-003.
+- **Cierre:** tests de ruta inexistente (`404`), método no soportado (`405`) y petición sin
+  token (`401`) con envelope en los tres servicios.
+
+### T-B29 · Validación del cuerpo en `createEvent` — 🔵 EN CURSO (backend/t-b29-create-event-valid) · P1 · CONVENTIONS §3.3
+- **Por qué (hallazgo de T-B03):** `createEvent` no tiene `@Valid`, así que nunca produce el
+  `400` "El campo title es obligatorio" del fixture `createEvent.400`.
+- **Cierre:** test que reproduce el fixture.
+
+### T-B30 · Firma asimétrica de JWT — 🔴 BLOQUEADA: requiere spec propio (Principio X) · P1 · Principio III
+- **Por qué (hallazgo de T-B21, #168):** los tokens se firman con HS256 y un secreto que
+  comparten los 10 servicios; la constitución pide firma asimétrica y JWKS. Comprometer un
+  servicio permite emitir tokens.
+- **Qué (a especificar):** RS256 o ES256, JWKS publicado por auth, rotación de claves y
+  convivencia con los tokens vigentes. Relacionado: el refresh no revoca el access token
+  anterior (el request no lo trae; requiere RFC al contrato) y las copias de
+  `JwtAuthenticationFilter` no consultan la revocación (se resuelve con T-B18).
+
+### T-B31 · Spring Boot con soporte en los 10 servicios Java — 🔵 EN CURSO (backend/t-b31-spring-boot-soporte, spec; Principio X) · P0 · Principio III, excepción A9
+- **Por qué:** el primer escaneo real de Trivy (release 0.1.0) encontró de 39 a 57 CVE
+  HIGH/CRITICAL con arreglo por imagen Java: Spring Boot 3.2.12 ya no tiene soporte. Algunos
+  CRITICAL (`spring-webmvc`, `spring-webflux`) solo tienen arreglo en Spring Framework 7. La
+  excepción A9 deja Trivy en modo informe **hasta el 2026-11-07**; desde el 2026-11-08
+  vuelve a bloquear todo despliegue.
+- **Qué:** spec corta con Spec Kit (absorbe T-B10, versiones unificadas): versión destino
+  (Spring Boot 4.0.x con Spring Cloud compatible para el gateway, o la 3.5.x más reciente si
+  cubre los CRITICAL), pasos de migración por servicio y riesgos (Jackson 3, Jakarta, Spring
+  Security 7, propiedades del gateway). Luego la migración, con un parent POM si T-B18 ya
+  existe.
+- **Cierre:** los 10 servicios en la versión destino, CI verde y un `cd.yml` con Trivy
+  bloqueante sin CVE HIGH/CRITICAL con arreglo fuera de `.trivyignore`. Se cierran la
+  excepción A9 y T-B10.
+
+### T-B32 · Fan-out en vivo de reacciones y mensajes del streaming — 🟡 RFC · P1 · Principio III, ADR-006, O-28
+- **Por qué:** una reacción enviada por REST no llega en vivo a ningún espectador. Revisado
+  contra el código: `StreamingServiceImpl.addReaction` guarda en Mongo y publica
+  `STREAM_REACTION` en Kafka, pero no hay ningún `@KafkaListener` en `backend/`, así que nadie
+  lo consume. Por WS, `StreamingWebSocketHandler` guarda las sesiones en un `ConcurrentHashMap`
+  en memoria y reenvía el frame `REACTION` solo a las sesiones de esa misma instancia. Con más
+  de una réplica, o en un cruce REST→WS, la reacción se pierde. `publishChatMessage` y
+  `publishViewerCount` parecen tener el mismo problema (por revisar en esta tarea).
+- **Qué:** un único canal de fan-out para todas las rutas de entrada (REST y WS), con Redis
+  Pub/Sub, como indica el diseño de la Fase 6 de AGENTS.md. Usar `chat-service`
+  (`RedisCacheAdapter`) como referencia. Revisar en la misma tarea los eventos `chat` y
+  `viewerCount`.
+- **Contrato (bloqueante):** `docs/api/openapi.yaml` no tiene ruta REST de reacciones; solo
+  aparece `REACTION` como valor de enum. `asyncapi.yaml` sigue en RFC por T-C05. Antes de
+  implementar hay que abrir un issue `contract-change` que defina la ruta y el frame.
+- **Cierre:** una reacción enviada por REST o por WS llega a todos los espectadores del stream
+  en menos de 1 s, aunque estén en otra instancia. Hay un test de integración que lo prueba con
+  dos instancias o con dos sesiones en réplicas distintas. Se cumple el KPI "Latencia
+  reacciones stream < 1 s" y el criterio MVP n.º 9.
 
 ---
 
@@ -485,6 +788,8 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 ### T-I02 · `integration-tests/` — 🟢 READY · P2 · O-19
 - **Qué:** hoy solo tiene `src/` sin `pom.xml`. Darle `pom.xml` con Testcontainers y un
   job de CI manual, o retirarlo. Proponer en el PR.
+- **Ojo (hallazgo de T-B21):** usa campos anteriores a ADR-004 (`token` en vez de
+  `accessToken`).
 
 ### T-I03 · `architecture.md` coherente — 🟢 READY · P2 · O-36
 - **Qué:** el esquema `events` usa la forma plana (`name`, `date`, `isPublic`…) que
@@ -510,10 +815,21 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** test por servicio que verifica `200` en liveness/readiness y que
   `/actuator/prometheus` responde.
 
-### T-I06 · Aprovisionar cuentas y VPS — 🟢 READY (manual, leads) · P0 · ADR-011, ADR-013
+### T-I06 · Aprovisionar cuentas y VPS — ✅ HECHA (manual, 2026-10-24) · P0 · ADR-011, ADR-013
 - **Avance (2026-10-22):** listos el VPS Contabo 12 GB, los buckets R2, Grafana Cloud y el
   correo de equipo (Gmail). Faltan la llave SSH, el Environment `production`, el
   dominio/DNS/Pages y Resend (ADR-013, actualización del 2026-10-22).
+- **Avance (2026-10-24):** listos los Environments `production`, `production-hotfix` (con
+  revisores) y `production-preflight`, los secretos SSH y de Cloudflare, las variables
+  `VITO_*` y `PAGES_PROJECT`, y el DNS de `api.`, `live.` y `media.`.
+- **Cierre (2026-10-24):** `bootstrap.sh --check-only` con todo OK (llave SSH, sin
+  contraseñas, `docker compose` instalado); los tres Environments con los 10 secretos y las 4
+  variables; secretos de Telegram en el repo; CORS de `vito-media` verificado con `curl`;
+  Secret scanning y Push protection activos; rama por defecto `develop`; gastos en la hoja.
+  La huella SSH se verificó desde dos redes distintas, no por la consola de Contabo.
+  **Pendientes menores (no bloquean el release):** Alex como administrador en Cloudflare y
+  en Grafana Cloud, Email Routing `infra@<dominio>` y Resend (ADR-013, actualización del
+  2026-10-24).
 - **Tarea manual de los leads** (no la ejecuta un agente):
   0. En GitHub, cambiar la rama por defecto a `develop` (ADR-012).
   1. Correo de equipo, gestor de contraseñas con 2FA, tarjeta y hoja de gastos (ADR-013).
@@ -543,13 +859,18 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   `docker compose ... up` en local con un `.env` de prueba levanta todo dentro de 12 GB
   (`docker stats` en el PR).
 
-### T-I08 · Pipeline de despliegue — 🔴 BLOQUEADA por T-I06 · P0 · O-12, ADR-011, ADR-012
+### T-I08 · Pipeline de despliegue — 🔵 EN CURSO (despliegue verificado; falta ensayar el rollback) · P0 · O-12, ADR-011, ADR-012
 - **Qué:** rehacer `cd.yml`: al entrar un commit a `main`, construir solo las imágenes de
   los servicios cambiados (tag = SHA), copiarlas al VPS con `docker save | ssh docker load`,
   ejecutar `docker compose up -d` con el nuevo `IMAGE_TAG` y verificar los healthchecks.
   Rollback manual con `workflow_dispatch` indicando un SHA anterior.
-- **Cierre:** un merge a `main` despliega sin intervención; el rollback a un SHA anterior
-  funciona y queda documentado en el runbook.
+- **Avance (verificado en GitHub, 2026-10-28):** preflight con `mode=preflight` en
+  `production-preflight` (run 40146636934, `success`, 2026-10-25). Despliegues a `production-hotfix`
+  exitosos: run 40159629811 (#194, tag `v0.1.0`, 2026-10-25) y run 40438818788 (#199, 0.1.1,
+  2026-10-27). Pendiente: el hotfix #201 (cabeceras de la web) no salió; su aprobación venció
+  (`Expire Approvals`) y el despliegue quedó en `error`.
+- **Cierre:** un merge a `main` despliega sin intervención (cumplido); el rollback a un SHA anterior
+  funciona y queda documentado en el runbook (pendiente: `rollback.yml` no tiene ninguna ejecución).
 - **Diseño y tareas:** [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md).
   El triage de seguridad (T051) exige Trivy, gitleaks y Dependabot (T048–T050) antes del
   primer release.
@@ -568,7 +889,18 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Cierre:** test de integración contra SeaweedFS local; documentación de las variables
   para R2 en `.env.example`.
 
-### T-I11 · Frontend web en Cloudflare Pages — 🔴 BLOQUEADA por T-I06 · P1 · ADR-011
+### T-I11 · Frontend web en Cloudflare Pages — 🔵 EN CURSO (#179 · falta verificar en prod) · P1 · ADR-011
+- **Desbloqueo (2026-10-24):** T-I06 dejó listos el proyecto de Pages `vito-web` con el dominio
+  `app.`, `CLOUDFLARE_API_TOKEN` y `CLOUDFLARE_ACCOUNT_ID`, y las variables `VITO_API_BASE_URL`,
+  `VITO_WS_BASE_URL`, `PAGES_PROJECT` y `VITO_MEDIA_ORIGIN` (origen de `img-src` en la CSP) en
+  los tres Environments.
+- **Avance (#179, en `develop`):** T030–T032 de la feature 001: `web/_redirects`,
+  `web/_headers`, `infrastructure/deploy/render-web-headers.sh` (con tests bats), verificación
+  del build web en CI y `deploy-frontend.yml` a Pages; `VITO_MEDIA_ORIGIN` agregada al contrato
+  de workflows. Fuentes de respaldo: se permite `fonts.gstatic.com` en `font-src` y
+  `connect-src`. Queda después del merge a `main`: el cierre de abajo y T033 (retirar Vercel).
+- **Requisito de infraestructura (lead):** política CORS de `vito-media` con el origen de la
+  web (runbook de aprovisionamiento, paso 5). Sin ella, la web no carga las imágenes.
 - **Qué:** reemplazar el deploy a Vercel de `deploy-frontend.yml` por Cloudflare Pages
   (`wrangler pages deploy`), con las mismas puertas de calidad y el build estricto de T-F06.
 - **Cabeceras de la web (separadas de T-I18 el 2026-10-23):** van en el `_headers` de T031 de
@@ -591,11 +923,18 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
   feedback rápido.
 - **Cierre:** un PR que solo toca `frontend/` no ejecuta jobs de backend, y viceversa.
 
-### T-I13 · Observabilidad con Grafana Cloud — 🔴 BLOQUEADA por T-I06 · P1 · Principio VI
+### T-I13 · Observabilidad con Grafana Cloud — 🟢 READY · P1 · Principio VI
+- **Avance (2026-10-24, mínimo para el evento):** `https://api.<dominio>/healthz` (T037 de la
+  feature 001, hotfix #192) expone solo la readiness del gateway para el check de uptime de
+  Grafana Cloud, con aviso a Telegram. Falta lo demás: Alloy, OTel, logs JSON, tablero y
+  alertas (T034–T036, T038–T041, T053).
 - **Qué:** Grafana Alloy (u OTel Collector) en el VPS que envía métricas, logs y trazas a
   Grafana Cloud free; dashboard RED del gateway; alertas de caída y de disco/RAM > 80 % a
   ambos leads; monitor de uptime externo. Alertas de picos de `401` y `429` en el gateway
   (T051, M7).
+- **Incluir (hallazgos de #167 y #168):** alerta si falta el backup diario (hoy un fallo
+  solo queda en el log) y alerta sobre `vito.gateway.revocation.check.errors` (el gateway
+  falla abierto si Redis no responde).
 - **Cierre:** dashboard con datos reales y una alerta de prueba recibida.
 
 ### T-I14 · Runbooks — 🔵 EN CURSO (#167 · falta el ensayo manual) · P1 · Principio IX
@@ -682,7 +1021,41 @@ Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimi
 - **Qué:** listener `SASL_SSL`, un usuario por servicio y ACL por tópico según los
   productores y consumidores de `asyncapi.yaml`.
 
-### T-I21 · Smoke E2E automático contra producción — 🔵 EN CURSO (infra/t-i21-smoke-e2e-produccion) · P1 · Principio VI, T-I13
+### T-I21 · Subida al mosaico en producción detrás de una propiedad — ✅ HECHA (#177, #183) · P0 · Principio III, T051 (excepción A3)
+- **Por qué:** T-I17 cierra la subida en `prod` por perfil. La excepción A3 la abre solo para
+  imágenes re-codificadas y moderables.
+- **Qué:** `ClosedUploadRoutesFilter` pasa a depender de una propiedad (cerrada por defecto),
+  que se activa con una variable de `.env.prod.example`. Con la propiedad activa: abre
+  `POST /api/v1/media/upload` y las escrituras del mosaico que estén en el contrato de la
+  Ola 3; lo demás sigue cerrado.
+- **Activación en producción:** solo cuando T-B25 y T-B26 estén desplegadas.
+- **Cierre:** tests con la propiedad apagada (lo de T-I17 sigue igual) y encendida.
+
+### T-I22 · Reconstruir todas las imágenes desde el CD — 🟢 READY · P1 · ADR-011, Principio IX
+- **Por qué (hallazgo de T-I14, #167):** `cd.yml` construye solo lo que cambió desde el
+  último despliegue exitoso. En un VPS vacío o reconstruido, `deploy.sh` sale con código 4
+  por imágenes faltantes; hoy el rodeo de `docs/runbooks/restore.md` compila en el VPS, sin
+  Trivy.
+- **Qué:** input de `workflow_dispatch` (p. ej. `rebuild_all`) que fuerza la matriz completa
+  sin cambiar el flujo normal. Actualizar `restore.md` y `contracts/workflows.md` de la
+  feature 001.
+- **Cierre:** test de `changed-services.sh` (o del paso de la matriz) con la opción activa;
+  actionlint verde.
+
+### T-I23 · Recomendaciones sin servicio en producción — 🟢 READY · P2 · ADR-011
+- **Por qué (hallazgo de T-I14):** el contrato publica `GET /recommendations/events` y el
+  gateway tiene la ruta, pero ADR-011 deja `recommendation-service` fuera de
+  `docker-compose.prod.yml`. En `prod` la llamada cae siempre en el fallback.
+- **Qué:** verificar que el fallback responde con el envelope de ADR-003 y que la app degrada
+  sin error visible (sección oculta o vacía).
+- **Cierre:** test del fallback en el gateway y prueba en la app.
+
+### T-I24 · Registro de imágenes — ⚪ DIFERIDA (Fase Crecimiento) · P2 · ADR-011
+- **Por qué (hallazgo de T-I14):** las imágenes viajan como artifacts y solo existen en el
+  VPS. Perderlo obliga a recompilar las 13, y eso es lo que más pesa en el RTO.
+- **Revisión:** con la Fase Crecimiento o si el ensayo de T-I14 supera el RTO.
+
+### T-I25 · Smoke E2E automático contra producción — 🔵 EN CURSO (infra/t-i21-smoke-e2e-produccion) · P1 · Principio VI, T-I13
 - **Por qué:** el runbook de incidentes pide una prueba de punta a punta manual antes de
   cada evento, y no hay ninguna comprobación automática que detecte una caída del gateway,
   de auth o de la revocación de tokens entre despliegues.

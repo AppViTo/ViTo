@@ -48,4 +48,44 @@ en Environments de repos privados.
 
 ## Actualizaciones
 
-*(ninguna todavía)*
+### 2026-10-24 — Release extraordinario 0.1.0 fuera de la cadencia de los viernes
+
+Se abre el PR de release `develop` → `main` ("release: 2026-10-24", `VERSION` 0.1.0) un
+sábado, fuera de la cadencia semanal. Motivo: es el primer despliegue a producción con el
+pipeline de la feature 001 (T042) y lo necesita el evento de prueba. Requisitos cumplidos:
+triage de seguridad aprobado (T051), T-I06 cerrada y CI verde en `develop`. Aplica las mismas
+reglas que un release normal: aprobación de un CODEOWNER distinto del autor, merge commit y
+aprobación del despliegue en el Environment `production`. La cadencia de los viernes sigue
+vigente para los siguientes releases.
+
+### 2026-10-24 — Excepción: merge del hotfix #192 sin la aprobación del segundo lead
+
+**Qué pasó.** El primer despliegue del release 0.1.0 (#191) se detuvo en Trivy por los
+binarios Go de la imagen `mongo-backup`. El hotfix #192 lo corrige (y agrega `/healthz`, T037)
+y tenía el CI verde, pero la protección de `main` exige la aprobación de un CODEOWNER distinto
+del autor, con "Include administrators" activo. Alex Villa, el único otro lead, no estaba
+disponible, y el despliegue llevaba más de 4 horas de retraso frente a lo planeado para el
+evento de prueba.
+
+**Decisión.** Con el visto bueno previo y el acuerdo entre los dos leads, Bernardo
+(`@bamg359`) desactivó por unos minutos la opción "Include administrators" de la protección de
+`main`, mergeó #192 con bypass de administrador (merge commit `c865d68`, 2026-10-25 03:36 UTC)
+y la volvió a activar de inmediato. Se comprobó con la API que `enforce_admins` quedó en
+`true` y que se mantiene 1 aprobación obligatoria.
+
+**Alcance y mitigación.**
+- Solo #192. Ningún otro PR entró sin aprobación, y la regla no cambió.
+- El CI de #192 estaba verde (31/31). El despliegue pasa igual por Trivy y por la aprobación
+  del Environment `production-hotfix`, con el motivo en el comentario.
+- Las excepciones de `.trivyignore` que agrega #192 piden la aprobación de los dos leads. Alex
+  revisa #192 después del merge. Si no está de acuerdo, se revierten con un hotfix.
+
+**Por qué es una excepción.** El Principio VIII y este ADR piden dos aprobaciones para
+producción: la del PR, de un lead distinto del autor, y la del Environment. Aquí faltó la
+primera. No sienta precedente. Si se repite, hay que resolver la falta de un segundo revisor
+(D-13 lo resolvió para el rollback, no para los PRs a `main`) en lugar de volver a hacer bypass.
+
+**Segundo PR con la misma excepción (#194).** Con `fail-fast: false`, el despliegue siguiente
+mostró que Trivy rechazaba las 13 imágenes. Se usó el mismo procedimiento, con el mismo acuerdo
+entre los leads, para mergear #194: Trivy en modo informe hasta el 2026-11-07, con la excepción
+A9 de `backend/SECURITY_CHECKLIST.md` y la tarea T-B31. Alex revisa #194 junto con #192.

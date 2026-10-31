@@ -5,10 +5,10 @@ spring:
   application:
     name: mosaic-service
   
+  mongodb:
+    uri: ${MONGODB_URI}
+    database: vito_mosaic
   data:
-    mongodb:
-      uri: ${MONGODB_URI}
-      database: vito_mosaic
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
@@ -24,6 +24,10 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
+
+# Dueño del evento (ADR-016): de aquí sale el organizador para removeMosaicItem (T-B26)
+event-service:
+  uri: ${EVENT_SERVICE_URI:http://localhost:8083}
 
 logging:
   level:

@@ -39,7 +39,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleDomainException(EventException ex) {
         log.info("Domain error ({}): {}", ex.getReason(), ex.getMessage());
         return switch (ex.getReason()) {
-            case INVALID -> error(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, ex.getMessage());
+            case INVALID -> ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorResponse.of(
+                    HttpStatus.BAD_REQUEST, VALIDATION_ERROR, ex.getMessage(), ex.getDetails()));
             case UNAUTHORIZED -> error(HttpStatus.UNAUTHORIZED, UNAUTHORIZED, ex.getMessage());
             case FORBIDDEN -> error(HttpStatus.FORBIDDEN, FORBIDDEN, ex.getMessage());
             case NOT_FOUND -> error(HttpStatus.NOT_FOUND, NOT_FOUND, ex.getMessage());

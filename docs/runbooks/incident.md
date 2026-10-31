@@ -20,9 +20,9 @@ El día anterior y una hora antes, un lead:
       se bloquean solos con un evento publicado en curso (±1 h) o un stream activo
       (código 3), pero un release que entra antes de esa ventana no se bloquea y deja poco
       margen para descubrir sus fallos.
-- [ ] **Los dos leads disponibles.** Un rollback lo aprueba el otro lead (Environment
-      `production`, sin autoaprobación). Un hotfix (`production-hotfix`) sí puede
-      aprobarlo quien lo dispara, con motivo.
+- [ ] **Al menos un lead de guardia, y el otro localizable.** Un rollback o un hotfix
+      (Environment `production-hotfix`, D-13) los puede aprobar quien los dispara, con
+      motivo. Un release normal (`production`) sigue necesitando al otro lead.
 - [ ] **Estado sano:** [triage](#1-triage-en-5-minutos) completo, todo *healthy*, sin
       reinicios recientes, disco < 80 %, RAM con margen.
 - [ ] **Smoke automático en verde:** Actions → *ViTo Smoke E2E* → *Run workflow* (o
@@ -189,8 +189,12 @@ Rutas: `/ws/chat`, `/ws/checkin/{eventId}`, `/ws/mosaic/{eventId}`,
 ### 3.3 Subida y medios
 
 - **En producción la subida está cerrada a propósito** (T-I17): `POST /api/v1/media/**` y
-  las escrituras de `/api/v1/mosaic/**` responden `404 NOT_FOUND` desde el gateway hasta la
-  Ola 3. Un usuario que no puede subir fotos **no** es un incidente: es lo esperado.
+  las escrituras de `/api/v1/mosaic/**` responden `404 NOT_FOUND` desde el gateway mientras
+  `MOSAIC_UPLOADS_ENABLED` no valga `true` (T-I21). Un usuario que no puede subir fotos con
+  la variable en `false` **no** es un incidente: es lo esperado. Con `true` se abren
+  `POST /media/upload`, `POST /mosaic/post`, `POST /mosaic/grid/{eventId}/initialize` y
+  `POST`/`DELETE /mosaic/item/{itemId}/like`; lo demás sigue en `404`. Para volver a
+  cerrarla: `MOSAIC_UPLOADS_ENABLED=false` en `DOTENV_PRODUCTION` y redesplegar.
 - Las fotos y videos existentes se sirven desde R2 (`media.<DOMAIN>`), sin pasar por el
   VPS. Si no cargan: `curl -sI https://media.<DOMAIN>/<una clave conocida>`. Si R2 falla,
   no hay nada que hacer en el VPS: revisar el estado de Cloudflare.
@@ -268,7 +272,8 @@ dc ps <servicio>                         # hasta healthy (los Java tardan hasta 
 
 Si el problema empezó con el último release y el anterior funcionaba: Actions →
 *ViTo Rollback* con el `sha` de `/opt/vito/history`, `reason` y, **durante un evento**,
-`force_live_event`. Lo aprueba el otro lead. Detalle, cuándo conviene un hotfix y qué pasa
+`force_live_event`. Lo puede aprobar quien lo dispara (`production-hotfix`, D-13); si el
+otro lead está disponible, avisarle igual en el grupo. Detalle, cuándo conviene un hotfix y qué pasa
 con los datos: [despliegue.md, Rollback](despliegue.md#rollback) y
 [Forzar durante un evento en vivo](despliegue.md#forzar-durante-un-evento-en-vivo).
 
@@ -295,8 +300,9 @@ Si `deploy.sh` terminó en código 6 (producción caída sin vuelta automática)
 
 - Quien detecta el problema avisa en el **grupo de Telegram de avisos** (el mismo de las
   alertas del pipeline) con: qué se ve, desde cuándo y qué va a hacer. Sin datos sensibles.
-- Rollback, restauración de Mongo o un hotfix forzado **necesitan al otro lead**
-  (aprobación o decisión compartida); llamarlo si no responde en el grupo.
+- Restauración de Mongo o un hotfix forzado **necesitan al otro lead** (decisión
+  compartida); llamarlo si no responde en el grupo. Un rollback lo puede aprobar un solo
+  lead (D-13), pero avisa antes en el grupo.
 - Un solo lead opera la terminal a la vez; el otro mira y anota la hora de cada acción.
 - Si el incidente afecta a los asistentes, el organizador del evento recibe un mensaje
   breve: qué no funciona y qué hacer mientras (p. ej. check-in manual por lista).

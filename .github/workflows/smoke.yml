@@ -1,6 +1,6 @@
 name: ViTo Smoke E2E
 
-# Smoke de producción (T-I21): login, listado, detalle, refresh y revocación por logout,
+# Smoke de producción (T-I25): login, listado, detalle, refresh y revocación por logout,
 # solo con endpoints de docs/api/openapi.yaml. Corre cada 15 min y tras cada despliegue.
 # Si faltan los secretos E2E_* del repositorio, no falla: avisa y se salta.
 # Operación: docs/runbooks/aprovisionamiento.md (paso 12) e incident.md (antes del evento).

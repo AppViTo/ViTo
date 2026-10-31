@@ -30,11 +30,11 @@ class EventModel extends Event {
           ? EventStatsModel.fromJson(json['stats']) 
           : null,
       status: _parseStatus(json['status']),
-      createdAt: json['createdAt'] != null 
-          ? DateTime.parse(json['createdAt']) 
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt']).toLocal()
           : null,
-      updatedAt: json['updatedAt'] != null 
-          ? DateTime.parse(json['updatedAt']) 
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt']).toLocal()
           : null,
     );
   }
@@ -62,8 +62,8 @@ class EventModel extends Event {
       'settings': settings != null ? EventSettingsModel.fromEntity(settings!).toJson() : null,
       'stats': stats != null ? EventStatsModel.fromEntity(stats!).toJson() : null,
       'status': status.name.toUpperCase(),
-      'createdAt': createdAt?.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
+      'createdAt': createdAt?.toUtc().toIso8601String(),
+      'updatedAt': updatedAt?.toUtc().toIso8601String(),
     };
   }
 }
@@ -96,13 +96,15 @@ class EventDetailsModel extends EventDetails {
     );
   }
 
+  /// El contrato manda las fechas en UTC con `Z`; se pasan a la hora del dispositivo para
+  /// mostrarlas (Bug-B01: sin esto, un evento de las 8 pm en Bogotá se veía a la 1 am).
   factory EventDetailsModel.fromJson(Map<String, dynamic> json) {
     return EventDetailsModel(
-      startDate: json['startDate'] != null 
-          ? DateTime.parse(json['startDate']) 
+      startDate: json['startDate'] != null
+          ? DateTime.parse(json['startDate']).toLocal()
           : null,
-      endDate: json['endDate'] != null 
-          ? DateTime.parse(json['endDate']) 
+      endDate: json['endDate'] != null
+          ? DateTime.parse(json['endDate']).toLocal()
           : null,
       location: json['location'],
       address: json['address'],

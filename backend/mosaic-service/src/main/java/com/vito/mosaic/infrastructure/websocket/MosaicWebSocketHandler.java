@@ -1,8 +1,9 @@
 package com.vito.mosaic.infrastructure.websocket;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.vito.mosaic.domain.model.MosaicFeedItem;
 import com.vito.mosaic.domain.model.MosaicItem;
+import com.vito.mosaic.domain.port.outbound.MosaicRealtimeNotifier;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -16,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Component
-public class MosaicWebSocketHandler extends TextWebSocketHandler {
+public class MosaicWebSocketHandler extends TextWebSocketHandler implements MosaicRealtimeNotifier {
     
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<String, Map<String, WebSocketSession>> eventSessions = new ConcurrentHashMap<>();
@@ -120,6 +121,27 @@ public class MosaicWebSocketHandler extends TextWebSocketHandler {
         }
     }
     
+    /** asyncapi {@code MosaicItemRemoved}: frame plano {@code {type, eventId, itemId}} (T-B26). */
+    @Override
+    public void itemRemoved(String eventId, String itemId) {
+        Map<String, WebSocketSession> sessions = eventSessions.get(eventId);
+        if (sessions == null || sessions.isEmpty()) {
+            return;
+        }
+
+        try {
+            String message = objectMapper.writeValueAsString(Map.of(
+                    "type", "ITEM_REMOVED",
+                    "eventId", eventId,
+                    "itemId", itemId
+            ));
+            broadcastToSessions(sessions, new TextMessage(message));
+            log.info("Broadcasted item removal to {} sessions for event: {}", sessions.size(), eventId);
+        } catch (Exception e) {
+            log.error("Failed to broadcast item removal", e);
+        }
+    }
+
     private void broadcastToSessions(Map<String, WebSocketSession> sessions, TextMessage message) {
         sessions.values().forEach(session -> {
             try {

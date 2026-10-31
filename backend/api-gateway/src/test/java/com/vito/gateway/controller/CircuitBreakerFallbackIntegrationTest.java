@@ -5,7 +5,7 @@ import com.vito.gateway.security.JwtAuthenticationFilterTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -46,13 +46,13 @@ class CircuitBreakerFallbackIntegrationTest {
     @DynamicPropertySource
     static void routes(DynamicPropertyRegistry registry) {
         registry.add("JWT_SECRET", () -> JwtAuthenticationFilterTest.SECRET);
-        route(registry, 0, "slow", "http://localhost:" + backend.port(), "/slow/**", "auth");
-        route(registry, 1, "down", "http://localhost:" + closedPort, "/down/**", "events");
+        route(registry, 0, "slow", "http://127.0.0.1:" + backend.port(), "/slow/**", "auth");
+        route(registry, 1, "down", "http://127.0.0.1:" + closedPort, "/down/**", "events");
     }
 
     private static void route(DynamicPropertyRegistry registry, int i, String id, String uri, String path,
                               String fallback) {
-        String prefix = "spring.cloud.gateway.routes[" + i + "].";
+        String prefix = "spring.cloud.gateway.server.webflux.routes[" + i + "].";
         registry.add(prefix + "id", () -> id);
         registry.add(prefix + "uri", () -> uri);
         registry.add(prefix + "predicates[0]", () -> "Path=" + path);

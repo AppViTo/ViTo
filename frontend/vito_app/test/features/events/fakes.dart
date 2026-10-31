@@ -33,7 +33,16 @@ class FakeEventRepository implements EventRepository {
   final bool failCreate;
   final bool failCoverUpload;
 
-  FakeEventRepository({this.failCreate = false, this.failCoverUpload = false});
+  /// `null` responde `ServerFailure`; una lista, `Right` con esos eventos.
+  final List<Event>? myEvents;
+  final List<Event>? upcomingEvents;
+
+  FakeEventRepository({
+    this.failCreate = false,
+    this.failCoverUpload = false,
+    this.myEvents,
+    this.upcomingEvents,
+  });
 
   @override
   Future<Either<Failure, Event>> createEvent({
@@ -98,14 +107,16 @@ class FakeEventRepository implements EventRepository {
     int page = 0,
     int size = 20,
   }) async =>
-      const Left(ServerFailure());
+      myEvents != null ? Right(myEvents!) : const Left(ServerFailure());
 
   @override
   Future<Either<Failure, List<Event>>> getUpcomingEvents({
     int page = 0,
     int size = 20,
   }) async =>
-      const Left(ServerFailure());
+      upcomingEvents != null
+          ? Right(upcomingEvents!)
+          : const Left(ServerFailure());
 
   @override
   Future<Either<Failure, RSVP>> respondToRSVP({
@@ -286,5 +297,20 @@ class FakeMediaRemoteDataSource implements MediaRemoteDataSource {
     capturedMimeType = mimeType;
     if (uploadError != null) throw uploadError!;
     return 'https://cdn.vito.app/cover.jpg';
+  }
+
+  @override
+  Future<String> uploadMedia({
+    required String eventId,
+    required Uint8List bytes,
+    required String fileName,
+    required String mimeType,
+  }) async {
+    capturedEventId = eventId;
+    capturedBytes = bytes;
+    capturedFileName = fileName;
+    capturedMimeType = mimeType;
+    if (uploadError != null) throw uploadError!;
+    return 'med_1';
   }
 }

@@ -55,3 +55,7 @@ desktop.ini
 
 # Fixtures ficticios de los tests de despliegue (feature 001)
 !infrastructure/deploy/tests/fixtures/.env.test
+
+# ── Documentación PDF compilada ───────────────────────────────
+docs/pdf/out/
+tools/docs-pdf/node_modules/

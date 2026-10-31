@@ -1,0 +1,6 @@
+{
+  "error": "NOT_FOUND",
+  "message": "El archivo que intentas publicar no existe",
+  "status": 404,
+  "timestamp": "2026-10-16T22:15:00Z"
+}

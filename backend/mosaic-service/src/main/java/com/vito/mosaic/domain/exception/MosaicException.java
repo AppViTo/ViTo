@@ -38,6 +38,11 @@ public class MosaicException extends RuntimeException {
         return new MosaicException(Reason.FORBIDDEN, "No tienes permiso para realizar esta acción");
     }
 
+    /** removeMosaicItem: solo el organizador del evento modera el mosaico (excepción A3). */
+    public static MosaicException notOrganizer() {
+        return new MosaicException(Reason.FORBIDDEN, "Solo el organizador puede retirar fotos del mosaico");
+    }
+
     public static MosaicException gridNotInitialized() {
         return new MosaicException(Reason.CONFLICT, "El mosaico de este evento no está inicializado");
     }

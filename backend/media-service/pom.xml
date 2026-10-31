@@ -3,29 +3,24 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.12</version>
+        <version>4.0.9</version>
         <relativePath/>
     </parent>
-    
     <groupId>com.vito</groupId>
     <artifactId>media-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>media-service</name>
     <description>ViTo Media Service - File Upload and Management with S3/MinIO</description>
-    
     <properties>
-        <java.version>17</java.version>
-        <!-- La 1.19 de Spring Boot 3.2 no habla con Docker Engine 29 (API mínima 1.44) -->
-        <testcontainers.version>1.21.4</testcontainers.version>
+        <java.version>21</java.version>
         <!-- El AWS SDK 2.57 usa httpclient5 5.6 (TlsSocketStrategy); Spring Boot 3.2 fija 5.2 -->
         <httpclient5.version>5.6.4</httpclient5.version>
         <httpcore5.version>5.4.3</httpcore5.version>
+        <twelvemonkeys.version>3.15.3</twelvemonkeys.version>
     </properties>
-    
     <dependencies>
         <!-- Spring Web -->
         <dependency>
@@ -38,53 +33,60 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
-        
         <!-- Spring Data MongoDB -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
-        
         <!-- Spring Data Redis -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
-        
         <!-- Spring Security -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
-        
         <!-- Spring Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-        
         <!-- Kafka -->
         <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-kafka</artifactId>
         </dependency>
-        
         <!-- AWS S3 SDK -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
-            <version>2.57.0</version>
+            <version>2.57.3</version>
         </dependency>
-        
         <!-- Tipo real del archivo por magic bytes (T-B19); tika-core no trae parsers -->
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
-            <version>3.3.1</version>
+            <version>4.2.0</version>
         </dependency>
-        
+        <!--
+          Re-codificación de imágenes (T-B25, excepción A3). TwelveMonkeys: BSD-3, Java puro,
+          plugins de ImageIO. webp lee WebP (el JDK no); jpeg lee CMYK/YCCK e ICC dañados que el
+          lector del JDK rechaza. La escritura usa los writers JPEG y PNG del JDK.
+        -->
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-jpeg</artifactId>
+            <version>${twelvemonkeys.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.twelvemonkeys.imageio</groupId>
+            <artifactId>imageio-webp</artifactId>
+            <version>${twelvemonkeys.version}</version>
+        </dependency>
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
@@ -103,14 +105,12 @@
             <version>0.13.0</version>
             <scope>runtime</scope>
         </dependency>
-        
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
-        
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -125,11 +125,38 @@
         <!-- S3StorageAdapterIT: SeaweedFS real (T-I10) -->
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Boot 4: slices de test en módulos propios -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-resttestclient</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-restclient</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-metrics-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- CVE-2026-106451 (HIGH): lz4-java 1.10.1 llega transitivo por Kafka; fix en 1.11.4 -->
+        <dependency>
+            <groupId>at.yawk.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+            <version>1.11.4</version>
+        </dependency>
+        <!-- CVE-2026-108106 y CVE-2026-93451 (HIGH): snappy-java 1.1.10.7 llega transitivo por Kafka; fix en 1.1.10.9 -->
+        <dependency>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
+            <version>1.1.10.9</version>
+        </dependency>
     </dependencies>
-    
     <build>
         <plugins>
             <plugin>

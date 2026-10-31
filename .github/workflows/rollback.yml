@@ -1,8 +1,10 @@
 name: ViTo Rollback
 
 # Volver a uno de los últimos 3 releases desplegados con éxito, sin reconstruir (feature 001,
-# Historia 2, FR-008). Lo aprueba el otro lead (Environment production). La base de datos no
-# se revierte. Operación: docs/runbooks/despliegue.md, sección Rollback.
+# Historia 2, FR-008). Environment production-hotfix (D-13): lo aprueba cualquiera de los dos
+# leads, también quien lo dispara, para poder volver atrás con un solo lead disponible; el
+# motivo queda en el registro. La base de datos no se revierte.
+# Operación: docs/runbooks/despliegue.md, sección Rollback.
 
 on:
   workflow_dispatch:
@@ -25,10 +27,10 @@ permissions:
 
 jobs:
   rollback:
-    name: Rollback (production)
+    name: Rollback (production-hotfix)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: production
+    environment: production-hotfix
     concurrency:
       group: vps-production
       cancel-in-progress: false
@@ -75,7 +77,7 @@ jobs:
             [ -n "${!v}" ] || missing+=("$n")
           done
           if ((${#missing[@]})); then
-            echo "::error::Faltan secretos en el Environment production: ${missing[*]}"
+            echo "::error::Faltan secretos en el Environment production-hotfix: ${missing[*]}"
             exit 1
           fi
 
@@ -85,9 +87,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           approver=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/approvals" \
-            --jq '[.[] | select(any(.environments[]; .name == "production"))] | last | .user.login // ""')
+            --jq '[.[] | select(any(.environments[]; .name == "production-hotfix"))] | last | .user.login // ""')
           if [ -z "$approver" ]; then
-            echo "::error::El Environment production no pidió aprobación: revisar sus revisores obligatorios (docs/runbooks/aprovisionamiento.md, paso 3)"
+            echo "::error::El Environment production-hotfix no pidió aprobación: revisar sus revisores obligatorios (docs/runbooks/aprovisionamiento.md, paso 3)"
             exit 1
           fi
           echo "Aprobó: $approver"

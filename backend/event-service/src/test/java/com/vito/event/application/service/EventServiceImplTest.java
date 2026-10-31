@@ -9,11 +9,14 @@ import com.vito.event.domain.port.outbound.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -51,7 +54,7 @@ class EventServiceImplTest {
                 .title("Test Event")
                 .description("Test Description")
                 .details(Event.EventDetails.builder()
-                        .startDate(LocalDateTime.now().plusDays(7))
+                        .startDate(Instant.now().plus(7, ChronoUnit.DAYS))
                         .location("Test Location")
                         .build())
                 .settings(Event.EventSettings.builder()
@@ -60,8 +63,8 @@ class EventServiceImplTest {
                         .build())
                 .stats(Event.EventStats.builder().build())
                 .status(Event.EventStatus.PUBLISHED)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
                 .build();
     }
 
@@ -86,6 +89,23 @@ class EventServiceImplTest {
 
         verify(eventRepository).save(any(Event.class));
         verify(eventPublisher).publishEventCreated("event123", "organizer123");
+    }
+
+    @Test
+    void createEvent_PublishesEventSoItAppearsInUpcoming() {
+        // Bug-B02: un evento creado debe nacer PUBLISHED (contrato createEvent.201), no DRAFT
+        CreateEventCommand command = CreateEventCommand.builder()
+                .organizerId("organizer123")
+                .title("Test Event")
+                .build();
+
+        when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
+
+        eventService.createEvent(command);
+
+        ArgumentCaptor<Event> saved = ArgumentCaptor.forClass(Event.class);
+        verify(eventRepository).save(saved.capture());
+        assertEquals(Event.EventStatus.PUBLISHED, saved.getValue().getStatus());
     }
 
     @Test
@@ -459,5 +479,79 @@ class EventServiceImplTest {
         eventService.getUserEvents("organizer123", 0, 100);
 
         verify(eventRepository).findByOrganizerId("organizer123", 0, 100);
+    }
+
+    // ---- T-B07: listEvents (ADR-014) ---------------------------------------------------
+
+    @Test
+    void listEvents_Mine_ListsEventsOrganizedByViewer() {
+        when(eventRepository.findByOrganizerId("organizer123", 1, 20)).thenReturn(java.util.List.of(eventHidingAddress()));
+
+        java.util.List<Event> events = eventService.listEvents(ListScope.MINE, "organizer123", 1, 20);
+
+        // El organizador ve la dirección de sus eventos sin consultar RSVP
+        assertAddressVisible(events.get(0));
+        verify(eventRepository, never()).findUpcomingEvents(anyInt(), anyInt());
+        verifyNoInteractions(rsvpRepository);
+    }
+
+    @Test
+    void listEvents_Upcoming_RedactsAddressForNonAcceptedViewer() {
+        when(eventRepository.findUpcomingEvents(0, 20)).thenReturn(java.util.List.of(eventHidingAddress()));
+        when(rsvpRepository.findByEventIdAndUserId("event123", "stranger")).thenReturn(Optional.empty());
+
+        assertAddressHidden(eventService.listEvents(ListScope.UPCOMING, "stranger", 0, 20).get(0));
+        verify(eventRepository, never()).findByOrganizerId(any(), anyInt(), anyInt());
+    }
+
+    @Test
+    void listEvents_Upcoming_AcceptedViewerSeesAddress() {
+        when(eventRepository.findUpcomingEvents(0, 20)).thenReturn(java.util.List.of(eventHidingAddress()));
+        givenRsvp("guest1", RSVP.RSVPStatus.ACCEPTED);
+
+        assertAddressVisible(eventService.listEvents(ListScope.UPCOMING, "guest1", 0, 20).get(0));
+    }
+
+    @Test
+    void listEvents_SizeOver100_IsValidationError() {
+        EventException ex = assertThrows(EventException.class,
+                () -> eventService.listEvents(ListScope.MINE, "organizer123", 0, 101));
+
+        assertEquals(EventException.Reason.INVALID, ex.getReason());
+        assertEquals(java.util.Map.of("size", "Máximo 100"), ex.getDetails());
+        verifyNoInteractions(eventRepository);
+    }
+
+    @Test
+    void listEvents_Size100_IsAccepted() {
+        eventService.listEvents(ListScope.UPCOMING, "user1", 0, 100);
+
+        verify(eventRepository).findUpcomingEvents(0, 100);
+    }
+
+    @Test
+    void listEvents_SizeZero_ReusesLowerBound() {
+        eventService.listEvents(ListScope.MINE, "organizer123", 0, 0);
+
+        verify(eventRepository).findByOrganizerId("organizer123", 0, 1);
+    }
+
+    @Test
+    void listEvents_NegativePage_IsValidationError() {
+        EventException ex = assertThrows(EventException.class,
+                () -> eventService.listEvents(ListScope.UPCOMING, "user1", -1, 20));
+
+        assertEquals(EventException.Reason.INVALID, ex.getReason());
+        verifyNoInteractions(eventRepository);
+    }
+
+    @Test
+    void listScope_AcceptsOnlyContractValues() {
+        assertEquals(ListScope.MINE, ListScope.fromValue("mine"));
+        assertEquals(ListScope.UPCOMING, ListScope.fromValue("upcoming"));
+        for (String invalid : new String[] {"MINE", "public", "all", ""}) {
+            EventException ex = assertThrows(EventException.class, () -> ListScope.fromValue(invalid));
+            assertEquals("El scope debe ser mine o upcoming", ex.getMessage());
+        }
     }
 }

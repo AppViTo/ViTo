@@ -25,5 +25,6 @@ Registro de las decisiones que afectan el contrato compartido entre el **equipo 
 | [015](./adr-015-chat-ws-identity.md) | Identidad en el WS de chat sin `?userId=` | Aceptada | 2026-10-20 |
 | [016](./adr-016-domain-owners.md) | Un solo servicio dueño por capacidad duplicada | Aceptada | 2026-10-22 |
 | [017](./adr-017-shared-java-code.md) | Código Java compartido: copia temporal ahora, `shared-web` después | Aceptada | 2026-10-22 |
+| [018](./adr-018-spring-boot-4.md) | Spring Boot 4.0.x y Spring Framework 7 en el backend Java; Java 21 parcheado | Propuesta | 2026-10-29 |
 
 **Convención de formato:** estilo [MADR](https://adr.github.io/madr/) simplificado — Estado / Contexto / Decisión / Consecuencias / Alternativas.

@@ -6,8 +6,11 @@ import com.vito.media.domain.port.outbound.ImageProcessingPort;
 import com.vito.media.domain.port.outbound.MediaEventPublisher;
 import com.vito.media.domain.port.outbound.MediaRepository;
 import com.vito.media.domain.port.outbound.StoragePort;
+import com.vito.media.infrastructure.adapter.outbound.ImageIoReencoder;
 import com.vito.media.infrastructure.adapter.outbound.TikaFileTypeDetector;
 import com.vito.media.support.SampleFiles;
+import com.vito.media.support.SampleImages;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +25,10 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-/** T-B19: el tipo se valida contra el contenido real, con la lista y el límite de CONVENTIONS §8. */
+/**
+ * T-B19: el tipo se valida contra el contenido real, con la lista y el límite de CONVENTIONS §8.
+ * T-B25: solo se guarda la imagen re-codificada y el vídeo se rechaza (excepción A3).
+ */
 @ExtendWith(MockitoExtension.class)
 class MediaServiceImplUploadValidationTest {
 
@@ -45,7 +51,8 @@ class MediaServiceImplUploadValidationTest {
     @BeforeEach
     void setUp() {
         mediaService = new MediaServiceImpl(mediaRepository, storagePort, eventPublisher, imageProcessingPort,
-                new TikaFileTypeDetector());
+                new TikaFileTypeDetector(), new ImageIoReencoder(
+                        ImageIoReencoder.DEFAULT_MAX_PIXELS, ImageIoReencoder.DEFAULT_MAX_CONCURRENT));
         ReflectionTestUtils.setField(mediaService, "maxFileSize", TEN_MB);
         ReflectionTestUtils.setField(mediaService, "allowedTypes", "image/jpeg,image/png,image/webp,video/mp4");
         ReflectionTestUtils.setField(mediaService, "bucketName", "vito-test");
@@ -111,15 +118,64 @@ class MediaServiceImplUploadValidationTest {
         Media media = upload(file);
 
         assertEquals("image/png", media.getContentType());
-        verify(storagePort).uploadFile(anyString(), eq(SampleFiles.png()), eq("image/png"));
+        verify(storagePort).uploadFile(anyString(), any(), eq("image/png"));
+    }
+
+    /** T-B25: lo que llega a S3 es la versión re-codificada, no los bytes del cliente. */
+    @Test
+    void jpegWithGps_OnlyTheReencodedVersionIsStored() {
+        whenStorageAndRepositoryWork();
+        byte[] original = SampleImages.jpegWithExifGps(40, 20, 1);
+        MockMultipartFile file = file("foto.jpeg", "image/jpeg", original);
+
+        Media media = upload(file);
+
+        ArgumentCaptor<byte[]> stored = ArgumentCaptor.forClass(byte[].class);
+        verify(storagePort).uploadFile(anyString(), stored.capture(), eq("image/jpeg"));
+        assertFalse(SampleImages.contains(stored.getValue(), SampleImages.SECRET));
+        assertEquals(stored.getValue().length, media.getFileSize());
+        assertEquals(40, media.getMetadata().getWidth());
+        assertTrue(media.getFileName().endsWith(".jpg"), media.getFileName());
+    }
+
+    /** WebP se guarda como JPEG: el tipo y la extensión son los del archivo guardado. */
+    @Test
+    void webp_IsStoredAsJpegWithMatchingTypeAndExtension() {
+        whenStorageAndRepositoryWork();
+        MockMultipartFile file = file("foto.webp", "image/webp", SampleImages.webpLossy());
+
+        Media media = upload(file);
+
+        assertEquals("image/jpeg", media.getContentType());
+        assertTrue(media.getFileName().endsWith(".jpg"), media.getFileName());
     }
 
     @Test
-    void validMp4WithIsomBrand_IsAccepted() {
-        whenStorageAndRepositoryWork();
+    void corruptImage_IsRejectedAndNothingIsStored() {
+        MockMultipartFile file = file("foto.png", "image/png", SampleImages.corruptPng());
+
+        assertThrows(MediaException.UnreadableImageException.class, () -> upload(file));
+        verifyNoInteractions(storagePort, mediaRepository);
+    }
+
+    @Test
+    void decompressionBomb_IsRejectedAndNothingIsStored() {
+        MockMultipartFile file = file("bomba.png", "image/png", SampleImages.pngBomb());
+
+        assertThrows(MediaException.ImageTooLargeException.class, () -> upload(file));
+        verifyNoInteractions(storagePort, mediaRepository);
+    }
+
+    /** Excepción A3: el vídeo no se re-codifica, así que no se publica en esta ola (leads, 2026-10-24). */
+    @Test
+    void validMp4_IsRejectedInThisWave() {
         MockMultipartFile file = file("video.mp4", "video/mp4", SampleFiles.mp4());
 
-        assertEquals("video/mp4", upload(file).getContentType());
+        MediaException.VideoNotAllowedException ex = assertThrows(
+                MediaException.VideoNotAllowedException.class, () -> upload(file));
+
+        assertEquals("Por ahora no se admiten vídeos: sube una imagen JPEG, PNG o WebP", ex.getMessage());
+        verifyNoInteractions(storagePort, mediaRepository);
     }
 
     private Media upload(MockMultipartFile file) {

@@ -1,14 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/mosaic.dart';
 import '../bloc/mosaic_bloc.dart';
 
 class MosaicPage extends StatefulWidget {
   final String eventId;
 
-  const MosaicPage({super.key, required this.eventId});
+  /// `organizerId` del evento: solo ese usuario ve "Retirar foto" (T-F10).
+  final String? organizerId;
+
+  const MosaicPage({super.key, required this.eventId, this.organizerId});
 
   @override
   State<MosaicPage> createState() => _MosaicPageState();
@@ -16,7 +22,10 @@ class MosaicPage extends StatefulWidget {
 
 class _MosaicPageState extends State<MosaicPage> {
   bool _showGrid = true;
+  bool _uploading = false;
   final ImagePicker _imagePicker = ImagePicker();
+  MosaicBloc? _mosaicBloc;
+  StreamSubscription<MosaicState>? _removalFailures;
 
   @override
   void initState() {
@@ -24,7 +33,75 @@ class _MosaicPageState extends State<MosaicPage> {
     if (widget.eventId.isNotEmpty) {
       context.read<MosaicBloc>().add(LoadEventGrid(widget.eventId));
       context.read<MosaicBloc>().add(LoadEventFeed(widget.eventId));
+      // T-F10: sin el WebSocket no llega ITEM_REMOVED a los demás clientes.
+      final bloc = context.read<MosaicBloc>()
+        ..add(ConnectToWebSocket(eventId: widget.eventId));
+      _mosaicBloc = bloc;
+      _removalFailures = bloc.stream
+          .where((state) => state is MosaicItemRemovalFailed)
+          .listen(_showRemovalError);
     }
+  }
+
+  @override
+  void dispose() {
+    _removalFailures?.cancel();
+    final bloc = _mosaicBloc;
+    if (bloc != null && !bloc.isClosed) {
+      bloc.add(DisconnectFromWebSocket());
+    }
+    super.dispose();
+  }
+
+  /// Solo el organizador del evento modera el mosaico (excepción A3).
+  bool _canModerate(BuildContext context) {
+    final organizerId = widget.organizerId;
+    if (organizerId == null || organizerId.isEmpty) return false;
+    final currentUserId = context.select<AuthBloc, String?>((bloc) {
+      final authState = bloc.state;
+      return authState is AuthAuthenticated ? authState.user.id : null;
+    });
+    return currentUserId == organizerId;
+  }
+
+  Future<void> _confirmRemove(String itemId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('¿Retirar esta foto?'),
+        content: const Text(
+          'La foto desaparecerá del mosaico para todos los asistentes.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Retirar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    context.read<MosaicBloc>().add(RemoveMosaicItem(itemId));
+  }
+
+  void _showRemovalError(MosaicState state) {
+    if (!mounted || state is! MosaicItemRemovalFailed) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(state.message)),
+    );
+  }
+
+  Widget _removeButton(String itemId, {Color? color}) {
+    return IconButton(
+      key: ValueKey('remove-mosaic-item-$itemId'),
+      tooltip: 'Retirar foto',
+      icon: Icon(Icons.delete_outline, color: color),
+      onPressed: () => _confirmRemove(itemId),
+    );
   }
 
   @override
@@ -48,6 +125,8 @@ class _MosaicPageState extends State<MosaicPage> {
       );
     }
 
+    final canModerate = _canModerate(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Live Mosaic'),
@@ -64,11 +143,16 @@ class _MosaicPageState extends State<MosaicPage> {
           // Upload button
           IconButton(
             icon: const Icon(Icons.add_a_photo),
-            onPressed: _pickAndUpload,
+            onPressed: _uploading ? null : _pickAndUpload,
           ),
         ],
       ),
-      body: BlocBuilder<MosaicBloc, MosaicState>(
+      body: BlocConsumer<MosaicBloc, MosaicState>(
+        listener: _onUploadState,
+        // Los estados de la subida (y el fallo transitorio de un retiro, que
+        // avisa _showRemovalError) se notifican sin reemplazar el contenido.
+        buildWhen: (_, state) =>
+            !_isUploadState(state) && state is! MosaicItemRemovalFailed,
         builder: (context, state) {
           if (state is MosaicLoading) {
             return const Center(
@@ -97,20 +181,26 @@ class _MosaicPageState extends State<MosaicPage> {
           }
 
           if (_showGrid) {
-            return _buildGrid(state);
+            return _buildGrid(state, canModerate: canModerate);
           } else {
-            return _buildFeed(state);
+            return _buildFeed(state, canModerate: canModerate);
           }
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _pickAndUpload,
-        child: const Icon(Icons.camera_alt),
+        onPressed: _uploading ? null : _pickAndUpload,
+        child: _uploading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.camera_alt),
       ),
     );
   }
 
-  Widget _buildGrid(MosaicState state) {
+  Widget _buildGrid(MosaicState state, {bool canModerate = false}) {
     if (state is MosaicGridLoaded) {
       final items = state.grid.grid.expand((row) => row).where((item) => item != null).toList();
       if (items.isEmpty) {
@@ -127,7 +217,7 @@ class _MosaicPageState extends State<MosaicPage> {
         itemCount: items.length,
         itemBuilder: (context, index) {
           final item = items[index]!;
-          return GestureDetector(
+          final cell = GestureDetector(
             onTap: () => _showItemDetail(item),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(4),
@@ -141,6 +231,18 @@ class _MosaicPageState extends State<MosaicPage> {
               ),
             ),
           );
+          if (!canModerate) return cell;
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              cell,
+              Positioned(
+                top: 0,
+                right: 0,
+                child: _removeButton(item.id, color: Colors.white),
+              ),
+            ],
+          );
         },
       );
     }
@@ -148,7 +250,7 @@ class _MosaicPageState extends State<MosaicPage> {
     return _buildEmptyState();
   }
 
-  Widget _buildFeed(MosaicState state) {
+  Widget _buildFeed(MosaicState state, {bool canModerate = false}) {
     if (state is MosaicFeedLoaded) {
       final items = state.feed;
       if (items.isEmpty) {
@@ -203,6 +305,7 @@ class _MosaicPageState extends State<MosaicPage> {
                         item.displayName,
                         style: const TextStyle(color: AppColors.textSecondary),
                       ),
+                      if (canModerate) _removeButton(item.id),
                     ],
                   ),
                 ),
@@ -272,15 +375,68 @@ class _MosaicPageState extends State<MosaicPage> {
 
     if (source == null || !mounted) return;
 
-    final XFile? image = await _imagePicker.pickImage(source: source);
+    // Excepción A3: solo fotos (pickImage nunca ofrece video).
+    XFile? image;
+    try {
+      image = await _imagePicker.pickImage(source: source, imageQuality: 85);
+    } catch (_) {
+      if (mounted) _showMessage('No se pudo abrir la cámara o la galería');
+      return;
+    }
     if (image == null || !mounted) return;
 
-    // TODO: Upload to media service and then add to mosaic
-    // For now, just show a snackbar
+    final mimeType = image.mimeType ?? _mimeFromName(image.name);
+    if (mimeType == null || !mosaicAllowedImageTypes.contains(mimeType)) {
+      _showMessage('Solo se pueden publicar imágenes JPEG, PNG o WebP');
+      return;
+    }
+
+    final bytes = await image.readAsBytes();
+    if (!mounted) return;
+    if (bytes.lengthInBytes > mosaicMaxUploadBytes) {
+      _showMessage('La foto supera los 10 MB');
+      return;
+    }
+
+    context.read<MosaicBloc>().add(UploadMosaicPhoto(
+          eventId: widget.eventId,
+          bytes: bytes,
+          fileName: image.name,
+          mimeType: mimeType,
+        ));
+  }
+
+  String? _mimeFromName(String name) {
+    final lower = name.toLowerCase();
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    return null;
+  }
+
+  bool _isUploadState(MosaicState state) =>
+      state is MosaicUploading ||
+      state is MosaicUploadFailed ||
+      state is MosaicItemAdded;
+
+  void _onUploadState(BuildContext context, MosaicState state) {
+    if (!_isUploadState(state)) return;
+    setState(() => _uploading = state is MosaicUploading);
+
+    if (state is MosaicUploadFailed) {
+      _showMessage(state.message);
+    } else if (state is MosaicItemAdded) {
+      _showMessage('Foto publicada en el mosaico');
+      final bloc = context.read<MosaicBloc>();
+      bloc.add(_showGrid
+          ? LoadEventGrid(widget.eventId)
+          : LoadEventFeed(widget.eventId));
+    }
+  }
+
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Upload feature coming soon!'),
-      ),
+      SnackBar(content: Text(message)),
     );
   }
 

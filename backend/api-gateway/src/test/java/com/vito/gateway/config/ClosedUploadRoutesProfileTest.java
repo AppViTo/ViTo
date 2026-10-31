@@ -7,7 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -27,6 +27,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * T-I17 (excepción A3): en {@code prod} la subida a media y la escritura en mosaic responden
  * {@code 404} sin llegar al servicio; en {@code docker} se enrutan. Los perfiles son los de
  * docker-compose.prod.yml ({@code prod,docker}) y del compose local ({@code docker}).
+ *
+ * <p>T-I21: con {@code MOSAIC_UPLOADS_ENABLED=true} se abren en {@code prod} la subida y las
+ * escrituras del mosaico de la Ola 3; las demás escrituras siguen en {@code 404}.
  */
 class ClosedUploadRoutesProfileTest {
 
@@ -46,8 +49,8 @@ class ClosedUploadRoutesProfileTest {
     @DynamicPropertySource
     static void services(DynamicPropertyRegistry registry) {
         registry.add("JWT_SECRET", () -> JwtAuthenticationFilterTest.SECRET);
-        registry.add("MEDIA_SERVICE_URI", () -> "http://localhost:" + backend.port());
-        registry.add("MOSAIC_SERVICE_URI", () -> "http://localhost:" + backend.port());
+        registry.add("MEDIA_SERVICE_URI", () -> "http://127.0.0.1:" + backend.port());
+        registry.add("MOSAIC_SERVICE_URI", () -> "http://127.0.0.1:" + backend.port());
     }
 
     @AfterAll
@@ -112,6 +115,14 @@ class ClosedUploadRoutesProfileTest {
             assertClosed(client, HttpMethod.PATCH, "/api/v1/mosaic/item/itm_1");
         }
 
+        /** T-I21 con la propiedad apagada (valor por defecto): las rutas de la Ola 3 siguen cerradas. */
+        @Test
+        void olaTresWritesAreClosedByDefault() {
+            assertClosed(client, HttpMethod.POST, "/api/v1/mosaic/grid/evt_1/initialize");
+            assertClosed(client, HttpMethod.POST, "/api/v1/mosaic/item/itm_1/like");
+            assertClosed(client, HttpMethod.DELETE, "/api/v1/mosaic/item/itm_1");
+        }
+
         @Test
         void readsAreStillRouted() {
             assertRouted(client, HttpMethod.GET, "/api/v1/media/med_1");
@@ -141,6 +152,62 @@ class ClosedUploadRoutesProfileTest {
         @Test
         void mosaicWritesAreRouted() {
             assertRouted(client, HttpMethod.POST, "/api/v1/mosaic/photo");
+        }
+    }
+
+    @Nested
+    @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+            properties = "MOSAIC_UPLOADS_ENABLED=true")
+    @AutoConfigureWebTestClient
+    @ActiveProfiles({"prod", "docker"})
+    class ProdProfileWithUploadsEnabled {
+        @Autowired
+        WebTestClient client;
+
+        @BeforeEach
+        void resetHits() {
+            backendHits.set(0);
+        }
+
+        @Test
+        void mediaUploadIsRouted() {
+            assertRouted(client, HttpMethod.POST, "/api/v1/media/upload");
+        }
+
+        @Test
+        void olaTresMosaicWritesAreRouted() {
+            assertRouted(client, HttpMethod.POST, "/api/v1/mosaic/post");
+            backendHits.set(0);
+            assertRouted(client, HttpMethod.POST, "/api/v1/mosaic/grid/evt_1/initialize");
+            backendHits.set(0);
+            assertRouted(client, HttpMethod.POST, "/api/v1/mosaic/item/itm_1/like");
+            backendHits.set(0);
+            assertRouted(client, HttpMethod.DELETE, "/api/v1/mosaic/item/itm_1/like");
+        }
+
+        /** La moderación del organizador (removeMosaicItem) abre junto con la subida: A3 exige las dos. */
+        @Test
+        void organizerModerationIsRouted() {
+            assertRouted(client, HttpMethod.DELETE, "/api/v1/mosaic/item/itm_1");
+        }
+
+        /** ADR-016 elimina photo y checkin; process es interno (transcode vía Kafka). */
+        @Test
+        void otherWritesStayClosed() {
+            assertClosed(client, HttpMethod.POST, "/api/v1/mosaic/photo");
+            assertClosed(client, HttpMethod.POST, "/api/v1/mosaic/checkin");
+            assertClosed(client, HttpMethod.POST, "/api/v1/media/med_1/process");
+            assertClosed(client, HttpMethod.POST, "/api/v1/media/upload/");
+            assertClosed(client, HttpMethod.PUT, "/api/v1/mosaic/item/itm_1/like");
+            assertClosed(client, HttpMethod.PUT, "/api/v1/mosaic/item/itm_1");
+            assertClosed(client, HttpMethod.PATCH, "/api/v1/mosaic/item/itm_1");
+            assertClosed(client, HttpMethod.POST, "/api/v1/mosaic/item/itm_1");
+            assertClosed(client, HttpMethod.POST, "/api/v1/mosaic/grid/evt_1");
+        }
+
+        @Test
+        void readsAreStillRouted() {
+            assertRouted(client, HttpMethod.GET, "/api/v1/mosaic/feed/evt_1");
         }
     }
 }

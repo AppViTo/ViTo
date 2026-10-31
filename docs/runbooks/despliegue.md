@@ -28,7 +28,7 @@ Aprovisionamiento previo: [aprovisionamiento.md](aprovisionamiento.md). Incident
    bundle a `/opt/vito/releases/<sha>/`, chequeo de evento en vivo, carga de imágenes y
    `deploy.sh apply`.
 6. Si la salud falla, `deploy.sh` vuelve solo al release anterior y avisa.
-7. Tras el despliegue, el job **Smoke E2E** prueba producción (T-I21). Si falla, avisa pero
+7. Tras el despliegue, el job **Smoke E2E** prueba producción (T-I25). Si falla, avisa pero
    no bloquea el release; se investiga con [incident.md](incident.md).
 8. Con éxito, el job **Tag** crea el tag git `v<VERSION>`.
 
@@ -96,7 +96,8 @@ activo (compose, configuración y versiones a la vez) y espera la salud.
 1. **Elegir el SHA:** `cat /opt/vito/history` en el VPS, o en GitHub → *Deployments* →
    `production` (los despliegues con éxito, con su commit). Hace falta el SHA completo.
 2. Actions → *ViTo Rollback* → *Run workflow* sobre `main` con `sha` y `reason`.
-3. Aprueba el otro lead (Environment `production`).
+3. Lo aprueba cualquiera de los dos leads, también quien lo disparó (Environment
+   `production-hotfix`, D-13). El motivo y quién aprobó quedan en `deployments.log`.
 4. Si la salud del release destino falla, vuelve solo al que estaba (código 5).
 
 **La base de datos no se revierte.** Un rollback devuelve el código, no los datos. Si el
