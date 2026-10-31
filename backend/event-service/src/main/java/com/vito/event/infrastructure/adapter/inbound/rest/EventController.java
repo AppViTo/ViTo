@@ -5,6 +5,7 @@ import com.vito.event.domain.model.Invitation;
 import com.vito.event.domain.model.RSVP;
 import com.vito.event.domain.port.inbound.EventService;
 import com.vito.event.domain.exception.EventException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -25,7 +26,7 @@ public class EventController {
     private final EventService eventService;
     
     @PostMapping
-    public ResponseEntity<Event> createEvent(@RequestBody EventService.CreateEventCommand command) {
+    public ResponseEntity<Event> createEvent(@Valid @RequestBody EventService.CreateEventCommand command) {
         String currentUserId = getCurrentUserId();
         command.setOrganizerId(currentUserId);
         
