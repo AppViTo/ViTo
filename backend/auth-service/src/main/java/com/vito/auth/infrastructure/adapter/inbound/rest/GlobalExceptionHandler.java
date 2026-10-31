@@ -5,8 +5,10 @@ import com.vito.auth.domain.exception.AuthenticationException;
 import com.vito.auth.domain.exception.AuthorizationException;
 import com.vito.auth.domain.exception.UserAlreadyExistsException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -31,6 +33,7 @@ public class GlobalExceptionHandler {
     static final String VALIDATION_ERROR = "VALIDATION_ERROR";
     static final String UNAUTHORIZED = "UNAUTHORIZED";
     static final String FORBIDDEN = "FORBIDDEN";
+    static final String NOT_FOUND = "NOT_FOUND";
     static final String CONFLICT = "CONFLICT";
     static final String INTERNAL_ERROR = "INTERNAL_ERROR";
 
@@ -88,11 +91,33 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, "La petición contiene datos no válidos");
     }
 
+    /**
+     * Excepciones propias de Spring MVC (ruta inexistente, método no soportado...) conservan su
+     * status en vez de convertirse en 500 (T-B28).
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+        if (ex instanceof TypeMismatchException) {
+            return error(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, "La petición contiene datos no válidos");
+        }
+        if (ex instanceof org.springframework.web.ErrorResponse springError
+                && springError.getStatusCode().is4xxClientError()) {
+            return springClientError(springError.getStatusCode());
+        }
         log.error("Unexpected error: {}", ex.getMessage(), ex);
         return error(HttpStatus.INTERNAL_SERVER_ERROR, INTERNAL_ERROR,
                 "Ocurrió un error inesperado. Inténtalo de nuevo en unos minutos");
+    }
+
+    private static ResponseEntity<ErrorResponse> springClientError(HttpStatusCode statusCode) {
+        HttpStatus status = HttpStatus.valueOf(statusCode.value());
+        return switch (status) {
+            case NOT_FOUND -> error(status, NOT_FOUND, "El recurso solicitado no existe");
+            case UNAUTHORIZED -> error(status, UNAUTHORIZED, "Debes iniciar sesión");
+            case FORBIDDEN -> error(status, FORBIDDEN, "No tienes permiso para realizar esta acción");
+            case CONFLICT -> error(status, CONFLICT, "La petición entra en conflicto con el estado actual");
+            default -> error(status, VALIDATION_ERROR, "La petición no es válida");
+        };
     }
 
     private static ResponseEntity<ErrorResponse> error(HttpStatus status, String error, String message) {

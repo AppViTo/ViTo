@@ -713,7 +713,7 @@ depende del contrato.
 - **Cierre:** un test por servicio con los perfiles de `docker-compose.prod.yml` que verifique
   que no hay DEBUG.
 
-### T-B28 · Errores de Spring con envelope en auth, chat y media — 🟢 READY · P1 · ADR-003, ADR-017
+### T-B28 · Errores de Spring con envelope en auth, chat y media — 🔵 EN CURSO (backend/t-b28-envelope-spring-errores) · P1 · ADR-003, ADR-017
 - **Por qué (hallazgo de T-B03, #164):** el handler de esos tres servicios convierte en `500`
   una ruta inexistente o un método no soportado; las copias de los otros 6 conservan el
   status de Spring. ADR-017 pide que las copias no diverjan. Además, los `401`/`403` que
