@@ -1,7 +1,7 @@
 package com.vito.auth.infrastructure.adapter.outbound.messaging;
 
 import com.vito.auth.domain.port.outbound.EventPublisherPort;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;

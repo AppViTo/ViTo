@@ -1,7 +1,7 @@
 package com.vito.gateway;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
+import org.springframework.boot.micrometer.metrics.test.autoconfigure.AutoConfigureMetrics;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalManagementPort;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -13,7 +13,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
  * lo sirve y el endpoint "gateway" (que permite escribir rutas) está deshabilitado.
  */
 // Spring Boot desactiva la exportación de métricas en tests; /actuator/prometheus la necesita
-@AutoConfigureObservability
+@AutoConfigureMetrics
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "JWT_SECRET=test-secret-key-for-unit-tests-only-256-bits-long",
         "MANAGEMENT_PORT=0"

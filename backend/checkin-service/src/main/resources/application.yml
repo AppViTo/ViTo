@@ -5,10 +5,10 @@ spring:
   application:
     name: checkin-service
   
+  mongodb:
+    uri: ${MONGODB_URI}
+    database: vito_checkin
   data:
-    mongodb:
-      uri: ${MONGODB_URI}
-      database: vito_checkin
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}

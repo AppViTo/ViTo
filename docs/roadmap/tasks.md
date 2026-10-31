@@ -108,9 +108,10 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | ✅ HECHA (#189) | — |
 | T-B27 | Logs en INFO en `prod` en los 9 servicios Java restantes | B | P1 | ✅ HECHA (#175) | — |
 | T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🟢 READY | — |
-| T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🟢 READY | — |
+| T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🔵 EN CURSO (backend/t-b29-create-event-valid) | — |
 | T-B30 | JWT con firma asimétrica (RS256/ES256 + JWKS) | B | P1 | 🔴 BLOQUEADA (requiere spec) | — |
-| T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | 🟢 READY (empieza por la spec) | — |
+| T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | 🔵 EN CURSO (backend/t-b31-spring-boot-soporte, spec) | — |
+| T-B32 | Reacciones y mensajes del streaming no llegan en vivo a los espectadores (fan-out sin Redis Pub/Sub ni consumidor Kafka) | B | P1 | 🟡 RFC (contrato de reacciones; T-C05) | — |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
@@ -172,8 +173,12 @@ depende del contrato.
 
 | ID | Bug | Prioridad | Estado | Jira |
 |----|-----|-----------|--------|------|
-| Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | 🟢 READY | — (reportado junto con [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82); falta su issue) |
+| Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | 🟢 READY | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
 | Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟡 RFC (`updateEvent` entra al contrato en la Ola 1) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
+| Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | 🔵 EN CURSO (backend/bug-b02-publicar-al-crear) | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
+| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🟢 READY (avisar en la pantalla); la búsqueda real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
+| Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🟢 READY | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
+| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🟢 READY (ocultarlos); el enlace real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
 
 - **Bug-B01, causa:** la app envía bien la hora. `create_event_screen.dart` toma las 20:00
   locales y `EventDetailsModel.toJson` las manda en UTC (`2026-12-10T01:00:00.000Z`), como pide
@@ -199,6 +204,64 @@ depende del contrato.
   implementar la pantalla de edición.
 - **Notificar a los invitados de los cambios** (pedido en VITO-82) **no procede como bug:** es
   una feature nueva sin contrato de notificaciones. Va al backlog de features, no a esta tabla.
+- **Bug-B02:** `EventServiceImpl.createEvent` fija `status(DRAFT)`, pero el contrato responde
+  `PUBLISHED` (fixture `createEvent.201.json`) y no existe ninguna operación para publicar
+  (`UpdateEventCommand` ni siquiera tiene `status`). `scope=upcoming` solo lista `PUBLISHED` y
+  públicos, así que ningún evento creado desde la app aparece ahí; solo se ven en
+  `scope=mine`. Gana el contrato (ADR-010): crear en `PUBLISHED`. Los eventos ya creados en
+  `DRAFT` necesitan una actualización de una vez en Mongo (`DRAFT` → `PUBLISHED`), que se corre
+  con el despliegue. Si los leads quieren borradores de verdad, eso es una feature nueva con RFC.
+- **Bug-F08 (VITO-83):** `create_event_screen.dart` busca invitados con `GET /social/search`, pero
+  `SocialServiceImpl.searchUsers` es un stub que siempre devuelve una lista vacía ("For now, we'll
+  return an empty list"). Además, la operación no está en el contrato: el inventario la marca
+  `PUBLICAR` en la Ola 2, sin aprobar por D-08. Procede como defecto, porque la pantalla ofrece
+  algo que no funciona.
+  - Arreglo inmediato (READY): cuando la búsqueda vuelva vacía, decir que la búsqueda de usuarios
+    aún no está disponible en lugar de "no encontramos a nadie", o esconder la caja.
+  - Arreglo real: `searchUsers` se sumó al RFC #204 como adelanto de la Ola 2. Implementarlo
+    no basta: `social-service` busca en su colección `user_profiles` y nadie la llena
+    (`auth-service` publica el registro en `user-events`, pero ningún servicio lo consume). El
+    RFC pide consumir ese tópico y hacer una carga inicial de los usuarios que ya existen.
+- **Bug-F10** (antes se registró como Bug-F08; se renombró porque VITO-83 ya usaba ese ID):
+  la app está en español (`app_localization_test.dart`), pero
+  `event_detail_page.dart` tiene los textos en inglés. Pasarlos al español, incluidos los estados
+  (`Draft` → "Borrador", `Private` → "Privado") y la fecha, que sale como "Saturday, December 26"
+  porque el `DateFormat` no recibe la locale `es`.
+- **Bug-F09:** `create_event_screen.dart` muestra "Copiar enlace de invitación" ("Se crea con el
+  evento y caduca en 7 días") y "Enviar por WhatsApp", pero `_inviteLink` nunca se asigna: los
+  dos botones solo dicen "El enlace se genera al crear el evento". Arreglo inmediato: ocultarlos
+  hasta que exista el enlace.
+- **Invitar después de crear el evento y compartir su enlace:** no es un bug, es la Ola 1 del
+  inventario. `POST /events/{eventId}/invitations` ("app + link externo") y
+  `GET /events/{eventId}/invitations` están marcados `PUBLICAR`, pero la Ola 1 no está aprobada
+  (D-08 solo aprobó la Ola 3). El backend tiene los endpoints, aunque `Invitation` solo invita a
+  usuarios registrados (`inviteeId`): no hay token ni enlace externo. Para adelantarlo: aprobar la
+  Ola 1 por D-08 (o solo estas operaciones), RFC `contract-change` con las rutas, el modelo del
+  enlace (token, caducidad de 7 días, quién puede usarlo) y sus fixtures, y después backend y
+  pantalla.
+
+### Triage del 2026-10-28: recuperar contraseña
+
+| ID | Bug | Prioridad | Estado | Jira |
+|----|-----|-----------|--------|------|
+| Bug-F11 | "¿Olvidaste tu contraseña?" no hace nada: quien olvida su contraseña pierde la cuenta | P0 | 🟢 READY (decir qué hacer); el flujo real, 🟡 RFC [AppViTo/ViTo#213](https://github.com/AppViTo/ViTo/issues/213) | [VITO-89](https://bernardo-mira.atlassian.net/browse/VITO-89) |
+
+- **Causa:** en `login_page.dart`, `_buildForgotPassword` tiene `onPressed: () {}`. Detrás no hay
+  nada en ninguna capa: el contrato no tiene operaciones de recuperación, el inventario no las
+  lista en ninguna ola, `auth-service` no tiene endpoints ni tokens de restablecimiento, y no hay
+  correo transaccional (Resend está elegido en ADR-011, pero su configuración quedó como
+  pendiente menor de T-I06 y figura "Por configurar" en ADR-013).
+- **Arreglo inmediato (READY, solo frontend):** que el botón abra un aviso con qué hacer mientras
+  tanto (escribir al correo de soporte del equipo, sin ponerlo en el repo) en lugar de no
+  responder. Sin contrato no se puede más.
+- **Arreglo real (RFC [AppViTo/ViTo#213](https://github.com/AppViTo/ViTo/issues/213), fuera de las olas actuales):**
+  - `POST /api/v1/auth/password/forgot` `{email}`: siempre `202`, exista o no la cuenta, para no
+    revelar qué correos están registrados. Rate limit por IP y por correo.
+  - `POST /api/v1/auth/password/reset` `{token, newPassword}`: `204`; token de un solo uso,
+    aleatorio, guardado como hash, que caduca en 30–60 min; revoca los refresh tokens del usuario.
+  - Las dos rutas, públicas en el gateway (`PUBLIC_PATHS`).
+  - Correo con Resend (terminar T-I06), con el enlace `https://<app>/reset-password?token=…`.
+  - App: pantallas "Olvidé mi contraseña" y "Nueva contraseña", y la ruta web del enlace.
 
 ---
 
@@ -650,7 +713,7 @@ depende del contrato.
 - **Cierre:** un test por servicio con los perfiles de `docker-compose.prod.yml` que verifique
   que no hay DEBUG.
 
-### T-B28 · Errores de Spring con envelope en auth, chat y media — 🟢 READY · P1 · ADR-003, ADR-017
+### T-B28 · Errores de Spring con envelope en auth, chat y media — 🔵 EN CURSO (backend/t-b28-envelope-spring-errores) · P1 · ADR-003, ADR-017
 - **Por qué (hallazgo de T-B03, #164):** el handler de esos tres servicios convierte en `500`
   una ruta inexistente o un método no soportado; las copias de los otros 6 conservan el
   status de Spring. ADR-017 pide que las copias no diverjan. Además, los `401`/`403` que
@@ -661,7 +724,7 @@ depende del contrato.
 - **Cierre:** tests de ruta inexistente (`404`), método no soportado (`405`) y petición sin
   token (`401`) con envelope en los tres servicios.
 
-### T-B29 · Validación del cuerpo en `createEvent` — 🟢 READY · P1 · CONVENTIONS §3.3
+### T-B29 · Validación del cuerpo en `createEvent` — 🔵 EN CURSO (backend/t-b29-create-event-valid) · P1 · CONVENTIONS §3.3
 - **Por qué (hallazgo de T-B03):** `createEvent` no tiene `@Valid`, así que nunca produce el
   `400` "El campo title es obligatorio" del fixture `createEvent.400`.
 - **Cierre:** test que reproduce el fixture.
@@ -675,7 +738,7 @@ depende del contrato.
   anterior (el request no lo trae; requiere RFC al contrato) y las copias de
   `JwtAuthenticationFilter` no consultan la revocación (se resuelve con T-B18).
 
-### T-B31 · Spring Boot con soporte en los 10 servicios Java — 🟢 READY (empieza por la spec, Principio X) · P0 · Principio III, excepción A9
+### T-B31 · Spring Boot con soporte en los 10 servicios Java — 🔵 EN CURSO (backend/t-b31-spring-boot-soporte, spec; Principio X) · P0 · Principio III, excepción A9
 - **Por qué:** el primer escaneo real de Trivy (release 0.1.0) encontró de 39 a 57 CVE
   HIGH/CRITICAL con arreglo por imagen Java: Spring Boot 3.2.12 ya no tiene soporte. Algunos
   CRITICAL (`spring-webmvc`, `spring-webflux`) solo tienen arreglo en Spring Framework 7. La
@@ -689,6 +752,26 @@ depende del contrato.
 - **Cierre:** los 10 servicios en la versión destino, CI verde y un `cd.yml` con Trivy
   bloqueante sin CVE HIGH/CRITICAL con arreglo fuera de `.trivyignore`. Se cierran la
   excepción A9 y T-B10.
+
+### T-B32 · Fan-out en vivo de reacciones y mensajes del streaming — 🟡 RFC · P1 · Principio III, ADR-006, O-28
+- **Por qué:** una reacción enviada por REST no llega en vivo a ningún espectador. Revisado
+  contra el código: `StreamingServiceImpl.addReaction` guarda en Mongo y publica
+  `STREAM_REACTION` en Kafka, pero no hay ningún `@KafkaListener` en `backend/`, así que nadie
+  lo consume. Por WS, `StreamingWebSocketHandler` guarda las sesiones en un `ConcurrentHashMap`
+  en memoria y reenvía el frame `REACTION` solo a las sesiones de esa misma instancia. Con más
+  de una réplica, o en un cruce REST→WS, la reacción se pierde. `publishChatMessage` y
+  `publishViewerCount` parecen tener el mismo problema (por revisar en esta tarea).
+- **Qué:** un único canal de fan-out para todas las rutas de entrada (REST y WS), con Redis
+  Pub/Sub, como indica el diseño de la Fase 6 de AGENTS.md. Usar `chat-service`
+  (`RedisCacheAdapter`) como referencia. Revisar en la misma tarea los eventos `chat` y
+  `viewerCount`.
+- **Contrato (bloqueante):** `docs/api/openapi.yaml` no tiene ruta REST de reacciones; solo
+  aparece `REACTION` como valor de enum. `asyncapi.yaml` sigue en RFC por T-C05. Antes de
+  implementar hay que abrir un issue `contract-change` que defina la ruta y el frame.
+- **Cierre:** una reacción enviada por REST o por WS llega a todos los espectadores del stream
+  en menos de 1 s, aunque estén en otra instancia. Hay un test de integración que lo prueba con
+  dos instancias o con dos sesiones en réplicas distintas. Se cumple el KPI "Latencia
+  reacciones stream < 1 s" y el criterio MVP n.º 9.
 
 ---
 

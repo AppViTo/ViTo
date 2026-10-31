@@ -7,6 +7,8 @@ import com.vito.event.domain.model.RSVP;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
@@ -76,7 +78,10 @@ public interface EventService {
     @AllArgsConstructor
     class CreateEventCommand {
         private String organizerId;
+        @NotBlank(message = "Es obligatorio")
+        @Size(min = 3, max = 100, message = "Mínimo 3 caracteres")
         private String title;
+        @Size(max = 2000, message = "Máximo 2000 caracteres")
         private String description;
         private Event.EventDetails details;
         private Event.EventSettings settings;

@@ -12,10 +12,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -60,9 +60,9 @@ class MosaicModerationIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired MongoTemplate mongo;
 
-    @MockBean EventOrganizerLookup eventOrganizerLookup;
-    @MockBean MosaicEventPublisher eventPublisher;
-    @SpyBean MosaicWebSocketHandler webSocketHandler;
+    @MockitoBean EventOrganizerLookup eventOrganizerLookup;
+    @MockitoBean MosaicEventPublisher eventPublisher;
+    @MockitoSpyBean MosaicWebSocketHandler webSocketHandler;
 
     @Value("${jwt.secret}")
     String jwtSecret;

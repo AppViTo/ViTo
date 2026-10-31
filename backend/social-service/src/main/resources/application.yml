@@ -5,10 +5,10 @@ spring:
   application:
     name: social-service
   
+  mongodb:
+    uri: ${MONGODB_URI}
+    database: vito_social
   data:
-    mongodb:
-      uri: ${MONGODB_URI}
-      database: vito_social
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}

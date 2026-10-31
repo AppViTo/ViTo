@@ -1,7 +1,8 @@
 package com.vito.streaming.infrastructure.websocket;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.vito.streaming.domain.model.ChatMessage;
 import com.vito.streaming.domain.model.Reaction;
 import lombok.extern.slf4j.Slf4j;
@@ -19,9 +20,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class StreamingWebSocketHandler extends TextWebSocketHandler {
     
-    private final ObjectMapper objectMapper = new ObjectMapper()
-            .findAndRegisterModules()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private final ObjectMapper objectMapper = JsonMapper.builder()
+            .findAndAddModules()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
     private final Map<String, Map<String, WebSocketSession>> streamSessions = new ConcurrentHashMap<>();
     
     @Override

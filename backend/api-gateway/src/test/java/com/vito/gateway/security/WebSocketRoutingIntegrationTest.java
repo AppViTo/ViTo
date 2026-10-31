@@ -40,12 +40,12 @@ class WebSocketRoutingIntegrationTest {
     @DynamicPropertySource
     static void routes(DynamicPropertyRegistry registry) {
         registry.add("JWT_SECRET", () -> JwtAuthenticationFilterTest.SECRET);
-        registry.add("spring.cloud.gateway.routes[0].id", () -> "checkin-ws");
+        registry.add("spring.cloud.gateway.server.webflux.routes[0].id", () -> "checkin-ws");
         // http como en application.yml: el gateway la convierte a ws:// ante un Upgrade: websocket.
         // 127.0.0.1 y no localhost: Reactor Netty resuelve localhost con su cliente DNS y en el
         // runner de CI a veces recibe SERVFAIL (el test fallaba de forma intermitente)
-        registry.add("spring.cloud.gateway.routes[0].uri", () -> "http://127.0.0.1:" + backend.port());
-        registry.add("spring.cloud.gateway.routes[0].predicates[0]", () -> "Path=/ws/checkin/**");
+        registry.add("spring.cloud.gateway.server.webflux.routes[0].uri", () -> "http://127.0.0.1:" + backend.port());
+        registry.add("spring.cloud.gateway.server.webflux.routes[0].predicates[0]", () -> "Path=/ws/checkin/**");
     }
 
     @AfterAll

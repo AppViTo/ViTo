@@ -16,6 +16,7 @@ import java.nio.file.Path;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -32,7 +33,9 @@ class EventControllerContractTest {
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.standaloneSetup(new EventController(eventService)).build();
+        mvc = MockMvcBuilders.standaloneSetup(new EventController(eventService))
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
         TestingAuthenticationToken organizer = new TestingAuthenticationToken("usr_1", null);
         organizer.setAuthenticated(true);
         SecurityContextHolder.getContext().setAuthentication(organizer);
@@ -52,5 +55,31 @@ class EventControllerContractTest {
                         .content(Files.readString(REQUEST)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value("evt_1"));
+    }
+
+    /** T-B29: sin @Valid, un title vacío llegaba al servicio y el 400 del fixture nunca se producía. */
+    @Test
+    void createEventWithoutTitleReturns400() throws Exception {
+        mvc.perform(post("/api/v1/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\": \"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.details.title").exists());
+
+        verifyNoInteractions(eventService);
+    }
+
+    @Test
+    void createEventWithShortTitleReturns400LikeFixture() throws Exception {
+        mvc.perform(post("/api/v1/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\": \"ab\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.details.title").value("Mínimo 3 caracteres"));
+
+        verifyNoInteractions(eventService);
     }
 }

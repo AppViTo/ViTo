@@ -47,7 +47,7 @@ public class EventServiceImpl implements EventService {
                                 .enableMosaic(true)
                                 .build())
                 .stats(Event.EventStats.builder().build())
-                .status(Event.EventStatus.DRAFT)
+                .status(Event.EventStatus.PUBLISHED)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
                 .build();

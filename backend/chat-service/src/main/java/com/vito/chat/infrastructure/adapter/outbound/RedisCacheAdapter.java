@@ -1,6 +1,6 @@
 package com.vito.chat.infrastructure.adapter.outbound;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.vito.chat.domain.model.ChatMessage;
 import com.vito.chat.domain.port.outbound.CachePort;
 import lombok.RequiredArgsConstructor;

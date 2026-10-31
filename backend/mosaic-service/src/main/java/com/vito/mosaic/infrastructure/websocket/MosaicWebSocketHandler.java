@@ -1,6 +1,6 @@
 package com.vito.mosaic.infrastructure.websocket;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.vito.mosaic.domain.model.MosaicFeedItem;
 import com.vito.mosaic.domain.model.MosaicItem;
 import com.vito.mosaic.domain.port.outbound.MosaicRealtimeNotifier;

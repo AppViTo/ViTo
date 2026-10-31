@@ -63,12 +63,12 @@ class TokenRevocationIntegrationTest {
         registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
         // Margen para la primera conexión en un runner frío; el fallo abierto se prueba aparte
         registry.add("vito.security.revocation.redis-timeout", () -> "3s");
-        registry.add("spring.cloud.gateway.routes[0].id", () -> "auth-service");
-        registry.add("spring.cloud.gateway.routes[0].uri", () -> "http://127.0.0.1:" + backend.port());
-        registry.add("spring.cloud.gateway.routes[0].predicates[0]", () -> "Path=/api/v1/auth/**");
-        registry.add("spring.cloud.gateway.routes[1].id", () -> "chat-ws");
-        registry.add("spring.cloud.gateway.routes[1].uri", () -> "http://127.0.0.1:" + backend.port());
-        registry.add("spring.cloud.gateway.routes[1].predicates[0]", () -> "Path=/ws/chat/**");
+        registry.add("spring.cloud.gateway.server.webflux.routes[0].id", () -> "auth-service");
+        registry.add("spring.cloud.gateway.server.webflux.routes[0].uri", () -> "http://127.0.0.1:" + backend.port());
+        registry.add("spring.cloud.gateway.server.webflux.routes[0].predicates[0]", () -> "Path=/api/v1/auth/**");
+        registry.add("spring.cloud.gateway.server.webflux.routes[1].id", () -> "chat-ws");
+        registry.add("spring.cloud.gateway.server.webflux.routes[1].uri", () -> "http://127.0.0.1:" + backend.port());
+        registry.add("spring.cloud.gateway.server.webflux.routes[1].predicates[0]", () -> "Path=/ws/chat/**");
     }
 
     @AfterAll
