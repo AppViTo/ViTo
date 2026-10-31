@@ -5,7 +5,7 @@
 | Señal | Origen | Etiquetas permitidas | Filtro |
 |-------|--------|----------------------|--------|
 | Métricas de servicio | `/actuator/prometheus` de los 10 Java | `service`, `job`, `uri`, `method`, `status`, `outcome` | lista blanca: `http_server_requests_seconds_*`, `jvm_memory_used_bytes`, `jvm_gc_pause_seconds_*`, `process_cpu_usage`, `hikaricp_*`/`mongodb_driver_*` si existen, `vito_gateway_*`, `up` |
-| Métricas de host | exportador unix de Alloy | `service`, `instance` | CPU, memoria, disco, red |
+| Métricas de host | exportador unix de Alloy | `service`, `instance` | CPU, memoria, red. **Disco pendiente (T-I13):** no se monta `/` del host en Alloy (acceso a `.env` y certificados; excepción a T036 acordada en la revisión de #212) |
 | Métricas de contenedor | cAdvisor de Alloy | `service` (nombre en Compose) | memoria, CPU, reinicios |
 | Logs | stdout/stderr de todos los contenedores | `service`, `level` | enmascarado de `Bearer …`, `token=…`, `"password":…`, JWT sueltos (`eyJ[\w-]+\.[\w-]+\.[\w-]+`, cubre los QR) y correos (FR-026) |
 | Trazas | OTLP desde los servicios Java | `service.name` | muestreo del 10 % |
