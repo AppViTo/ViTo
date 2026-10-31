@@ -64,13 +64,13 @@ prometheus.relabel "services" {
 }
 
 // ── Métricas del host ─────────────────────────────────────────
-// Los montajes de docker-compose.prod.yml dejan el host en /host/{root,proc,sys}.
+// Los montajes de docker-compose.prod.yml dejan /proc y /sys del host en /host/{proc,sys}.
+// Sin /host/root: el colector filesystem queda fuera (pendiente de disco en T-I13).
 prometheus.exporter.unix "host" {
-	rootfs_path = "/host/root"
 	procfs_path = "/host/proc"
 	sysfs_path  = "/host/sys"
 
-	set_collectors = ["cpu", "diskstats", "filesystem", "loadavg", "meminfo", "netdev", "stat", "time", "uname", "vmstat"]
+	set_collectors = ["cpu", "diskstats", "loadavg", "meminfo", "netdev", "stat", "time", "uname", "vmstat"]
 }
 
 prometheus.scrape "host" {
@@ -89,7 +89,7 @@ prometheus.relabel "host" {
 
 	rule {
 		source_labels = ["__name__"]
-		regex         = "node_cpu_seconds_total|node_memory_MemAvailable_bytes|node_memory_MemTotal_bytes|node_filesystem_avail_bytes|node_filesystem_size_bytes|node_load1|node_network_receive_bytes_total|node_network_transmit_bytes_total|node_disk_read_bytes_total|node_disk_written_bytes_total|up"
+		regex         = "node_cpu_seconds_total|node_memory_MemAvailable_bytes|node_memory_MemTotal_bytes|node_load1|node_network_receive_bytes_total|node_network_transmit_bytes_total|node_disk_read_bytes_total|node_disk_written_bytes_total|up"
 		action        = "keep"
 	}
 

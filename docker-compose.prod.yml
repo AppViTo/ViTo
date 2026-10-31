@@ -437,7 +437,6 @@ services:
       GRAFANA_CLOUD_TOKEN: ${GRAFANA_CLOUD_TOKEN:?}
     volumes:
       - ./infrastructure/observability/config.alloy:/etc/alloy/config.alloy:ro
-      - /:/host/root:ro
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - alloy_data:/var/lib/alloy/data

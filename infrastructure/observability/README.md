@@ -56,7 +56,6 @@ expresiones).
 |--------|-----------|---------|
 | `api-down` | `probe_success == 0` en las 2 sondas | 2 min |
 | `service-unhealthy` | `up{job="vito"} == 0` por servicio | 5 min |
-| `host-disk-high` | uso de `/` > 80 % | 10 min |
 | `host-mem-high` | memoria usada > 80 % | 10 min |
 | `gateway-401-spike` | > 5 respuestas 401/s en el gateway | 5 min |
 | `gateway-429-spike` | > 5 respuestas 429/s en el gateway | 5 min |

@@ -935,6 +935,11 @@ depende del contrato.
 - **Incluir (hallazgos de #167 y #168):** alerta si falta el backup diario (hoy un fallo
   solo queda en el log) y alerta sobre `vito.gateway.revocation.check.errors` (el gateway
   falla abierto si Redis no responde).
+- **Pendiente (disco del host, revisión de #212):** la alerta `host-disk-high` y el colector
+  `filesystem` se quitaron porque necesitaban montar `/` del host en Alloy (acceso a `.env` y
+  certificados). Restaurar el uso de disco con una vía de menor privilegio (p. ej. un
+  temporizador en el host que escriba `df` en el textfile de Alloy, o un exporter que solo
+  vea el volumen de datos). Hasta entonces, `df -h /` manual (incident.md §3.6).
 - **Cierre:** dashboard con datos reales y una alerta de prueba recibida.
 
 ### T-I14 · Runbooks — 🔵 EN CURSO (#167 · falta el ensayo manual) · P1 · Principio IX

@@ -24,7 +24,8 @@ Todas notifican al contact point `leads` (correo de equipo, correo de cada lead 
 |--------|--------|-----------|---------|
 | `api-down` | Synthetic | `probe_success == 0` en las 2 sondas | 2 min |
 | `service-unhealthy` | métricas | `up{job="vito"} == 0` por servicio | 5 min |
-| `host-disk-high` · `host-mem-high` | métricas de host | uso > 80 % | 10 min |
+| `host-mem-high` | métricas de host | uso > 80 % | 10 min |
+| `host-disk-high` | pendiente (T-I13): sin montaje de `/` del host | — | — |
 | `gateway-401-spike` | métricas | `sum(rate(http_server_requests_seconds_count{service="api-gateway",status="401"}[5m])) > 5` | 5 min |
 | `gateway-429-spike` | métricas | `sum(rate(http_server_requests_seconds_count{service="api-gateway",status="429"}[5m])) > 5` | 5 min |
 | `gateway-revocation-errors` | métricas | `sum(rate(vito_gateway_revocation_check_errors_total[5m])) > 0` | 5 min |
