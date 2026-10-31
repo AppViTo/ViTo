@@ -6,3 +6,12 @@ logging:
   level:
     com.vito.chat: INFO
     org.springframework.web.socket: INFO
+
+# T-I13/T053: muestreo bajo para el free tier y envío OTLP HTTP a Alloy (que reenvía a Grafana Cloud).
+management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLE_RATE:0.1}
+  otlp:
+    tracing:
+      endpoint: ${OTLP_TRACES_ENDPOINT:http://alloy:4318/v1/traces}

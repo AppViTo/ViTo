@@ -36,7 +36,8 @@ merge a main ─► cd.yml: changes ─► build ─► (aprobación del Environ
   solo cambia los servicios reconstruidos. Compose recrea únicamente lo que cambió (R1).
 - Compose siempre corre con `-p vito --project-directory /opt/vito/current`, así las rutas
   de los montajes no cambian entre releases. Un cambio de contenido del Caddyfile o de
-  `srs.conf` llega por `CFG_CADDY` y `CFG_SRS` (etiqueta `vito.config-hash`) (R4).
+  `srs.conf` y `observability/config.alloy` llegan por `CFG_CADDY`, `CFG_SRS` y `CFG_ALLOY`
+  (etiqueta `vito.config-hash`) (R4).
 - Si la salud falla, `deploy.sh` vuelve solo al bundle anterior. Se conservan los últimos
   3 bundles con éxito y sus imágenes (destinos válidos de rollback).
 

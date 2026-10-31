@@ -1,12 +1,14 @@
 # Runbook · Incidentes en producción (T-I14)
 
 Qué mirar y qué hacer cuando algo falla en producción (ADR-011: un VPS con Docker Compose
-detrás de Caddy). **Hasta T-I13 no hay Grafana ni alertas:** todo se diagnostica por SSH con
-los comandos de esta guía. La ejecuta un lead con su llave (ADR-013).
+detrás de Caddy). **Grafana Cloud (T-I13) es la primera parada:** tableros RED, logs y
+alertas. SSH queda para confirmar y actuar. La ejecuta un lead con su llave (ADR-013).
 
 Relacionados: [despliegue.md](despliegue.md) (pipeline, rollback, códigos de `deploy.sh`),
-[restore.md](restore.md) (restaurar Mongo o el VPS) y
-[aprovisionamiento.md](aprovisionamiento.md) (DNS, secretos, puertos).
+[restore.md](restore.md) (restaurar Mongo o el VPS),
+[aprovisionamiento.md](aprovisionamiento.md) (DNS, secretos, puertos) y
+[observability/README.md](../../infrastructure/observability/README.md) (Grafana, Alloy,
+alertas y uptime).
 
 > **El repo es público.** `<VPS>` es la IP, `<DOMAIN>` el dominio raíz. No pegar en
 > issues, PR ni chats la IP, el `.env`, tokens, salidas de `docker inspect` ni logs con
@@ -49,7 +51,7 @@ Es la misma invocación que usa [`deploy.sh`](../../infrastructure/deploy/remote
 Los servicios de Compose son: `caddy`, `mongodb`, `redis`, `kafka`, `mongo-backup`, `srs`,
 `api-gateway`, `auth-service`, `social-service`, `event-service`, `checkin-service`,
 `mosaic-service`, `streaming-service`, `archive-service`, `chat-service`, `media-service`,
-`transcode-service` y `moderation-service`.
+`transcode-service`, `moderation-service`, `alloy` y `docker-socket-proxy`.
 
 ```
 cliente ─► Caddy api.<DOMAIN> :443 ─► api-gateway:8080 ─► servicio (/api/v1/**, /ws/**)
@@ -59,6 +61,23 @@ fotos y videos ─► media.<DOMAIN> (R2, no pasa por el VPS)
 ```
 
 ## 1. Triage en 5 minutos
+
+Primero, en Grafana Cloud:
+
+- [ ] Tablero **ViTo · API RED**: `up`, % 5xx, p95/p99 por URI y picos de 401/429.
+- [ ] Tablero **ViTo · Servicios**: memoria, CPU y reinicios por contenedor.
+- [ ] **Alerting → Alert rules**: `api-down`, `service-unhealthy`, `host-*`,
+      `gateway-*` y `backup-missing`.
+- [ ] **Explore → Loki**: `{service="<servicio>"} |= "ERROR"` para las últimas 15 min.
+
+Si Grafana no tiene datos, revisar Alloy antes de seguir:
+
+```bash
+dc ps alloy docker-socket-proxy
+dc logs --since 15m alloy
+```
+
+Después, en el VPS:
 
 ```bash
 /opt/vito/current/infrastructure/deploy/remote/deploy.sh status   # release activo y estado de cada servicio
@@ -123,8 +142,9 @@ gateway responde `503 SERVICE_UNAVAILABLE` sin llamarlo hasta que se recupere.
 ### Logs
 
 Cada contenedor guarda como mucho 30 MB de log (`json-file`, 3 × 10 MB); con carga, el del
-gateway rota en minutos. **Guardar lo que interese apenas aparece** (en el VPS, no en el
-repo ni en un chat).
+gateway rota en minutos. Los mismos logs llegan a Grafana Cloud vía Alloy, con etiquetas
+`service` y `level` y secretos enmascarados; úsalos para buscar hacia atrás. **Guardar lo
+que interese apenas aparece** (en el VPS, no en el repo ni en un chat).
 
 ```bash
 dc logs --since 15m --tail 300 <servicio>

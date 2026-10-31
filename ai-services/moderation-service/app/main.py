@@ -4,8 +4,12 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
+from app.core.logging import configure_logging
 from app.api.v1.router import router as api_router
 from app.services.moderation_engine import ModerationEngine
+
+configure_logging("moderation-service")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

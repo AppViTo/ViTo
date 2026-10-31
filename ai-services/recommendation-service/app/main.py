@@ -3,8 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
+from app.core.logging import configure_logging
 from app.api.v1.router import router as api_router
 from app.services.recommendation_engine import RecommendationEngine
+
+configure_logging("recommendation-service")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

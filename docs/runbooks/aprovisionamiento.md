@@ -168,7 +168,9 @@ secreto y se redespliega, sin entrar por SSH.
   `vito-media` y `vito-backups`. `S3_PUBLIC_URL` es `https://media.<dominio>` (paso 5).
 - `IMAGE_TAG` no va: desde la fase B de la feature 001 las versiones llegan por
   `versions.env` (R1).
-- `GRAFANA_CLOUD_*` se agregan en la fase E (T-I13); hasta entonces no hacen falta.
+- `GRAFANA_CLOUD_*` (T-I13): URLs y usuarios numéricos de Prometheus, Loki y OTLP, más
+  el token de access policy con `metrics:write`, `logs:write` y `traces:write`. No usar
+  una API key personal; ver [observability/README.md](../../infrastructure/observability/README.md).
 
 **Variables** (Settings → Environments → *Environment variables*; no son secretas):
 
