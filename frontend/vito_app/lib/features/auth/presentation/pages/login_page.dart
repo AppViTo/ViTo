@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../bloc/auth_bloc.dart';
+import '../widgets/forgot_password_notice.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -259,7 +260,7 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     return Align(
       alignment: Alignment.centerRight,
       child: TextButton(
-        onPressed: () {},
+        onPressed: () => showForgotPasswordNotice(context),
         style: TextButton.styleFrom(
           padding: EdgeInsets.zero,
           minimumSize: Size.zero,

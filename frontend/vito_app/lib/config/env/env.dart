@@ -20,6 +20,10 @@ class Env {
   static String get wsBaseUrl =>
       resolveBaseUrl(_wsBaseUrl, defaultWsBaseUrl, name: 'WS_BASE_URL');
 
+  /// Correo de soporte que se muestra a quien olvidó su contraseña (Bug-F11).
+  /// Vacío si el build no lo define: los correos del equipo no van en el repo.
+  static const String supportEmail = String.fromEnvironment('SUPPORT_EMAIL');
+
   static bool get isProduction => environment == 'production';
   static bool get isDevelopment => environment == 'development';
 
