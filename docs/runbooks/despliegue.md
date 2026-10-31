@@ -28,7 +28,9 @@ Aprovisionamiento previo: [aprovisionamiento.md](aprovisionamiento.md). Incident
    bundle a `/opt/vito/releases/<sha>/`, chequeo de evento en vivo, carga de imágenes y
    `deploy.sh apply`.
 6. Si la salud falla, `deploy.sh` vuelve solo al release anterior y avisa.
-7. Con éxito, el job **Tag** crea el tag git `v<VERSION>`.
+7. Tras el despliegue, el job **Smoke E2E** prueba producción (T-I25). Si falla, avisa pero
+   no bloquea el release; se investiga con [incident.md](incident.md).
+8. Con éxito, el job **Tag** crea el tag git `v<VERSION>`.
 
 ## Leer el resultado
 

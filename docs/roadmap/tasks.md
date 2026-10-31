@@ -131,6 +131,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-I22 | `cd.yml`: opción para reconstruir todas las imágenes (VPS vacío) | I | P1 | 🔵 EN CURSO (backend/t-i22-rebuild-all) | — |
 | T-I23 | Recomendaciones en `prod` sin `recommendation-service`: fallback y degradación | I/F | P2 | 🟢 READY | — |
 | T-I24 | Registro de imágenes para no depender del VPS | I | P2 | ⚪ DIFERIDA (Fase Crecimiento) | — |
+| T-I25 | Smoke E2E automático contra producción (post-deploy + cron) | I | P1 | 🔵 EN CURSO (infra/t-i21-smoke-e2e-produccion) | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
@@ -1060,3 +1061,25 @@ depende del contrato.
   VPS. Perderlo obliga a recompilar las 13, y eso es lo que más pesa en el RTO.
 - **Revisión:** con la Fase Crecimiento o si el ensayo de T-I14 supera el RTO.
 
+### T-I25 · Smoke E2E automático contra producción — 🔵 EN CURSO (infra/t-i21-smoke-e2e-produccion) · P1 · Principio VI, T-I13
+- **Por qué:** el runbook de incidentes pide una prueba de punta a punta manual antes de
+  cada evento, y no hay ninguna comprobación automática que detecte una caída del gateway,
+  de auth o de la revocación de tokens entre despliegues.
+- **Qué:**
+  - `scripts/smoke-e2e.mjs`: login → `GET /events?scope=mine|upcoming` → detalle →
+    refresh → logout → comprobar que el token revocado da `401`. Valida el envelope de
+    ADR-003, la forma de `AuthResponse` (ADR-004) y el array plano (ADR-002).
+  - `.github/workflows/smoke.yml`: cron cada 15 min, `workflow_dispatch` y
+    `workflow_call`; si faltan los secretos `E2E_*` avisa y se salta.
+  - `cd.yml`: job `smoke` tras un despliegue correcto. No bloquea el tag: avisa por
+    Telegram/correo (los fallos se tratan en `docs/runbooks/incident.md`).
+  - `scripts/smoke-e2e.test.mjs` + paso en el job Contract de `ci.yml`.
+- **Alcance:** solo operaciones publicadas en `docs/api/openapi.yaml`. Sin escrituras (no
+  hay `DELETE /events` en el contrato y `POST /media/**` está cerrado en `prod` por T-I17).
+  WebSocket y QR quedan para cuando exista `asyncapi.yaml` (T-C05).
+- **Hallazgo:** `GET /events?scope=` sigue sin implementarse en event-service (el
+  controller solo tiene `/my-events` y `/upcoming`); hasta que la Ola 1 lo implemente, el
+  smoke lo reporta como `WARN` y no falla. Con `E2E_STRICT=1` sí falla. `GET /events` con
+  `size > 100` se recorta en vez de devolver `400` (ADR-008): no se comprueba todavía.
+- **Cierre:** un run verde en Actions contra producción con los secretos cargados
+  (`docs/runbooks/aprovisionamiento.md`, paso 12) y el job `smoke` de `cd.yml` en verde.

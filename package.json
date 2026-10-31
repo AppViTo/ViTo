@@ -12,6 +12,8 @@
     "lint:async": "node scripts/validate-asyncapi.mjs",
     "validate:fixtures": "node scripts/validate-fixtures.mjs",
     "contract": "npm run lint:api && npm run validate:fixtures",
+    "smoke:e2e": "node scripts/smoke-e2e.mjs",
+    "test:smoke": "node --test scripts/smoke-e2e.test.mjs",
     "mock:api": "prism mock docs/api/openapi.yaml --dynamic --port 4010 --host 0.0.0.0",
     "mock:ws": "node -e \"console.error('[T-C05] mock:ws pendiente: docs/api/asyncapi.yaml todavía no existe. Ver docs/roadmap/tasks.md (T-C05).'); process.exit(1)\""
   },

@@ -27,6 +27,10 @@ El día anterior y una hora antes, un lead:
       motivo. Un release normal (`production`) sigue necesitando al otro lead.
 - [ ] **Estado sano:** [triage](#1-triage-en-5-minutos) completo, todo *healthy*, sin
       reinicios recientes, disco < 80 %, RAM con margen.
+- [ ] **Smoke automático en verde:** Actions → *ViTo Smoke E2E* → *Run workflow* (o
+      `node scripts/smoke-e2e.mjs` con `E2E_*` en el entorno); termina en `SMOKE OK`. El
+      cron lo corre cada 15 min y `cd.yml` tras cada despliegue. Cubre login, listado,
+      detalle, refresh y revocación por logout; **no** cubre QR, WebSocket ni streaming.
 - [ ] **Backup fresco:** `dc exec -T mongo-backup entrypoint.sh backup` termina en `OK …`.
 - [ ] **SHA de rollback a mano:** `cat /opt/vito/history` (el penúltimo es el anterior al
       activo). Guardarlo completo.

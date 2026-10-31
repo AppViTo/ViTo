@@ -37,6 +37,9 @@ jobs:
       - name: Validate fixtures against openapi.yaml
         run: npm run validate:fixtures
 
+      - name: Tests del smoke E2E
+        run: npm run test:smoke
+
       # Se activa sola cuando T-C05 cree el archivo
       - name: Validate asyncapi.yaml
         if: hashFiles('docs/api/asyncapi.yaml') != ''

@@ -25,6 +25,7 @@ cualquier orden, pero el 4 necesita sus resultados. Al final, el paso 11 lo comp
 | 9 | Seguridad del repo | — |
 | 10 | Inventario de ADR-013 | — |
 | 11 | Verificación | — |
+| 12 | Smoke E2E (secretos del repositorio) | `E2E_BASE_URL`, `E2E_EMAIL`, `E2E_PASSWORD` |
 
 ---
 
@@ -296,3 +297,43 @@ estados: sin correos, IDs de cuenta, IP ni dominio.
   ([quickstart, paso 0](../../specs/001-cd-produccion/quickstart.md#0-verificación-previa-historia-5)).
   Comprueba la huella SSH, el `.env` real con `docker compose config -q` y que estén todos
   los secretos, sin desplegar nada (T026).
+
+## 12. Smoke E2E (T-I25)
+
+`.github/workflows/smoke.yml` prueba producción cada 15 min y después de cada despliegue.
+No usa un Environment a propósito: un job programado con aprobación obligatoria no podría
+correr. Por eso sus secretos van en **Settings → Secrets and variables → Actions →
+*Repository secrets***, no en los Environments.
+
+| Nombre | Tipo | Valor |
+|--------|------|-------|
+| `E2E_BASE_URL` | secreto | `https://api.<dominio>` (el script añade `/api/v1`) |
+| `E2E_EMAIL` | secreto | correo de una cuenta dedicada de pruebas, nunca de un usuario real |
+| `E2E_PASSWORD` | secreto | contraseña de esa cuenta (gestor de contraseñas) |
+| `E2E_EVENT_ID` | variable | opcional: id de un evento de esa cuenta para probar el detalle |
+| `E2E_STRICT` | variable | opcional: `1` hace fallar los huecos de contrato conocidos |
+
+Cargarlos sin dejar valores en el historial de la terminal:
+
+```bash
+printf '%s' 'https://api.<dominio>' | gh secret set E2E_BASE_URL
+gh secret set E2E_EMAIL      # pega el valor y Ctrl-D
+gh secret set E2E_PASSWORD   # pega el valor y Ctrl-D
+gh variable set E2E_EVENT_ID # opcional
+```
+
+Crear la cuenta una sola vez con `POST /api/v1/auth/register` (o desde la app) y guardar
+sus credenciales en el gestor. No debe tener datos de usuarios reales; si se define
+`E2E_EVENT_ID`, que sea un evento de prueba de esa misma cuenta.
+
+Comprobación manual desde cualquier máquina (sin secretos en el comando):
+
+```bash
+read -r E2E_BASE_URL; read -r E2E_EMAIL; read -rs E2E_PASSWORD
+export E2E_BASE_URL E2E_EMAIL E2E_PASSWORD
+node scripts/smoke-e2e.mjs
+```
+
+Si faltan los tres secretos, el workflow no falla: publica un aviso y se salta el smoke.
+Para que el aviso de fallo llegue también por correo, `RESEND_API_KEY` y `ALERT_EMAILS`
+tienen que estar además como secretos del repositorio; si no, solo llega por Telegram.
