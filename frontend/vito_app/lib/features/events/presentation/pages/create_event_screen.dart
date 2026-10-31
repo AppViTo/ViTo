@@ -868,7 +868,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       _showInfo('El enlace se genera al crear el evento');
       return;
     }
-    Share.share('Te invito a mi evento en ViTo: $_inviteLink');
+    SharePlus.instance.share(ShareParams(text: 'Te invito a mi evento en ViTo: $_inviteLink'));
   }
 
   // ── Feedback ────────────────────────────────────────────────────────────

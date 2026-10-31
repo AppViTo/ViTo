@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 env:
-  JAVA_VERSION: '17'
+  JAVA_VERSION: '21.0.13+9'
   PYTHON_VERSION: '3.11'
   # pubspec.lock fija intl 0.20.3; Flutter 3.44 trae 0.20.2 y pub get falla
   FLUTTER_VERSION: '3.47.x'
@@ -36,6 +36,9 @@ jobs:
 
       - name: Validate fixtures against openapi.yaml
         run: npm run validate:fixtures
+
+      - name: Tests del smoke E2E
+        run: npm run test:smoke
 
       # Se activa sola cuando T-C05 cree el archivo
       - name: Validate asyncapi.yaml
@@ -86,6 +89,33 @@ jobs:
           --env-file infrastructure/deploy/tests/fixtures/.env.test
           --env-file infrastructure/deploy/tests/fixtures/versions.env
           config -q
+
+      # T-I13/T034: sintaxis/formato de Alloy y enmascarado de secretos en logs.
+      - name: Validate Alloy config
+        env:
+          GRAFANA_CLOUD_PROM_URL: https://prometheus.example.test/api/prom/push
+          GRAFANA_CLOUD_PROM_USER: '123'
+          GRAFANA_CLOUD_LOKI_URL: https://logs.example.test/loki/api/v1/push
+          GRAFANA_CLOUD_LOKI_USER: '123'
+          GRAFANA_CLOUD_OTLP_URL: https://otlp.example.test/otlp
+          GRAFANA_CLOUD_OTLP_USER: '123'
+          GRAFANA_CLOUD_TOKEN: dummy-token
+        run: |
+          docker run --rm \
+            -v "$PWD/infrastructure/observability:/etc/alloy:ro" \
+            -e GRAFANA_CLOUD_PROM_URL -e GRAFANA_CLOUD_PROM_USER \
+            -e GRAFANA_CLOUD_LOKI_URL -e GRAFANA_CLOUD_LOKI_USER \
+            -e GRAFANA_CLOUD_OTLP_URL -e GRAFANA_CLOUD_OTLP_USER \
+            -e GRAFANA_CLOUD_TOKEN \
+            grafana/alloy:v1.21.3 fmt --test /etc/alloy/config.alloy
+          docker run --rm \
+            -v "$PWD/infrastructure/observability:/etc/alloy:ro" \
+            -e GRAFANA_CLOUD_PROM_URL -e GRAFANA_CLOUD_PROM_USER \
+            -e GRAFANA_CLOUD_LOKI_URL -e GRAFANA_CLOUD_LOKI_USER \
+            -e GRAFANA_CLOUD_OTLP_URL -e GRAFANA_CLOUD_OTLP_USER \
+            -e GRAFANA_CLOUD_TOKEN \
+            grafana/alloy:v1.21.3 validate /etc/alloy/config.alloy
+          bash infrastructure/observability/tests/masking.sh
 
       # Caddyfile real con backends falsos: HSTS, nosniff, Referrer-Policy y sin Server (T-I18)
       - name: Cabeceras de seguridad de Caddy
@@ -249,7 +279,7 @@ jobs:
       - uses: actions/checkout@v7
       
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -289,7 +319,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'

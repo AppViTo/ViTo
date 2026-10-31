@@ -1,7 +1,7 @@
 package com.vito.auth.infrastructure.adapter.inbound.rest;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.vito.auth.domain.exception.AuthenticationException;
 import com.vito.auth.domain.exception.UserAlreadyExistsException;
 import com.vito.auth.domain.model.User;
@@ -223,8 +223,7 @@ class AuthControllerContractTest {
 
     private static Set<String> fieldNames(JsonNode node) {
         Set<String> names = new HashSet<>();
-        Iterator<String> it = node.fieldNames();
-        it.forEachRemaining(names::add);
+        node.propertyNames().forEach(names::add);
         return names;
     }
 

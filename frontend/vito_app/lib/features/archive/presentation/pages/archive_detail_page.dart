@@ -268,7 +268,7 @@ class _ArchiveDetailPageState extends State<ArchiveDetailPage>
   
   void _shareArchive() {
     final shareUrl = 'http://localhost:8080/archive/share/${_archiveBloc.state is ArchiveLoaded ? (_archiveBloc.state as ArchiveLoaded).archive.sharing.shareCode : ''}';
-    Share.share('Check out this event archive: $shareUrl');
+    SharePlus.instance.share(ShareParams(text: 'Check out this event archive: $shareUrl'));
   }
   
   void _showEditDialog() {

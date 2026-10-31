@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -46,9 +47,9 @@ public class EventServiceImpl implements EventService {
                                 .enableMosaic(true)
                                 .build())
                 .stats(Event.EventStats.builder().build())
-                .status(Event.EventStatus.DRAFT)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .status(Event.EventStatus.PUBLISHED)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
                 .build();
         
         Event savedEvent = eventRepository.save(event);
@@ -80,7 +81,7 @@ public class EventServiceImpl implements EventService {
         if (command.getDetails() != null) event.setDetails(command.getDetails());
         if (command.getSettings() != null) event.setSettings(command.getSettings());
         
-        event.setUpdatedAt(LocalDateTime.now());
+        event.setUpdatedAt(Instant.now());
         
         Event updatedEvent = eventRepository.save(event);
         
@@ -101,7 +102,7 @@ public class EventServiceImpl implements EventService {
         }
         
         event.setStatus(Event.EventStatus.CANCELLED);
-        event.setUpdatedAt(LocalDateTime.now());
+        event.setUpdatedAt(Instant.now());
         
         eventRepository.save(event);
         
@@ -361,7 +362,7 @@ public class EventServiceImpl implements EventService {
             case WAITLISTED -> stats.setTotalWaitlisted(stats.getTotalWaitlisted() + delta);
         }
         
-        event.setUpdatedAt(LocalDateTime.now());
+        event.setUpdatedAt(Instant.now());
         eventRepository.save(event);
     }
 }

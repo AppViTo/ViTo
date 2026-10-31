@@ -402,28 +402,51 @@ class _SocialButton extends StatelessWidget {
     required this.onTap,
   });
 
+  // Por debajo de este ancho la etiqueta se partía letra por letra en teléfonos
+  // angostos: el botón muestra solo el ícono, con el nombre en el tooltip.
+  static const double _minWidthForLabel = 104;
+
   @override
   Widget build(BuildContext context) {
+    final style = OutlinedButton.styleFrom(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      side: const BorderSide(color: AppColors.grey700),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+    );
+    final iconWidget = Icon(icon, size: 20, color: AppColors.blancoHielo);
+
     return SizedBox(
       height: 54,
-      child: OutlinedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 20, color: AppColors.blancoHielo),
-        label: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: AppColors.blancoHielo,
-          ),
-        ),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          side: const BorderSide(color: AppColors.grey700),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
-          ),
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < _minWidthForLabel) {
+            return Tooltip(
+              message: label,
+              child: OutlinedButton(
+                onPressed: onTap,
+                style: style,
+                child: Semantics(label: label, child: iconWidget),
+              ),
+            );
+          }
+          return OutlinedButton.icon(
+            onPressed: onTap,
+            icon: iconWidget,
+            label: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.blancoHielo,
+              ),
+            ),
+            style: style,
+          );
+        },
       ),
     );
   }

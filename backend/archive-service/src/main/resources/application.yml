@@ -5,10 +5,10 @@ spring:
   application:
     name: archive-service
   
+  mongodb:
+    uri: ${MONGODB_URI}
+    database: vito_archive
   data:
-    mongodb:
-      uri: ${MONGODB_URI}
-      database: vito_archive
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}

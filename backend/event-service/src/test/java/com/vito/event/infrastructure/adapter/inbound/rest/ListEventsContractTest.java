@@ -1,11 +1,12 @@
 package com.vito.event.infrastructure.adapter.inbound.rest;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
+import tools.jackson.databind.node.ObjectNode;
 import com.vito.event.application.service.EventServiceImpl;
 import com.vito.event.domain.model.Event;
 import com.vito.event.domain.model.RSVP;
@@ -19,7 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -31,9 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +66,7 @@ class ListEventsContractTest {
     private static final Pattern UTC_TIMESTAMP = Pattern.compile("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z");
 
     @Autowired
-    ObjectMapper mapper;
+    JsonMapper mapper;
 
     private final EventRepository eventRepository = mock(EventRepository.class);
     private final RSVPRepository rsvpRepository = mock(RSVPRepository.class);
@@ -79,7 +78,7 @@ class ListEventsContractTest {
                 mock(InvitationRepository.class), mock(EventPublisherPort.class), mock(QRCodeGenerator.class));
         mvc = MockMvcBuilders.standaloneSetup(new EventController(service))
                 .setControllerAdvice(new GlobalExceptionHandler())
-                .setMessageConverters(new MappingJackson2HttpMessageConverter(mapper))
+                .setMessageConverters(new JacksonJsonHttpMessageConverter(mapper))
                 .build();
     }
 
@@ -144,6 +143,29 @@ class ListEventsContractTest {
         assertTrue(isAbsentOrNull(hidden, "latitude"));
         assertTrue(isAbsentOrNull(hidden, "longitude"));
         assertEquals("Cerro de Monserrate", hidden.get("location").asText());
+    }
+
+    @Test
+    void scopeMine_SerializesEventDatesInUtcWithZ() throws Exception {
+        authenticateAs(ORGANIZER);
+        when(eventRepository.findByOrganizerId(ORGANIZER, 0, 20)).thenReturn(fixtureEvents("listEvents.mine.200.json"));
+
+        JsonNode event = perform(get("/api/v1/events").param("scope", "mine"), 200).get(0);
+
+        // Bug-B01: sin la Z, la app interpretaba la hora UTC como hora local (8 pm en Bogotá → 1 am)
+        assertEquals("2026-08-23T01:00:00Z", event.get("details").get("startDate").asText());
+        assertEquals("2026-08-23T07:00:00Z", event.get("details").get("endDate").asText());
+        assertTrue(event.get("createdAt").asText().endsWith("Z"));
+    }
+
+    @Test
+    void createEventDate_KeepsTheInstantSentByTheClient() throws Exception {
+        // 20:00 en Bogotá (UTC−5), como lo envía la app
+        Event.EventDetails details = mapper.readValue(
+                "{\"startDate\":\"2026-12-10T01:00:00.000Z\"}", Event.EventDetails.class);
+
+        assertEquals(Instant.parse("2026-12-10T01:00:00Z"), details.getStartDate());
+        assertTrue(mapper.writeValueAsString(details).contains("\"startDate\":\"2026-12-10T01:00:00Z\""));
     }
 
     @Test
@@ -213,13 +235,12 @@ class ListEventsContractTest {
 
     /**
      * CONVENTIONS §6: un campo en {@code null} equivale a uno ausente, y las fechas se comparan
-     * como instantes. event-service guarda {@code LocalDateTime} y lo serializa sin {@code Z};
-     * se interpreta como UTC, igual que el {@code Z} del cliente al deserializar.
+     * como instantes ({@code .000Z} del fixture y {@code Z} de la respuesta son el mismo).
      */
     private static JsonNode normalize(JsonNode node) {
         if (node.isObject()) {
             ObjectNode copy = JsonNodeFactory.instance.objectNode();
-            for (Iterator<Map.Entry<String, JsonNode>> it = node.fields(); it.hasNext(); ) {
+            for (Iterator<Map.Entry<String, JsonNode>> it = node.properties().iterator(); it.hasNext(); ) {
                 Map.Entry<String, JsonNode> field = it.next();
                 if (!field.getValue().isNull()) {
                     copy.set(field.getKey(), normalize(field.getValue()));
@@ -239,11 +260,7 @@ class ListEventsContractTest {
     }
 
     private static Instant toInstant(String value) {
-        try {
-            return OffsetDateTime.parse(value).toInstant();
-        } catch (java.time.format.DateTimeParseException withoutOffset) {
-            return LocalDateTime.parse(value).toInstant(ZoneOffset.UTC);
-        }
+        return OffsetDateTime.parse(value).toInstant();
     }
 
     private static boolean isAbsentOrNull(JsonNode node, String field) {

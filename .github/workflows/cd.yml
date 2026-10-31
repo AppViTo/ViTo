@@ -20,6 +20,10 @@ on:
         description: 'Desplegar aunque haya un evento en vivo (solo hotfix; exige reason)'
         type: boolean
         default: false
+      rebuild_all:
+        description: 'Reconstruir las imágenes de todos los servicios, no solo las cambiadas (VPS vacío o reconstruido)'
+        type: boolean
+        default: false
       reason:
         description: 'Motivo (obligatorio con force_live_event)'
         type: string
@@ -71,10 +75,11 @@ jobs:
           echo "Último despliegue exitoso: ${sha:-ninguno (se construye todo)}"
           echo "sha=${sha:--}" >> "$GITHUB_OUTPUT"
 
+      # rebuild_all ignora el despliegue previo: "-" hace que changed-services.sh marque todo
       - name: Servicios cambiados
         id: svc
         env:
-          PREV: ${{ steps.prev.outputs.sha }}
+          PREV: ${{ inputs.rebuild_all && '-' || steps.prev.outputs.sha }}
         run: |
           out=$(infrastructure/deploy/changed-services.sh "$PREV" "$GITHUB_SHA")
           echo "$out"
@@ -428,6 +433,25 @@ jobs:
       - name: Borrar la llave
         if: always()
         run: rm -f ~/.ssh/vito_key ~/.ssh/vito_known_hosts ~/.ssh/config
+
+  # Smoke E2E contra producción tras el despliegue (T-I25). Avisa si falla, pero no
+  # bloquea el tag: un fallo del smoke es una señal para el runbook, no un rollback.
+  smoke:
+    name: Smoke E2E
+    needs: [ changes, deploy ]
+    if: >-
+      needs.deploy.result == 'success' &&
+      needs.changes.outputs.proceed == 'true' &&
+      (inputs.mode || 'deploy') == 'deploy'
+    uses: ./.github/workflows/smoke.yml
+    secrets:
+      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      ALERT_EMAILS: ${{ secrets.ALERT_EMAILS }}
 
   # Tag git v<VERSION> tras un despliegue exitoso (R1). Job aparte: es el único con
   # permiso de escritura y no tiene secretos.

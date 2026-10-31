@@ -1,7 +1,7 @@
 package com.vito.auth.infrastructure.adapter.inbound.rest.dto;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import com.vito.auth.domain.model.User;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +41,7 @@ class AuthResponseShapeTest {
 
     private static Set<String> fieldNames(JsonNode node) {
         Set<String> names = new HashSet<>();
-        node.fieldNames().forEachRemaining(names::add);
+        node.propertyNames().forEach(names::add);
         return names;
     }
 }

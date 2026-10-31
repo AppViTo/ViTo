@@ -9,11 +9,14 @@ import com.vito.event.domain.port.outbound.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -51,7 +54,7 @@ class EventServiceImplTest {
                 .title("Test Event")
                 .description("Test Description")
                 .details(Event.EventDetails.builder()
-                        .startDate(LocalDateTime.now().plusDays(7))
+                        .startDate(Instant.now().plus(7, ChronoUnit.DAYS))
                         .location("Test Location")
                         .build())
                 .settings(Event.EventSettings.builder()
@@ -60,8 +63,8 @@ class EventServiceImplTest {
                         .build())
                 .stats(Event.EventStats.builder().build())
                 .status(Event.EventStatus.PUBLISHED)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
                 .build();
     }
 
@@ -86,6 +89,23 @@ class EventServiceImplTest {
 
         verify(eventRepository).save(any(Event.class));
         verify(eventPublisher).publishEventCreated("event123", "organizer123");
+    }
+
+    @Test
+    void createEvent_PublishesEventSoItAppearsInUpcoming() {
+        // Bug-B02: un evento creado debe nacer PUBLISHED (contrato createEvent.201), no DRAFT
+        CreateEventCommand command = CreateEventCommand.builder()
+                .organizerId("organizer123")
+                .title("Test Event")
+                .build();
+
+        when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
+
+        eventService.createEvent(command);
+
+        ArgumentCaptor<Event> saved = ArgumentCaptor.forClass(Event.class);
+        verify(eventRepository).save(saved.capture());
+        assertEquals(Event.EventStatus.PUBLISHED, saved.getValue().getStatus());
     }
 
     @Test

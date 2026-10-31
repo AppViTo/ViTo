@@ -68,14 +68,19 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     _startAnimation();
   }
 
+  // Cada espera comprueba `mounted`: si AuthBloc ya navegó (sin sesión → login), el
+  // splash está desechado y forward() sobre un controller desechado lanza un error.
   Future<void> _startAnimation() async {
     await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
     _logoController.forward();
 
     await Future.delayed(const Duration(milliseconds: 500));
+    if (!mounted) return;
     _textController.forward();
 
     await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
     _loadingController.forward();
 
     await Future.delayed(const Duration(milliseconds: 2500));

@@ -149,6 +149,10 @@ Si la IP cambió:
 
 ### B.4 Código, bundle e imágenes (en el VPS, como `deploy`)
 
+**Camino recomendado: que las imágenes las construya el CD.** Desde GitHub Actions, ejecutar el workflow **ViTo CD** con `mode=deploy` y `rebuild_all=true` sobre `main`. Reconstruye las 13 imágenes, las escanea con Trivy (en modo informe hasta el 2026-11-07, excepción A9) y las sube como artifacts; `deploy.sh` las carga en el VPS. Así no se compila en el VPS.
+
+El resto de esta sección es el plan de contingencia, para cuando el CD no esté disponible: compilar en el VPS, sin Trivy.
+
 ```bash
 SHA=<SHA>
 SRC=/opt/vito/src/ViTo-$SHA

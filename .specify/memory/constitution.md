@@ -1,5 +1,14 @@
 <!--
-Sync Impact Report — v1.2.1 → v1.3.0 (MINOR) · 2026-10-22
+Sync Impact Report — v1.3.0 → v1.4.0 (MINOR) · 2026-10-30
+- Modificado: Principio X, stack canónico. Spring Boot 3.x LTS → Spring Boot 4.0.x sobre
+  Java 21, según ADR-018 (Propuesta, PR #223). La línea 3.x deja de ser la canónica.
+- Entrada: esta enmienda se mergea junto con la aprobación de ADR-018. Sin ese ADR, el
+  stack canónico queda sin decisión aprobada.
+- Observaciones: ninguna cerrada aquí. O-21 y O-35 se cierran en una enmienda PATCH al
+  completar T-B31.
+- Plantillas: .specify/templates/* sin cambios requeridos.
+
+Sync Impact Report anterior — v1.2.1 → v1.3.0 (MINOR) · 2026-10-22
 - Modificado: Principio VIII, Fase Tracción. Producción requiere, además del PR aprobado
   que entra a `main`, la aprobación de un lead en el GitHub Environment `production`
   protegido. Es posible porque el repo es público desde el 2026-10-19 (ADR-011,
@@ -257,7 +266,7 @@ servicio secundario.
 
 ### X. Simplicidad y Stack Canónico
 
-- El stack canónico es: Flutter (Dart) · Spring Boot 3.x LTS soportado sobre Java 21 ·
+- El stack canónico es: Flutter (Dart) · Spring Boot 4.0.x sobre Java 21 (ADR-018) ·
   FastAPI (Python 3.11+) · MongoDB · Redis · Kafka (KRaft) · Spring Cloud Gateway · SRS
   para media · almacenamiento S3-compatible (Cloudflare R2 en producción, SeaweedFS en
   local) · Docker · GitHub Actions · OpenTelemetry + Grafana. La plataforma de despliegue
@@ -433,4 +442,4 @@ de guardia.
 - Guía operativa en tiempo de desarrollo: `AGENTS.md`, `CONTRIBUTING.md` y
   `docs/api/CONVENTIONS.md`.
 
-**Version**: 1.3.0 | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-22
+**Version**: 1.4.0 | **Ratified**: 2026-10-16 | **Last Amended**: 2026-10-30

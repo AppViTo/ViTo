@@ -7,243 +7,245 @@ spring:
   
   cloud:
     gateway:
-      default-filters:
-        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
-      globalcors:
-        cors-configurations:
-          '[/**]':
+      server:
+        webflux:
+          default-filters:
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials
+          globalcors:
+            cors-configurations:
+              '[/**]':
             # Producción: origen de la web en Cloudflare Pages (docker-compose.prod.yml)
-            allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}"
-            allowed-methods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS
-            allowed-headers: "*"
-            allow-credentials: true
-            max-age: 3600
+                allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}"
+                allowed-methods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - OPTIONS
+                allowed-headers: "*"
+                allow-credentials: true
+                max-age: 3600
       
-      httpclient:
-        connect-timeout: 5000
-        response-timeout: 10s
+          httpclient:
+            connect-timeout: 5000
+            response-timeout: 10s
       
       # Única definición de rutas (T-B11). Los perfiles solo cambian las *_SERVICE_URI;
       # si redefinen la lista, Spring la reemplaza entera y se pierden los filtros.
-      routes:
-        - id: auth-service
-          uri: ${AUTH_SERVICE_URI:http://localhost:8081}
-          predicates:
-            - Path=/api/v1/auth/**
-          filters:
-            - StripPrefix=0
-            - name: CircuitBreaker
-              args:
-                name: authServiceCircuitBreaker
-                fallbackUri: forward:/fallback/auth
-            - name: RequestRateLimiter
-              args:
-                deny-empty-key: false
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
+          routes:
+            - id: auth-service
+              uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+              predicates:
+                - Path=/api/v1/auth/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: authServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/auth
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 20
         
-        - id: social-service
-          uri: ${SOCIAL_SERVICE_URI:http://localhost:8082}
-          predicates:
-            - Path=/api/v1/social/**
-          filters:
-            - StripPrefix=0
-            - name: CircuitBreaker
-              args:
-                name: socialServiceCircuitBreaker
-                fallbackUri: forward:/fallback/social
-            - name: RequestRateLimiter
-              args:
-                deny-empty-key: false
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
+            - id: social-service
+              uri: ${SOCIAL_SERVICE_URI:http://localhost:8082}
+              predicates:
+                - Path=/api/v1/social/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: socialServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/social
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 20
         
-        - id: event-service
-          uri: ${EVENT_SERVICE_URI:http://localhost:8083}
-          predicates:
-            - Path=/api/v1/events/**
-          filters:
-            - StripPrefix=0
-            - name: CircuitBreaker
-              args:
-                name: eventServiceCircuitBreaker
-                fallbackUri: forward:/fallback/events
-            - name: RequestRateLimiter
-              args:
-                deny-empty-key: false
-                redis-rate-limiter.replenishRate: 20
-                redis-rate-limiter.burstCapacity: 40
+            - id: event-service
+              uri: ${EVENT_SERVICE_URI:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/events/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: eventServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/events
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 20
+                    redis-rate-limiter.burstCapacity: 40
         
-        - id: checkin-service
-          uri: ${CHECKIN_SERVICE_URI:http://localhost:8084}
-          predicates:
-            - Path=/api/v1/checkin/**
-          filters:
-            - StripPrefix=0
-            - name: CircuitBreaker
-              args:
-                name: checkinServiceCircuitBreaker
-                fallbackUri: forward:/fallback/checkin
-            - name: RequestRateLimiter
-              args:
-                deny-empty-key: false
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
+            - id: checkin-service
+              uri: ${CHECKIN_SERVICE_URI:http://localhost:8084}
+              predicates:
+                - Path=/api/v1/checkin/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: checkinServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/checkin
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 20
         
-        - id: mosaic-service
-          uri: ${MOSAIC_SERVICE_URI:http://localhost:8085}
-          predicates:
-            - Path=/api/v1/mosaic/**
-          filters:
-            - StripPrefix=0
-            - name: CircuitBreaker
-              args:
-                name: mosaicServiceCircuitBreaker
-                fallbackUri: forward:/fallback/mosaic
-            - name: RequestRateLimiter
-              args:
-                deny-empty-key: false
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
+            - id: mosaic-service
+              uri: ${MOSAIC_SERVICE_URI:http://localhost:8085}
+              predicates:
+                - Path=/api/v1/mosaic/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: mosaicServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/mosaic
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 20
         
-        - id: streaming-service
-          uri: ${STREAMING_SERVICE_URI:http://localhost:8086}
-          predicates:
-            - Path=/api/v1/streaming/**
-          filters:
-            - StripPrefix=0
-            - name: CircuitBreaker
-              args:
-                name: streamingServiceCircuitBreaker
-                fallbackUri: forward:/fallback/streaming
-            - name: RequestRateLimiter
-              args:
-                deny-empty-key: false
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
+            - id: streaming-service
+              uri: ${STREAMING_SERVICE_URI:http://localhost:8086}
+              predicates:
+                - Path=/api/v1/streaming/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: streamingServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/streaming
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 20
         
-        - id: archive-service
-          uri: ${ARCHIVE_SERVICE_URI:http://localhost:8087}
-          predicates:
-            - Path=/api/v1/archive/**
-          filters:
-            - StripPrefix=0
-            - name: CircuitBreaker
-              args:
-                name: archiveServiceCircuitBreaker
-                fallbackUri: forward:/fallback/archive
-            - name: RequestRateLimiter
-              args:
-                deny-empty-key: false
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
+            - id: archive-service
+              uri: ${ARCHIVE_SERVICE_URI:http://localhost:8087}
+              predicates:
+                - Path=/api/v1/archive/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: archiveServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/archive
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 20
         
-        - id: chat-service
-          uri: ${CHAT_SERVICE_URI:http://localhost:8088}
-          predicates:
-            - Path=/api/v1/chat/**
-          filters:
-            - StripPrefix=0
-            - name: CircuitBreaker
-              args:
-                name: chatServiceCircuitBreaker
-                fallbackUri: forward:/fallback/chat
-            - name: RequestRateLimiter
-              args:
-                deny-empty-key: false
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
+            - id: chat-service
+              uri: ${CHAT_SERVICE_URI:http://localhost:8088}
+              predicates:
+                - Path=/api/v1/chat/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: chatServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/chat
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 20
         
-        - id: media-service
-          uri: ${MEDIA_SERVICE_URI:http://localhost:8089}
-          predicates:
-            - Path=/api/v1/media/**
-          filters:
-            - StripPrefix=0
-            - name: CircuitBreaker
-              args:
-                name: mediaServiceCircuitBreaker
-                fallbackUri: forward:/fallback/media
-            - name: RequestRateLimiter
-              args:
-                deny-empty-key: false
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
+            - id: media-service
+              uri: ${MEDIA_SERVICE_URI:http://localhost:8089}
+              predicates:
+                - Path=/api/v1/media/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: mediaServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/media
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 20
         
-        - id: transcode-service
-          uri: ${TRANSCODE_SERVICE_URI:http://localhost:8000}
-          predicates:
-            - Path=/api/v1/transcode/**
-          filters:
-            - StripPrefix=0
-            - name: CircuitBreaker
-              args:
-                name: transcodeServiceCircuitBreaker
-                fallbackUri: forward:/fallback/transcode
-            - name: RequestRateLimiter
-              args:
-                deny-empty-key: false
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
+            - id: transcode-service
+              uri: ${TRANSCODE_SERVICE_URI:http://localhost:8000}
+              predicates:
+                - Path=/api/v1/transcode/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: transcodeServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/transcode
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 20
         
-        - id: recommendation-service
-          uri: ${RECOMMENDATION_SERVICE_URI:http://localhost:8001}
-          predicates:
-            - Path=/api/v1/recommendations/**
-          filters:
-            - StripPrefix=0
-            - name: CircuitBreaker
-              args:
-                name: recommendationServiceCircuitBreaker
-                fallbackUri: forward:/fallback/recommendations
-            - name: RequestRateLimiter
-              args:
-                deny-empty-key: false
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
+            - id: recommendation-service
+              uri: ${RECOMMENDATION_SERVICE_URI:http://localhost:8001}
+              predicates:
+                - Path=/api/v1/recommendations/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: recommendationServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/recommendations
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 20
         
-        - id: moderation-service
-          uri: ${MODERATION_SERVICE_URI:http://localhost:8002}
-          predicates:
-            - Path=/api/v1/moderation/**
-          filters:
-            - StripPrefix=0
-            - name: CircuitBreaker
-              args:
-                name: moderationServiceCircuitBreaker
-                fallbackUri: forward:/fallback/moderation
-            - name: RequestRateLimiter
-              args:
-                deny-empty-key: false
-                redis-rate-limiter.replenishRate: 10
-                redis-rate-limiter.burstCapacity: 20
+            - id: moderation-service
+              uri: ${MODERATION_SERVICE_URI:http://localhost:8002}
+              predicates:
+                - Path=/api/v1/moderation/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: moderationServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/moderation
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 20
 
         # WebSocket crudo (ADR-006). JwtAuthenticationFilter valida ?token= y cierra con 4401.
         # La URI es http: el gateway la convierte a ws:// cuando el request trae Upgrade: websocket.
-        - id: checkin-ws
-          uri: ${CHECKIN_SERVICE_URI:http://localhost:8084}
-          predicates:
-            - Path=/ws/checkin/**
+            - id: checkin-ws
+              uri: ${CHECKIN_SERVICE_URI:http://localhost:8084}
+              predicates:
+                - Path=/ws/checkin/**
 
-        - id: mosaic-ws
-          uri: ${MOSAIC_SERVICE_URI:http://localhost:8085}
-          predicates:
-            - Path=/ws/mosaic/**
+            - id: mosaic-ws
+              uri: ${MOSAIC_SERVICE_URI:http://localhost:8085}
+              predicates:
+                - Path=/ws/mosaic/**
 
-        - id: streaming-ws
-          uri: ${STREAMING_SERVICE_URI:http://localhost:8086}
-          predicates:
-            - Path=/ws/streaming/**
+            - id: streaming-ws
+              uri: ${STREAMING_SERVICE_URI:http://localhost:8086}
+              predicates:
+                - Path=/ws/streaming/**
 
-        - id: chat-ws
-          uri: ${CHAT_SERVICE_URI:http://localhost:8088}
-          predicates:
-            - Path=/ws/chat/**
+            - id: chat-ws
+              uri: ${CHAT_SERVICE_URI:http://localhost:8088}
+              predicates:
+                - Path=/ws/chat/**
 
   data:
     redis:
@@ -347,7 +349,7 @@ resilience4j:
 
   # Sin esto el CircuitBreaker usa el TimeLimiter por defecto de Resilience4j (1 s): una
   # petición lenta que el servicio sí completa (p. ej. el primer registro tras arrancar)
-  # recibía el fallback. Igual que spring.cloud.gateway.httpclient.response-timeout.
+  # recibía el fallback. Igual que spring.cloud.gateway.server.webflux.httpclient.response-timeout.
   timelimiter:
     configs:
       default:

@@ -3,53 +3,43 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.12</version>
+        <version>4.0.9</version>
         <relativePath/>
     </parent>
-    
     <groupId>com.vito</groupId>
     <artifactId>api-gateway</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>api-gateway</name>
     <description>ViTo API Gateway - Spring Cloud Gateway</description>
-    
     <properties>
-        <java.version>17</java.version>
-        <spring-cloud.version>2023.0.6</spring-cloud.version>
+        <java.version>21</java.version>
+        <spring-cloud.version>2025.1.4</spring-cloud.version>
         <resilience4j.version>2.2.0</resilience4j.version>
-        <!-- La 1.19 de Spring Boot 3.2 no habla con Docker Engine 29 (API mínima 1.44) -->
-        <testcontainers.version>1.21.4</testcontainers.version>
     </properties>
-    
     <dependencies>
         <!-- Spring Cloud Gateway (WebFlux) -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-gateway</artifactId>
+            <artifactId>spring-cloud-starter-gateway-server-webflux</artifactId>
         </dependency>
-        
         <!-- Spring Cloud LoadBalancer -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-loadbalancer</artifactId>
         </dependency>
-        
         <!-- Spring Data Reactive Redis -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
         </dependency>
-        
         <!-- Spring Security (for JWT) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
-        
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
@@ -68,13 +58,11 @@
             <version>0.13.0</version>
             <scope>runtime</scope>
         </dependency>
-        
         <!-- Resilience4j Circuit Breaker (variante reactiva: la exige el filtro CircuitBreaker del gateway) -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-circuitbreaker-reactor-resilience4j</artifactId>
         </dependency>
-        
         <!-- Actuator -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -84,14 +72,12 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
-        
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
-        
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -101,11 +87,36 @@
         <!-- TokenRevocationIntegrationTest: Redis real (T-B21) -->
         <dependency>
             <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Boot 4: slices de test en módulos propios -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-webtestclient</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-micrometer-metrics-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- T-I13/T053: logs JSON y trazas OTLP a Alloy (Grafana Cloud) -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>7.4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+        </dependency>
     </dependencies>
-    
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -117,7 +128,6 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-    
     <build>
         <plugins>
             <plugin>

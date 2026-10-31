@@ -144,6 +144,8 @@ cd frontend/vito_app && flutter pub get && flutter analyze --fatal-infos && flut
 # Contrato
 npm ci
 npm run contract            # Spectral + fixtures contra su schema (= job "Contract" de CI)
+npm run test:smoke          # tests del smoke E2E, sin red (= job "Contract" de CI)
+npm run smoke:e2e           # smoke real; requiere E2E_BASE_URL/E2E_EMAIL/E2E_PASSWORD (T-I21)
 npm run lint:async          # cuando exista asyncapi.yaml (T-C05)
 npm run mock:api            # Prism en :4010
 

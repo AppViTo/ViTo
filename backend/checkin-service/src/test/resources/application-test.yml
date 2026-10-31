@@ -2,9 +2,8 @@ server:
   port: 8084
 
 spring:
-  data:
-    mongodb:
-      uri: mongodb://admin:test_password@localhost:27017/test_checkin?authSource=admin
+  mongodb:
+    uri: mongodb://admin:test_password@localhost:27017/test_checkin?authSource=admin
   
   redis:
     host: localhost

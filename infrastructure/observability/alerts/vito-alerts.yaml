@@ -1,0 +1,430 @@
+# T-I13/T040: alertas de producción de ViTo.
+# Plantilla de aprovisionamiento de Grafana Alerting. Sustituye los UIDs
+# `grafanacloud-prom` y `grafanacloud-logs` por los de tu stack y asígnalas al
+# contact point `leads`. Cada regla usa query (A) -> reduce (B) -> threshold (C).
+apiVersion: 1
+groups:
+- orgId: 1
+  name: vito-produccion
+  folder: ViTo
+  interval: 1m
+  rules:
+  - uid: vito-api-down
+    title: api-down
+    condition: C
+    for: 2m
+    noDataState: Alerting
+    execErrState: Error
+    annotations:
+      summary: La API pública no responde en las dos sondas
+      description: probe_success == 0 durante 2 minutos. Revisar Caddy, gateway y
+        el VPS.
+      runbook_url: https://github.com/AppViTo/ViTo/blob/develop/docs/runbooks/incident.md
+    labels:
+      severity: critical
+      service: api-gateway
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 900
+        to: 0
+      datasourceUid: grafanacloud-prom
+      model:
+        editorMode: code
+        expr: max(probe_success{job="vito-api-healthz"})
+        instant: true
+        intervalMs: 60000
+        maxDataPoints: 43200
+        refId: A
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        reducer: last
+        type: reduce
+        refId: B
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 1
+            type: lt
+          operator:
+            type: and
+          query:
+            params:
+            - B
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: B
+        refId: C
+        type: threshold
+  - uid: vito-service-unhealthy
+    title: service-unhealthy
+    condition: C
+    for: 5m
+    noDataState: Alerting
+    execErrState: Error
+    annotations:
+      summary: '{{ $labels.service }} lleva 5 minutos sin responder a /actuator/prometheus'
+      description: up == 0. Revisar logs JSON del servicio y su contenedor.
+      runbook_url: https://github.com/AppViTo/ViTo/blob/develop/docs/runbooks/incident.md
+    labels:
+      severity: warning
+      service: '{{ $labels.service }}'
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 900
+        to: 0
+      datasourceUid: grafanacloud-prom
+      model:
+        editorMode: code
+        expr: up{job="vito"} == 0
+        instant: true
+        intervalMs: 60000
+        maxDataPoints: 43200
+        refId: A
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        reducer: last
+        type: reduce
+        refId: B
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 1
+            type: lt
+          operator:
+            type: and
+          query:
+            params:
+            - B
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: B
+        refId: C
+        type: threshold
+  - uid: vito-host-mem-high
+    title: host-mem-high
+    condition: C
+    for: 10m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Memoria del VPS por encima del 80 %
+      description: 'Uso actual: {{ $value | humanizePercentage }}. Revisar contenedores
+        y OOM kills.'
+      runbook_url: https://github.com/AppViTo/ViTo/blob/develop/docs/runbooks/incident.md
+    labels:
+      severity: warning
+      service: host
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 900
+        to: 0
+      datasourceUid: grafanacloud-prom
+      model:
+        editorMode: code
+        expr: 100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))
+        instant: true
+        intervalMs: 60000
+        maxDataPoints: 43200
+        refId: A
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        reducer: last
+        type: reduce
+        refId: B
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 80
+            type: gt
+          operator:
+            type: and
+          query:
+            params:
+            - B
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: B
+        refId: C
+        type: threshold
+  - uid: vito-gateway-401-spike
+    title: gateway-401-spike
+    condition: C
+    for: 5m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Pico de 401 en el gateway
+      description: Más de 5 respuestas 401/s durante 5 minutos. Revisar credenciales,
+        revocaciones y clientes.
+      runbook_url: https://github.com/AppViTo/ViTo/blob/develop/docs/runbooks/incident.md
+    labels:
+      severity: warning
+      service: api-gateway
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 900
+        to: 0
+      datasourceUid: grafanacloud-prom
+      model:
+        editorMode: code
+        expr: sum(rate(http_server_requests_seconds_count{job="vito",service="api-gateway",status="401"}[5m]))
+        instant: true
+        intervalMs: 60000
+        maxDataPoints: 43200
+        refId: A
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        reducer: last
+        type: reduce
+        refId: B
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 5
+            type: gt
+          operator:
+            type: and
+          query:
+            params:
+            - B
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: B
+        refId: C
+        type: threshold
+  - uid: vito-gateway-429-spike
+    title: gateway-429-spike
+    condition: C
+    for: 5m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: Pico de 429 (rate limit) en el gateway
+      description: Más de 5 respuestas 429/s durante 5 minutos. Revisar tráfico abusivo
+        o límites demasiado bajos.
+      runbook_url: https://github.com/AppViTo/ViTo/blob/develop/docs/runbooks/incident.md
+    labels:
+      severity: warning
+      service: api-gateway
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 900
+        to: 0
+      datasourceUid: grafanacloud-prom
+      model:
+        editorMode: code
+        expr: sum(rate(http_server_requests_seconds_count{job="vito",service="api-gateway",status="429"}[5m]))
+        instant: true
+        intervalMs: 60000
+        maxDataPoints: 43200
+        refId: A
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        reducer: last
+        type: reduce
+        refId: B
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 5
+            type: gt
+          operator:
+            type: and
+          query:
+            params:
+            - B
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: B
+        refId: C
+        type: threshold
+  - uid: vito-gateway-revocation-errors
+    title: gateway-revocation-errors
+    condition: C
+    for: 5m
+    noDataState: OK
+    execErrState: Error
+    annotations:
+      summary: El gateway no puede comprobar revocaciones en Redis
+      description: vito.gateway.revocation.check.errors incrementa. El gateway falla
+        abierto; revisar Redis y la red.
+      runbook_url: https://github.com/AppViTo/ViTo/blob/develop/docs/runbooks/incident.md
+    labels:
+      severity: critical
+      service: api-gateway
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 900
+        to: 0
+      datasourceUid: grafanacloud-prom
+      model:
+        editorMode: code
+        expr: sum(rate(vito_gateway_revocation_check_errors_total{job="vito"}[5m]))
+        instant: true
+        intervalMs: 60000
+        maxDataPoints: 43200
+        refId: A
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        reducer: last
+        type: reduce
+        refId: B
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 0
+            type: gt
+          operator:
+            type: and
+          query:
+            params:
+            - B
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: B
+        refId: C
+        type: threshold
+  - uid: vito-backup-missing
+    title: backup-missing
+    condition: C
+    for: 0m
+    noDataState: Alerting
+    execErrState: Error
+    annotations:
+      summary: No hay backup de MongoDB en las últimas 26 horas
+      description: No se encontró ninguna línea `OK ` de `service="mongo-backup"`.
+        Revisar el cron y R2.
+      runbook_url: https://github.com/AppViTo/ViTo/blob/develop/docs/runbooks/incident.md
+    labels:
+      severity: critical
+      service: mongo-backup
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 93600
+        to: 0
+      datasourceUid: grafanacloud-logs
+      model:
+        editorMode: code
+        expr: sum(count_over_time({service="mongo-backup"} |= "OK " [26h]))
+        instant: true
+        intervalMs: 60000
+        maxDataPoints: 43200
+        refId: A
+    - refId: B
+      datasourceUid: __expr__
+      model:
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: A
+        reducer: last
+        type: reduce
+        refId: B
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        conditions:
+        - evaluator:
+            params:
+            - 1
+            type: lt
+          operator:
+            type: and
+          query:
+            params:
+            - B
+          reducer:
+            params: []
+            type: last
+          type: query
+        datasource:
+          type: __expr__
+          uid: __expr__
+        expression: B
+        refId: C
+        type: threshold

@@ -1,0 +1,269 @@
+// Observabilidad de producción (T-I13). Contrato: specs/001-cd-produccion/contracts/observability.md
+//
+// Alloy corre junto a Compose, lee métricas de los servicios, del host y de los
+// contenedores, y reenvía logs y trazas a Grafana Cloud. No publica puertos: el
+// receptor OTLP solo es alcanzable desde la red `vito`.
+
+logging {
+	level  = "info"
+	format = "logfmt"
+}
+
+// ── Métricas de los servicios ─────────────────────────────────
+// El gateway expone Actuator en el puerto de gestión (9080); el resto en 8080.
+prometheus.scrape "java" {
+	targets = [
+		{__address__ = "api-gateway:9080", __metrics_path__ = "/actuator/prometheus", service = "api-gateway"},
+		{__address__ = "auth-service:8080", __metrics_path__ = "/actuator/prometheus", service = "auth-service"},
+		{__address__ = "social-service:8080", __metrics_path__ = "/actuator/prometheus", service = "social-service"},
+		{__address__ = "event-service:8080", __metrics_path__ = "/actuator/prometheus", service = "event-service"},
+		{__address__ = "checkin-service:8080", __metrics_path__ = "/actuator/prometheus", service = "checkin-service"},
+		{__address__ = "mosaic-service:8080", __metrics_path__ = "/actuator/prometheus", service = "mosaic-service"},
+		{__address__ = "streaming-service:8080", __metrics_path__ = "/actuator/prometheus", service = "streaming-service"},
+		{__address__ = "archive-service:8080", __metrics_path__ = "/actuator/prometheus", service = "archive-service"},
+		{__address__ = "chat-service:8080", __metrics_path__ = "/actuator/prometheus", service = "chat-service"},
+		{__address__ = "media-service:8080", __metrics_path__ = "/actuator/prometheus", service = "media-service"},
+	]
+	scrape_interval = "30s"
+	scrape_timeout  = "10s"
+	forward_to      = [prometheus.relabel.services.receiver]
+}
+
+// Los servicios Python exponen /metrics con prometheus-fastapi-instrumentator.
+prometheus.scrape "python" {
+	targets = [
+		{__address__ = "transcode-service:8000", __metrics_path__ = "/metrics", service = "transcode-service"},
+		{__address__ = "moderation-service:8002", __metrics_path__ = "/metrics", service = "moderation-service"},
+	]
+	scrape_interval = "30s"
+	scrape_timeout  = "10s"
+	forward_to      = [prometheus.relabel.services.receiver]
+}
+
+// Lista blanca del contrato. Se descartan etiquetas de alta cardinalidad que no
+// hacen falta para el tablero RED ni para las alertas.
+prometheus.relabel "services" {
+	forward_to = [prometheus.remote_write.grafana.receiver]
+
+	rule {
+		source_labels = ["__name__"]
+		regex         = "http_server_requests_seconds_.*|jvm_memory_used_bytes|jvm_gc_pause_seconds_.*|process_cpu_usage|hikaricp_.*|mongodb_driver_.*|vito_gateway_.*|http_request_duration_seconds_.*|http_requests_total|process_cpu_seconds_total|process_resident_memory_bytes|python_gc_.*|up"
+		action        = "keep"
+	}
+
+	rule {
+		regex  = "application|exception|namespace|pod|container|endpoint|instance"
+		action = "labeldrop"
+	}
+
+	// Contrato de alertas: up{job="vito"} == 0 por servicio.
+	rule {
+		target_label = "job"
+		replacement  = "vito"
+	}
+}
+
+// ── Métricas del host ─────────────────────────────────────────
+// Los montajes de docker-compose.prod.yml dejan /proc y /sys del host en /host/{proc,sys}.
+// Sin /host/root: el colector filesystem queda fuera (pendiente de disco en T-I13).
+prometheus.exporter.unix "host" {
+	procfs_path = "/host/proc"
+	sysfs_path  = "/host/sys"
+
+	set_collectors = ["cpu", "diskstats", "loadavg", "meminfo", "netdev", "stat", "time", "uname", "vmstat"]
+}
+
+prometheus.scrape "host" {
+	targets         = prometheus.exporter.unix.host.targets
+	scrape_interval = "30s"
+	forward_to      = [prometheus.relabel.host.receiver]
+}
+
+prometheus.relabel "host" {
+	forward_to = [prometheus.remote_write.grafana.receiver]
+
+	rule {
+		target_label = "service"
+		replacement  = "host"
+	}
+
+	rule {
+		source_labels = ["__name__"]
+		regex         = "node_cpu_seconds_total|node_memory_MemAvailable_bytes|node_memory_MemTotal_bytes|node_load1|node_network_receive_bytes_total|node_network_transmit_bytes_total|node_disk_read_bytes_total|node_disk_written_bytes_total|up"
+		action        = "keep"
+	}
+
+	rule {
+		regex  = "job"
+		action = "labeldrop"
+	}
+}
+
+// ── Métricas de contenedores ──────────────────────────────────
+// cAdvisor habla con el proxy de solo lectura, no con el socket de Docker.
+prometheus.exporter.cadvisor "containers" {
+	docker_host                  = "tcp://docker-socket-proxy:2375"
+	docker_only                  = true
+	store_container_labels       = false
+	allowlisted_container_labels = ["com.docker.compose.service"]
+	enabled_metrics              = ["cpu", "memory", "diskIO", "network"]
+}
+
+prometheus.scrape "containers" {
+	targets         = prometheus.exporter.cadvisor.containers.targets
+	scrape_interval = "30s"
+	forward_to      = [prometheus.relabel.containers.receiver]
+}
+
+prometheus.relabel "containers" {
+	forward_to = [prometheus.remote_write.grafana.receiver]
+
+	rule {
+		source_labels = ["container_label_com_docker_compose_service"]
+		target_label  = "service"
+	}
+
+	rule {
+		source_labels = ["__name__"]
+		regex         = "container_cpu_usage_seconds_total|container_memory_working_set_bytes|container_memory_usage_bytes|container_last_seen|container_start_time_seconds|container_restart_count|up"
+		action        = "keep"
+	}
+
+	rule {
+		regex  = "container_label_.*|id|image|name|instance|job"
+		action = "labeldrop"
+	}
+}
+
+// ── Logs de todos los contenedores ────────────────────────────
+discovery.docker "containers" {
+	host = "http://docker-socket-proxy:2375"
+}
+
+discovery.relabel "containers" {
+	targets = discovery.docker.containers.targets
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/(.*)"
+		target_label  = "service"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "service"
+	}
+}
+
+loki.source.docker "containers" {
+	host          = "http://docker-socket-proxy:2375"
+	targets       = discovery.docker.containers.targets
+	relabel_rules = discovery.relabel.containers.rules
+	labels        = {job = "vito"}
+	forward_to    = [loki.process.mask.receiver]
+}
+
+// Etiqueta `level` desde el JSON de los servicios y enmascara secretos antes de
+// enviar a Loki (FR-026). Las etapas se aplican en orden.
+loki.process "mask" {
+	forward_to = [loki.write.grafana.receiver]
+
+	stage.json {
+		expressions = {level = "level", service = "service"}
+	}
+
+	stage.labels {
+		values = {level = "level", service = "service"}
+	}
+
+	stage.replace {
+		expression = "(?i)(Bearer\\s+[A-Za-z0-9._~+/=-]+)"
+		replace    = "Bearer [REDACTED]"
+	}
+
+	stage.replace {
+		expression = "(?i)([?&]token=[^&\\s\"']+)"
+		replace    = "?token=[REDACTED]"
+	}
+
+	stage.replace {
+		expression = "(?i)(\"password\"\\s*:\\s*\"[^\"]*\")"
+		replace    = "\"password\":\"[REDACTED]\""
+	}
+
+	// El mismo campo dentro de un JSON anidado (por ejemplo el `msg` de un log).
+	stage.replace {
+		expression = "(?i)(\\\\\"password\\\\\"\\s*:\\s*\\\\\"[^\\\\\"]*\\\\\")"
+		replace    = "\\\"password\\\":\\\"[REDACTED]\\\""
+	}
+
+	stage.replace {
+		expression = "(eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+)"
+		replace    = "[REDACTED_JWT]"
+	}
+
+	stage.replace {
+		expression = "([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})"
+		replace    = "[REDACTED_EMAIL]"
+	}
+}
+
+loki.write "grafana" {
+	endpoint {
+		url = sys.env("GRAFANA_CLOUD_LOKI_URL")
+
+		basic_auth {
+			username = sys.env("GRAFANA_CLOUD_LOKI_USER")
+			password = sys.env("GRAFANA_CLOUD_TOKEN")
+		}
+	}
+	external_labels = {cluster = "vito-prod"}
+}
+
+// ── Trazas OTLP de los servicios Java ────────────────────────
+otelcol.receiver.otlp "default" {
+	grpc {
+		endpoint = "0.0.0.0:4317"
+	}
+
+	http {
+		endpoint = "0.0.0.0:4318"
+	}
+
+	output {
+		traces = [otelcol.processor.batch.default.input]
+	}
+}
+
+otelcol.processor.batch "default" {
+	timeout = "5s"
+
+	output {
+		traces = [otelcol.exporter.otlphttp.grafana.input]
+	}
+}
+
+otelcol.auth.basic "grafana" {
+	username = sys.env("GRAFANA_CLOUD_OTLP_USER")
+	password = sys.env("GRAFANA_CLOUD_TOKEN")
+}
+
+otelcol.exporter.otlphttp "grafana" {
+	client {
+		endpoint = sys.env("GRAFANA_CLOUD_OTLP_URL")
+		auth     = otelcol.auth.basic.grafana.handler
+	}
+}
+
+// ── Métricas a Grafana Cloud (Mimir) ─────────────────────────
+prometheus.remote_write "grafana" {
+	endpoint {
+		url = sys.env("GRAFANA_CLOUD_PROM_URL")
+
+		basic_auth {
+			username = sys.env("GRAFANA_CLOUD_PROM_USER")
+			password = sys.env("GRAFANA_CLOUD_TOKEN")
+		}
+	}
+	external_labels = {cluster = "vito-prod"}
+}
