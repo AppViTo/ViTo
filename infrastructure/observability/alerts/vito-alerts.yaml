@@ -111,8 +111,8 @@ groups:
         conditions:
         - evaluator:
             params:
-            - 0
-            type: gt
+            - 1
+            type: lt
           operator:
             type: and
           query:
