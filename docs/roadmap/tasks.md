@@ -128,7 +128,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-I19 | Un usuario de Mongo por servicio (sin root) | I/B | P1 | 🟢 READY | — |
 | T-I20 | Kafka con TLS y ACL por tópico (excepción A7) | I | P2 | ⚪ DIFERIDA (Fase Crecimiento; revisión 2027-04-22) | — |
 | T-I21 | Subida al mosaico en `prod` detrás de una propiedad (excepción A3) | I/B | P0 | ✅ HECHA (#177, #183 · activar tras T-B26) | — |
-| T-I22 | `cd.yml`: opción para reconstruir todas las imágenes (VPS vacío) | I | P1 | 🟢 READY | — |
+| T-I22 | `cd.yml`: opción para reconstruir todas las imágenes (VPS vacío) | I | P1 | 🔵 EN CURSO (backend/t-i22-rebuild-all) | — |
 | T-I23 | Recomendaciones en `prod` sin `recommendation-service`: fallback y degradación | I/F | P2 | 🟢 READY | — |
 | T-I24 | Registro de imágenes para no depender del VPS | I | P2 | ⚪ DIFERIDA (Fase Crecimiento) | — |
 
@@ -1030,7 +1030,7 @@ depende del contrato.
 - **Activación en producción:** solo cuando T-B25 y T-B26 estén desplegadas.
 - **Cierre:** tests con la propiedad apagada (lo de T-I17 sigue igual) y encendida.
 
-### T-I22 · Reconstruir todas las imágenes desde el CD — 🟢 READY · P1 · ADR-011, Principio IX
+### T-I22 · Reconstruir todas las imágenes desde el CD — 🔵 EN CURSO (backend/t-i22-rebuild-all) · P1 · ADR-011, Principio IX
 - **Por qué (hallazgo de T-I14, #167):** `cd.yml` construye solo lo que cambió desde el
   último despliegue exitoso. En un VPS vacío o reconstruido, `deploy.sh` sale con código 4
   por imágenes faltantes; hoy el rodeo de `docs/runbooks/restore.md` compila en el VPS, sin

@@ -15,6 +15,7 @@ qué secretos necesitan. No es contrato de API (`docs/api/`): no lo consume el f
 | `mode` | `deploy` · `preflight`, default `deploy` | `preflight` verifica SSH, huella, secretos y `config -q` sin reiniciar nada (Historia 5); usa el Environment `production-preflight` y el grupo `vps-preflight`, sin aprobación (R8) |
 | `force_live_event` | boolean, default `false` | solo válido si el commit es hotfix (Environment `production-hotfix`) |
 | `reason` | string | obligatorio si `force_live_event` |
+| `rebuild_all` | boolean, default `false` | `true` ignora el último despliegue exitoso y reconstruye todas las imágenes (`changed-services.sh` con SHA previo `-`); para un VPS vacío o reconstruido. El resto del flujo no cambia: Trivy y aprobación del Environment |
 
 Jobs, en orden:
 
