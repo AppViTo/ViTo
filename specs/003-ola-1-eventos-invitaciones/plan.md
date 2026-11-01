@@ -51,10 +51,10 @@ nueva, 1 cabecera nueva (`X-User-Name`), ~25 fixtures, 4 pantallas o flujos en l
 
 | Principio | Cumplimiento | Estado |
 |-----------|--------------|--------|
-| I. Contrato primero | Nada se implementa antes del PR de contrato (`contract/ola-1`) con D-08 de la Ola 1 y 1 CODEOWNER. Cada operación lleva `operationId`, ejemplos, errores y fixtures ([contrato propuesto](./contracts/ola-1-operations.md)). `invitations/respond` se retira del código | ✅ |
+| I. Contrato primero | Nada se implementa antes del PR de contrato (`contract/ola-1`) con D-08 de la Ola 1 y 1 CODEOWNER. Cada operación lleva `operationId`, ejemplos, errores y fixtures ([contrato propuesto](./contracts/ola-1-operations.md)). `invitations/respond` se retira del código. Sin `schemathesis` (ver Complexity Tracking) | ⚠️ |
 | II. Hexagonal y servicios autónomos | Todo en `event-service` por capas; nombres desnormalizados desde el token (R6), sin leer `vito_auth` ni `vito_social`. ArchUnit no existe en `event-service` (ver Complexity Tracking) | ⚠️ |
 | III. Seguridad por defecto | Autorización por recurso en cada operación del organizador (corrige el hallazgo del #204); ruta pública exacta por método (R5); límites de intentos; 404 único; token aleatorio de 128 bits fuera de los logs; `INVITE_LINK_BASE_URL` obligatoria en `prod`; `X-User-Name` con la higiene de T-B01 | ✅ |
-| IV. Calidad verificable | TDD en cupo, lista de espera, RSVP y enlace; Testcontainers MongoDB; pruebas de contrato Java y Dart; cobertura ≥ 80 % en `domain` + `application` del código nuevo | ✅ |
+| IV. Calidad verificable | TDD en cupo, lista de espera, RSVP y enlace; Testcontainers MongoDB; pruebas de contrato Java y Dart; cobertura ≥ 80 % en `domain` + `application` del código nuevo, medida a mano (sin JaCoCo en CI, ver Complexity Tracking) | ⚠️ |
 | V. Mensajería confiable | Se mantienen los eventos existentes sin outbox ni declaración en AsyncAPI; se corrige el "dispara y olvida" (R12) | ⚠️ |
 | VI. Observabilidad | Logs con `eventId`/`linkId`, nunca token ni datos personales; métricas Micrometer existentes; contador de `429` por ruta en el tablero del gateway (T-I13) | ✅ |
 | VII. Rendimiento | Cupo con `$inc` condicional (R1); índices declarados; listas paginadas (máx. 100); escenarios k6 (quickstart §7) | ✅ |
@@ -62,8 +62,11 @@ nueva, 1 cabecera nueva (`X-User-Name`), ~25 fixtures, 4 pantallas o flujos en l
 | IX. Privacidad | Asistentes solo para el organizador; contador sin identidades; `stats` reducido para no organizadores (R7); vista previa sin dirección; `hideAddressUntilAccepted` respetado en `scope=invited` | ✅ |
 | X. Simplicidad | Sin tecnologías nuevas; una colección más en un servicio existente | ✅ |
 
-**Resultado del gate:** pasa con dos desviaciones justificadas en *Complexity Tracking*.
-**Re-check tras el diseño (Fase 1):** sin cambios; el diseño no agrega desviaciones.
+**Resultado del gate:** pasa con cuatro desviaciones justificadas en *Complexity Tracking*
+(V, II, I/IV schemathesis, IV JaCoCo), que el PR de la spec debe aprobar (Governance).
+**Re-check tras `/speckit-analyze` (2026-11-01):** se agregan la migración de datos del
+Principio IX (T066), las fechas como `Instant` en invitaciones y RSVP (FR-028) y la
+redacción del token en trazas y logs (Principio VI, T067).
 
 ## Project Structure
 
@@ -139,3 +142,5 @@ Orden: contrato → (backend ∥ app contra el mock de Prism) → integración y
 |-----------|------------|-------------------------------------|
 | V: eventos Kafka sin sobre versionado, sin outbox y sin declarar en `asyncapi.yaml` | No hay ningún consumidor todavía; el outbox y la declaración son transversales a los 9 productores | Hacerlo aquí duplica la ola y bloquea Bug-F07/F09. Se resuelve con T-C05 y antes del primer consumidor (ticket QR, Ola 2); se registra como tarea en `/speckit-tasks` |
 | II: sin ArchUnit en `event-service` | La verificación automática de capas es transversal a los 10 servicios | Agregarlo solo aquí deja la regla a medias; va con T-B18 (`backend/shared-web`) |
+| I y IV: sin `schemathesis` contra el servicio | No existe ningún job de schemathesis ni entorno efímero en el repo (O-19); la ola cubre el contrato con Spectral, la validación de fixtures y tests de controlador contra los mismos fixtures | Montar schemathesis y el entorno efímero solo para esta ola es infraestructura transversal; se propone como tarea propia de CI |
+| IV: sin umbral de cobertura (JaCoCo) en `event-service` | JaCoCo no está configurado en ningún servicio (O-19) | Igual que ArchUnit: transversal. La ola exige pruebas por historia y TDD en la lógica crítica; el umbral del 80 % se mide a mano en el PR de T-B34 con `jacoco:report` local |

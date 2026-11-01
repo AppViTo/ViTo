@@ -100,8 +100,8 @@ X ──misma respuesta──▶ X                            sin cambios (FR-01
 
 ## Vistas de lectura (no se guardan)
 
-- **InviteLinkPreview:** `eventId`, `title`, `startDate`, `endDate`, `location` (lugar
-  general, **nunca** dirección exacta ni coordenadas), `coverImage`, `category`,
+- **InviteLinkPreview:** `eventId`, `title`, `startDate`, `endDate`, `location` (=
+  `details.location`, el nombre del lugar; **nunca** `address`, `latitude` ni `longitude`), `coverImage`, `category`,
   `organizerDisplayName` (o "El organizador"), `expiresAt` del enlace.
 - **Attendee** (solo organizador): `userId`, `displayName`, `status`, `respondedAt`. Sin
   correo ni teléfono.
