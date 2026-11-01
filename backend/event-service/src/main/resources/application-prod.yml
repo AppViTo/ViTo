@@ -7,6 +7,11 @@ logging:
     com.vito: INFO
     org.springframework.security: INFO
 
+# Ola 1 (R4): sin valor por defecto; si falta, el servicio no arranca (InviteLinkConfig).
+vito:
+  invite-links:
+    base-url: ${INVITE_LINK_BASE_URL}
+
 # T-I13/T053: muestreo bajo para el free tier y envío OTLP HTTP a Alloy (que reenvía a Grafana Cloud).
 management:
   tracing:
