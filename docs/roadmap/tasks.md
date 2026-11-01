@@ -60,6 +60,19 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 - **T-C07 Ola 3:** figura en curso en `contract/ola-3`. Confirmar con Alex antes de tocar nada
   del contrato.
 
+### Asignación del 2026-11-01 (agente frontend)
+
+Cierre de la Ola 3. Mismas reglas que la asignación anterior: solo indica el dueño sugerido;
+el estado cambia en el PR que tome la tarea.
+
+| ID | Tarea | Asignada a | Qué puede avanzar hoy |
+|----|-------|------------|------------------------|
+| T-C09 | Contrato de las 3 operaciones de media de la Ola 3 (🟡 RFC) | Agente frontend (dueño de `docs/api/**`) | Revisar y aprobar la propuesta que redacta la sesión backend en `contract/ola-3-media` y confirmar las 4 decisiones de la ficha (tomadas por Bernardo el 2026-11-01). El merge es de Alex. |
+| T-F11 | App: consumir las operaciones de media | Agente frontend | Nada: ⚪ `DIFERIDA`. Vuelve solo si T-C09 decide el bucket privado. |
+
+**Sin asignar al agente frontend:** T-B33 (media-service) es de la sesión backend y empieza
+cuando T-C09 esté mergeada.
+
 ---
 
 ## Resumen: qué se puede hacer desde ya
@@ -73,6 +86,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC | [VITO-14](https://bernardo-mira.atlassian.net/browse/VITO-14) |
 | T-C06 | `listEvents` con `scope=mine\|upcoming` según ADR-014 | C | P0 | ✅ HECHA (#147) | [VITO-15](https://bernardo-mira.atlassian.net/browse/VITO-15) |
 | T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | ✅ HECHA (#45) | [VITO-17](https://bernardo-mira.atlassian.net/browse/VITO-17) |
+| T-C09 | Contrato de las 3 operaciones de media de la Ola 3 (`listEventMedia`, `deleteMedia`, `getMediaPresignedUrl`) | C | P1 | 🟡 RFC | — |
 | T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | ✅ HECHA (#46, #56) | [VITO-18](https://bernardo-mira.atlassian.net/browse/VITO-18) |
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | ✅ HECHA (#63) | [VITO-20](https://bernardo-mira.atlassian.net/browse/VITO-20) |
 | T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming, chat sin `?userId=`) | F | P0 | ✅ HECHA (#60) | [VITO-21](https://bernardo-mira.atlassian.net/browse/VITO-21) |
@@ -80,6 +94,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | ✅ HECHA (#65) | [VITO-24](https://bernardo-mira.atlassian.net/browse/VITO-24) |
 | T-F09 | Probar en dispositivo `mobile_scanner` 7 y `share_plus` 10 (#158) antes del evento | F | P0 | 🟢 READY (manual) | — |
 | T-F10 | Moderación del mosaico en la app del organizador (excepción A3) | F | P0 | ✅ HECHA (#185) | — |
+| T-F11 | App: consumir las operaciones de media de la Ola 3 | F | P2 | ⚪ DIFERIDA (ninguna pantalla las necesita; vuelve si T-C09 privatiza el bucket) | — |
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) | [VITO-26](https://bernardo-mira.atlassian.net/browse/VITO-26) |
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | ✅ HECHA (#38) | [VITO-27](https://bernardo-mira.atlassian.net/browse/VITO-27) |
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) | [VITO-29](https://bernardo-mira.atlassian.net/browse/VITO-29) |
@@ -112,6 +127,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-B30 | JWT con firma asimétrica (RS256/ES256 + JWKS) | B | P1 | 🔴 BLOQUEADA (requiere spec) | — |
 | T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | ✅ HECHA (#224; A9 cerrada el 2026-11-01) | — |
 | T-B32 | Reacciones y mensajes del streaming no llegan en vivo a los espectadores (fan-out sin Redis Pub/Sub ni consumidor Kafka) | B | P1 | 🟡 RFC (contrato de reacciones; T-C05) | — |
+| T-B33 | media-service: las 3 operaciones de la Ola 3 según el contrato y retirar `/mosaic/photo` | B | P1 | 🔴 BLOQUEADA (T-C09) | — |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
@@ -348,6 +364,10 @@ depende del contrato.
   `asyncapi.yaml`, 33 fixtures en `fixtures/mosaic/` y CONVENTIONS §8 sin `video/mp4`. La
   escribió la sesión de terminal; el lead la aprueba. Quedan de la ola `DELETE /media/{mediaId}`
   y `GET /media/{mediaId}/presigned-url`, que el evento de prueba no necesita.
+- **Cierre de la Ola 3 (2026-11-01):** revisado contra `endpoint-inventory.md`, también falta
+  `GET /media/event/{eventId}` (`PUBLICAR`, paginado). Las 3 operaciones pasan a T-C09
+  (contrato), T-B33 (backend) y T-F11 (app). La Ola 3 se marca completa cuando T-C09 y
+  T-B33 estén mergeadas.
 - **Ola 3 (aprobada por D-08 el 2026-10-24, #169):** #171 incorporó `/ws/mosaic/{eventId}` en
   `asyncapi.yaml` y el handoff `docs/handoff/ola-3-mosaico.md`. Falta el endpoint de moderación
   del organizador que pide la excepción A3 (lo implementa T-B26).
@@ -364,6 +384,34 @@ depende del contrato.
 - **Ola 3 incompleta tras #171 (revisado 2026-10-24, #178):** #171 solo cambió `asyncapi.yaml`
   y el handoff; faltaban las rutas REST, sus fixtures y la moderación. Lo resuelve #182 (viñeta
   "Ola 3 REST" de arriba).
+
+### T-C09 · Contrato de las 3 operaciones de media de la Ola 3 — 🟡 RFC · P1 · ADR-003, ADR-016, Principio IX, CONVENTIONS §5 y §8
+- **Por qué:** `endpoint-inventory.md` marca para la Ola 3 tres operaciones de media-service
+  que no están en `openapi.yaml`: `GET /media/event/{eventId}` (`PUBLICAR`, paginado),
+  `DELETE /media/{mediaId}` (`PUBLICAR`, dueño u organizador) y
+  `GET /media/{mediaId}/presigned-url` (`PUBLICAR`, Principio IX). Sin ellas la Ola 3 no
+  cierra (T-C07) y el backend las expone sin contrato.
+- **Qué:** en `contract/ola-3-media`, las 3 rutas en `openapi.yaml` con `operationId`
+  (`listEventMedia`, `deleteMedia`, `getMediaPresignedUrl`), ejemplos, `ErrorResponse` en
+  todo 4xx/5xx, `page`/`size` en la lista, y fixtures en `docs/api/fixtures/media/`. Pasa
+  `npm run` de contrato (Spectral y validación de fixtures). Issue `contract-change` y PR
+  como RFC.
+- **Decisiones (Bernardo, 2026-11-01; Alex las confirma al aprobar la RFC):**
+  1. **Principio IX:** el bucket de R2 sigue público en esta ola; `location.url` y
+     `mediaUrls` no cambian. `getMediaPresignedUrl` se publica igual (R2 firma con la API
+     S3). Privatizar el bucket queda como deuda para antes de abrir a usuarios reales; si se
+     hace, T-F11 vuelve a 🟢 `READY`.
+  2. **Fotos retiradas por moderación:** retirar un elemento del mosaico borra también su
+     archivo en R2. El mecanismo (llamada a media-service o evento Kafka) se decide en T-B33.
+  3. **Quién lista y pide URL:** el organizador y los usuarios con RSVP `ACCEPTED` (los
+     mismos que publican en el mosaico). Borra el dueño o el organizador.
+  4. **Vida de la URL prefirmada:** `expiresIn` en segundos (como ADR-004), 900 por defecto y
+     3600 como máximo.
+- **No hacer:** publicar `GET /media/user`, `PUT /media/{mediaId}` ni
+  `POST /media/{mediaId}/process` (`DIFERIR`/`INTERNO`). No volver a aceptar `video/mp4`
+  (excepción A3).
+- **Cierre:** PR aprobado por 1 CODEOWNER de `docs/api/**`; job "contract" en verde;
+  desbloquea T-B33.
 
 ---
 
@@ -444,6 +492,19 @@ depende del contrato.
   demás clientes por el aviso del WebSocket. Post-moderación: no hay cola de aprobación.
 - **Cierre:** tests de widget (la acción solo aparece al organizador) y del bloc (la foto sale
   del estado al recibir el aviso de retiro), contra los fixtures de la Ola 3.
+
+### T-F11 · Consumir las operaciones de media de la Ola 3 — ⚪ DIFERIDA (hasta que una pantalla las necesite) · P2 · T-C09
+- **Por qué está diferida:** ni el mosaico ni la galería las necesitan hoy. El mosaico pinta
+  las fotos con `mediaUrls` de `MosaicFeedItem` y la moderación retira el elemento con
+  `removeMosaicItem` (T-F10), no el archivo. La galería post-evento usa `/archive/**`
+  (Ola 5). En `frontend/vito_app/lib` solo se llama a `POST /media/upload`.
+- **Vuelve si:** los leads deciden en T-C09 que `location.url` y `mediaUrls` dejan de ser
+  URLs públicas (bucket privado, Principio IX). Entonces la app pide la URL con
+  `getMediaPresignedUrl` antes de pintar cada foto, y la tarea pasa a 🟢 `READY`.
+- **No hacer:** consumir `listEventMedia` o `deleteMedia` "por si acaso"; cada operación entra
+  en la app con la pantalla que la use.
+- **Cierre (cuando se reactive):** datasource y tests contra los fixtures de
+  `docs/api/fixtures/media/`.
 
 ### T-F07 · Tests vacíos y cobertura — ✅ HECHA (#65) · P1 · O-19
 - **Qué (ajustado 2026-10-22):** la premisa de O-19 está desactualizada:
@@ -780,6 +841,27 @@ depende del contrato.
   en menos de 1 s, aunque estén en otra instancia. Hay un test de integración que lo prueba con
   dos instancias o con dos sesiones en réplicas distintas. Se cumple el KPI "Latencia
   reacciones stream < 1 s" y el criterio MVP n.º 9.
+
+### T-B33 · media-service: las 3 operaciones de la Ola 3 según el contrato — 🔴 BLOQUEADA por T-C09 · P1 · ADR-003, ADR-010, ADR-016, Principio IX
+- **Por qué:** `MediaController` ya expone `GET /media/event/{eventId}`,
+  `DELETE /media/{mediaId}` y `GET /media/{mediaId}/presigned-url`, pero fuera del contrato:
+  la lista no pagina, cualquiera con token lista las fotos de cualquier evento, el borrado
+  solo deja al dueño (no al organizador), la URL prefirmada acepta cualquier
+  `expirationMinutes` y no comprueba quién la pide. Ante la diferencia gana el contrato
+  (ADR-010).
+- **Qué:** alinear las 3 operaciones con lo que apruebe T-C09: autorización (dueño u
+  organizador del evento, con el mismo lookup a event-service que usa mosaic-service en
+  T-B26), `page`/`size` según CONVENTIONS §5, errores con envelope ADR-003 y borrado del
+  objeto y su miniatura en R2. `removeMosaicItem` borra también el archivo del elemento
+  (decisión 2 de T-C09). Retirar `POST /mosaic/photo` de mosaic-service si sigue enrutado
+  (`FUSIONAR`, ADR-016: CONVENTIONS §8 dice que no existe).
+- **No hacer:** publicar ni tocar `GET /media/user`, `PUT /media/{mediaId}` (`DIFERIR`) ni
+  `POST /media/{mediaId}/process` (`INTERNO`); dejarlos como están o cerrarlos en el gateway,
+  pero no documentarlos. No cambiar el bucket ni la forma de `Media` si T-C09 no lo decide.
+- **Cierre:** tests de controlador y servicio por cada código de respuesta del contrato
+  (incluido 403 para quien no es dueño ni organizador), comparados con los fixtures de
+  `docs/api/fixtures/media/`; un test de que retirar un elemento del mosaico borra su archivo;
+  salida real de `./mvnw test` en el PR; `/mosaic/photo` devuelve 404.
 
 ---
 
