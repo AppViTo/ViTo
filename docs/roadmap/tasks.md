@@ -175,7 +175,7 @@ depende del contrato.
 |----|-----|-----------|--------|------|
 | Bug-F01 | Eventos mock en producción que dan 404 y Retry no permite volver | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-76](https://bernardo-mira.atlassian.net/browse/VITO-76) |
 | Bug-F02 | El nombre del dashboard es fijo, no el del usuario con sesión | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-77](https://bernardo-mira.atlassian.net/browse/VITO-77) |
-| Bug-F03 | El evento creado no aparece en próximos eventos ni hay lista de "mis eventos" | P0 | 🟢 READY (el home ya carga `scope=mine`; falta la sección propia) | [VITO-78](https://bernardo-mira.atlassian.net/browse/VITO-78) |
+| Bug-F03 | El evento creado no aparece en próximos eventos ni hay lista de "mis eventos" | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10) | [VITO-78](https://bernardo-mira.atlassian.net/browse/VITO-78) |
 | Bug-F04 | Quitar los datos mock del dashboard y mostrar estados vacíos | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-79](https://bernardo-mira.atlassian.net/browse/VITO-79) |
 | Bug-F05 | El buscador solo encuentra eventos mock | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-80](https://bernardo-mira.atlassian.net/browse/VITO-80) |
 | Bug-F06 | "Mi Gente" muestra amigos mock a cualquier usuario (privacidad) | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-81](https://bernardo-mira.atlassian.net/browse/VITO-81) |
@@ -196,9 +196,9 @@ depende del contrato.
 | Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | ✅ HECHA (#203) | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
 | Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟡 RFC (`updateEvent` entra al contrato en la Ola 1) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
 | Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | ✅ HECHA (#227) | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
-| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🟢 READY (avisar en la pantalla); la búsqueda real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
-| Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🟢 READY | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
-| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🟢 READY (ocultarlos); el enlace real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
+| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10); la búsqueda real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
+| Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10) | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
+| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10); el enlace real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
 
 - **Bug-B01, causa:** la app envía bien la hora. `create_event_screen.dart` toma las 20:00
   locales y `EventDetailsModel.toJson` las manda en UTC (`2026-12-10T01:00:00.000Z`), como pide

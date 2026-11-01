@@ -239,7 +239,7 @@ void main() {
   });
 
   group('CreateEventScreen — Paso 3 "¿A quién invitamos?"', () {
-    testWidgets('muestra el buscador, el enlace y el CTA por defecto',
+    testWidgets('muestra el buscador y oculta el enlace hasta que exista',
         (tester) async {
       await _pumpWizard(
         tester,
@@ -248,9 +248,9 @@ void main() {
       await _goToStep2(tester);
 
       expect(find.byType(TextField), findsOneWidget);
-      expect(find.text('COMPARTE EL ENLACE'), findsOneWidget);
-      expect(find.text('Copiar enlace de invitación'), findsOneWidget);
-      expect(find.text('Enviar por WhatsApp'), findsOneWidget);
+      expect(find.text('COMPARTE EL ENLACE'), findsNothing);
+      expect(find.text('Copiar enlace de invitación'), findsNothing);
+      expect(find.text('Enviar por WhatsApp'), findsNothing);
       expect(find.text('Permitir que traigan acompañante'), findsOneWidget);
       expect(find.text('Crear evento'), findsOneWidget);
     });
@@ -329,7 +329,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Sin coincidencias'), findsOneWidget);
+      expect(
+        find.textContaining('La búsqueda de usuarios aún no está disponible'),
+        findsOneWidget,
+      );
     });
   });
 
