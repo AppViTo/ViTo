@@ -32,7 +32,7 @@ revisión. Las aprueban los dos leads en el PR que la agrega.
 | A6 | Vulnerability scanning (dependencias) | **Resuelto (T050 y T049):** Dependabot y Trivy | — |
 | A7 | Kafka: SSL/TLS · Authorization · Topic access control | SASL/PLAIN sin TLS (`SASL_PLAINTEXT`), un solo usuario `vito`, sin ACL. La constitución pide SASL/TLS y ACL por tópico | **Excepción documentada:** broker y clientes en el mismo host, red interna de Compose sin puertos publicados (ADR-011 b). Revisión: cuando Kafka salga del host (Fase Crecimiento) o en 6 meses, lo que pase primero (T-I20) |
 | A8 | *(fuera del checklist)* `GET /events/upcoming` lista eventos privados ajenos | **Resuelto (T-B17, #153)** | — |
-| A9 | *(fuera del checklist)* Dependencias Java sin soporte | El primer escaneo real de Trivy (release 0.1.0, run 40158869241) encontró en los 10 servicios Java entre 39 y 57 CVE HIGH/CRITICAL con arreglo (5 a 10 CRITICAL por imagen): Spring Boot 3.2.12 sin soporte, con Spring Framework 6.1, Security 6.2, Tomcat 10.1.33, Netty, Jackson y kafka-clients viejos. Algunos solo tienen arreglo en Spring Framework 7 | **Excepción A9** (abajo) y subida de Spring Boot (T-B31, P0) |
+| A9 | *(fuera del checklist)* Dependencias Java sin soporte | El primer escaneo real de Trivy (release 0.1.0, run 40158869241) encontró en los 10 servicios Java entre 39 y 57 CVE HIGH/CRITICAL con arreglo (5 a 10 CRITICAL por imagen): Spring Boot 3.2.12 sin soporte, con Spring Framework 6.1, Security 6.2, Tomcat 10.1.33, Netty, Jackson y kafka-clients viejos. Algunos solo tienen arreglo en Spring Framework 7. **Resuelto (T-B31, #224):** Spring Boot 4.0.9 y Java 21 (ADR-018); el release 2026-10-30 (run 41169636050) da 0 CVE HIGH/CRITICAL en las 13 imágenes | Excepción A9 **cerrada** el 2026-11-01; Trivy vuelve a bloquear en `cd.yml` |
 
 ### Excepción A3 · Subida al mosaico sin antimalware
 
@@ -52,7 +52,12 @@ revisión. Las aprueban los dos leads en el PR que la agrega.
   reales, lo que ocurra primero. Se cierra al integrar antimalware en Fase Crecimiento (S3
   Malware Protection o ClamAV dedicado).
 
-### Excepción A9 · Trivy en modo informe para el release 0.1.0
+### Excepción A9 · Trivy en modo informe para el release 0.1.0 — CERRADA (2026-11-01)
+
+- **Cierre:** T-B31 mergeada (#224) y desplegada en producción (v0.1.3 y hotfix v0.1.4). El
+  escaneo de Trivy del release 2026-10-30 (run 41169636050) da 0 CVE HIGH/CRITICAL en las 13
+  imágenes, y `cd.yml` vuelve a bloquear sin esperar al 2026-11-08. Lo que sigue queda como
+  registro.
 
 - **Aprobada:** 2026-10-24 por Bernardo (`@bamg359`), con visto bueno previo y acuerdo entre
   los leads; Alex Villa la revisa al volver (mismo caso que el hotfix #192, ADR-012).

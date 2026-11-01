@@ -110,7 +110,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | ✅ HECHA (#229) | — |
 | T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | ✅ HECHA (#228) | — |
 | T-B30 | JWT con firma asimétrica (RS256/ES256 + JWKS) | B | P1 | 🔴 BLOQUEADA (requiere spec) | — |
-| T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | 🔵 EN CURSO (migración en #224; falta Trivy bloqueante sin CVE HIGH/CRITICAL) | — |
+| T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | ✅ HECHA (#224; A9 cerrada el 2026-11-01) | — |
 | T-B32 | Reacciones y mensajes del streaming no llegan en vivo a los espectadores (fan-out sin Redis Pub/Sub ni consumidor Kafka) | B | P1 | 🟡 RFC (contrato de reacciones; T-C05) | — |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
@@ -138,10 +138,11 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
 gitleaks, Dependabot). Las de P1 del triage bloquean la apertura a usuarios reales.
 
-Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-B06 (VITO-31), T-B10 (VITO-35), T-B13 (VITO-38), T-B18, T-B30.
+Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-B06 (VITO-31), T-B13 (VITO-38), T-B18, T-B30.
 Desbloqueadas el 2026-10-24: T-C07 Ola 3 (D-08), T-B07 y T-F08 (T-C06 hecha en #147), y T-I11
 (Pages, dominio, secretos y variables listos en T-I06).
-Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
+Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento). T-B10 quedó
+reemplazada por T-B31 (#224).
 
 ---
 
@@ -536,8 +537,9 @@ depende del contrato.
 - **Cierre:** test de contexto que verifica que la ruta `auth-service` tiene
   `RequestRateLimiter` y `CircuitBreaker` con los perfiles `dev` y `docker`.
 
-### T-B10 · Spring Boot y Java unificados — 🔴 BLOQUEADA: requiere spec propio (Principio X) · P1 · O-21, O-35
-- 10 poms en 3.2.1, 2 en 3.5.3, Java 17. Planificar con `/speckit-specify`.
+### T-B10 · Spring Boot y Java unificados — ⚪ REEMPLAZADA por T-B31 (#224) · P1 · O-21, O-35
+- 10 poms en 3.2.1, 2 en 3.5.3, Java 17. Resuelto con T-B31: los 10 servicios en Spring Boot
+  4.0.9 y Java 21 ([`specs/002-spring-boot-upgrade`](../../specs/002-spring-boot-upgrade/spec.md), ADR-018).
 
 ### T-B12 · `isPublic` con el nombre del contrato — ✅ HECHA (#28) · P0 · Principio I, ADR-001
 - **Hallazgo (T-B08):** `Event.EventSettings` declara `boolean isPublic` con Lombok, que
@@ -740,7 +742,7 @@ depende del contrato.
   anterior (el request no lo trae; requiere RFC al contrato) y las copias de
   `JwtAuthenticationFilter` no consultan la revocación (se resuelve con T-B18).
 
-### T-B31 · Spring Boot con soporte en los 10 servicios Java — 🔵 EN CURSO (migración en #224; falta el cierre con Trivy; Principio X) · P0 · Principio III, excepción A9
+### T-B31 · Spring Boot con soporte en los 10 servicios Java — ✅ HECHA (#224; A9 cerrada el 2026-11-01) · P0 · Principio III, excepción A9
 - **Por qué:** el primer escaneo real de Trivy (release 0.1.0) encontró de 39 a 57 CVE
   HIGH/CRITICAL con arreglo por imagen Java: Spring Boot 3.2.12 ya no tiene soporte. Algunos
   CRITICAL (`spring-webmvc`, `spring-webflux`) solo tienen arreglo en Spring Framework 7. La
@@ -754,6 +756,9 @@ depende del contrato.
 - **Cierre:** los 10 servicios en la versión destino, CI verde y un `cd.yml` con Trivy
   bloqueante sin CVE HIGH/CRITICAL con arreglo fuera de `.trivyignore`. Se cierran la
   excepción A9 y T-B10.
+- **Cerrada (2026-11-01):** Spring Boot 4.0.9 y Java 21 en los 10 servicios (#224, ADR-018),
+  en producción desde v0.1.3 (hotfix v0.1.4). Trivy da 0 CVE HIGH/CRITICAL en las 13 imágenes
+  (run 41169636050) y `cd.yml` bloquea sin la ventana de A9.
 
 ### T-B32 · Fan-out en vivo de reacciones y mensajes del streaming — 🟡 RFC · P1 · Principio III, ADR-006, O-28
 - **Por qué:** una reacción enviada por REST no llega en vivo a ningún espectador. Revisado
