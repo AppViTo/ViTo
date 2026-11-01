@@ -64,6 +64,31 @@ Aprovisionamiento previo: [aprovisionamiento.md](aprovisionamiento.md). Incident
    --env-file /opt/vito/current/versions.env logs --tail 200 <servicio>`, corregir y desplegar de nuevo.
    Los volúmenes de datos nunca se tocan: reintentar es seguro.
 
+## Si Trivy bloquea el release
+
+Desde el cierre de la excepción A9 (T-B31, 2026-11-01) Trivy bloquea siempre: un CVE CRITICAL
+o HIGH con arreglo disponible, en cualquier imagen reconstruida, hace fallar **Build** y el
+release no llega a pedir aprobación. Producción sigue con el release anterior. También puede
+pasar sin cambios de código: basta con que se publique un CVE nuevo en una dependencia.
+
+1. **Ver qué lo bloqueó:** en el log del paso *Trivy* del job `Build (<servicio>)`, la tabla
+   indica el CVE, el paquete, la versión instalada y la que lo arregla. El mismo escaneo
+   corre en CI (`Docker Build`) sin bloquear y sube el SARIF a *Security → Code scanning*.
+2. **Camino normal, actualizar la dependencia:** PR a `develop` que suba la versión (pom,
+   `requirements.txt` o imagen base), a menudo ya abierto por Dependabot. CI tiene que pasar,
+   incluido *Prod Startup* (T-I26) si cambia una imagen Java, y después se libera como de
+   costumbre. Si es urgente, el mismo arreglo como hotfix (ADR-012).
+3. **Si no se puede actualizar todavía** (no hay versión compatible, la dependencia es de una
+   imagen de terceros o el CVE no aplica a cómo la usamos): excepción en `.trivyignore`, con
+   el formato de su encabezado (motivo, `Aprobó` con los dos leads y el PR, y `Vence`). La
+   aprueban los dos leads en el PR que la agrega (Principio III, `backend/SECURITY_CHECKLIST.md`).
+4. **Vencimientos:** la fecha `Vence` es un comentario, Trivy no la aplica. Al llegar la fecha,
+   un PR quita la excepción (si ya hay arreglo) o la renueva con una nueva aprobación.
+
+No se desactiva Trivy ni se baja `exit-code` en `cd.yml` para sacar un release: eso fue la
+excepción A9, y abrir otra igual requiere la aprobación de los dos leads en
+`SECURITY_CHECKLIST.md`.
+
 ## Forzar durante un evento en vivo
 
 Un release normal **nunca** se despliega durante un evento: hay que esperar. Solo un hotfix
