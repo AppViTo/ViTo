@@ -133,6 +133,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-I24 | Registro de imágenes para no depender del VPS | I | P2 | ⚪ DIFERIDA (Fase Crecimiento) | — |
 | T-I25 | Smoke E2E automático contra producción (post-deploy + cron) | I | P1 | ✅ HECHA (#211) | — |
 | T-I26 | CI: las 10 imágenes Java arrancan con el perfil `prod` antes del release | I | P0 | ✅ HECHA (#236) | — |
+| T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | 🟢 READY (antes del 2026-11-23) | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
@@ -1104,3 +1105,28 @@ depende del contrato.
   el mismo `RestClient$Builder` de producción y los otros 9 llegaron a `healthy` en ~80 s;
   con el pom de #235 (#237, rama de prueba) pasó. El job dura ~2 min, en paralelo con el
   final de `Docker Build`.
+
+### T-I27 · Vencimiento de las excepciones de Trivy de `mongo-backup` — 🟢 READY (antes del 2026-11-23) · P1 · Principio III
+- **Por qué:** `.trivyignore` tiene 4 excepciones de la imagen `mongo-backup` (hotfix #192),
+  aprobadas por los dos leads con vencimiento el **2026-11-23**: `CVE-2026-78667`,
+  `CVE-2026-78669` y `CVE-2026-97031` (Go stdlib y `golang.org/x/net` en
+  mongodump/mongorestore de `mongo:7.0`) y `CVE-2026-111943` (`crypto/x509` en esas tools y en
+  rclone 1.75.2). La fecha `Vence` es solo un comentario: Trivy no la aplica, así que, si nadie
+  la revisa, las excepciones siguen activas sin aprobación vigente. Desde el cierre de A9
+  (T-B31) Trivy bloquea siempre, y estas son las únicas excepciones que quedan.
+- **Qué:** antes del 2026-11-23, revisar si ya hay arreglo:
+  - MongoDB publicó las database tools compiladas con Go >= 1.27.3 y `x/net` >= 0.60.0, y
+    rclone tiene una versión compilada con Go >= 1.27.3.
+  - **Si lo hay:** subir la imagen base o la versión en `infrastructure/backup/Dockerfile`,
+    quitar las excepciones correspondientes de `.trivyignore` y comprobar que el escaneo de
+    CI (`Docker Build (mongo-backup)`) da 0 HIGH/CRITICAL.
+  - **Si no lo hay:** renovarlas en un PR con la aprobación de los dos leads y una nueva
+    fecha, después de confirmar que el motivo sigue siendo válido (red interna sin TLS hacia
+    Mongo, rclone solo hacia R2).
+  - Opcional: usar la sintaxis `exp:AAAA-MM-DD` de `.trivyignore` para que Trivy deje de
+    ignorar el CVE solo cuando vence, en lugar de depender del comentario.
+- **No hacer:** quitar las excepciones sin arreglo (bloquearía todo release que reconstruya
+  `mongo-backup`) ni extender la fecha sin la aprobación de los dos leads.
+- **Cierre:** ninguna excepción de `.trivyignore` con fecha vencida; las que queden, con la
+  aprobación de los dos leads vigente; el runbook de despliegue (sección *Si Trivy bloquea el
+  release*) sigue siendo correcto.
