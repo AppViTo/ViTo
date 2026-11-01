@@ -67,7 +67,7 @@ el estado cambia en el PR que tome la tarea.
 
 | ID | Tarea | Asignada a | Qué puede avanzar hoy |
 |----|-------|------------|------------------------|
-| T-C09 | Contrato de las 3 operaciones de media de la Ola 3 (🟡 RFC) | Agente frontend (dueño de `docs/api/**`) | Revisar y aprobar la propuesta que redacta la sesión backend en `contract/ola-3-media`, y responder las 4 decisiones abiertas de la ficha. El merge es de Alex. |
+| T-C09 | Contrato de las 3 operaciones de media de la Ola 3 (🟡 RFC) | Agente frontend (dueño de `docs/api/**`) | Revisar y aprobar la propuesta que redacta la sesión backend en `contract/ola-3-media` y confirmar las 4 decisiones de la ficha (tomadas por Bernardo el 2026-11-01). El merge es de Alex. |
 | T-F11 | App: consumir las operaciones de media | Agente frontend | Nada: ⚪ `DIFERIDA`. Vuelve solo si T-C09 decide el bucket privado. |
 
 **Sin asignar al agente frontend:** T-B33 (media-service) es de la sesión backend y empieza
@@ -394,17 +394,17 @@ depende del contrato.
   todo 4xx/5xx, `page`/`size` en la lista, y fixtures en `docs/api/fixtures/media/`. Pasa
   `npm run` de contrato (Spectral y validación de fixtures). Issue `contract-change` y PR
   como RFC.
-- **Decisiones de los leads (abiertas):**
-  1. **Principio IX:** hoy `location.url` es una URL pública del CDN. ¿El bucket de R2 pasa a
-     privado y la app pide URL prefirmada para pintar cada foto, o la URL prefirmada queda
-     solo para descargar el original? R2 firma URLs con la API S3, así que la operación
-     funciona en los dos casos, pero con el bucket público no protege nada.
-  2. **Fotos retiradas por moderación:** `removeMosaicItem` no borra el archivo. ¿La lista
-     por evento las excluye, o el retiro borra también el media?
-  3. **Quién lista y pide URL:** propuesta, el organizador y los usuarios con RSVP
-     `ACCEPTED` (los mismos que publican en el mosaico).
-  4. **Vida de la URL prefirmada:** propuesta, `expiresIn` en segundos (como ADR-004), por
-     defecto 900 y máximo 3600.
+- **Decisiones (Bernardo, 2026-11-01; Alex las confirma al aprobar la RFC):**
+  1. **Principio IX:** el bucket de R2 sigue público en esta ola; `location.url` y
+     `mediaUrls` no cambian. `getMediaPresignedUrl` se publica igual (R2 firma con la API
+     S3). Privatizar el bucket queda como deuda para antes de abrir a usuarios reales; si se
+     hace, T-F11 vuelve a 🟢 `READY`.
+  2. **Fotos retiradas por moderación:** retirar un elemento del mosaico borra también su
+     archivo en R2. El mecanismo (llamada a media-service o evento Kafka) se decide en T-B33.
+  3. **Quién lista y pide URL:** el organizador y los usuarios con RSVP `ACCEPTED` (los
+     mismos que publican en el mosaico). Borra el dueño o el organizador.
+  4. **Vida de la URL prefirmada:** `expiresIn` en segundos (como ADR-004), 900 por defecto y
+     3600 como máximo.
 - **No hacer:** publicar `GET /media/user`, `PUT /media/{mediaId}` ni
   `POST /media/{mediaId}/process` (`DIFERIR`/`INTERNO`). No volver a aceptar `video/mp4`
   (excepción A3).
@@ -846,15 +846,16 @@ depende del contrato.
 - **Qué:** alinear las 3 operaciones con lo que apruebe T-C09: autorización (dueño u
   organizador del evento, con el mismo lookup a event-service que usa mosaic-service en
   T-B26), `page`/`size` según CONVENTIONS §5, errores con envelope ADR-003 y borrado del
-  objeto y su miniatura en R2. Retirar `POST /mosaic/photo` de mosaic-service si sigue
-  enrutado (`FUSIONAR`, ADR-016: CONVENTIONS §8 dice que no existe).
+  objeto y su miniatura en R2. `removeMosaicItem` borra también el archivo del elemento
+  (decisión 2 de T-C09). Retirar `POST /mosaic/photo` de mosaic-service si sigue enrutado
+  (`FUSIONAR`, ADR-016: CONVENTIONS §8 dice que no existe).
 - **No hacer:** publicar ni tocar `GET /media/user`, `PUT /media/{mediaId}` (`DIFERIR`) ni
   `POST /media/{mediaId}/process` (`INTERNO`); dejarlos como están o cerrarlos en el gateway,
   pero no documentarlos. No cambiar el bucket ni la forma de `Media` si T-C09 no lo decide.
 - **Cierre:** tests de controlador y servicio por cada código de respuesta del contrato
   (incluido 403 para quien no es dueño ni organizador), comparados con los fixtures de
-  `docs/api/fixtures/media/`; salida real de `./mvnw test` en el PR; `/mosaic/photo`
-  devuelve 404.
+  `docs/api/fixtures/media/`; un test de que retirar un elemento del mosaico borra su archivo;
+  salida real de `./mvnw test` en el PR; `/mosaic/photo` devuelve 404.
 
 ---
 
