@@ -89,3 +89,31 @@ primera. No sienta precedente. Si se repite, hay que resolver la falta de un seg
 mostró que Trivy rechazaba las 13 imágenes. Se usó el mismo procedimiento, con el mismo acuerdo
 entre los leads, para mergear #194: Trivy en modo informe hasta el 2026-11-07, con la excepción
 A9 de `backend/SECURITY_CHECKLIST.md` y la tarea T-B31. Alex revisa #194 junto con #192.
+
+### 2026-10-31 — Excepción: relanzar el release 2026-10-30 el domingo 2026-11-01
+
+**Qué pasó.** El release del viernes (#234, `VERSION` 0.1.3) se mergeó, pero su despliegue
+volvió solo al release anterior (`73aa35a`, código 5): `mosaic-service` no arrancaba con Spring
+Boot 4. Con Boot 4 el `RestClient.Builder` autoconfigurado sale del módulo
+`spring-boot-restclient`, que en mosaic quedó con scope `test` (T-B31). Los tests pasaban, pero
+en prod `EventServiceOrganizerAdapter` no encontraba el bean. Se reprodujo en local con
+`docker-compose.prod.yml` y el perfil `prod`, y con la corrección el servicio queda *healthy*
+sin reinicios. Producción quedó entera en el release anterior: el rollback es de todo el
+release, no de un servicio.
+
+**Decisión.** El arreglo va como hotfix (`hotfix/mosaic-restclient-runtime`, `VERSION` 0.1.4).
+Como `main` ya contiene el release, ese despliegue saca el release completo (Spring Boot 4,
+T-I13 y los arreglos del backend) el **domingo 2026-11-01**, fuera de la cadencia de los
+viernes, en lugar de esperar al 2026-11-06.
+
+**Condiciones.**
+- Aprueba el **otro lead**, tanto el PR como el despliegue en `production-hotfix`, aunque ese
+  Environment permite que apruebe quien lo dispara. Su aprobación del PR es también la de esta
+  excepción.
+- Sin un evento publicado en curso (el live-check de `deploy.sh` lo comprueba igual).
+- El frontend del release (`deploy-frontend.yml` de #234) se aprueba solo después de que el
+  backend quede *healthy*, porque depende de los arreglos del backend.
+- Si el despliegue vuelve a fallar, no se reintenta el mismo día: se analiza y se reprograma.
+
+**Por qué es una excepción.** Un hotfix no espera al viernes, pero este lleva un release
+entero. La cadencia de los viernes sigue vigente para los siguientes releases.
