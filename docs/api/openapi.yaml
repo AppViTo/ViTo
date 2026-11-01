@@ -395,6 +395,29 @@ components:
           type: string
           format: date-time
 
+    # Ola 3 (T-C09, Principio IX)
+    PresignedUrl:
+      type: object
+      required: [url, expiresIn, expiresAt]
+      description: >
+        URL prefirmada de lectura (GET) de un archivo de media. Caduca a los
+        `expiresIn` segundos; después hay que pedir otra.
+      properties:
+        url:
+          type: string
+          format: uri
+          example: https://vito-events.r2.cloudflarestorage.com/evt_01H8X/portada.jpg?X-Amz-Expires=900&X-Amz-Signature=3f1c
+        expiresIn:
+          type: integer
+          description: Segundos de vida de la URL (como `AuthResponse.expiresIn`, ADR-004).
+          minimum: 1
+          maximum: 3600
+          example: 900
+        expiresAt:
+          type: string
+          format: date-time
+          example: '2026-10-16T22:30:00Z'
+
     # Mosaic Schemas — Ola 3 (T-C07). Mismo MosaicFeedItem que asyncapi.yaml.
     MosaicFeedItem:
       type: object
@@ -1215,6 +1238,184 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Media]
+      summary: Delete media
+      description: >
+        Ola 3 (T-C09). Borra el archivo y su miniatura del almacenamiento y el
+        registro de media. Pueden borrar quien lo subió (`uploadedBy`) y el
+        organizador del evento. La identidad sale de `X-User-Id` (ADR-007). Si
+        el archivo está publicado en el mosaico, retirarlo es
+        `removeMosaicItem`, que también borra el archivo.
+      operationId: deleteMedia
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Archivo borrado
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no subió el archivo ni organiza el evento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/media/{mediaId}/presigned-url:
+    get:
+      tags: [Media]
+      summary: Get a presigned URL for a media file
+      description: >
+        Ola 3 (T-C09, Principio IX). Devuelve una URL prefirmada de lectura y
+        vida corta. Mismo acceso que `listEventMedia`: el organizador del
+        evento y los usuarios con RSVP `ACCEPTED`. En esta ola el bucket sigue
+        público y `Media.location.url` no cambia; esta operación es la vía
+        prevista cuando el bucket pase a privado.
+      operationId: getMediaPresignedUrl
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: expiresIn
+          in: query
+          description: Segundos de vida de la URL. Por defecto 900, máximo 3600.
+          schema:
+            type: integer
+            default: 900
+            minimum: 1
+            maximum: 3600
+      responses:
+        '200':
+          description: URL prefirmada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignedUrl'
+              example:
+                url: https://vito-events.r2.cloudflarestorage.com/evt_01H8X/portada.jpg?X-Amz-Expires=900&X-Amz-Signature=3f1c
+                expiresIn: 900
+                expiresAt: '2026-10-16T22:30:00Z'
+        '400':
+          description: '`expiresIn` fuera de 1–3600'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es organizador ni tiene RSVP `ACCEPTED` en el evento del archivo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/media/event/{eventId}:
+    get:
+      tags: [Media]
+      summary: List the media of an event
+      description: >
+        Ola 3 (T-C09). Archivos subidos al evento como **array plano**
+        (ADR-002), orden `uploadedAt` descendente, paginado con `page`/`size`
+        (CONVENTIONS §5). Lo ven el organizador y los usuarios con RSVP
+        `ACCEPTED`. No incluye los archivos retirados del mosaico:
+        `removeMosaicItem` los borra.
+      operationId: listEventMedia
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Base 0.
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Máximo 100 (ADR-008).
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Array plano de `Media`
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Media'
+              example:
+                - id: med_01H8X2K4QK
+                  eventId: evt_01H8X2K4QJ
+                  uploadedBy: usr_01H8X2K4QL
+                  fileName: brindis.jpg
+                  contentType: image/jpeg
+                  fileSize: 391204
+                  status: UPLOADED
+                  location:
+                    bucket: vito-events
+                    key: evt_01H8X/brindis.jpg
+                    url: https://cdn.vito.com/evt_01H8X/brindis.jpg
+                    thumbnailUrl: https://cdn.vito.com/evt_01H8X/thumb_brindis.jpg
+                  uploadedAt: '2026-10-16T22:20:00Z'
+        '400':
+          description: '`page` negativo o `size` fuera de 1–100'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es organizador ni tiene RSVP `ACCEPTED` en el evento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # Mosaic Endpoints — Ola 3 (T-C07, ADR-016, excepción A3)
   /api/v1/mosaic/post:
@@ -1536,7 +1737,9 @@ paths:
         elemento: deja de salir en feed, grilla y `getMosaicItem`, su celda
         vuelve a `null` y los clientes conectados reciben `ITEM_REMOVED` por
         `/ws/mosaic/{eventId}`. Solo el organizador del evento del elemento.
-        Es un borrado lógico: el servicio conserva el registro para auditoría.
+        El elemento es un borrado lógico (el servicio conserva el registro
+        para auditoría), pero su archivo se borra del almacenamiento y deja de
+        salir en `listEventMedia` (T-C09).
       operationId: removeMosaicItem
       parameters:
         - name: itemId

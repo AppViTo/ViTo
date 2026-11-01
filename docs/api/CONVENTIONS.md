@@ -237,6 +237,13 @@ Frames por recurso: ver `asyncapi.yaml` y los handoffs (`docs/handoff/`).
   `POST /mosaic/post` (`{ eventId, mediaId, content? }`). `/mosaic/photo` no existe.
 - **Post-moderación (excepción A3):** la foto aparece al instante; el organizador la retira con
   `DELETE /mosaic/item/{itemId}` y los clientes reciben `ITEM_REMOVED` por `/ws/mosaic/{eventId}`.
+  Retirar el elemento borra también su archivo del almacenamiento.
+- **Otras operaciones de media (Ola 3, T-C09):** `listEventMedia` (`GET /media/event/{eventId}`,
+  paginada), `deleteMedia` (`DELETE /media/{mediaId}`, quien lo subió o el organizador) y
+  `getMediaPresignedUrl` (`GET /media/{mediaId}/presigned-url?expiresIn=`, segundos, 900 por
+  defecto y 3600 máximo). Listan y piden URL el organizador y los usuarios con RSVP `ACCEPTED`.
+  En esta ola el bucket sigue público y `Media.location.url` no cambia (Principio IX: privatizarlo
+  queda pendiente antes de abrir a usuarios reales).
 
 ---
 
