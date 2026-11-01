@@ -341,6 +341,14 @@ depende del contrato.
   `listEvents.mine.200.json`.
 
 ### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔵 EN CURSO (contract/ola-3) · D-08 aprobada 2026-10-24 (por ola) · O-02, O-30, ADR-016
+- **Ola 1 (spec en borrador, 2026-11-01, `contract/ola-1-spec`):**
+  [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/spec.md).
+  Las 8 operaciones del inventario más los enlaces de invitación y `scope=invited` del RFC #204,
+  sin `searchUsers` (Ola 2). Decisiones de los leads: `invitations/respond` se fusiona en
+  `/rsvp` (cierra la fila pendiente de ADR-016); cancelar no borra; la lista de asistentes es
+  solo del organizador y los invitados ven el número de confirmados. Sigue `/speckit-plan` y
+  `/speckit-tasks`, con tareas separadas por dueño (contrato y app: agente de Alex; backend e
+  infra: sesión de Bernardo). El contrato se mergea solo con D-08 de la Ola 1 aprobada.
 - **Ola 3 REST (#182):** las 7 rutas del handoff más `removeMosaicItem`
   (`DELETE /mosaic/item/{itemId}`, moderación del organizador), `ITEM_REMOVED` en
   `asyncapi.yaml`, 33 fixtures en `fixtures/mosaic/` y CONVENTIONS §8 sin `video/mp4`. La
