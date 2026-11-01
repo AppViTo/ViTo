@@ -261,6 +261,7 @@ services:
     environment:
       <<: *java-env
       QR_SECRET: ${QR_SECRET:?}
+      INVITE_LINK_BASE_URL: ${INVITE_LINK_BASE_URL:?}  # web de la app; enlaces <base>/i/<token>
     healthcheck:
       <<: *java-healthcheck
       test: ["CMD", "curl", "-fsS", "http://localhost:8083/actuator/health/readiness"]
