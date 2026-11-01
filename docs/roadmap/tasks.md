@@ -84,7 +84,7 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 | T-F12 | App de la Ola 1 | Agente frontend (Alex) | Nada hasta el merge de T-C10; después avanza contra el mock de Prism. |
 | T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | T003 (Testcontainers MongoDB) ya; el resto tras T-C10. |
 | T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | Tras T-C10. |
-| T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 ya; T005 👤 antes del release. |
+| T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); falta T061 (k6). |
 | T-B36 | Outbox y AsyncAPI de los eventos de `event-service` | Sesión de Bernardo | Bloqueada por T-C05. |
 
 ---
@@ -1289,4 +1289,6 @@ depende del contrato.
 - **Qué:** T004, T005 👤 y T061 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): la variable en `application.yml` (sin default en
   `prod`), `.env.example`, los dos Compose y los fixtures de Prod Startup; un lead la agrega a
   `DOTENV_PRODUCTION` antes del release; escenarios k6 de RSVP concurrente y de vista previa.
+- **Avance:** T004 en #248 (con T003 de T-B34). T005 ✅ 2026-11-01: la variable está en
+  `DOTENV_PRODUCTION` de los tres Environments y en la copia del gestor. Falta T061.
 - **Cierre:** Prod Startup en verde con la variable; k6 sin cupos superados y dentro de los SLO.
