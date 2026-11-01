@@ -42,6 +42,17 @@ eventos), ADR-016 (dueños de dominio; fila "Invitación vs RSVP" pendiente de e
 | 12 | Unirse por enlace (`acceptInviteLink`) | Usuario con sesión | #204 |
 | 13 | Listar eventos a los que me invitaron (`listEvents` con `scope=invited`) | Usuario con sesión | #204 |
 
+## Clarifications
+
+### Session 2026-11-01
+
+- Q: ¿Qué alcance tiene la Ola 1? → A: las 8 operaciones del inventario más los enlaces de invitación y `scope=invited` del RFC #204; `searchUsers` queda en la Ola 2 (Bernardo).
+- Q: ¿Cómo responde un invitado, por `invitations/respond` o por `/rsvp`? → A: solo por `/rsvp`; si hay invitación, su estado se actualiza y `invitations/respond` se retira (D-01, Bernardo).
+- Q: ¿Qué hace `DELETE /events/{eventId}`? → A: cancela el evento (`CANCELLED`) y conserva invitaciones y respuestas (Bernardo).
+- Q: ¿Qué ve un asistente confirmado en la lista de asistentes? → A: nada; la lista es solo del organizador y los invitados ven un contador de confirmados (Bernardo y Alex).
+- Q: ¿Qué dato de ubicación muestra la vista previa pública del enlace a alguien sin sesión? → A: el nombre del lugar (`details.location`); nunca la dirección exacta ni las coordenadas, igual que para un invitado que no ha aceptado.
+- Q: Si alguien respondió "tal vez" a un evento privado y su invitación vence, ¿puede seguir cambiando su respuesta? → A: sí; tener cualquier respuesta registrada da acceso al evento mientras esté vigente, aunque la invitación venza. Solo pierde el acceso quien nunca respondió.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - El organizador comparte un enlace y sus invitados se unen (Priority: P1)
@@ -62,7 +73,7 @@ el organizador ve el uso del enlace.
 1. **Given** un evento publicado del que soy organizador, **When** creo un enlace sin indicar
    vigencia, **Then** obtengo una URL compartible que vence a los 7 días y empieza con 0 usos.
 2. **Given** un enlace vigente, **When** alguien sin sesión lo abre, **Then** ve el título, la
-   fecha, el lugar general (sin dirección exacta ni coordenadas), la portada, la categoría y el
+   fecha, el nombre del lugar (sin dirección exacta ni coordenadas), la portada, la categoría y el
    nombre del organizador, con la opción de iniciar sesión o registrarse para unirse.
 3. **Given** un enlace vigente y una persona con sesión, **When** se une, **Then** queda invitada
    con su asistencia confirmada, el enlace suma un uso y el evento aparece en su lista de eventos
@@ -261,8 +272,9 @@ usuario sin pedir credenciales; con una sesión revocada, que lleva al inicio de
   lista de espera si no; el enlace nunca supera el cupo del evento.
 - Un evento pasa su fecha de fin: deja de aceptar respuestas y uniones, y sale de los listados
   de próximos e invitados.
-- Una invitación vencida: el invitado aún puede unirse por un enlace vigente o responder si el
-  evento es público.
+- Una invitación vencida sin respuesta: el invitado aún puede unirse por un enlace vigente o
+  responder si el evento es público. Si ya había respondido (incluido "tal vez"), conserva el
+  acceso y puede cambiar su respuesta.
 
 ## Requirements *(mandatory)*
 
@@ -276,8 +288,9 @@ usuario sin pedir credenciales; con una sesión revocada, que lleva al inicio de
   bits aleatorios). La dirección pública del enlace se arma con un dominio configurado por
   entorno, nunca escrito en el repositorio.
 - **FR-003**: Cualquiera, sin sesión, DEBE poder ver la vista previa de un enlace vigente: título,
-  fechas, lugar general, portada, categoría, nombre del organizador y vencimiento del enlace.
-  La vista previa NUNCA incluye la dirección exacta ni coordenadas.
+  fechas, nombre del lugar (el mismo dato que ve un invitado que no ha aceptado), portada,
+  categoría, nombre del organizador y vencimiento del enlace. La vista previa NUNCA incluye la
+  dirección exacta ni coordenadas, sin importar la configuración del evento.
 - **FR-004**: Un usuario con sesión DEBE poder unirse por un enlace vigente. Al unirse queda
   invitado y responde "voy" con las mismas reglas de cupo del RSVP (FR-014 a FR-016).
 - **FR-005**: Unirse DEBE ser idempotente: si la persona ya tiene invitación al evento, se
@@ -300,15 +313,16 @@ usuario sin pedir credenciales; con una sesión revocada, que lleva al inicio de
 - **FR-012**: Solo el organizador DEBE poder ver las invitaciones de su evento, por páginas, con
   su estado, origen (app o enlace) y fechas.
 - **FR-013**: Cada usuario DEBE poder listar los eventos a los que fue invitado (invitación
-  pendiente o aceptada), publicados y no terminados, ordenados por fecha de inicio, con las
+  pendiente vigente o aceptada, o con una respuesta suya registrada), publicados y no terminados, ordenados por fecha de inicio, con las
   mismas reglas de visibilidad de dirección que el resto de listados.
 
 **RSVP**
 
 - **FR-014**: Un usuario con acceso al evento DEBE poder responder "voy", "no voy" o "tal vez", y
   cambiar su respuesta mientras el evento no haya terminado ni esté cancelado. Tiene acceso
-  quien fue invitado (por la app o por enlace) o, si el evento es público, cualquier usuario con
-  sesión.
+  quien fue invitado (por la app o por enlace) con la invitación vigente, quien ya tiene una
+  respuesta registrada al evento (aunque su invitación haya vencido) o, si el evento es
+  público, cualquier usuario con sesión.
 - **FR-015**: Con el cupo completo, responder "voy" DEBE dejar a la persona en lista de espera e
   informarlo en la respuesta. El cupo NUNCA se supera, aunque lleguen respuestas simultáneas.
 - **FR-016**: Cuando un confirmado deja su lugar, la primera persona de la lista de espera (por

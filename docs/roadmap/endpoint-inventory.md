@@ -9,6 +9,11 @@
 > todo lo que no está en el contrato se considera **no publicado**.
 > **✅ OLA 3 APROBADA (D-08) el 2026-10-24 por AlexVilla y Bernardo.** Los endpoints de mosaico
 > de la Ola 3 pasan a ser oficiales para el contrato (T-C07).
+> **✅ OLA 1 APROBADA (D-08) el 2026-11-01 por AlexVilla y Bernardo (PR #245)**, con el alcance de
+> `specs/003-ola-1-eventos-invitaciones`: las operaciones de la Ola 1 más los enlaces de
+> invitación y `scope=invited` (RFC #204); `PUT /events/{eventId}` pasa a `PATCH` y
+> `invitations/respond` se fusiona en `/rsvp`. `searchUsers` sigue en la Ola 2. La rama
+> `contract/ola-1` (T-C10) aplica estos cambios en la tabla.
 
 ## Leyenda
 

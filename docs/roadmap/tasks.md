@@ -73,6 +73,20 @@ el estado cambia en el PR que tome la tarea.
 **Sin asignar al agente frontend:** T-B33 (media-service) es de la sesión backend y empieza
 cuando T-C09 esté mergeada.
 
+### Asignación del 2026-11-01 (Ola 1)
+
+Reparto de las tareas de la Ola 1 ([`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md)). Cada bloque es un PR a `develop`; el de contrato
+va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T001 de la spec).
+
+| ID | Tarea | Asignada a | Qué puede avanzar hoy |
+|----|-------|------------|------------------------|
+| T-C10 | Contrato de la Ola 1 (🟡 RFC) | Agente frontend (Alex) | Issue `contract-change`, rama `contract/ola-1` y redacción de `openapi.yaml`, fixtures, CONVENTIONS y enmiendas a ADR-014/016 (T002, T006–T013). No se mergea sin D-08 y 1 CODEOWNER. |
+| T-F12 | App de la Ola 1 | Agente frontend (Alex) | Nada hasta el merge de T-C10; después avanza contra el mock de Prism. |
+| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | T003 (Testcontainers MongoDB) ya; el resto tras T-C10. |
+| T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | Tras T-C10. |
+| T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); falta T061 (k6). |
+| T-B36 | Outbox y AsyncAPI de los eventos de `event-service` | Sesión de Bernardo | Bloqueada por T-C05. |
+
 ---
 
 ## Resumen: qué se puede hacer desde ya
@@ -150,6 +164,12 @@ cuando T-C09 esté mergeada.
 | T-I25 | Smoke E2E automático contra producción (post-deploy + cron) | I | P1 | ✅ HECHA (#211) | — |
 | T-I26 | CI: las 10 imágenes Java arrancan con el perfil `prod` antes del release | I | P0 | ✅ HECHA (#236) | — |
 | T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | 🟢 READY (antes del 2026-11-23) | — |
+| T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | 🟡 RFC (requiere D-08 de la Ola 1) | — |
+| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🔴 BLOQUEADA por T-C10 | — |
+| T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | 🔴 BLOQUEADA por T-C10 (T003 de la spec se adelanta) | — |
+| T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | 🔴 BLOQUEADA por T-C10 | — |
+| T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
+| T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🟢 READY | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
@@ -421,6 +441,17 @@ depende del contrato.
 - **Cierre:** PR aprobado por 1 CODEOWNER de `docs/api/**`; job "contract" en verde;
   desbloquea T-B33.
 
+### T-C10 · Contrato de la Ola 1 — 🟡 RFC (requiere D-08 de la Ola 1) · P0 · Principio I, ADR-014, ADR-016
+- **Por qué:** Bug-F07 (editar evento) y el enlace de Bug-F09 necesitan operaciones que no
+  están en el contrato; son los hitos MVP 4 y 5.
+- **Qué:** T002 y T006–T013 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): 13 operaciones en `openapi.yaml` (8 de la Ola 1 del
+  inventario, los enlaces de invitación y `scope=invited` del RFC #204), fixtures,
+  `X-User-Name` en CONVENTIONS y enmiendas a ADR-014 y ADR-016. Diseño en
+  `specs/003-ola-1-eventos-invitaciones/contracts/ola-1-operations.md`.
+- **No hacer:** `searchUsers` (Ola 2); mergear sin D-08 de la Ola 1 y 1 CODEOWNER.
+- **Cierre:** PR de `contract/ola-1` mergeado con `npm run contract` en verde; desbloquea
+  T-F12, T-B34 y T-B35.
+
 ---
 
 ## Pista F — Frontend Flutter
@@ -522,6 +553,13 @@ depende del contrato.
   un smoke test de `ViToApp` con `di.init()` real (SharedPreferences y secure storage
   mockeados) que compruebe splash → login sin excepciones.
 - **Cierre:** ningún archivo de test sin casos; el smoke test monta `ViToApp` y navega.
+
+### T-F12 · App de la Ola 1 — 🔴 BLOQUEADA por T-C10 · P0 · Principio IV
+- **Qué:** las tareas `[Alex]` de las fases 2 a 9 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): modelos y pruebas de contrato,
+  RSVP con lista de espera, enlace (copiar, WhatsApp, ruta web `/i/<token>`), editar y
+  cancelar evento, invitaciones, lista de asistentes del organizador y contador de confirmados
+  para los invitados, y auto-login con `/auth/me`.
+- **Cierre:** quickstart de la spec en verde para la app; Bug-F07 y el enlace de Bug-F09 cerrados.
 
 ---
 
@@ -870,6 +908,27 @@ depende del contrato.
   (incluido 403 para quien no es dueño ni organizador), comparados con los fixtures de
   `docs/api/fixtures/media/`; un test de que retirar un elemento del mosaico borra su archivo;
   salida real de `./mvnw test` en el PR; `/mosaic/photo` devuelve 404.
+
+### T-B34 · `event-service` de la Ola 1 — 🔴 BLOQUEADA por T-C10 · P0 · Principios III, IV y VII
+- **Qué:** las tareas `[Bernardo]` de `event-service` en [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): Testcontainers MongoDB,
+  cupo con `$inc` condicional y lista de espera con promoción automática (TDD), RSVP como
+  upsert que también responde la invitación (se retira `invitations/respond`), enlaces de
+  invitación, `scope=invited`, editar con `PATCH`, cancelar sin borrar, asistentes solo para
+  el organizador y `stats` reducido para los demás.
+- **Cierre:** prueba de concurrencia (50 respuestas, cupo 20 → 20 y 30) y pruebas de contrato en verde.
+
+### T-B35 · `auth-service` y gateway de la Ola 1 — 🔴 BLOQUEADA por T-C10 · P0 · Principio III
+- **Qué:** T016–T019, T059 y T062 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): claim `name` en el access token; `X-User-Name`
+  en el gateway con la higiene de T-B01; rutas públicas por método y patrón exacto (hoy
+  `startsWith` haría pública también `accept`); ruta `/api/v1/invite-links/**` con límite por
+  IP; `/auth/me` alineado a `AuthUser`; panel de `429` en el tablero de T-I13.
+- **Cierre:** un `X-User-Name` del cliente nunca llega a un servicio; `accept` sin token → 401.
+
+### T-B36 · Outbox y AsyncAPI de los eventos de `event-service` — 🔴 BLOQUEADA por T-C05 · P1 · Principio V
+- **Por qué:** desviación registrada en el plan de la Ola 1: `event-service` publica eventos
+  sin sobre versionado, sin outbox y sin declarar en `asyncapi.yaml`.
+- **Qué:** sobre común, Transactional Outbox y declaración en AsyncAPI de los eventos de
+  `event-service`, antes de que exista el primer consumidor (ticket QR de la Ola 2).
 
 ---
 
@@ -1225,3 +1284,11 @@ depende del contrato.
 - **Cierre:** ninguna excepción de `.trivyignore` con fecha vencida; las que queden, con la
   aprobación de los dos leads vigente; el runbook de despliegue (sección *Si Trivy bloquea el
   release*) sigue siendo correcto.
+
+### T-I28 · `INVITE_LINK_BASE_URL` y carga de la Ola 1 — 🟢 READY · P1 · Principios VII y VIII
+- **Qué:** T004, T005 👤 y T061 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): la variable en `application.yml` (sin default en
+  `prod`), `.env.example`, los dos Compose y los fixtures de Prod Startup; un lead la agrega a
+  `DOTENV_PRODUCTION` antes del release; escenarios k6 de RSVP concurrente y de vista previa.
+- **Avance:** T004 en #248 (con T003 de T-B34). T005 ✅ 2026-11-01: la variable está en
+  `DOTENV_PRODUCTION` de los tres Environments y en la copia del gestor. Falta T061.
+- **Cierre:** Prod Startup en verde con la variable; k6 sin cupos superados y dentro de los SLO.

@@ -47,8 +47,8 @@ contrato, se borra del código).
   `SendInvitationRequest`:** como en el RFC #204. `InviteLinkPreview.organizerDisplayName`
   puede ser "El organizador" (R6).
 - **`EventStats`:** la descripción documenta que quien no es organizador recibe solo
-  `totalAccepted` (R7). Fixture de cada vista (`getEvent.200.organizer.json`,
-  `getEvent.200.guest.json`).
+  `totalAccepted` (R7). Fixture de cada vista (`getEvent.organizer.200.json`,
+  `getEvent.guest.200.json`).
 - **`listEvents.scope`:** enum `mine | upcoming | invited` (enmienda a ADR-014).
 
 ## Cambios en CONVENTIONS
@@ -58,8 +58,8 @@ contrato, se borra del código).
 
 ## Fixtures mínimos (Principio I, SC-004)
 
-Por operación, un `*.200.json`/`*.201.json`/`*.204` y al menos un error. Obligatorios además:
-`respondRsvp.200.waitlisted.json`, `respondRsvp.404.private.json`,
+Según `docs/api/fixtures/README.md`: un `.request.json` por cada `requestBody` y un fixture por cada status declarado. Variantes obligatorias:
+`respondRsvp.waitlisted.200.json`, `respondRsvp.private.404.json`,
 `getInviteLinkPreview.404.json` (único para vencido, revocado o inexistente),
-`acceptInviteLink.409.max-uses.json`, `listEventAttendees.403.json`,
-`updateEvent.409.capacity.json`, `listEvents.200.invited.json`, `getCurrentUser.200.json`.
+`acceptInviteLink.max-uses.409.json`, `listEventAttendees.403.json`,
+`updateEvent.capacity.409.json`, `listEvents.invited.200.json`, `getCurrentUser.200.json`.

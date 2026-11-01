@@ -66,7 +66,9 @@ inventario y el código de la app sin beneficio claro).
 
 **Decisión:** puede responder quien cumpla una de estas condiciones:
 1. el evento es público (`settings.isPublic`);
-2. tiene invitación al evento (por la app o por enlace) que no esté vencida, o ya aceptada.
+2. tiene invitación al evento (por la app o por enlace) que no esté vencida, o ya aceptada;
+3. ya tiene un RSVP registrado en el evento, aunque su invitación haya vencido (aclaración
+   del 2026-11-01: "tal vez" no pierde el acceso).
 
 Sin acceso → `404 NOT_FOUND` con el mismo mensaje que un evento inexistente (no revela que
 el evento existe). El organizador no responde a su propio evento (`409`, comportamiento
@@ -177,7 +179,8 @@ ya usan `DELETE` y los leads lo aprobaron así).
 ## R10 · `listEvents?scope=invited` (FR-013, ADR-014)
 
 **Decisión:** el enum de `scope` pasa a `mine | upcoming | invited`. `invited` devuelve los
-eventos con invitación `PENDING` (no vencida) o `ACCEPTED` de quien llama, `PUBLISHED` y con
+eventos con invitación `PENDING` (no vencida) o `ACCEPTED` de quien llama, o en los que tiene
+un RSVP distinto de `DECLINED` (aclaración del 2026-11-01), `PUBLISHED` y con
 `endDate` futura, por `details.startDate` ascendente, paginado. Requiere una consulta a
 `invitations` por `inviteeId` (índice `{inviteeId, status}`) y luego a `events` por
 `_id $in` con el filtro de fecha. Es una enmienda a ADR-014 (se registra en el ADR al
