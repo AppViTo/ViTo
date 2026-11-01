@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "expiresIn debe estar entre 1 y 3600 segundos",
+  "status": 400,
+  "timestamp": "2026-10-16T22:15:00Z",
+  "details": {
+    "expiresIn": "debe ser menor o igual a 3600"
+  }
+}

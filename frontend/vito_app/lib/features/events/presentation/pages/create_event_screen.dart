@@ -418,14 +418,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 const SurfacePanel(
                   child: Text(
-                    'Sin coincidencias. Prueba con otro nombre o @usuario.',
+                    'La búsqueda de usuarios aún no está disponible. Podrás invitar cuando se habilite.',
                     style: AppTypography.bodySmall,
                     textAlign: TextAlign.center,
                   ),
                 ),
               ],
               const SizedBox(height: AppSpacing.xxl),
-              _buildLinkSection(),
+              if (_inviteLink != null) _buildLinkSection(),
               const SizedBox(height: AppSpacing.lg),
               SwitchPanel(
                 title: 'Permitir que traigan acompañante',
@@ -830,7 +830,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             .toList();
       });
     } else if (state is SocialError) {
-      _searchResults = [];
+      setState(() => _searchResults = []);
     }
   }
 
