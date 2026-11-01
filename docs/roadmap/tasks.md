@@ -132,6 +132,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-I23 | Recomendaciones en `prod` sin `recommendation-service`: fallback y degradación | I/F | P2 | 🟢 READY | — |
 | T-I24 | Registro de imágenes para no depender del VPS | I | P2 | ⚪ DIFERIDA (Fase Crecimiento) | — |
 | T-I25 | Smoke E2E automático contra producción (post-deploy + cron) | I | P1 | ✅ HECHA (#211) | — |
+| T-I26 | CI: las 10 imágenes Java arrancan con el perfil `prod` antes del release | I | P0 | ✅ HECHA (#236) | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
@@ -1083,3 +1084,23 @@ depende del contrato.
   `size > 100` se recorta en vez de devolver `400` (ADR-008): no se comprueba todavía.
 - **Cierre:** un run verde en Actions contra producción con los secretos cargados
   (`docs/runbooks/aprovisionamiento.md`, paso 12) y el job `smoke` de `cd.yml` en verde.
+
+### T-I26 · Arranque de las imágenes Java con el perfil `prod` en CI — ✅ HECHA (#236) · P0 · ADR-011, Principio VI
+- **Por qué (incidente del release 2026-10-30, #234):** `mosaic-service` no arrancó en
+  producción porque `spring-boot-restclient` estaba en scope `test` y `RestClient.Builder`
+  no existía en runtime. Los tests de contexto pasaban (usan el classpath de test) y
+  `deploy.sh` hizo rollback (código 5). Sin staging (ADR-011), un error de runtime solo
+  aparecía en el VPS. El arreglo es el hotfix #235.
+- **Qué:** job `Prod Startup` en `ci.yml`, después de `Docker Build`: carga las 10 imágenes
+  Java construidas y las levanta con `docker-compose.prod.yml` (perfil `prod`, Mongo, Redis
+  y Kafka con SASL) y los valores ficticios de `infrastructure/deploy/tests/fixtures/`;
+  `docker compose up --wait` falla si alguna no llega a `healthy` en
+  `/actuator/health/readiness`. Sin Caddy, Alloy, backup ni servicios Python.
+- **No hacer:** secretos reales; publicar puertos; tocar el compose de producción.
+- **Cierre:** el job falla con `spring-boot-restclient` en scope `test` en
+  `backend/mosaic-service/pom.xml` y pasa con el pom de #235; duración razonable frente al
+  resto del CI.
+- **Verificado:** en #236 (base `develop`, pom roto) el job falló en `mosaic-service` con
+  el mismo `RestClient$Builder` de producción y los otros 9 llegaron a `healthy` en ~80 s;
+  con el pom de #235 (#237, rama de prueba) pasó. El job dura ~2 min, en paralelo con el
+  final de `Docker Build`.
