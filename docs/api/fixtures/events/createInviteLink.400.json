@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "expiresInDays debe estar entre 1 y 30",
+  "status": 400,
+  "timestamp": "2026-10-28T02:10:00Z",
+  "details": {
+    "expiresInDays": "Rango permitido: 1–30"
+  }
+}

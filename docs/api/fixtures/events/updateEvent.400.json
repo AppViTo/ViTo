@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "No se puede editar el campo status",
+  "status": 400,
+  "timestamp": "2026-10-28T02:10:00Z",
+  "details": {
+    "status": "Campo no editable"
+  }
+}

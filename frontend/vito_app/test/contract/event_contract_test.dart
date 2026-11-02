@@ -33,7 +33,7 @@ void main() {
 
   final objectFixtures = <String>{
     'events/createEvent.201.json',
-    'events/getEvent.200.json',
+    'events/getEvent.organizer.200.json',
   };
 
   void expectValidEvent(Map<String, dynamic> json, String origin) {
@@ -131,8 +131,8 @@ void main() {
       });
     }
 
-    test('getEvent.200.json mantiene el evento de ejemplo de CONVENTIONS', () {
-      final json = loadFixtureObject('events/getEvent.200.json');
+    test('getEvent.organizer.200.json mantiene el evento de ejemplo de CONVENTIONS', () {
+      final json = loadFixtureObject('events/getEvent.organizer.200.json');
       expect(json['title'], 'Boda Andrea & Luis');
       expect(json['details']['category'], 'WEDDING');
       expect(json['settings']['hideAddressUntilAccepted'], false);
@@ -165,7 +165,7 @@ void main() {
 
     test('los tres fixtures de evento comparten el mismo organizador', () {
       final created = loadFixtureObject('events/createEvent.201.json');
-      final detail = loadFixtureObject('events/getEvent.200.json');
+      final detail = loadFixtureObject('events/getEvent.organizer.200.json');
       final listed =
           (loadFixtureList('events/listEvents.mine.200.json').first as Map)
               .cast<String, dynamic>();

@@ -40,11 +40,12 @@ El gateway valida el JWT y **reescribe** el request añadiendo:
 | `X-User-Id` | `usr_01H8...` | claim `sub` |
 | `X-User-Email` | `alex@vito.com` | claim `email` |
 | `X-User-Roles` | `USER,ORGANIZER` | claim `roles` |
+| `X-User-Name` | `Alex Villa` | claim `name` (nombre visible) |
 
 Reglas:
 
 - **Obligatorio para los servicios.** `chat-service` y `media-service` toman la identidad de `@RequestHeader("X-User-Id")`; si llega vacío devuelven 400. Por eso **solo funcionan a través del gateway**.
-- Estos headers **nunca** se aceptan del cliente. El gateway los elimina del request entrante antes de reenviarlos (header spoofing).
+- Estos headers **nunca** se aceptan del cliente. El gateway los elimina del request entrante antes de reenviarlos (header spoofing), incluido `X-User-Name`, que se reescribe desde el claim `name` del token.
 - Las llamadas directas a un servicio (tests, scripts) deben simularlos: `curl -H "X-User-Id: usr_1" -H "X-User-Email: a@b.c"`.
 
 ---
@@ -115,8 +116,8 @@ Códigos de error canónicos: `VALIDATION_ERROR`, `UNAUTHORIZED`, `FORBIDDEN`, `
   - `size` default `20`, máximo `100`
   - Un endpoint sin `page`/`size` es un error de contrato (a menosque el ADR diga lo contrario).
 - Orden por defecto: `createdAt` descendente. Excepción documentada:
-  `listEvents?scope=upcoming` ordena por `details.startDate` ascendente
-  (ADR-014).
+  `listEvents?scope=upcoming` y `listEvents?scope=invited` ordenan por
+  `details.startDate` ascendente (ADR-014).
 - La respuesta es un array plano (§3.2), por lo que el cliente pagina con `page`/`size` y no con `total`.
 
 ---
@@ -125,7 +126,7 @@ Códigos de error canónicos: `VALIDATION_ERROR`, `UNAUTHORIZED`, `FORBIDDEN`, `
 
 | Concepto | Formato | Ejemplo |
 |----------|---------|---------|
-| Identificador | `string` prefijado por tipo | `evt_01H8X...`, `usr_01H8...` |
+| Identificador | `string` prefijado por tipo | `evt_01H8X...`, `usr_01H8...`, `inv_01H8X...`, `inl_01H8X...` |
 | Fecha/hora | ISO-8601 **UTC** con `Z` | `2026-09-25T14:03:22Z` |
 | Fecha sin hora | `YYYY-MM-DD` | `2026-10-12` |
 | Moneda | entero, unidad mínima | centavos |

@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "El status debe ser ACCEPTED, DECLINED o MAYBE",
+  "status": 400,
+  "timestamp": "2026-10-28T02:10:00Z",
+  "details": {
+    "status": "Valores permitidos: ACCEPTED, DECLINED, MAYBE"
+  }
+}
