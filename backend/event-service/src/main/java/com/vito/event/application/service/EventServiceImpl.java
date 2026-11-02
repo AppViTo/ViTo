@@ -6,12 +6,13 @@ import com.vito.event.domain.model.Invitation;
 import com.vito.event.domain.model.RSVP;
 import com.vito.event.domain.port.inbound.EventService;
 import com.vito.event.domain.port.outbound.*;
+import com.vito.event.domain.port.outbound.EventRepository.StatCounter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Slf4j
@@ -27,6 +28,7 @@ public class EventServiceImpl implements EventService {
     private final InvitationRepository invitationRepository;
     private final EventPublisherPort eventPublisher;
     private final QRCodeGenerator qrCodeGenerator;
+    private final AttendanceService attendanceService;
     
     @Override
     public Event createEvent(CreateEventCommand command) {
@@ -182,41 +184,18 @@ public class EventServiceImpl implements EventService {
             throw EventException.alreadyRSVP();
         }
         
-        // Check capacity for ACCEPT status
-        if (command.getStatus() == RSVP.RSVPStatus.ACCEPTED) {
-            long acceptedCount = rsvpRepository.countByEventIdAndStatus(
-                    command.getEventId(), RSVP.RSVPStatus.ACCEPTED);
-            
-            if (event.getSettings().getMaxAttendees() > 0 && 
-                acceptedCount >= event.getSettings().getMaxAttendees()) {
-                // Add to waitlist instead
-                command.setStatus(RSVP.RSVPStatus.WAITLISTED);
-            }
-        }
-        
-        RSVP rsvp = RSVP.builder()
-                .eventId(command.getEventId())
-                .userId(command.getUserId())
-                .status(command.getStatus())
-                .message(command.getMessage())
-                .guestsCount(command.getGuestsCount())
-                .respondedAt(LocalDateTime.now())
-                .build();
-        
-        // Generate QR code for accepted RSVPs
-        if (command.getStatus() == RSVP.RSVPStatus.ACCEPTED) {
-            String qrCode = qrCodeGenerator.generateCheckInQR(command.getEventId(), command.getUserId());
-            rsvp.setCheckInQrCode(qrCode);
-        }
-        
-        RSVP savedRsvp = rsvpRepository.save(rsvp);
-        
-        // Update event stats
-        updateEventStats(command.getEventId(), command.getStatus(), true);
-        
-        eventPublisher.publishRSVPChanged(command.getEventId(), command.getUserId(), 
-                command.getStatus().name());
-        
+        // Cupo atómico (R1): AttendanceService reserva el lugar o deja la respuesta en lista de espera
+        RSVP savedRsvp = switch (command.getStatus()) {
+            case ACCEPTED -> withCheckInQr(attendanceService.confirm(
+                    command.getEventId(), command.getUserId(), null, command.getMessage()));
+            case DECLINED, MAYBE -> attendanceService.release(
+                    command.getEventId(), command.getUserId(), command.getStatus(), null, command.getMessage());
+            default -> throw EventException.invalidRsvpStatus();
+        };
+
+        eventPublisher.publishRSVPChanged(command.getEventId(), command.getUserId(),
+                savedRsvp.getStatus().name());
+
         return savedRsvp;
     }
     
@@ -247,16 +226,13 @@ public class EventServiceImpl implements EventService {
                 .inviteeId(command.getInviteeId())
                 .status(Invitation.InvitationStatus.PENDING)
                 .message(command.getMessage())
-                .sentAt(LocalDateTime.now())
-                .expiresAt(LocalDateTime.now().plusDays(7))
+                .sentAt(Instant.now())
+                .expiresAt(Instant.now().plus(7, ChronoUnit.DAYS))
                 .build();
-        
+
         Invitation savedInvitation = invitationRepository.save(invitation);
-        
-        // Update event stats
-        Event eventStats = eventRepository.findById(command.getEventId()).orElse(event);
-        eventStats.getStats().setTotalInvited(eventStats.getStats().getTotalInvited() + 1);
-        eventRepository.save(eventStats);
+
+        eventRepository.incrementStat(command.getEventId(), StatCounter.INVITED, 1);
         
         eventPublisher.publishInvitationSent(command.getEventId(), command.getInviterId(), 
                 command.getInviteeId());
@@ -285,19 +261,8 @@ public class EventServiceImpl implements EventService {
         if (command.getStatus() == Invitation.InvitationStatus.ACCEPTED) {
             invitation.accept();
             
-            // Auto-create RSVP
-            RSVP rsvp = RSVP.builder()
-                    .eventId(command.getEventId())
-                    .userId(command.getInviteeId())
-                    .status(RSVP.RSVPStatus.ACCEPTED)
-                    .respondedAt(LocalDateTime.now())
-                    .build();
-            
-            String qrCode = qrCodeGenerator.generateCheckInQR(command.getEventId(), command.getInviteeId());
-            rsvp.setCheckInQrCode(qrCode);
-            
-            rsvpRepository.save(rsvp);
-            updateEventStats(command.getEventId(), RSVP.RSVPStatus.ACCEPTED, true);
+            // Aceptar la invitación también respeta el cupo (R1): sin lugar queda en lista de espera
+            withCheckInQr(attendanceService.confirm(command.getEventId(), command.getInviteeId(), null, null));
         } else {
             invitation.decline();
         }
@@ -338,31 +303,19 @@ public class EventServiceImpl implements EventService {
         rsvp.checkIn();
         RSVP savedRsvp = rsvpRepository.save(rsvp);
         
-        // Update event stats
-        Event eventStats = eventRepository.findById(command.getEventId()).orElse(event);
-        eventStats.getStats().setTotalCheckedIn(eventStats.getStats().getTotalCheckedIn() + 1);
-        eventRepository.save(eventStats);
+        eventRepository.incrementStat(command.getEventId(), StatCounter.CHECKED_IN, 1);
         
         eventPublisher.publishCheckIn(command.getEventId(), command.getUserId());
         
         return savedRsvp;
     }
     
-    private void updateEventStats(String eventId, RSVP.RSVPStatus status, boolean increment) {
-        Event event = eventRepository.findById(eventId).orElse(null);
-        if (event == null) return;
-        
-        Event.EventStats stats = event.getStats();
-        int delta = increment ? 1 : -1;
-        
-        switch (status) {
-            case ACCEPTED -> stats.setTotalAccepted(stats.getTotalAccepted() + delta);
-            case DECLINED -> stats.setTotalDeclined(stats.getTotalDeclined() + delta);
-            case MAYBE -> stats.setTotalMaybe(stats.getTotalMaybe() + delta);
-            case WAITLISTED -> stats.setTotalWaitlisted(stats.getTotalWaitlisted() + delta);
+    /** QR de check-in para quien quedó confirmado; pasa a checkin-service en la Ola 2. */
+    private RSVP withCheckInQr(RSVP rsvp) {
+        if (rsvp.getStatus() != RSVP.RSVPStatus.ACCEPTED || rsvp.getCheckInQrCode() != null) {
+            return rsvp;
         }
-        
-        event.setUpdatedAt(Instant.now());
-        eventRepository.save(event);
+        rsvp.setCheckInQrCode(qrCodeGenerator.generateCheckInQR(rsvp.getEventId(), rsvp.getUserId()));
+        return rsvpRepository.save(rsvp);
     }
 }

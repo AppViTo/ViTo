@@ -5,10 +5,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class RSVP {
@@ -19,15 +19,20 @@ public class RSVP {
     
     private String userId;
     
+    /** Nombre de quien responde, desde {@code X-User-Name} (R6); null en respuestas anteriores. */
+    private String displayName;
+    
     private RSVPStatus status;
     
     private String message;
     
-    private int guestsCount;
+    // Instantes UTC (FR-028). guestsCount salió del contrato en la Ola 1 (R2)
+    private Instant respondedAt;
     
-    private LocalDateTime respondedAt;
+    /** Orden de la lista de espera: se fija al pasar a {@code WAITLISTED}. */
+    private Instant waitlistedAt;
     
-    private LocalDateTime checkedInAt;
+    private Instant checkedInAt;
     
     private String checkInQrCode;
     
@@ -44,6 +49,6 @@ public class RSVP {
     }
     
     public void checkIn() {
-        this.checkedInAt = LocalDateTime.now();
+        this.checkedInAt = Instant.now();
     }
 }

@@ -5,8 +5,10 @@ import com.vito.event.domain.port.outbound.EventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.ComparisonOperators;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -82,5 +84,36 @@ public class EventMongoAdapter implements EventRepository {
     public boolean existsById(String eventId) {
         Query query = new Query(Criteria.where("id").is(eventId));
         return mongoTemplate.exists(query, Event.class, "events");
+    }
+    
+    @Override
+    public boolean tryReserveSeat(String eventId) {
+        // R1: comparar e incrementar en una sola operación sobre el documento del evento
+        Query query = new Query(Criteria.where("id").is(eventId)
+                .and("status").is(Event.EventStatus.PUBLISHED)
+                .orOperator(
+                        Criteria.where("settings.maxAttendees").is(0),
+                        Criteria.expr(ComparisonOperators.Lt.valueOf("stats.totalAccepted")
+                                .lessThan("settings.maxAttendees"))));
+        Update update = new Update().inc("stats.totalAccepted", 1);
+        return mongoTemplate.updateFirst(query, update, Event.class, "events").getModifiedCount() == 1;
+    }
+    
+    @Override
+    public void releaseSeat(String eventId) {
+        Query query = new Query(Criteria.where("id").is(eventId).and("stats.totalAccepted").gt(0));
+        mongoTemplate.updateFirst(query, new Update().inc("stats.totalAccepted", -1), Event.class, "events");
+    }
+    
+    @Override
+    public void incrementStat(String eventId, StatCounter counter, int delta) {
+        if (delta == 0) {
+            return;
+        }
+        Criteria criteria = Criteria.where("id").is(eventId);
+        if (delta < 0) {
+            criteria = criteria.and(counter.field()).gte(-delta);
+        }
+        mongoTemplate.updateFirst(new Query(criteria), new Update().inc(counter.field(), delta), Event.class, "events");
     }
 }

@@ -4,7 +4,9 @@ import com.vito.event.domain.model.Invitation;
 import com.vito.event.domain.port.outbound.InvitationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
@@ -81,5 +83,14 @@ public class InvitationMongoAdapter implements InvitationRepository {
         Query query = new Query(Criteria.where("eventId").is(eventId)
                 .and("inviteeId").is(inviteeId));
         return mongoTemplate.exists(query, Invitation.class, "invitations");
+    }
+
+    /** T021: una invitación por persona y evento; {@code {inviteeId, status}} para {@code scope=invited} (R10). */
+    public void ensureIndexes() {
+        var indexOps = mongoTemplate.indexOps("invitations");
+        indexOps.createIndex(new Index().on("eventId", Sort.Direction.ASC).on("inviteeId", Sort.Direction.ASC)
+                .unique().named("eventId_inviteeId_unique"));
+        indexOps.createIndex(new Index().on("inviteeId", Sort.Direction.ASC).on("status", Sort.Direction.ASC)
+                .named("inviteeId_status"));
     }
 }

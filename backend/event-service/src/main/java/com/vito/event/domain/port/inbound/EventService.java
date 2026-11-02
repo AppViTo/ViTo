@@ -109,7 +109,6 @@ public interface EventService {
         private String userId;
         private RSVP.RSVPStatus status;
         private String message;
-        private int guestsCount;
     }
     
     @Data

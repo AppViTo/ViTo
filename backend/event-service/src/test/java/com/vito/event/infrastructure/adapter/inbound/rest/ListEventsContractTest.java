@@ -7,6 +7,7 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
+import com.vito.event.application.service.AttendanceService;
 import com.vito.event.application.service.EventServiceImpl;
 import com.vito.event.domain.model.Event;
 import com.vito.event.domain.model.RSVP;
@@ -75,7 +76,8 @@ class ListEventsContractTest {
     @BeforeEach
     void setUp() {
         EventServiceImpl service = new EventServiceImpl(eventRepository, rsvpRepository,
-                mock(InvitationRepository.class), mock(EventPublisherPort.class), mock(QRCodeGenerator.class));
+                mock(InvitationRepository.class), mock(EventPublisherPort.class), mock(QRCodeGenerator.class),
+                mock(AttendanceService.class));
         mvc = MockMvcBuilders.standaloneSetup(new EventController(service))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setMessageConverters(new JacksonJsonHttpMessageConverter(mapper))
