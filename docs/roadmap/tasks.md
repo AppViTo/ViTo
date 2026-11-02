@@ -1094,6 +1094,8 @@ depende del contrato.
   log: `docker-socket-proxy` respondía 403 a `/networks` y `discovery.docker` no descubría
   contenedores. Se habilita `NETWORKS=1` (sigue sin `POST`) y se corrige `service-unhealthy`,
   que con `== 0` y `noDataState: Alerting` se disparaba con todos los servicios sanos (#251).
+  Además, Alloy buscaba los 9 servicios Java en el `8080` y escuchan en `8081`–`8089`:
+  solo gateway, transcode y moderation tenían `up = 1` (#251).
 - **Avance (2026-11-02, T041):** en Grafana Cloud están el contact point `leads` (correo y
   Telegram), el check sintético de `/healthz` (London y Ohio), los dos tableros y 6 de las 7
   alertas (`alerts/apply_alerts.py`). Prueba de `api-down` deteniendo `api-gateway`: las
