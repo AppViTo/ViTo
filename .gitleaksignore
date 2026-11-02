@@ -1,0 +1,4 @@
+# Tokens de ejemplo de los fixtures de contrato (Ola 1); no son secretos.
+6ffb811af1feaac699f51a1251494bb71da21d02:docs/api/fixtures/events/createInviteLink.201.json:generic-api-key:4
+6ffb811af1feaac699f51a1251494bb71da21d02:docs/api/fixtures/events/listInviteLinks.200.json:generic-api-key:5
+6ffb811af1feaac699f51a1251494bb71da21d02:docs/api/fixtures/events/listInviteLinks.200.json:generic-api-key:16
