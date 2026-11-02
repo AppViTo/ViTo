@@ -147,7 +147,7 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
 | T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY | [VITO-51](https://bernardo-mira.atlassian.net/browse/VITO-51) |
 | T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | ✅ HECHA (manual, 2026-10-24; pendientes menores en ADR-013) | [VITO-45](https://bernardo-mira.atlassian.net/browse/VITO-45) |
-| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔵 EN CURSO (despliegue verificado; falta ensayar el rollback) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
+| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | ✅ HECHA (rollback ensayado el 2026-11-01) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
 | T-I11 | Frontend web en Cloudflare Pages, con la CSP/HSTS de la web (antes en T-I18) | I/F | P1 | 🔵 EN CURSO (#179 · falta verificar en prod) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
 | T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🟡 EN CURSO (falta T041) | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔵 EN CURSO (#167 · falta el ensayo manual) | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
@@ -1015,7 +1015,7 @@ depende del contrato.
   `docker compose ... up` en local con un `.env` de prueba levanta todo dentro de 12 GB
   (`docker stats` en el PR).
 
-### T-I08 · Pipeline de despliegue — 🔵 EN CURSO (despliegue verificado; falta ensayar el rollback) · P0 · O-12, ADR-011, ADR-012
+### T-I08 · Pipeline de despliegue — ✅ HECHA (rollback ensayado el 2026-11-01) · P0 · O-12, ADR-011, ADR-012
 - **Qué:** rehacer `cd.yml`: al entrar un commit a `main`, construir solo las imágenes de
   los servicios cambiados (tag = SHA), copiarlas al VPS con `docker save | ssh docker load`,
   ejecutar `docker compose up -d` con el nuevo `IMAGE_TAG` y verificar los healthchecks.
@@ -1026,7 +1026,12 @@ depende del contrato.
   2026-10-27). Pendiente: el hotfix #201 (cabeceras de la web) no salió; su aprobación venció
   (`Expire Approvals`) y el despliegue quedó en `error`.
 - **Cierre:** un merge a `main` despliega sin intervención (cumplido); el rollback a un SHA anterior
-  funciona y queda documentado en el runbook (pendiente: `rollback.yml` no tiene ninguna ejecución).
+  funciona y queda documentado en el runbook (cumplido).
+- **Ensayo del rollback (2026-11-01):** v0.1.4 → v0.1.1 (run 41352214076, ~51 s) y de vuelta a
+  v0.1.4 (run 41352453129, ~36 s), con el smoke de producción en verde después de cada uno
+  (runs 41352420837 y 41352898753). Un primer intento con un SHA de un hotfix solo de la web
+  salió con código 4 sin tocar nada (run 41351472623); el runbook ya advierte no tomar el SHA
+  de *Deployments*. Detalle en `docs/runbooks/despliegue.md`, sección Rollback.
 - **Diseño y tareas:** [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md).
   El triage de seguridad (T051) exige Trivy, gitleaks y Dependabot (T048–T050) antes del
   primer release.

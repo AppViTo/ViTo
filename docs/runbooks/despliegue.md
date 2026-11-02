@@ -118,12 +118,28 @@ y correo. Cada servicio que se reinicia queda fuera menos de un minuto.
 Vuelve a uno de los **últimos 3 releases con éxito** sin reconstruir nada: cambia el bundle
 activo (compose, configuración y versiones a la vez) y espera la salud.
 
-1. **Elegir el SHA:** `cat /opt/vito/history` en el VPS, o en GitHub → *Deployments* →
-   `production` (los despliegues con éxito, con su commit). Hace falta el SHA completo.
+1. **Elegir el SHA:** `cat /opt/vito/history` en el VPS (los 3 últimos son los destinos).
+   Sin acceso al VPS, lanzar el rollback con cualquier SHA: si no está retenido sale con
+   código 4 sin tocar nada y el log lista los disponibles. **No** tomarlo de *Deployments*:
+   ahí aparecen también los hotfix que solo cambiaron la web, que no crean un release de
+   backend (ensayo del 2026-11-01). Hace falta el SHA completo.
 2. Actions → *ViTo Rollback* → *Run workflow* sobre `main` con `sha` y `reason`.
 3. Lo aprueba cualquiera de los dos leads, también quien lo disparó (Environment
    `production-hotfix`, D-13). El motivo y quién aprobó quedan en `deployments.log`.
 4. Si la salud del release destino falla, vuelve solo al que estaba (código 5).
+5. Correr *ViTo Smoke E2E* (*Run workflow*) y confirmar que queda en verde.
+
+**Ensayo (T-I08, 2026-11-01).** Sin usuarios activos, de v0.1.4 a v0.1.1 y de vuelta:
+
+| Run | Destino | Resultado |
+|-----|---------|-----------|
+| 41351472623 | `b998c81` (hotfix de la web) | Código 4, nada tocado: no era un release de backend |
+| 41352214076 | `73aa35a` (v0.1.1) | Hecho en ~51 s; 19 contenedores *healthy*; smoke 41352420837 en verde |
+| 41352453129 | `42b924c` (v0.1.4) | Hecho en ~36 s; smoke 41352898753 en verde |
+
+Cada run validó la aprobación en `production-hotfix` (quien disparó pudo aprobar), el
+chequeo de evento en vivo y el aviso por Telegram y correo. Un rollback no saca de la
+lista al release del que se sale, así que siempre se puede volver.
 
 **La base de datos no se revierte.** Un rollback devuelve el código, no los datos. Si el
 release que se quiere deshacer cambió el formato de documentos o creó índices, el código
