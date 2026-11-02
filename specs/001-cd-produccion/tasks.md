@@ -201,7 +201,7 @@ Rama `backend/t-i13-observability` (depende de la fase 2 por el compose).
 - [X] T038 [P] [US4] Agregar tracing OTel a los 10 servicios Java: `micrometer-tracing-bridge-otel` y `opentelemetry-exporter-otlp` en cada `backend/<svc>/pom.xml` (o en `backend/shared-web` si T-B18 ya existe); `management.tracing.sampling.probability: 0.1` y `management.otlp.tracing.endpoint: http://alloy:4318/v1/traces` en el perfil `prod` de cada `application-prod.yml`. Test de contexto por servicio que arranque con la configuración de tracing
 - [X] T039 [P] [US4] Crear `infrastructure/observability/dashboards/vito-api-red.json` con los paneles de [contracts/observability.md](./contracts/observability.md#tablero-vito-api-red-fr-024)
 - [X] T040 [US4] Escribir `infrastructure/observability/README.md` con los pasos para crear en Grafana Cloud el contact point `leads` (correo + Telegram), las reglas de [contracts/observability.md](./contracts/observability.md#alertas-fr-025) (`api-down`, `service-unhealthy`, `host-disk-high`/`host-mem-high`, `gateway-401-spike`, `gateway-429-spike`, `gateway-revocation-errors`, `backup-missing`), el check de Synthetic Monitoring contra `/healthz` y la importación del tablero
-- [ ] T041 [US4] 👤 Crear en Grafana Cloud el contact point, las alertas, el check sintético y el tablero según T040; probar `api-down` deteniendo `api-gateway` (quickstart paso 7)
+- [X] T041 [US4] 👤 (2026-11-02; `backup-missing` espera a que lleguen los logs, #251) Crear en Grafana Cloud el contact point, las alertas, el check sintético y el tablero según T040; probar `api-down` deteniendo `api-gateway` (quickstart paso 7)
 
 **Checkpoint**: alerta de prueba recibida en Telegram y en el correo; tablero con datos reales.
 
