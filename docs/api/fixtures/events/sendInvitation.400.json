@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "El campo inviteeId es obligatorio",
+  "status": 400,
+  "timestamp": "2026-10-28T02:10:00Z",
+  "details": {
+    "inviteeId": "Debe ser un usuario registrado"
+  }
+}

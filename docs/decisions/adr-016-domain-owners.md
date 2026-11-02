@@ -20,7 +20,7 @@ está publicada; el frontend sí llama a las dos variantes en varios casos.
 | Ítem de check-in en el mosaico | `mosaic-service`: `POST /mosaic/checkin` (ruta pública) | — |
 | Chat | `chat-service` (salas, mensajes) | `streaming-service`: `POST/GET /streaming/{id}/chat` |
 | Info de stream | `GET /streaming/{id}` | `GET /streaming/{id}/info` |
-| Invitación vs RSVP | `POST /events/{id}/invitations/respond` | `POST /events/{id}/rsvp` |
+| Invitación vs RSVP | `POST /events/{id}/invitations/respond` (retirada) | `POST /events/{id}/rsvp` (única forma de responder) |
 
 Hechos relevantes del código actual:
 
@@ -55,6 +55,10 @@ Hechos relevantes del código actual:
    evento privado frente a confirmar asistencia a uno público). Si no difiere,
    `invitations/respond` se fusiona en `/rsvp`. La spec de la Ola 1 lo decide y lo deja
    escrito; no hace falta otro ADR salvo que cambie un dueño.
+
+   **Cierre (2026-11-01, D-01):** la semántica no difiere. `POST /events/{id}/rsvp` es la
+   única forma de responder y actualiza el estado de la invitación en la misma operación;
+   `POST /events/{id}/invitations/respond` se retira del código y nunca entra al contrato.
 7. **Regla general:** cada capacidad tiene un solo servicio dueño. Si otro servicio
    necesita el dato o el efecto, lo pide por API interna o lo consume por Kafka; no
    reimplementa la regla ni expone una ruta pública paralela.

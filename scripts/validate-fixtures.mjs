@@ -100,7 +100,11 @@ for (const [path, item] of Object.entries(spec.paths ?? {})) {
     const base = `${folder}/${op.operationId}`;
     operations.push({ base, label });
 
-    const reqSchema = op.requestBody?.content?.[JSON_MEDIA]?.schema;
+    // PATCH usa `application/merge-patch+json`, que también es JSON y por
+    // convención lleva `<operationId>.request.json`.
+    const requestMedia = op.requestBody?.content ?? {};
+    const reqSchema = requestMedia[JSON_MEDIA]?.schema
+      ?? requestMedia['application/merge-patch+json']?.schema;
     if (reqSchema) expected.set(`${base}.request.json`, { schema: reqSchema });
 
     for (const [status, response] of Object.entries(op.responses ?? {})) {

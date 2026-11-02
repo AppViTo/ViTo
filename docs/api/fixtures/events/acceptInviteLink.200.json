@@ -1,0 +1,12 @@
+{
+  "id": "inv_01HA9Z8Y7X",
+  "eventId": "evt_01H8X2K4QJ",
+  "inviterId": "usr_01H8X2K4QJ",
+  "inviteeId": "usr_01H8X2K4QV",
+  "status": "ACCEPTED",
+  "message": null,
+  "inviteLinkId": "inl_01HA1B2C3D",
+  "sentAt": "2026-10-28T02:10:00Z",
+  "expiresAt": null,
+  "respondedAt": "2026-10-28T02:10:00Z"
+}

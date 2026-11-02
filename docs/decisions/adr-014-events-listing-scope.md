@@ -72,3 +72,22 @@ Reglas:
 | B: publicar `GET /events/my-events` y `GET /events/upcoming` y retirar `listEvents` | Rompe el contrato y el cliente actual; cada listado nuevo sería una ruta más; las rutas literales comparten espacio con `/events/{eventId}` y confunden el mock y las herramientas de OpenAPI. Su ventaja (poder abrir `upcoming` sin login con una regla del gateway) no está en el roadmap. |
 | `scope=mine\|upcoming\|public` (propuesta original de D-03) | `public` se solapa con `upcoming`. Se agrega si aparece un caso que `upcoming` no cubra. |
 | Parámetros de filtro libres (`?organizerId=`, `?isPublic=`) | Permite pedir datos de otro usuario y obliga a validar combinaciones; el `scope` cerrado es más simple y seguro. |
+
+
+## Actualizaciones
+
+### 2026-11-01 — `scope=invited` (Ola 1)
+
+Se agrega el valor `invited` al enum, sin rutas nuevas:
+
+| `scope` | Contenido | Orden |
+|---------|-----------|-------|
+| `invited` | Eventos `PUBLISHED` y no vencidos en los que el usuario tiene una invitación `PENDING` (no expirada) o `ACCEPTED`, o un RSVP distinto de `DECLINED`. | `details.startDate` ascendente, como `upcoming`. |
+
+Reglas adicionales:
+
+- Un evento `CANCELLED` o con `details.endDate` pasada no aparece.
+- Aplica la misma visibilidad de `getEvent`: `hideAddressUntilAccepted` y `stats` reducido
+  para quien no es el organizador.
+- La consulta usa el índice `{inviteeId, status}` de `invitations` y luego filtra eventos
+  por `_id` y fecha.
