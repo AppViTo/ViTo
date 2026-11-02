@@ -149,7 +149,7 @@ Si la IP cambió:
 
 ### B.4 Código, bundle e imágenes (en el VPS, como `deploy`)
 
-**Camino recomendado: que las imágenes las construya el CD.** Desde GitHub Actions, ejecutar el workflow **ViTo CD** con `mode=deploy` y `rebuild_all=true` sobre `main`. Reconstruye las 13 imágenes, las escanea con Trivy (en modo informe hasta el 2026-11-07, excepción A9) y las sube como artifacts; `deploy.sh` las carga en el VPS. Así no se compila en el VPS.
+**Camino recomendado: que las imágenes las construya el CD.** Desde GitHub Actions, ejecutar el workflow **ViTo CD** con `mode=deploy` y `rebuild_all=true` sobre `main`. Reconstruye las 13 imágenes, las escanea con Trivy (bloqueante: un CRITICAL o HIGH sin excepción en `.trivyignore` detiene el release) y las sube como artifacts; `deploy.sh` las carga en el VPS. Así no se compila en el VPS.
 
 El resto de esta sección es el plan de contingencia, para cuando el CD no esté disponible: compilar en el VPS, sin Trivy.
 
@@ -247,13 +247,35 @@ docker run -d --name mongo-restore-test --network vito_vito --memory 1g \
 sleep 20   # que termine de inicializar
 dc exec -T mongo-backup entrypoint.sh restore --yes latest \
   --uri "mongodb://restore:$TMP_PW@mongo-restore-test:27017/?authSource=admin"
-docker exec mongo-restore-test mongosh --quiet -u restore -p "$TMP_PW" --authenticationDatabase admin \
-  --eval 'db.adminCommand({listDatabases: 1}).databases.forEach(d => print(d.name, d.sizeOnDisk))'
-docker rm -f mongo-restore-test
+# Documentos por colección
+docker exec mongo-restore-test mongosh --quiet -u restore -p "$TMP_PW" --authenticationDatabase admin --eval '
+db.adminCommand({listDatabases:1}).databases
+  .filter(d => !["admin","config","local"].includes(d.name))
+  .forEach(d => { const s = db.getSiblingDB(d.name);
+    s.getCollectionNames().forEach(c => print(d.name + "." + c, s.getCollection(c).estimatedDocumentCount())); });'
+docker rm -f mongo-restore-test; unset TMP_PW
 ```
 
-Pasa si `restore` termina en `OK restaurado …` y aparecen las bases de los servicios con
-tamaño distinto de cero. Anotar fecha, backup usado y duración.
+El mismo conteo en el Mongo de producción, para comparar (solo lectura; usa las credenciales
+del propio contenedor):
+
+```bash
+dc exec -T mongodb sh -c 'mongosh --quiet -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "
+db.adminCommand({listDatabases:1}).databases
+  .filter(d => ![\"admin\",\"config\",\"local\"].includes(d.name))
+  .forEach(d => { const s = db.getSiblingDB(d.name);
+    s.getCollectionNames().forEach(c => print(d.name + \".\" + c, s.getCollection(c).estimatedDocumentCount())); });"'
+```
+
+Pasa si `restore` termina en `OK restaurado …` y el temporal tiene las mismas colecciones que
+producción, con conteos iguales o apenas menores (falta lo escrito después del backup de las
+03:00 UTC). Mongo solo crea una base cuando un servicio escribe en ella: que falte la de un
+servicio sin datos es normal; que falte una que producción sí tiene, no. Anotar el resultado
+en la tabla.
+
+| Fecha (UTC) | Backup | Tamaño | Restore | Total | Resultado |
+|-------------|--------|-------:|--------:|------:|-----------|
+| 2026-11-01 | `vito-20261101T030001Z` | 2,8 KB | ~3 s (2 s de descarga) | ~12 min | ✅ 3 colecciones y 7 documentos, igual que producción |
 
 ### C.2 Ensayo de T-I14 (RTO)
 

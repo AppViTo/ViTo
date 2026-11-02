@@ -1111,8 +1111,10 @@ depende del contrato.
   (RTO ≤ 4 h).
 - **Avance:**
   - Runbooks: ✅ #167 ([restore.md](../runbooks/restore.md), [incident.md](../runbooks/incident.md)).
-  - Ensayo de restauración (tarea manual de un lead, requiere SSH y secretos): pendiente.
-    Se hace con `restore.md` C.2 y sus tiempos se anotan en el PR o issue que lo cierre.
+  - Prueba C.1 (último backup restaurado en un Mongo temporal del VPS): ✅ 2026-11-01,
+    coincide con producción ([restore.md, C.1](../runbooks/restore.md#c1-prueba-mensual-de-restauración-adr-011)).
+  - Ensayo completo C.2 en una máquina limpia (tarea manual de un lead, requiere SSH y
+    secretos): pendiente, en un VPS por horas. Sus tiempos se anotan en el PR o issue que lo cierre.
 
 ### T-I15 · Protocolo de bloqueos entre agentes — 🟢 READY · P1 · CONTRIBUTING (cadencia)
 - **Por qué:** el agente frontend y el backend/infra trabajan en paralelo. Ya existen las
