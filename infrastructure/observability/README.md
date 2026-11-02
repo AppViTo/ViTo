@@ -31,9 +31,12 @@ API key personal ni pegues el token en el repositorio, en un issue o en un log.
    `DOTENV_PRODUCTION`.
 3. Despliega con el workflow normal. Alloy arranca con `depends_on: docker-socket-proxy`.
 4. Comprueba que Alloy no reinicia y que no hay errores de autenticación:
-   `docker compose --env-file .env.prod -f docker-compose.prod.yml logs --tail=100 alloy`.
+   `dc logs --tail=100 alloy` (la función `dc` está en
+   [incident.md](../../docs/runbooks/incident.md)).
 5. En Grafana Cloud, confirma que llegan las series `up{job="vito"}` y los logs con
-   etiquetas `service` y `level`.
+   etiquetas `service` y `level` (`{cluster="vito-prod"}` en Explore). Si llegan métricas
+   pero no logs, busca en `dc logs alloy` un `403 Forbidden` de `discovery.docker`: el
+   proxy no deja leer algún endpoint (por ejemplo `/networks`).
 
 ## Contact point `leads`
 
@@ -96,8 +99,8 @@ importar. No se hardcodean UIDs de datasource.
 `prometheus.exporter.cadvisor` habla con `docker-socket-proxy` en solo lectura. Si los
 paneles de contenedor salen vacíos:
 
-1. Revisa que el proxy tenga `CONTAINERS=1`, `EVENTS=1`, `INFO=1`, `VERSION=1` y
-   `PING=1`, y que el socket esté montado únicamente en el proxy.
+1. Revisa que el proxy tenga `CONTAINERS=1`, `EVENTS=1`, `INFO=1`, `NETWORKS=1`,
+   `VERSION=1` y `PING=1`, y que el socket esté montado únicamente en el proxy.
 2. Revisa `docker compose logs alloy` y busca errores de conexión a
    `tcp://docker-socket-proxy:2375`.
 3. Si el kernel o la versión de Docker no permiten las métricas necesarias, el fallback
