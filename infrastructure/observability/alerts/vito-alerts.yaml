@@ -90,7 +90,9 @@ groups:
       datasourceUid: grafanacloud-prom
       model:
         editorMode: code
-        expr: up{job="vito"} == 0
+        # Sin "== 0": con todos sanos la consulta quedaría vacía y noDataState la
+        # dispararía. El umbral de C (< 1) ya hace la comparación.
+        expr: up{job="vito"}
         instant: true
         intervalMs: 60000
         maxDataPoints: 43200

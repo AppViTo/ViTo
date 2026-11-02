@@ -1090,6 +1090,10 @@ depende del contrato.
   logs JSON, tableros y plantilla de alertas (T034–T036, T038–T040, T053). Falta crear el
   contact point, las alertas, el check sintético y el tablero en Grafana Cloud, y probar
   `api-down` (T041).
+- **Avance (2026-11-02):** en producción llegan las métricas de los 12 servicios, pero ningún
+  log: `docker-socket-proxy` respondía 403 a `/networks` y `discovery.docker` no descubría
+  contenedores. Se habilita `NETWORKS=1` (sigue sin `POST`) y se corrige `service-unhealthy`,
+  que con `== 0` y `noDataState: Alerting` se disparaba con todos los servicios sanos (#251).
 - **Qué:** Grafana Alloy (u OTel Collector) en el VPS que envía métricas, logs y trazas a
   Grafana Cloud free; dashboard RED del gateway; alertas de caída y de disco/RAM > 80 % a
   ambos leads; monitor de uptime externo. Alertas de picos de `401` y `429` en el gateway
