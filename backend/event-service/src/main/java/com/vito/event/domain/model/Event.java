@@ -18,6 +18,9 @@ public class Event {
     
     private String organizerId;
     
+    /** Nombre del organizador al crear o editar, desde {@code X-User-Name} (R6); null en eventos anteriores. */
+    private String organizerDisplayName;
+    
     private String title;
     
     private String description;

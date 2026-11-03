@@ -21,7 +21,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "JWT_SECRET=test-secret-key-for-unit-tests-only-256-bits-long",
         "MONGODB_URI=mongodb://localhost:27017/test_db",
         "QR_SECRET=test-qr-secret-for-unit-tests-only",
-        "INVITE_LINK_BASE_URL=https://app.example.test"
+        "INVITE_LINK_BASE_URL=https://app.example.test",
+        "vito.data-init.enabled=false"
 })
 @ActiveProfiles("prod")
 class ProdLoggingProfileTest {

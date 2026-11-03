@@ -53,6 +53,12 @@ public class EventException extends RuntimeException {
                 Map.of("page", "Mínimo 0"));
     }
 
+    /** RSVP con un {@code status} que no es de entrada; texto del fixture respondRsvp.400. */
+    public static EventException invalidRsvpStatus() {
+        return new EventException(Reason.INVALID, "El status debe ser ACCEPTED, DECLINED o MAYBE",
+                Map.of("status", "Valores permitidos: ACCEPTED, DECLINED, MAYBE"));
+    }
+
     /** Sin usuario autenticado en el contexto de seguridad. */
     public static EventException unauthenticated() {
         return unauthenticated("Debes iniciar sesión");

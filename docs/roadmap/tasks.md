@@ -82,8 +82,8 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 |----|-------|------------|------------------------|
 | T-C10 | Contrato de la Ola 1 (🟡 RFC) | Agente frontend (Alex) | Issue `contract-change`, rama `contract/ola-1` y redacción de `openapi.yaml`, fixtures, CONVENTIONS y enmiendas a ADR-014/016 (T002, T006–T013). No se mergea sin D-08 y 1 CODEOWNER. |
 | T-F12 | App de la Ola 1 | Agente frontend (Alex) | Nada hasta el merge de T-C10; después avanza contra el mock de Prism. |
-| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | T003 (Testcontainers MongoDB) ya; el resto tras T-C10. |
-| T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | Tras T-C10. |
+| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | T003 ya; base del cupo atómico, migración e índices (T020–T024, T066) en curso. |
+| T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | Desbloqueada: contrato mergeado (#253). |
 | T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); falta T061 (k6). |
 | T-B36 | Outbox y AsyncAPI de los eventos de `event-service` | Sesión de Bernardo | Bloqueada por T-C05. |
 
@@ -166,8 +166,8 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 | T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | 🟢 READY (antes del 2026-11-23) | — |
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | 🟡 RFC (requiere D-08 de la Ola 1) | — |
 | T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🔴 BLOQUEADA por T-C10 | — |
-| T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | 🔴 BLOQUEADA por T-C10 (T003 de la spec se adelanta) | — |
-| T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | 🔴 BLOQUEADA por T-C10 | — |
+| T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | 🔵 EN CURSO (base: T020–T024 y T066) | — |
+| T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | 🟢 READY (contrato en #253) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
 | T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🟢 READY | — |
 
@@ -909,15 +909,20 @@ depende del contrato.
   `docs/api/fixtures/media/`; un test de que retirar un elemento del mosaico borra su archivo;
   salida real de `./mvnw test` en el PR; `/mosaic/photo` devuelve 404.
 
-### T-B34 · `event-service` de la Ola 1 — 🔴 BLOQUEADA por T-C10 · P0 · Principios III, IV y VII
+### T-B34 · `event-service` de la Ola 1 — 🔵 EN CURSO · P0 · Principios III, IV y VII
 - **Qué:** las tareas `[Bernardo]` de `event-service` en [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): Testcontainers MongoDB,
   cupo con `$inc` condicional y lista de espera con promoción automática (TDD), RSVP como
   upsert que también responde la invitación (se retira `invitations/respond`), enlaces de
   invitación, `scope=invited`, editar con `PATCH`, cancelar sin borrar, asistentes solo para
   el organizador y `stats` reducido para los demás.
 - **Cierre:** prueba de concurrencia (50 respuestas, cupo 20 → 20 y 30) y pruebas de contrato en verde.
+- **Avance (2026-11-02):** base de la ola: modelo (T020), migración de datos (T066), índices
+  (T021), cupo con `$inc` condicional y `AttendanceService` con lista de espera y promoción
+  (T022–T024). La prueba de concurrencia pasa 10 de 10 (20 confirmados y 30 en espera); la
+  lógica anterior confirmaba entre 40 y 50 con cupo 20. Siguen T025–T027 y T067, y las
+  historias de usuario.
 
-### T-B35 · `auth-service` y gateway de la Ola 1 — 🔴 BLOQUEADA por T-C10 · P0 · Principio III
+### T-B35 · `auth-service` y gateway de la Ola 1 — 🟢 READY (contrato en #253) · P0 · Principio III
 - **Qué:** T016–T019, T059 y T062 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): claim `name` en el access token; `X-User-Name`
   en el gateway con la higiene de T-B01; rutas públicas por método y patrón exacto (hoy
   `startsWith` haría pública también `accept`); ruta `/api/v1/invite-links/**` con límite por

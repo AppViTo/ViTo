@@ -15,7 +15,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
@@ -40,6 +39,9 @@ class EventServiceImplTest {
 
     @Mock
     private QRCodeGenerator qrCodeGenerator;
+
+    @Mock
+    private AttendanceService attendanceService;
 
     @InjectMocks
     private EventServiceImpl eventService;
@@ -174,22 +176,59 @@ class EventServiceImplTest {
                 .status(RSVP.RSVPStatus.ACCEPTED)
                 .build();
 
+        RSVP accepted = RSVP.builder().eventId("event123").userId("user456")
+                .status(RSVP.RSVPStatus.ACCEPTED).build();
         when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
         when(rsvpRepository.existsByEventIdAndUserId("event123", "user456")).thenReturn(false);
-        when(rsvpRepository.countByEventIdAndStatus("event123", RSVP.RSVPStatus.ACCEPTED)).thenReturn(5L);
+        when(attendanceService.confirm("event123", "user456", null, null)).thenReturn(accepted);
         when(qrCodeGenerator.generateCheckInQR("event123", "user456")).thenReturn("qr_code_123");
-        when(rsvpRepository.save(any(RSVP.class))).thenReturn(RSVP.builder().build());
+        when(rsvpRepository.save(any(RSVP.class))).thenAnswer(inv -> inv.getArgument(0));
 
         // Act
         RSVP result = eventService.respondToRSVP(command);
 
         // Assert
-        assertNotNull(result);
+        assertEquals("qr_code_123", result.getCheckInQrCode());
 
         verify(eventRepository, atLeastOnce()).findById("event123");
         verify(rsvpRepository).existsByEventIdAndUserId("event123", "user456");
-        verify(rsvpRepository).save(any(RSVP.class));
         verify(eventPublisher).publishRSVPChanged("event123", "user456", "ACCEPTED");
+    }
+
+    @Test
+    void respondToRSVP_WithoutSeat_PublishesWaitlisted() {
+        RespondRSVPCommand command = RespondRSVPCommand.builder()
+                .eventId("event123")
+                .userId("user456")
+                .status(RSVP.RSVPStatus.ACCEPTED)
+                .build();
+
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+        when(rsvpRepository.existsByEventIdAndUserId("event123", "user456")).thenReturn(false);
+        when(attendanceService.confirm("event123", "user456", null, null)).thenReturn(RSVP.builder()
+                .eventId("event123").userId("user456").status(RSVP.RSVPStatus.WAITLISTED).build());
+
+        RSVP result = eventService.respondToRSVP(command);
+
+        assertEquals(RSVP.RSVPStatus.WAITLISTED, result.getStatus());
+        assertNull(result.getCheckInQrCode());
+        verify(eventPublisher).publishRSVPChanged("event123", "user456", "WAITLISTED");
+        verifyNoInteractions(qrCodeGenerator);
+    }
+
+    @Test
+    void respondToRSVP_PendingIsNotAnAnswer() {
+        RespondRSVPCommand command = RespondRSVPCommand.builder()
+                .eventId("event123")
+                .userId("user456")
+                .status(RSVP.RSVPStatus.PENDING)
+                .build();
+
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+        when(rsvpRepository.existsByEventIdAndUserId("event123", "user456")).thenReturn(false);
+
+        EventException exception = assertThrows(EventException.class, () -> eventService.respondToRSVP(command));
+        assertEquals(EventException.Reason.INVALID, exception.getReason());
     }
 
     @Test
@@ -352,7 +391,7 @@ class EventServiceImplTest {
                 .userId("user456")
                 .status(RSVP.RSVPStatus.ACCEPTED)
                 .checkInQrCode("valid_qr_code")
-                .checkedInAt(LocalDateTime.now())
+                .checkedInAt(Instant.now())
                 .build();
 
         when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
