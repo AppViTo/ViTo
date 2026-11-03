@@ -1094,6 +1094,17 @@ depende del contrato.
   log: `docker-socket-proxy` respondía 403 a `/networks` y `discovery.docker` no descubría
   contenedores. Se habilita `NETWORKS=1` (sigue sin `POST`) y se corrige `service-unhealthy`,
   que con `== 0` y `noDataState: Alerting` se disparaba con todos los servicios sanos (#251).
+  Además, Alloy buscaba los 9 servicios Java en el `8080` y escuchan en `8081`–`8089`:
+  solo gateway, transcode y moderation tenían `up = 1` (#251).
+- **Avance (2026-11-02, T041):** en Grafana Cloud están el contact point `leads` (correo y
+  Telegram), el check sintético de `/healthz` (London y Ohio), los dos tableros y 6 de las 7
+  alertas (`alerts/apply_alerts.py`). Prueba de `api-down` deteniendo `api-gateway`: las
+  sondas bajan a 0 al primer minuto y llegan el aviso y el *Resolved* por los dos canales.
+  Dos fallos de configuración encontrados y documentados en el README: el check apuntaba al
+  frontend (siempre `200`) y la política por defecto enviaba a un contact point vacío.
+  **Falta:** desplegar #251 y cargar `backup-missing` cuando haya logs en Loki
+  (`apply_alerts.py --with-backup`), y los paneles de contenedor: cAdvisor solo ve el
+  cgroup de Alloy (sin montar `/sys/fs/cgroup` del host no hay métricas por contenedor).
 - **Qué:** Grafana Alloy (u OTel Collector) en el VPS que envía métricas, logs y trazas a
   Grafana Cloud free; dashboard RED del gateway; alertas de caída y de disco/RAM > 80 % a
   ambos leads; monitor de uptime externo. Alertas de picos de `401` y `429` en el gateway

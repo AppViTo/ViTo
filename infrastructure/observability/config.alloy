@@ -10,19 +10,20 @@ logging {
 }
 
 // ── Métricas de los servicios ─────────────────────────────────
-// El gateway expone Actuator en el puerto de gestión (9080); el resto en 8080.
+// El gateway expone Actuator en el puerto de gestión (9080); el resto, en su server.port
+// (8081–8089), el mismo de su healthcheck en docker-compose.prod.yml.
 prometheus.scrape "java" {
 	targets = [
 		{__address__ = "api-gateway:9080", __metrics_path__ = "/actuator/prometheus", service = "api-gateway"},
-		{__address__ = "auth-service:8080", __metrics_path__ = "/actuator/prometheus", service = "auth-service"},
-		{__address__ = "social-service:8080", __metrics_path__ = "/actuator/prometheus", service = "social-service"},
-		{__address__ = "event-service:8080", __metrics_path__ = "/actuator/prometheus", service = "event-service"},
-		{__address__ = "checkin-service:8080", __metrics_path__ = "/actuator/prometheus", service = "checkin-service"},
-		{__address__ = "mosaic-service:8080", __metrics_path__ = "/actuator/prometheus", service = "mosaic-service"},
-		{__address__ = "streaming-service:8080", __metrics_path__ = "/actuator/prometheus", service = "streaming-service"},
-		{__address__ = "archive-service:8080", __metrics_path__ = "/actuator/prometheus", service = "archive-service"},
-		{__address__ = "chat-service:8080", __metrics_path__ = "/actuator/prometheus", service = "chat-service"},
-		{__address__ = "media-service:8080", __metrics_path__ = "/actuator/prometheus", service = "media-service"},
+		{__address__ = "auth-service:8081", __metrics_path__ = "/actuator/prometheus", service = "auth-service"},
+		{__address__ = "social-service:8082", __metrics_path__ = "/actuator/prometheus", service = "social-service"},
+		{__address__ = "event-service:8083", __metrics_path__ = "/actuator/prometheus", service = "event-service"},
+		{__address__ = "checkin-service:8084", __metrics_path__ = "/actuator/prometheus", service = "checkin-service"},
+		{__address__ = "mosaic-service:8085", __metrics_path__ = "/actuator/prometheus", service = "mosaic-service"},
+		{__address__ = "streaming-service:8086", __metrics_path__ = "/actuator/prometheus", service = "streaming-service"},
+		{__address__ = "archive-service:8087", __metrics_path__ = "/actuator/prometheus", service = "archive-service"},
+		{__address__ = "chat-service:8088", __metrics_path__ = "/actuator/prometheus", service = "chat-service"},
+		{__address__ = "media-service:8089", __metrics_path__ = "/actuator/prometheus", service = "media-service"},
 	]
 	scrape_interval = "30s"
 	scrape_timeout  = "10s"
