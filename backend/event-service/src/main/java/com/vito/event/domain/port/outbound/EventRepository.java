@@ -45,6 +45,14 @@ public interface EventRepository {
      */
     Optional<Event> applyPatch(String eventId, EventPatch patch, String organizerDisplayName, Instant now);
 
+    /**
+     * US5: pasa el evento a {@code CANCELLED} con un único {@code $set} condicional (no
+     * cancelado, no completado y sin terminar en {@code now}). No toca {@code stats},
+     * invitaciones, RSVP ni enlaces (FR-022).
+     * @return {@code true} si lo canceló esta llamada
+     */
+    boolean cancel(String eventId, Instant now);
+
     /** Libera un lugar ({@code totalAccepted - 1}, nunca por debajo de 0). */
     void releaseSeat(String eventId);
     

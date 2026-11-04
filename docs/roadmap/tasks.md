@@ -82,7 +82,7 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 |----|-------|------------|------------------------|
 | T-C10 | Contrato de la Ola 1 (🟡 RFC) | Agente frontend (Alex) | Issue `contract-change`, rama `contract/ola-1` y redacción de `openapi.yaml`, fixtures, CONVENTIONS y enmiendas a ADR-014/016 (T002, T006–T013). No se mergea sin D-08 y 1 CODEOWNER. |
 | T-F12 | App de la Ola 1 | Agente frontend (Alex) | Nada hasta el merge de T-C10; después avanza contra el mock de Prism. |
-| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | Fundacional, US3, US1 (enlaces, `scope=invited`) y US2 (editar). Siguen US4, US5 y US6. |
+| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | Fundacional, US3, US1 (enlaces, `scope=invited`), US2 (editar) y US5 (cancelar). Siguen US4 y US6. |
 | T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | Desbloqueada: contrato mergeado (#253). |
 | T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); falta T061 (k6). |
 | T-B36 | Outbox y AsyncAPI de los eventos de `event-service` | Sesión de Bernardo | Bloqueada por T-C05. |
@@ -938,6 +938,10 @@ depende del contrato.
   reescribía el documento y podía pisar un RSVP concurrente); el cupo por debajo de los
   confirmados se rechaza en la misma operación; subir el cupo promueve la lista de espera. Se
   retira el `PUT`: ninguna pantalla de la app lo usa. La pantalla de edición es T-F (T048–T049).
+- **Avance (2026-11-04, US5):** cancelar (T053–T054) con un `$set` condicional que no toca
+  `stats`, invitaciones, RSVP ni enlaces; idempotente (`204` sin volver a publicar) y `409` si
+  ya terminó. Tras cancelar, RSVP, unión por enlace, invitar y `PATCH` responden `409`.
+  Siguen US4 (invitaciones desde la app) y US6 (asistentes).
 
 ### T-B35 · `auth-service` y gateway de la Ola 1 — 🟢 READY (contrato en #253) · P0 · Principio III
 - **Qué:** T016–T019, T059 y T062 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): claim `name` en el access token; `X-User-Name`

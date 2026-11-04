@@ -161,4 +161,47 @@ class EventMongoAdapterIntegrationTest extends MongoContainerTest {
                 ended.getDetails().getEndDate().plusSeconds(1)));
         assertEquals("Boda", adapter.findById("evt_ended").orElseThrow().getTitle());
     }
+
+    // ---- cancel (US5): $set condicional, sin tocar stats; sale de upcoming e invited
+
+    @Test
+    void cancelSetsCancelledOnceAndKeepsStats() {
+        editable("evt_c1", 100, 40);
+        Instant now = Instant.now();
+
+        assertTrue(adapter.cancel("evt_c1", now));
+        assertEquals(false, adapter.cancel("evt_c1", now), "la segunda no modifica nada");
+
+        Event cancelled = adapter.findById("evt_c1").orElseThrow();
+        assertEquals(Event.EventStatus.CANCELLED, cancelled.getStatus());
+        assertEquals(40, cancelled.getStats().getTotalAccepted());
+        assertEquals(120, cancelled.getStats().getTotalInvited());
+        assertEquals("Boda", cancelled.getTitle());
+    }
+
+    @Test
+    void cancelRefusesCompletedAndEndedEvents() {
+        Event completed = editable("evt_c2", 10, 0);
+        completed.setStatus(Event.EventStatus.COMPLETED);
+        adapter.save(completed);
+        assertEquals(false, adapter.cancel("evt_c2", Instant.now()));
+
+        Event ended = editable("evt_c3", 10, 0);
+        assertEquals(false, adapter.cancel("evt_c3", ended.getDetails().getEndDate().plusSeconds(1)));
+        assertEquals(Event.EventStatus.PUBLISHED, adapter.findById("evt_c3").orElseThrow().getStatus());
+    }
+
+    @Test
+    void aCancelledEventLeavesUpcomingAndInvited() {
+        editable("evt_c4", 10, 0);
+        editable("evt_c5", 10, 0);
+        adapter.cancel("evt_c4", Instant.now());
+
+        List<String> upcoming = adapter.findUpcomingEvents(0, 20).stream().map(Event::getId).toList();
+        List<String> invited = adapter.findActiveByIds(List.of("evt_c4", "evt_c5"), Instant.now(), 0, 20)
+                .stream().map(Event::getId).toList();
+
+        assertEquals(List.of("evt_c5"), upcoming);
+        assertEquals(List.of("evt_c5"), invited);
+    }
 }

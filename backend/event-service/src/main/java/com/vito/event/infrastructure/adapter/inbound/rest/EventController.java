@@ -58,9 +58,11 @@ public class EventController {
         return ResponseEntity.ok(event);
     }
     
+    /** US5 (FR-022): pasa a {@code CANCELLED} sin borrar; idempotente. */
     @DeleteMapping("/{eventId}")
     public ResponseEntity<Void> cancelEvent(@PathVariable String eventId) {
-        String currentUserId = getCurrentUserId();
+        String currentUserId = getCurrentUser(
+                () -> EventException.unauthenticated("Debes iniciar sesión para realizar esta acción")).id();
         eventService.cancelEvent(eventId, currentUserId);
         return ResponseEntity.noContent().build();
     }

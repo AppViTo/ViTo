@@ -112,21 +112,6 @@ class EventServiceImplTest {
     }
 
     @Test
-    void cancelEvent_Success() {
-        // Arrange
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
-
-        // Act
-        eventService.cancelEvent("event123", "organizer123");
-
-        // Assert
-        verify(eventRepository).findById("event123");
-        verify(eventRepository).save(any(Event.class));
-        verify(eventPublisher).publishEventCancelled("event123", "organizer123");
-    }
-
-    @Test
     void sendInvitation_Success() {
         // Arrange
         SendInvitationCommand command = SendInvitationCommand.builder()
