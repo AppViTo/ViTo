@@ -1,6 +1,8 @@
 package com.vito.event.infrastructure.adapter.outbound.persistence;
 
 import com.vito.event.domain.model.Event;
+import com.vito.event.domain.model.EventPatch.Change;
+import com.vito.event.domain.model.EventPatch;
 import com.vito.event.support.MongoContainerTest;
 import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,8 +16,11 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 /** T003: el adaptador contra un MongoDB real (los tests con mock no ven el filtro aplicado). */
@@ -72,5 +77,88 @@ class EventMongoAdapterIntegrationTest extends MongoContainerTest {
                 .settings(Event.EventSettings.builder().isPublic(isPublic).build())
                 .createdAt(Instant.now())
                 .build();
+    }
+
+    // ---- applyPatch (US2): $set/$unset condicional, sin tocar stats
+
+    private Event editable(String id, int maxAttendees, int accepted) {
+        Instant start = Instant.now().plus(10, ChronoUnit.DAYS).truncatedTo(ChronoUnit.MILLIS);
+        return adapter.save(Event.builder().id(id).organizerId("usr_org").title("Boda").description("Ceremonia")
+                .status(Event.EventStatus.PUBLISHED)
+                .details(Event.EventDetails.builder().startDate(start).endDate(start.plus(8, ChronoUnit.HOURS))
+                        .location("Hacienda").address("Km 5").tags(List.of("boda")).build())
+                .settings(Event.EventSettings.builder().isPublic(true).enableMosaic(true).maxAttendees(maxAttendees).build())
+                .stats(Event.EventStats.builder().totalAccepted(accepted).totalInvited(120).totalWaitlisted(3).build())
+                .build());
+    }
+
+    @Test
+    void applyPatchChangesOnlyTheSentFieldsAndKeepsStats() {
+        editable("evt_p1", 150, 96);
+        // Un RSVP que suma entre la lectura y la edición: la edición no lo pisa
+        adapter.tryReserveSeat("evt_p1");
+        Instant now = Instant.now();
+
+        Event updated = adapter.applyPatch("evt_p1", EventPatch.builder()
+                .title(Change.of("Boda — ceremonia y fiesta"))
+                .description(Change.of(null))
+                .location(Change.of("Hacienda El Retiro"))
+                .maxAttendees(Change.of(160))
+                .build(), "Alex Villa", now).orElseThrow();
+
+        assertEquals("Boda — ceremonia y fiesta", updated.getTitle());
+        assertNull(updated.getDescription());
+        assertEquals("Hacienda El Retiro", updated.getDetails().getLocation());
+        assertEquals("Km 5", updated.getDetails().getAddress());
+        assertEquals(List.of("boda"), updated.getDetails().getTags());
+        assertEquals(160, updated.getSettings().getMaxAttendees());
+        assertTrue(updated.getSettings().isPublic());
+        assertTrue(updated.getSettings().isEnableMosaic());
+        assertEquals(97, updated.getStats().getTotalAccepted());
+        assertEquals(120, updated.getStats().getTotalInvited());
+        assertEquals("Alex Villa", updated.getOrganizerDisplayName());
+        assertEquals(now.truncatedTo(ChronoUnit.MILLIS), updated.getUpdatedAt());
+        assertEquals("Boda — ceremonia y fiesta", adapter.findById("evt_p1").orElseThrow().getTitle());
+    }
+
+    @Test
+    void applyPatchWithoutNameKeepsTheStoredOne() {
+        Event event = editable("evt_p2", 10, 0);
+        event.setOrganizerDisplayName("Alex");
+        adapter.save(event);
+
+        Event updated = adapter.applyPatch("evt_p2", EventPatch.builder().title(Change.of("Otro título")).build(),
+                null, Instant.now()).orElseThrow();
+
+        assertEquals("Alex", updated.getOrganizerDisplayName());
+    }
+
+    @Test
+    void applyPatchRefusesACapacityBelowTheAccepted() {
+        editable("evt_p3", 10, 5);
+
+        assertEquals(Optional.empty(), adapter.applyPatch("evt_p3",
+                EventPatch.builder().maxAttendees(Change.of(4)).build(), null, Instant.now()));
+        assertEquals(10, adapter.findById("evt_p3").orElseThrow().getSettings().getMaxAttendees());
+
+        assertEquals(5, adapter.applyPatch("evt_p3", EventPatch.builder().maxAttendees(Change.of(5)).build(),
+                null, Instant.now()).orElseThrow().getSettings().getMaxAttendees());
+        assertEquals(0, adapter.applyPatch("evt_p3", EventPatch.builder().maxAttendees(Change.of(0)).build(),
+                null, Instant.now()).orElseThrow().getSettings().getMaxAttendees());
+    }
+
+    @Test
+    void applyPatchRefusesCancelledCompletedAndEndedEvents() {
+        EventPatch patch = EventPatch.builder().title(Change.of("Otro título")).build();
+        for (Event.EventStatus status : new Event.EventStatus[]{Event.EventStatus.CANCELLED, Event.EventStatus.COMPLETED}) {
+            Event event = editable("evt_" + status, 10, 0);
+            event.setStatus(status);
+            adapter.save(event);
+            assertEquals(Optional.empty(), adapter.applyPatch(event.getId(), patch, null, Instant.now()), status.name());
+        }
+        Event ended = editable("evt_ended", 10, 0);
+        assertEquals(Optional.empty(), adapter.applyPatch("evt_ended", patch, null,
+                ended.getDetails().getEndDate().plusSeconds(1)));
+        assertEquals("Boda", adapter.findById("evt_ended").orElseThrow().getTitle());
     }
 }

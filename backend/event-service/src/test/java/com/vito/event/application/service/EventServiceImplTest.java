@@ -112,48 +112,6 @@ class EventServiceImplTest {
     }
 
     @Test
-    void updateEvent_Success() {
-        // Arrange
-        UpdateEventCommand command = UpdateEventCommand.builder()
-                .eventId("event123")
-                .userId("organizer123")
-                .title("Updated Title")
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
-
-        // Act
-        Event result = eventService.updateEvent(command);
-
-        // Assert
-        assertNotNull(result);
-
-        verify(eventRepository).findById("event123");
-        verify(eventRepository).save(any(Event.class));
-        verify(eventPublisher).publishEventUpdated("event123", "organizer123");
-    }
-
-    @Test
-    void updateEvent_NotAuthorized_ThrowsException() {
-        // Arrange
-        UpdateEventCommand command = UpdateEventCommand.builder()
-                .eventId("event123")
-                .userId("user456")
-                .title("Updated Title")
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-
-        // Act & Assert
-        EventException exception = assertThrows(
-                EventException.class,
-                () -> eventService.updateEvent(command)
-        );
-        assertEquals("No tienes permiso para realizar esta acción", exception.getMessage());
-    }
-
-    @Test
     void cancelEvent_Success() {
         // Arrange
         when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
@@ -534,21 +492,6 @@ class EventServiceImplTest {
         ArgumentCaptor<Event> saved = ArgumentCaptor.forClass(Event.class);
         verify(eventRepository).save(saved.capture());
         assertEquals("Alex Villa", saved.getValue().getOrganizerDisplayName());
-    }
-
-    @Test
-    void updateEvent_RefreshesOrganizerDisplayNameOnlyWhenPresent() {
-        testEvent.setOrganizerDisplayName("Alex");
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        Event unchanged = eventService.updateEvent(UpdateEventCommand.builder()
-                .eventId("event123").userId("organizer123").title("Otro").build());
-        assertEquals("Alex", unchanged.getOrganizerDisplayName());
-
-        Event renamed = eventService.updateEvent(UpdateEventCommand.builder()
-                .eventId("event123").userId("organizer123").organizerDisplayName("Alex Villa").build());
-        assertEquals("Alex Villa", renamed.getOrganizerDisplayName());
     }
 
     // ---- stats según quién consulta (T027, R7) ---------------------------------------

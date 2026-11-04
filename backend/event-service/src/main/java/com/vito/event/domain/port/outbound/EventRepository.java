@@ -1,6 +1,7 @@
 package com.vito.event.domain.port.outbound;
 
 import com.vito.event.domain.model.Event;
+import com.vito.event.domain.model.EventPatch;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -35,6 +36,15 @@ public interface EventRepository {
      */
     boolean tryReserveSeat(String eventId);
     
+    /**
+     * US2: aplica solo los campos del parche con {@code $set}/{@code $unset}, sin reescribir
+     * {@code stats} (que el RSVP cambia con {@code $inc}). Es condicional en una sola operación:
+     * el evento sigue editable en {@code now} y, si el parche fija un cupo distinto de 0,
+     * {@code totalAccepted <= maxAttendees} (FR-021).
+     * @return el evento actualizado, o vacío si alguna condición dejó de cumplirse
+     */
+    Optional<Event> applyPatch(String eventId, EventPatch patch, String organizerDisplayName, Instant now);
+
     /** Libera un lugar ({@code totalAccepted - 1}, nunca por debajo de 0). */
     void releaseSeat(String eventId);
     

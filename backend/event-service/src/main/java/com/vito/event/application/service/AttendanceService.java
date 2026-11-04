@@ -120,20 +120,40 @@ public class AttendanceService {
         }
     }
 
-    /** Promueve al {@code WAITLISTED} más antiguo; si el lugar ya lo tomó otra persona, vuelve a la lista. */
-    private void promoteNext(String eventId) {
+    /** Tope de promociones por llamada a {@link #fillFreedSeats}: corta cualquier bucle inesperado. */
+    static final int MAX_PROMOTIONS = 10_000;
+
+    /**
+     * US2: tras subir el cupo (o dejarlo sin límite), pasa la lista de espera a confirmados, por
+     * orden de llegada, mientras haya lugar.
+     * @return cuántas personas se promovieron
+     */
+    public int fillFreedSeats(String eventId) {
+        int promoted = 0;
+        while (promoted < MAX_PROMOTIONS && promoteNext(eventId)) {
+            promoted++;
+        }
+        return promoted;
+    }
+
+    /**
+     * Promueve al {@code WAITLISTED} más antiguo; si el lugar ya lo tomó otra persona, vuelve a la lista.
+     * @return {@code true} si alguien pasó a confirmado
+     */
+    private boolean promoteNext(String eventId) {
         Optional<RSVP> promoted = rsvpRepository.promoteOldestWaitlisted(eventId);
         if (promoted.isEmpty()) {
-            return;
+            return false;
         }
         RSVP before = promoted.get();
         if (eventRepository.tryReserveSeat(eventId)) {
             eventRepository.incrementStat(eventId, StatCounter.WAITLISTED, -1);
             eventPublisher.publishRSVPChanged(eventId, before.getUserId(), RSVP.RSVPStatus.ACCEPTED.name());
             log.info("Lista de espera: RSVP {} promovido en el evento {}", before.getId(), eventId);
-        } else {
-            rsvpRepository.revertToWaitlisted(before.getId(), before.getWaitlistedAt());
+            return true;
         }
+        rsvpRepository.revertToWaitlisted(before.getId(), before.getWaitlistedAt());
+        return false;
     }
 
     private static RSVP.RSVPBuilder base(Optional<RSVP> existing, String eventId, String userId, String displayName) {

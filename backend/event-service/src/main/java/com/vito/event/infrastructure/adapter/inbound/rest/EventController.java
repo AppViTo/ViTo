@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import tools.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -38,11 +39,16 @@ public class EventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(event);
     }
     
-    @PutMapping("/{eventId}")
+    /** US2 (FR-020): edición parcial con JSON Merge Patch; reemplaza al PUT, que reescribía todo. */
+    @PatchMapping(value = "/{eventId}", consumes = "application/merge-patch+json")
     public ResponseEntity<Event> updateEvent(
             @PathVariable String eventId,
-            @RequestBody EventService.UpdateEventCommand command) {
-        AuthenticatedUser currentUser = getCurrentUser();
+            @RequestBody JsonNode body) {
+        AuthenticatedUser currentUser = getCurrentUser(
+                () -> EventException.unauthenticated("Debes iniciar sesión para realizar esta acción"));
+        EventService.UpdateEventCommand command = EventService.UpdateEventCommand.builder()
+                .patch(EventPatchReader.read(body))
+                .build();
         command.setEventId(eventId);
         command.setUserId(currentUser.id());
         command.setOrganizerDisplayName(currentUser.displayName());
