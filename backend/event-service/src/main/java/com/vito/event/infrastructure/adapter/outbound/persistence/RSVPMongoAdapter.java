@@ -111,8 +111,17 @@ public class RSVPMongoAdapter implements RSVPRepository {
      * T021 (Principio VII): un RSVP por persona y evento, y el orden de la lista de espera.
      * Se crean después de {@code Ola1DataMigration}, que quita los duplicados.
      */
+    @Override
+    public List<String> findEventIdsAnsweredBy(String userId) {
+        Query query = new Query(Criteria.where("userId").is(userId).and("status").ne(RSVP.RSVPStatus.DECLINED));
+        return mongoTemplate.findDistinct(query, "eventId", "rsvps", String.class);
+    }
+
+    /** {@code {userId, status}}: eventos de una persona para {@code scope=invited} (R10). */
     public void ensureIndexes() {
         var indexOps = mongoTemplate.indexOps("rsvps");
+        indexOps.createIndex(new Index().on("userId", Sort.Direction.ASC).on("status", Sort.Direction.ASC)
+                .named("userId_status"));
         indexOps.createIndex(new Index().on("eventId", Sort.Direction.ASC).on("userId", Sort.Direction.ASC)
                 .unique().named("eventId_userId_unique"));
         indexOps.createIndex(new Index().on("eventId", Sort.Direction.ASC).on("status", Sort.Direction.ASC)

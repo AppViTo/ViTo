@@ -2,6 +2,8 @@ package com.vito.event.domain.port.outbound;
 
 import com.vito.event.domain.model.Event;
 
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,6 +18,9 @@ public interface EventRepository {
     List<Event> findByStatus(Event.EventStatus status, int page, int size);
     
     List<Event> findUpcomingEvents(int page, int size);
+
+    /** R10: de {@code ids}, los {@code PUBLISHED} con {@code endDate} posterior a {@code now}, por {@code startDate} ascendente. */
+    List<Event> findActiveByIds(Collection<String> ids, Instant now, int page, int size);
     
     List<Event> findByTag(String tag, int page, int size);
     

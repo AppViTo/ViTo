@@ -12,6 +12,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -64,6 +65,25 @@ public class EventMongoAdapter implements EventRepository {
         return mongoTemplate.find(query, Event.class, "events");
     }
     
+    @Override
+    public List<Event> findActiveByIds(Collection<String> ids, Instant now, int page, int size) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Query query = new Query(Criteria.where("_id").in(ids.stream().map(EventMongoAdapter::idValue).toList())
+                .and("status").is(Event.EventStatus.PUBLISHED)
+                .and("details.endDate").gt(now))
+                .with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.ASC, "details.startDate"))
+                .skip((long) page * size)
+                .limit(size);
+        return mongoTemplate.find(query, Event.class, "events");
+    }
+
+    /** Los ids de eventos se guardan como ObjectId; en invitaciones y RSVP, como texto. */
+    private static Object idValue(String id) {
+        return org.bson.types.ObjectId.isValid(id) ? new org.bson.types.ObjectId(id) : id;
+    }
+
     @Override
     public List<Event> findByTag(String tag, int page, int size) {
         Query query = new Query(Criteria.where("details.tags").in(tag)

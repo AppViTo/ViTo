@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -485,10 +486,40 @@ class EventServiceImplTest {
     void listScope_AcceptsOnlyContractValues() {
         assertEquals(ListScope.MINE, ListScope.fromValue("mine"));
         assertEquals(ListScope.UPCOMING, ListScope.fromValue("upcoming"));
-        for (String invalid : new String[] {"MINE", "public", "all", ""}) {
+        assertEquals(ListScope.INVITED, ListScope.fromValue("invited"));
+        for (String invalid : new String[] {"MINE", "public", "all", "INVITED", ""}) {
             EventException ex = assertThrows(EventException.class, () -> ListScope.fromValue(invalid));
-            assertEquals("El scope debe ser mine o upcoming", ex.getMessage());
+            assertEquals("El scope debe ser mine, upcoming o invited", ex.getMessage());
         }
+    }
+
+    // ---- scope=invited (T040, R10) -----------------------------------------------------
+
+    @Test
+    void listEvents_Invited_JoinsInvitationsAndAnswersWithoutRepeating() {
+        when(invitationRepository.findEventIdsInviting(eq("guest1"), any())).thenReturn(java.util.List.of("event123", "e2"));
+        when(rsvpRepository.findEventIdsAnsweredBy("guest1")).thenReturn(java.util.List.of("e2", "e3"));
+        when(eventRepository.findActiveByIds(any(), any(), eq(0), eq(20))).thenReturn(java.util.List.of(testEvent));
+
+        java.util.List<Event> events = eventService.listEvents(ListScope.INVITED, "guest1", 0, 20);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<java.util.Collection<String>> ids = ArgumentCaptor.forClass(java.util.Collection.class);
+        verify(eventRepository).findActiveByIds(ids.capture(), any(), eq(0), eq(20));
+        assertEquals(java.util.List.of("event123", "e2", "e3"), java.util.List.copyOf(ids.getValue()));
+        assertEquals(1, events.size());
+        // Quien consulta no organiza: stats reducido (R7)
+        assertNull(events.get(0).getStats().getTotalInvited());
+    }
+
+    @Test
+    void listEvents_Invited_HidesTheAddressUntilAccepted() {
+        when(invitationRepository.findEventIdsInviting(eq("guest1"), any())).thenReturn(java.util.List.of("event123"));
+        when(rsvpRepository.findEventIdsAnsweredBy("guest1")).thenReturn(java.util.List.of());
+        when(eventRepository.findActiveByIds(any(), any(), eq(0), eq(20))).thenReturn(java.util.List.of(eventHidingAddress()));
+        when(rsvpRepository.findByEventIdAndUserId("event123", "guest1")).thenReturn(Optional.empty());
+
+        assertAddressHidden(eventService.listEvents(ListScope.INVITED, "guest1", 0, 20).get(0));
     }
 
     // ---- Nombre visible (T025, R6) ----------------------------------------------------

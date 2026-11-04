@@ -49,6 +49,12 @@ public class Event {
         return viewerAccepted || (viewerId != null && viewerId.equals(organizerId));
     }
     
+    /** Publicado y sin terminar: admite respuestas e invitados (R3, FR-007). */
+    public boolean isActiveAt(Instant now) {
+        return status == EventStatus.PUBLISHED
+                && (details == null || details.getEndDate() == null || details.getEndDate().isAfter(now));
+    }
+
     /** Copia con {@code stats} reducido a {@code totalAccepted} (R7); nunca se guarda. */
     public Event withAcceptedCountOnly() {
         return toBuilder().stats(stats == null ? null : stats.acceptedOnly()).build();

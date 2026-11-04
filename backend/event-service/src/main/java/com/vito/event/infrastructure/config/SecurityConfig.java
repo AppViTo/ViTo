@@ -2,6 +2,7 @@ package com.vito.event.infrastructure.config;
 
 import com.vito.event.infrastructure.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -25,6 +26,9 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/events/**").authenticated()
+                // R5: solo GET /api/v1/invite-links/{token} (un segmento) es público; accept no
+                .requestMatchers(HttpMethod.GET, "/api/v1/invite-links/*").permitAll()
+                .requestMatchers("/api/v1/invite-links/**").authenticated()
                 .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -51,7 +51,9 @@ public interface EventService {
     /** Valores de {@code scope} en listEvents: enum cerrado (ADR-014). */
     enum ListScope {
         MINE("mine"),
-        UPCOMING("upcoming");
+        UPCOMING("upcoming"),
+        /** R10: invitaciones vigentes o aceptadas y RSVP distintos de DECLINED de quien consulta. */
+        INVITED("invited");
 
         private final String value;
 

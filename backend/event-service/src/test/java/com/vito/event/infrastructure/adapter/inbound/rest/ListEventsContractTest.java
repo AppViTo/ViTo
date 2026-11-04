@@ -44,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -71,12 +72,13 @@ class ListEventsContractTest {
 
     private final EventRepository eventRepository = mock(EventRepository.class);
     private final RSVPRepository rsvpRepository = mock(RSVPRepository.class);
+    private final InvitationRepository invitationRepository = mock(InvitationRepository.class);
     private MockMvc mvc;
 
     @BeforeEach
     void setUp() {
         EventServiceImpl service = new EventServiceImpl(eventRepository, rsvpRepository,
-                mock(InvitationRepository.class), mock(EventPublisherPort.class), mock(QRCodeGenerator.class),
+                invitationRepository, mock(EventPublisherPort.class), mock(QRCodeGenerator.class),
                 mock(AttendanceService.class));
         mvc = MockMvcBuilders.standaloneSetup(new EventController(service))
                 .setControllerAdvice(new GlobalExceptionHandler())
@@ -115,6 +117,21 @@ class ListEventsContractTest {
         perform(get("/api/v1/events").param("organizerId", "usr_otro").param("userId", "usr_otro"), 200);
         verify(eventRepository).findByOrganizerId(ORGANIZER, 0, 20);
         verify(eventRepository, never()).findByOrganizerId("usr_otro", 0, 20);
+    }
+
+    /** T040 (R10): eventos a los que invitaron a quien consulta, con stats reducido (R7). */
+    @Test
+    void scopeInvited_ListsInvitedEvents_AsFixture() throws Exception {
+        authenticateAs(VIEWER);
+        List<Event> invited = fixtureEvents("listEvents.invited.200.json");
+        // El repositorio devuelve el evento completo; la vista del invitado lo reduce
+        invited.get(0).setStats(Event.EventStats.builder().totalInvited(120).totalAccepted(96).totalDeclined(4).build());
+        when(invitationRepository.findEventIdsInviting(eq(VIEWER), any())).thenReturn(List.of("evt_01H9ZP5RKM"));
+        when(rsvpRepository.findEventIdsAnsweredBy(VIEWER)).thenReturn(List.of());
+        when(eventRepository.findActiveByIds(any(), any(), eq(0), eq(20))).thenReturn(invited);
+
+        assertMatchesFixture("listEvents.invited.200.json",
+                perform(get("/api/v1/events").param("scope", "invited"), 200));
     }
 
     @Test
