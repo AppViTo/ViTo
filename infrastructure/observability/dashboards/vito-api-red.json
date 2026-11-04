@@ -9,7 +9,7 @@
   ],
   "timezone": "utc",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
   "time": {
     "from": "now-6h",
@@ -313,6 +313,39 @@
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "429 por ruta (enlaces de invitación)",
+      "description": "T062 (Ola 1): peticiones cortadas por el límite de tasa del gateway, por ruta. invite-link-preview es la vista previa pública (10/min por IP); invite-links, unirse por enlace (por usuario). Un pico sostenido en la vista previa sugiere que alguien prueba tokens.",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (routeId) (rate(spring_cloud_gateway_requests_seconds_count{job=\"vito\",service=\"api-gateway\",httpStatusCode=\"429\",routeId=~\"invite-link.*\"}[5m])) * 60",
+          "legendFormat": "{{routeId}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqpm",
+          "min": 0
         }
       }
     }

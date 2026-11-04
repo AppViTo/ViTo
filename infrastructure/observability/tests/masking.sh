@@ -15,6 +15,7 @@ cat >"$tmp/input.log" <<'EOF'
 {"level":"ERROR","service":"auth-service","msg":"{\"password\":\"x\"}"}
 {"level":"INFO","service":"checkin-service","msg":"jwt eyJhbGciOi.eyJzdWIi.c2ln"}
 {"level":"INFO","service":"event-service","msg":"contact ops@example.test"}
+{"level":"ERROR","service":"event-service","msg":"fallo en /api/v1/invite-links/k3J9xQ2mV7pL1sT8wY4zBc/accept"}
 EOF
 
 python3 - "$ROOT/config.alloy" "$tmp/input.log" "$tmp/mask-test.alloy" <<'PY'
@@ -69,7 +70,7 @@ if [[ $rc -ne 0 && $rc -ne 124 ]]; then
   exit "$rc"
 fi
 
-if grep -Eq 'Bearer abc123|token=abc123|"password":"x"|eyJhbGciOi\.eyJzdWIi\.c2ln|ops@example\.test' "$out"; then
+if grep -Eq 'Bearer abc123|token=abc123|"password":"x"|eyJhbGciOi\.eyJzdWIi\.c2ln|ops@example\.test|k3J9xQ2mV7pL1sT8wY4zBc' "$out"; then
   echo "✗ el enmascarado dejó pasar un secreto" >&2
   grep -E 'received log entry' "$out" >&2 || true
   exit 1
@@ -80,7 +81,8 @@ for expected in \
   'token=\[REDACTED\]' \
   '\\"password\\":\\"\[REDACTED\]\\"' \
   '\[REDACTED_JWT\]' \
-  '\[REDACTED_EMAIL\]'; do
+  '\[REDACTED_EMAIL\]' \
+  'invite-links/\{token\}/accept'; do
   if ! grep -Eq "$expected" "$out"; then
     echo "✗ falta el valor enmascarado: $expected" >&2
     grep -E 'received log entry' "$out" >&2 || true

@@ -2,6 +2,10 @@ package com.vito.auth.application.service;
 
 import com.vito.auth.domain.exception.AuthenticationException;
 import com.vito.auth.domain.model.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -46,5 +50,36 @@ class TokenProviderTest {
         String refresh = provider.generateRefreshToken(user);
 
         assertThrows(AuthenticationException.class, () -> provider.parseAccessToken(refresh));
+    }
+
+    // ---- Claim name (T016, R6) -----------------------------------------------------------
+
+    private User withDisplayName(String displayName) {
+        return User.builder().id("user123").username("testuser").email("test@example.com").roles(List.of("USER"))
+                .profile(User.Profile.builder().displayName(displayName).build()).build();
+    }
+
+    private Claims claims(String token) {
+        return Jwts.parser().verifyWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8))).build()
+                .parseSignedClaims(token).getPayload();
+    }
+
+    @Test
+    void accessTokenCarriesTheDisplayNameAsNameClaim() {
+        User named = withDisplayName("  José Begoña ");
+
+        assertEquals("José Begoña", claims(provider.generateAccessToken(named)).get("name", String.class));
+    }
+
+    @Test
+    void withoutDisplayNameTheNameClaimIsTheUsername() {
+        assertEquals("testuser", claims(provider.generateAccessToken(user)).get("name", String.class));
+        User blank = withDisplayName("  ");
+        assertEquals("testuser", claims(provider.generateAccessToken(blank)).get("name", String.class));
+    }
+
+    @Test
+    void refreshTokenDoesNotCarryTheName() {
+        assertEquals(null, claims(provider.generateRefreshToken(user)).get("name"));
     }
 }

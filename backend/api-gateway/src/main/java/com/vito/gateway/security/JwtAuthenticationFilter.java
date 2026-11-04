@@ -11,13 +11,17 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.PathContainer;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.CloseStatus;
 import org.springframework.web.reactive.socket.server.WebSocketService;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.pattern.PathPattern;
+import org.springframework.web.util.pattern.PathPatternParser;
 import reactor.core.publisher.Mono;
 
 import javax.crypto.SecretKey;
@@ -38,7 +42,11 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     public static final String AUTHENTICATED_USER_ATTR = "vito.authenticatedUserId";
 
     /** Headers de identidad de ADR-007: solo el gateway puede ponerlos. */
-    static final List<String> USER_HEADERS = List.of("X-User-Id", "X-User-Email", "X-User-Roles");
+    static final List<String> USER_HEADERS = List.of("X-User-Id", "X-User-Email", "X-User-Roles", "X-User-Name");
+
+    /** Nombre visible (R6): claim {@code name} del access token, reenviado como {@code X-User-Name}. */
+    static final String NAME_CLAIM = "name";
+    static final int MAX_NAME_LENGTH = 100;
 
     /** Rutas WebSocket (ADR-006): el token llega en {@code ?token=} porque el navegador no envía headers. */
     static final String WS_PATH_PREFIX = "/ws/";
@@ -60,10 +68,27 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         this.revokedAccessTokens = revokedAccessTokens;
     }
 
-    private static final List<String> PUBLIC_PATHS = List.of(
-            "/api/v1/auth/login",
-            "/api/v1/auth/register",
-            "/api/v1/auth/refresh"
+    /**
+     * Operaciones con {@code security: []} en openapi.yaml (R5): método y patrón exactos. Antes era
+     * un {@code startsWith} por ruta, que con {@code /api/v1/invite-links/} habría dejado pública
+     * también {@code POST .../accept}.
+     */
+    record PublicRoute(HttpMethod method, PathPattern pattern) {
+        static PublicRoute of(HttpMethod method, String pattern) {
+            return new PublicRoute(method, PathPatternParser.defaultInstance.parse(pattern));
+        }
+
+        boolean matches(HttpMethod requestMethod, PathContainer path) {
+            return method.equals(requestMethod) && pattern.matches(path);
+        }
+    }
+
+    static final List<PublicRoute> PUBLIC_ROUTES = List.of(
+            PublicRoute.of(HttpMethod.POST, "/api/v1/auth/login"),
+            PublicRoute.of(HttpMethod.POST, "/api/v1/auth/register"),
+            PublicRoute.of(HttpMethod.POST, "/api/v1/auth/refresh"),
+            // Vista previa de un enlace de invitación: un solo segmento tras invite-links
+            PublicRoute.of(HttpMethod.GET, "/api/v1/invite-links/{token}")
     );
 
     @Override
@@ -75,7 +100,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         ServerWebExchange sanitized = exchange.mutate().request(request).build();
         String path = request.getURI().getPath();
 
-        if (isPublicPath(path)) {
+        if (isPublic(request)) {
             return chain.filter(sanitized);
         }
 
@@ -89,7 +114,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         try {
             claims = validateToken(token);
         } catch (JwtException | IllegalArgumentException e) {
-            log.debug("Rejected token for {}: {}", path, e.getMessage());
+            log.debug("Rejected token for {}: {}", InviteLinkTokenRedaction.redact(path), e.getMessage());
             return reject(sanitized, webSocket, INVALID_TOKEN_MESSAGE);
         }
 
@@ -99,7 +124,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         Mono<Boolean> revoked = jti == null ? Mono.just(false) : revokedAccessTokens.isRevoked(jti);
         return revoked.flatMap(isRevoked -> {
             if (isRevoked) {
-                log.debug("Rejected revoked token for {}", path);
+                log.debug("Rejected revoked token for {}", InviteLinkTokenRedaction.redact(path));
                 return reject(sanitized, webSocket, INVALID_TOKEN_MESSAGE);
             }
             return forwardAuthenticated(sanitized, chain, claims, webSocket);
@@ -116,6 +141,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 .header("X-User-Id", claims.getSubject())
                 .header("X-User-Email", claims.get("email", String.class))
                 .header("X-User-Roles", rolesHeader(claims.get("roles")));
+        String name = nameHeader(claims.get(NAME_CLAIM));
+        if (name != null) {
+            modifiedRequest.header("X-User-Name", name);
+        }
         if (webSocket) {
             // El servicio recibe la identidad por X-User-*; el token no viaja más allá del gateway
             modifiedRequest.uri(withoutTokenParam(request.getURI()));
@@ -161,8 +190,36 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         return roles.toString();
     }
 
-    private boolean isPublicPath(String path) {
-        return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
+    static boolean isPublic(ServerHttpRequest request) {
+        PathContainer path = PathContainer.parsePath(request.getURI().getRawPath());
+        return PUBLIC_ROUTES.stream().anyMatch(route -> route.matches(request.getMethod(), path));
+    }
+
+    /**
+     * Valor de {@code X-User-Name}, o {@code null} si no se envía. Netty escribe los headers en
+     * ISO-8859-1 y Tomcat los lee igual, así que "José" o "Begoña" llegan intactos; un nombre con
+     * otros caracteres (emoji, CJK) no se envía para no llegar corrupto: event-service lee el
+     * claim firmado del token, que sí los conserva. Sin saltos de línea ni controles.
+     */
+    static String nameHeader(Object claim) {
+        if (!(claim instanceof String raw)) {
+            return null;
+        }
+        String name = raw.strip();
+        if (name.length() > MAX_NAME_LENGTH) {
+            name = name.substring(0, MAX_NAME_LENGTH).strip();
+        }
+        if (name.isEmpty()) {
+            return null;
+        }
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            boolean printableLatin1 = (c >= 0x20 && c <= 0x7E) || (c >= 0xA0 && c <= 0xFF);
+            if (!printableLatin1) {
+                return null;
+            }
+        }
+        return name;
     }
 
     private Claims validateToken(String token) {

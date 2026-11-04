@@ -108,7 +108,8 @@ El endpoint `/healthz` es infraestructura: Caddy lo reescribe a
 Importa en **Dashboards → New → Import**:
 
 - [`dashboards/vito-api-red.json`](dashboards/vito-api-red.json): peticiones/min, % 4xx/5xx,
-  p95/p99 por URI del gateway, `up` y memoria JVM por servicio.
+  p95/p99 por URI del gateway, `up` y memoria JVM por servicio, y 429 por ruta de los enlaces
+  de invitación (Ola 1, T062).
 - [`dashboards/vito-services-red.json`](dashboards/vito-services-red.json): `up`, memoria,
   CPU y reinicios de contenedor por servicio.
 
