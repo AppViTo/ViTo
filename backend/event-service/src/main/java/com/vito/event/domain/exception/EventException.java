@@ -85,20 +85,19 @@ public class EventException extends RuntimeException {
         return new EventException(Reason.CONFLICT, "El evento alcanzó su capacidad máxima");
     }
 
-    public static EventException alreadyRSVP() {
-        return new EventException(Reason.CONFLICT, "Ya respondiste a este evento");
-    }
-
+    /** respondRsvp.409 */
     public static EventException cannotRSVPToOwnEvent() {
-        return new EventException(Reason.INVALID, "No puedes responder a tu propio evento");
+        return new EventException(Reason.CONFLICT, "No puedes responder RSVP a tu propio evento");
     }
 
-    public static EventException invitationNotFound() {
-        return new EventException(Reason.NOT_FOUND, "La invitación no existe");
+    /** R3: evento terminado, con {@code endDate} pasada o sin publicar. */
+    public static EventException rsvpClosed() {
+        return new EventException(Reason.CONFLICT, "El evento ya no admite respuestas");
     }
 
-    public static EventException invitationExpired() {
-        return new EventException(Reason.INVALID, "La invitación expiró");
+    public static EventException rsvpMessageTooLong(int max) {
+        return new EventException(Reason.INVALID, "El mensaje admite máximo " + max + " caracteres",
+                Map.of("message", "Máximo " + max + " caracteres"));
     }
 
     public static EventException alreadyInvited() {

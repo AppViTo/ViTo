@@ -82,7 +82,7 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 |----|-------|------------|------------------------|
 | T-C10 | Contrato de la Ola 1 (🟡 RFC) | Agente frontend (Alex) | Issue `contract-change`, rama `contract/ola-1` y redacción de `openapi.yaml`, fixtures, CONVENTIONS y enmiendas a ADR-014/016 (T002, T006–T013). No se mergea sin D-08 y 1 CODEOWNER. |
 | T-F12 | App de la Ola 1 | Agente frontend (Alex) | Nada hasta el merge de T-C10; después avanza contra el mock de Prism. |
-| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | Fase fundacional: T020–T027 y T066 (#256 y siguiente). Sigue US3. |
+| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | Fundacional (T020–T027, T066) y US3 (T028–T031). Sigue US1 (enlaces). |
 | T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | Desbloqueada: contrato mergeado (#253). |
 | T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); falta T061 (k6). |
 | T-B36 | Outbox y AsyncAPI de los eventos de `event-service` | Sesión de Bernardo | Bloqueada por T-C05. |
@@ -923,7 +923,11 @@ depende del contrato.
 - **Avance (2026-11-04):** nombre visible desde el token o `X-User-Name` (T025), resultado de
   cada envío a Kafka en el log (T026) y `stats` con solo `totalAccepted` para quien no organiza
   (T027; el fixture de `upcoming` se corrige en #257). T067 (token del enlace fuera de trazas y
-  logs) va con las rutas de enlaces (T034–T040) y con T-B35 en el gateway. Sigue US3 (T028–T031).
+  logs) va con las rutas de enlaces (T034–T040) y con T-B35 en el gateway.
+- **Avance (2026-11-04, US3):** `respondRsvp` como upsert con el acceso de R3, la invitación
+  que sigue a la respuesta (FR-017), sin QR y con la respuesta `Rsvp` del contrato; se retira
+  `invitations/respond` (T028–T031). La app aún llama a esa ruta: no se despliega antes de que
+  T-F12 la migre a `/rsvp`. Sigue US1 (enlaces, T034–T040).
 
 ### T-B35 · `auth-service` y gateway de la Ola 1 — 🟢 READY (contrato en #253) · P0 · Principio III
 - **Qué:** T016–T019, T059 y T062 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): claim `name` en el access token; `X-User-Name`
