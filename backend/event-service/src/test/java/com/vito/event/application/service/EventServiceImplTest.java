@@ -168,109 +168,6 @@ class EventServiceImplTest {
     }
 
     @Test
-    void respondToRSVP_Success() {
-        // Arrange
-        RespondRSVPCommand command = RespondRSVPCommand.builder()
-                .eventId("event123")
-                .userId("user456")
-                .status(RSVP.RSVPStatus.ACCEPTED)
-                .build();
-
-        RSVP accepted = RSVP.builder().eventId("event123").userId("user456")
-                .status(RSVP.RSVPStatus.ACCEPTED).build();
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(rsvpRepository.existsByEventIdAndUserId("event123", "user456")).thenReturn(false);
-        when(attendanceService.confirm("event123", "user456", null, null)).thenReturn(accepted);
-        when(qrCodeGenerator.generateCheckInQR("event123", "user456")).thenReturn("qr_code_123");
-        when(rsvpRepository.save(any(RSVP.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        // Act
-        RSVP result = eventService.respondToRSVP(command);
-
-        // Assert
-        assertEquals("qr_code_123", result.getCheckInQrCode());
-
-        verify(eventRepository, atLeastOnce()).findById("event123");
-        verify(rsvpRepository).existsByEventIdAndUserId("event123", "user456");
-        verify(eventPublisher).publishRSVPChanged("event123", "user456", "ACCEPTED");
-    }
-
-    @Test
-    void respondToRSVP_WithoutSeat_PublishesWaitlisted() {
-        RespondRSVPCommand command = RespondRSVPCommand.builder()
-                .eventId("event123")
-                .userId("user456")
-                .status(RSVP.RSVPStatus.ACCEPTED)
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(rsvpRepository.existsByEventIdAndUserId("event123", "user456")).thenReturn(false);
-        when(attendanceService.confirm("event123", "user456", null, null)).thenReturn(RSVP.builder()
-                .eventId("event123").userId("user456").status(RSVP.RSVPStatus.WAITLISTED).build());
-
-        RSVP result = eventService.respondToRSVP(command);
-
-        assertEquals(RSVP.RSVPStatus.WAITLISTED, result.getStatus());
-        assertNull(result.getCheckInQrCode());
-        verify(eventPublisher).publishRSVPChanged("event123", "user456", "WAITLISTED");
-        verifyNoInteractions(qrCodeGenerator);
-    }
-
-    @Test
-    void respondToRSVP_PendingIsNotAnAnswer() {
-        RespondRSVPCommand command = RespondRSVPCommand.builder()
-                .eventId("event123")
-                .userId("user456")
-                .status(RSVP.RSVPStatus.PENDING)
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(rsvpRepository.existsByEventIdAndUserId("event123", "user456")).thenReturn(false);
-
-        EventException exception = assertThrows(EventException.class, () -> eventService.respondToRSVP(command));
-        assertEquals(EventException.Reason.INVALID, exception.getReason());
-    }
-
-    @Test
-    void respondToRSVP_CannotRSVPToOwnEvent_ThrowsException() {
-        // Arrange
-        RespondRSVPCommand command = RespondRSVPCommand.builder()
-                .eventId("event123")
-                .userId("organizer123")
-                .status(RSVP.RSVPStatus.ACCEPTED)
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-
-        // Act & Assert
-        EventException exception = assertThrows(
-                EventException.class,
-                () -> eventService.respondToRSVP(command)
-        );
-        assertEquals("No puedes responder a tu propio evento", exception.getMessage());
-    }
-
-    @Test
-    void respondToRSVP_AlreadyRSVP_ThrowsException() {
-        // Arrange
-        RespondRSVPCommand command = RespondRSVPCommand.builder()
-                .eventId("event123")
-                .userId("user456")
-                .status(RSVP.RSVPStatus.ACCEPTED)
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(rsvpRepository.existsByEventIdAndUserId("event123", "user456")).thenReturn(true);
-
-        // Act & Assert
-        EventException exception = assertThrows(
-                EventException.class,
-                () -> eventService.respondToRSVP(command)
-        );
-        assertEquals("Ya respondiste a este evento", exception.getMessage());
-    }
-
-    @Test
     void sendInvitation_Success() {
         // Arrange
         SendInvitationCommand command = SendInvitationCommand.builder()
@@ -621,18 +518,6 @@ class EventServiceImplTest {
         Event renamed = eventService.updateEvent(UpdateEventCommand.builder()
                 .eventId("event123").userId("organizer123").organizerDisplayName("Alex Villa").build());
         assertEquals("Alex Villa", renamed.getOrganizerDisplayName());
-    }
-
-    @Test
-    void respondToRSVP_PassesTheDisplayName() {
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(attendanceService.release("event123", "guest1", RSVP.RSVPStatus.MAYBE, "Ana", null))
-                .thenReturn(RSVP.builder().eventId("event123").userId("guest1").status(RSVP.RSVPStatus.MAYBE).build());
-
-        eventService.respondToRSVP(RespondRSVPCommand.builder().eventId("event123").userId("guest1")
-                .displayName("Ana").status(RSVP.RSVPStatus.MAYBE).build());
-
-        verify(attendanceService).release("event123", "guest1", RSVP.RSVPStatus.MAYBE, "Ana", null);
     }
 
     // ---- stats según quién consulta (T027, R7) ---------------------------------------

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -28,6 +29,9 @@ public class EventServiceImpl implements EventService {
     private final InvitationRepository invitationRepository;
     private final EventPublisherPort eventPublisher;
     private final QRCodeGenerator qrCodeGenerator;
+
+    /** Contrato: {@code RespondRsvpRequest.message} y {@code Rsvp.message}, maxLength 280. */
+    static final int MAX_RSVP_MESSAGE = 280;
     private final AttendanceService attendanceService;
     
     @Override
@@ -176,39 +180,85 @@ public class EventServiceImpl implements EventService {
         return accepted ? view : view.withoutExactAddress();
     }
     
+    /**
+     * T030 (US3): upsert de la respuesta, único camino para responder una invitación (FR-017).
+     * Repetir la misma respuesta no cambia nada (FR-019). Ya no genera QR: pasa a
+     * checkin-service en la Ola 2.
+     */
     @Override
     public RSVP respondToRSVP(RespondRSVPCommand command) {
-        log.info("User {} responding to event {} with status: {}", 
-                command.getUserId(), command.getEventId(), command.getStatus());
-        
-        Event event = eventRepository.findById(command.getEventId())
+        RSVP.RSVPStatus answer = command.getStatus();
+        if (answer != RSVP.RSVPStatus.ACCEPTED && answer != RSVP.RSVPStatus.DECLINED
+                && answer != RSVP.RSVPStatus.MAYBE) {
+            throw EventException.invalidRsvpStatus();
+        }
+        if (command.getMessage() != null && command.getMessage().length() > MAX_RSVP_MESSAGE) {
+            throw EventException.rsvpMessageTooLong(MAX_RSVP_MESSAGE);
+        }
+        String eventId = command.getEventId();
+        String userId = command.getUserId();
+
+        Event event = eventRepository.findById(eventId)
                 .orElseThrow(EventException::eventNotFound);
-        
-        if (event.getOrganizerId().equals(command.getUserId())) {
+        if (event.getOrganizerId().equals(userId)) {
             throw EventException.cannotRSVPToOwnEvent();
         }
-        
+        Optional<Invitation> invitation = invitationRepository.findByEventIdAndInviteeId(eventId, userId);
+        if (!canRespond(event, userId, invitation)) {
+            // R3: el mismo 404 que un evento inexistente, sin revelar que existe
+            throw EventException.eventNotFound();
+        }
         if (event.getStatus() == Event.EventStatus.CANCELLED) {
             throw EventException.eventAlreadyCancelled();
         }
-        
-        if (rsvpRepository.existsByEventIdAndUserId(command.getEventId(), command.getUserId())) {
-            throw EventException.alreadyRSVP();
+        if (event.getStatus() != Event.EventStatus.PUBLISHED || hasEnded(event)) {
+            throw EventException.rsvpClosed();
         }
-        
+
         // Cupo atómico (R1): AttendanceService reserva el lugar o deja la respuesta en lista de espera
-        RSVP savedRsvp = switch (command.getStatus()) {
-            case ACCEPTED -> withCheckInQr(attendanceService.confirm(
-                    command.getEventId(), command.getUserId(), command.getDisplayName(), command.getMessage()));
-            case DECLINED, MAYBE -> attendanceService.release(command.getEventId(), command.getUserId(),
-                    command.getStatus(), command.getDisplayName(), command.getMessage());
-            default -> throw EventException.invalidRsvpStatus();
+        RSVP saved = answer == RSVP.RSVPStatus.ACCEPTED
+                ? attendanceService.confirm(eventId, userId, command.getDisplayName(), command.getMessage())
+                : attendanceService.release(eventId, userId, answer, command.getDisplayName(), command.getMessage());
+        invitation.ifPresent(inv -> syncInvitation(inv, answer));
+
+        eventPublisher.publishRSVPChanged(eventId, userId, saved.getStatus().name());
+        log.info("RSVP {} en el evento {}", saved.getStatus(), eventId);
+        return saved;
+    }
+
+    /**
+     * R3: público; invitación vigente o ya aceptada; o un RSVP previo aunque la invitación
+     * haya vencido (aclaración del 2026-11-01).
+     */
+    private boolean canRespond(Event event, String userId, Optional<Invitation> invitation) {
+        if (event.getSettings() != null && event.getSettings().isPublic()) {
+            return true;
+        }
+        boolean validInvitation = invitation
+                .filter(inv -> inv.getStatus() != Invitation.InvitationStatus.EXPIRED)
+                .filter(inv -> inv.getStatus() == Invitation.InvitationStatus.ACCEPTED || !inv.isExpired())
+                .isPresent();
+        return validInvitation || rsvpRepository.existsByEventIdAndUserId(event.getId(), userId);
+    }
+
+    private static boolean hasEnded(Event event) {
+        return event.getDetails() != null && event.getDetails().getEndDate() != null
+                && event.getDetails().getEndDate().isBefore(Instant.now());
+    }
+
+    /** FR-017: "voy" (con lugar o en espera) acepta, "no voy" rechaza, "tal vez" la deja pendiente. */
+    private void syncInvitation(Invitation invitation, RSVP.RSVPStatus answer) {
+        Invitation.InvitationStatus target = switch (answer) {
+            case ACCEPTED -> Invitation.InvitationStatus.ACCEPTED;
+            case DECLINED -> Invitation.InvitationStatus.DECLINED;
+            default -> Invitation.InvitationStatus.PENDING;
         };
-
-        eventPublisher.publishRSVPChanged(command.getEventId(), command.getUserId(),
-                savedRsvp.getStatus().name());
-
-        return savedRsvp;
+        if (invitation.getStatus() == target) {
+            return;
+        }
+        invitation.setStatus(target);
+        invitation.setRespondedAt(target == Invitation.InvitationStatus.PENDING ? null : Instant.now());
+        invitationRepository.save(invitation);
     }
     
     @Override
@@ -258,31 +308,6 @@ public class EventServiceImpl implements EventService {
     }
     
     @Override
-    public void respondToInvitation(RespondInvitationCommand command) {
-        log.info("User {} responding to invitation for event {} with status: {}", 
-                command.getInviteeId(), command.getEventId(), command.getStatus());
-        
-        Invitation invitation = invitationRepository.findByEventIdAndInviteeId(
-                command.getEventId(), command.getInviteeId())
-                .orElseThrow(EventException::invitationNotFound);
-        
-        if (invitation.isExpired()) {
-            throw EventException.invitationExpired();
-        }
-        
-        if (command.getStatus() == Invitation.InvitationStatus.ACCEPTED) {
-            invitation.accept();
-            
-            // Aceptar la invitación también respeta el cupo (R1): sin lugar queda en lista de espera
-            withCheckInQr(attendanceService.confirm(command.getEventId(), command.getInviteeId(), null, null));
-        } else {
-            invitation.decline();
-        }
-        
-        invitationRepository.save(invitation);
-    }
-    
-    @Override
     public String generateCheckInQR(String eventId, String userId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(EventException::eventNotFound);
@@ -320,14 +345,5 @@ public class EventServiceImpl implements EventService {
         eventPublisher.publishCheckIn(command.getEventId(), command.getUserId());
         
         return savedRsvp;
-    }
-    
-    /** QR de check-in para quien quedó confirmado; pasa a checkin-service en la Ola 2. */
-    private RSVP withCheckInQr(RSVP rsvp) {
-        if (rsvp.getStatus() != RSVP.RSVPStatus.ACCEPTED || rsvp.getCheckInQrCode() != null) {
-            return rsvp;
-        }
-        rsvp.setCheckInQrCode(qrCodeGenerator.generateCheckInQR(rsvp.getEventId(), rsvp.getUserId()));
-        return rsvpRepository.save(rsvp);
     }
 }

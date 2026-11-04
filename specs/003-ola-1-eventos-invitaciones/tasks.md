@@ -99,13 +99,13 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 ### Tests for User Story 3
 
-- [ ] T028 [P] [US3] [Bernardo] Pruebas primero en `ES-test/application/service/RespondRsvpTest.java`: upsert idempotente (FR-019), cambio de respuesta sin error, `WAITLISTED`/`PENDING` como entrada → 400, privado sin invitación → 404 igual al inexistente (R3), organizador → 409, evento cancelado, terminado o con `endDate` pasada → 409, invitación `PENDING` → `ACCEPTED`/`DECLINED`/sigue `PENDING` según la respuesta (FR-017); quien ya tiene un RSVP conserva el acceso a un evento privado aunque su invitación haya vencido (aclaración del 2026-11-01)
-- [ ] T029 [P] [US3] [Bernardo] Prueba de controlador contra `FX/events/respondRsvp.*` en `ES-test/infrastructure/adapter/inbound/rest/RespondRsvpContractTest.java`
+- [X] T028 [P] [US3] [Bernardo] Pruebas primero en `ES-test/application/service/RespondRsvpTest.java`: upsert idempotente (FR-019), cambio de respuesta sin error, `WAITLISTED`/`PENDING` como entrada → 400, privado sin invitación → 404 igual al inexistente (R3), organizador → 409, evento cancelado, terminado o con `endDate` pasada → 409, invitación `PENDING` → `ACCEPTED`/`DECLINED`/sigue `PENDING` según la respuesta (FR-017); quien ya tiene un RSVP conserva el acceso a un evento privado aunque su invitación haya vencido (aclaración del 2026-11-01)
+- [X] T029 [P] [US3] [Bernardo] Prueba de controlador contra `FX/events/respondRsvp.*` en `ES-test/infrastructure/adapter/inbound/rest/RespondRsvpContractTest.java`
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] [Bernardo] Reescribir `respondToRSVP` como upsert sobre `AttendanceService` (T024) en `ES/application/service/EventServiceImpl.java`: entrada `ACCEPTED | DECLINED | MAYBE`, `message` ≤ 280, guarda `displayName`, actualiza la invitación en la misma operación, publica `RSVP_CHANGED`; deja de generar el QR (pasa a `checkin-service` en la Ola 2)
-- [ ] T031 [US3] [Bernardo] `POST /api/v1/events/{eventId}/rsvp` en `ES/infrastructure/adapter/inbound/rest/EventController.java`: `200 Rsvp`; borrar `POST /{eventId}/invitations/respond` del controlador, del puerto `EventService` y de `respondToInvitation` (D-01, FR-030)
+- [X] T030 [US3] [Bernardo] Reescribir `respondToRSVP` como upsert sobre `AttendanceService` (T024) en `ES/application/service/EventServiceImpl.java`: entrada `ACCEPTED | DECLINED | MAYBE`, `message` ≤ 280, guarda `displayName`, actualiza la invitación en la misma operación, publica `RSVP_CHANGED`; deja de generar el QR (pasa a `checkin-service` en la Ola 2)
+- [X] T031 [US3] [Bernardo] `POST /api/v1/events/{eventId}/rsvp` en `ES/infrastructure/adapter/inbound/rest/EventController.java`: `200 Rsvp`; borrar `POST /{eventId}/invitations/respond` del controlador, del puerto `EventService` y de `respondToInvitation` (D-01, FR-030)
 - [ ] T032 [P] [US3] [Alex] Caso de uso y repositorio: ajustar `APP/features/events/domain/usecases/respond_rsvp.dart` y `event_repository_impl.dart` a `RespondRsvpRequest`/`Rsvp` (sin `guestsCount`)
 - [ ] T033 [US3] [Alex] UI de RSVP en `APP/features/events/presentation/pages/event_detail_page.dart`: "Voy", "No voy", "Tal vez", estado actual, aviso "Estás en lista de espera" cuando la respuesta es `WAITLISTED`, y botones deshabilitados en eventos cancelados o pasados; textos en español (Bug-F10). Test de bloc en `APP-test/features/events/`
 

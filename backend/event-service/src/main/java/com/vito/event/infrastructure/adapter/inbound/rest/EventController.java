@@ -95,20 +95,23 @@ public class EventController {
         return ResponseEntity.ok(events);
     }
     
+    /** respondRsvp (T031): upsert; el cuerpo es {@code RespondRsvpRequest} y la respuesta {@code Rsvp}. */
     @PostMapping("/{eventId}/rsvp")
-    public ResponseEntity<RSVP> respondToRSVP(
+    public ResponseEntity<RsvpResponse> respondToRSVP(
             @PathVariable String eventId,
-            @RequestBody EventService.RespondRSVPCommand command) {
-        AuthenticatedUser currentUser = getCurrentUser();
-        command.setEventId(eventId);
-        command.setUserId(currentUser.id());
-        command.setDisplayName(currentUser.displayName());
-
-        RSVP rsvp = eventService.respondToRSVP(command);
-        
-        return ResponseEntity.ok(rsvp);
+            @RequestBody RespondRsvpRequest request) {
+        AuthenticatedUser currentUser = getCurrentUser(
+                () -> EventException.unauthenticated("Debes iniciar sesión para realizar esta acción"));
+        RSVP rsvp = eventService.respondToRSVP(EventService.RespondRSVPCommand.builder()
+                .eventId(eventId)
+                .userId(currentUser.id())
+                .displayName(currentUser.displayName())
+                .status(request.parsedStatus())
+                .message(request.message())
+                .build());
+        return ResponseEntity.ok(RsvpResponse.from(rsvp));
     }
-    
+
     @GetMapping("/{eventId}/attendees")
     public ResponseEntity<List<RSVP>> getEventAttendees(
             @PathVariable String eventId,
@@ -140,19 +143,6 @@ public class EventController {
         return ResponseEntity.ok(invitations);
     }
     
-    @PostMapping("/{eventId}/invitations/respond")
-    public ResponseEntity<Void> respondToInvitation(
-            @PathVariable String eventId,
-            @RequestBody EventService.RespondInvitationCommand command) {
-        String currentUserId = getCurrentUserId();
-        command.setEventId(eventId);
-        command.setInviteeId(currentUserId);
-        
-        eventService.respondToInvitation(command);
-        
-        return ResponseEntity.ok().build();
-    }
-    
     @PostMapping("/{eventId}/check-in")
     public ResponseEntity<RSVP> checkIn(
             @PathVariable String eventId,
@@ -179,7 +169,11 @@ public class EventController {
 
     /** userId y nombre visible (R6); sin nombre en el token ni en el header, {@code displayName} es null. */
     private AuthenticatedUser getCurrentUser() {
-        String userId = getCurrentUserId();
+        return getCurrentUser(EventException::unauthenticated);
+    }
+
+    private AuthenticatedUser getCurrentUser(Supplier<EventException> onMissing) {
+        String userId = getCurrentUserId(onMissing);
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return principal instanceof AuthenticatedUser user ? user : new AuthenticatedUser(userId, null);
     }

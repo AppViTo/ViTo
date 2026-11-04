@@ -44,8 +44,6 @@ public interface EventService {
     
     List<Invitation> getEventInvitations(String eventId, int page, int size);
     
-    void respondToInvitation(RespondInvitationCommand command);
-    
     String generateCheckInQR(String eventId, String userId);
     
     RSVP checkIn(CheckInCommand command);
@@ -126,16 +124,6 @@ public interface EventService {
         private String inviterId;
         private String inviteeId;
         private String message;
-    }
-    
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    class RespondInvitationCommand {
-        private String eventId;
-        private String inviteeId;
-        private Invitation.InvitationStatus status;
     }
     
     @Data
