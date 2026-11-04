@@ -256,7 +256,13 @@ Frames por recurso: ver `asyncapi.yaml` y los handoffs (`docs/handoff/`).
 | events | 20 | 40 |
 | resto | 10 | 20 |
 
-Al superarlo: `429` con el envelope de error §3.3 y header `Retry-After: <segundos>`.
+Excepción (Ola 1, R5): la vista previa pública de un enlace de invitación
+(`GET /api/v1/invite-links/{token}`, `getInviteLinkPreview`) se limita **por IP** a 10
+peticiones por minuto con ráfaga de 20, porque no hay sesión con la que contar. Unirse por
+enlace (`acceptInviteLink`) exige sesión y usa el límite por usuario de `events`.
+
+Al superarlo: `429` con el envelope de error §3.3 y header `Retry-After: <segundos>`
+(el tiempo hasta que se repone el costo de una petición: 1 s en general, 6 s en la vista previa).
 
 ---
 
