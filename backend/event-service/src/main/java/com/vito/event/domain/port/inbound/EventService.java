@@ -78,6 +78,8 @@ public interface EventService {
     @AllArgsConstructor
     class CreateEventCommand {
         private String organizerId;
+        /** Lo pone el controlador desde la identidad (R6); se ignora lo que mande el cliente. */
+        private String organizerDisplayName;
         @NotBlank(message = "Es obligatorio")
         @Size(min = 3, max = 100, message = "Mínimo 3 caracteres")
         private String title;
@@ -94,6 +96,8 @@ public interface EventService {
     class UpdateEventCommand {
         private String eventId;
         private String userId;
+        /** Lo pone el controlador desde la identidad (R6); se ignora lo que mande el cliente. */
+        private String organizerDisplayName;
         private String title;
         private String description;
         private Event.EventDetails details;
@@ -107,6 +111,8 @@ public interface EventService {
     class RespondRSVPCommand {
         private String eventId;
         private String userId;
+        /** Lo pone el controlador desde la identidad (R6); se ignora lo que mande el cliente. */
+        private String displayName;
         private RSVP.RSVPStatus status;
         private String message;
     }

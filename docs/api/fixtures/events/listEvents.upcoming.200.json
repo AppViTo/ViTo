@@ -27,13 +27,7 @@
       "hideAddressUntilAccepted": false
     },
     "stats": {
-      "totalInvited": 80,
-      "totalAccepted": 42,
-      "totalDeclined": 3,
-      "totalMaybe": 9,
-      "totalWaitlisted": 0,
-      "totalCheckedIn": 0,
-      "totalViewers": 0
+      "totalAccepted": 42
     },
     "status": "PUBLISHED",
     "createdAt": "2026-10-01T15:30:00Z",
@@ -67,13 +61,7 @@
       "hideAddressUntilAccepted": true
     },
     "stats": {
-      "totalInvited": 20,
-      "totalAccepted": 12,
-      "totalDeclined": 1,
-      "totalMaybe": 4,
-      "totalWaitlisted": 2,
-      "totalCheckedIn": 0,
-      "totalViewers": 0
+      "totalAccepted": 12
     },
     "status": "PUBLISHED",
     "createdAt": "2026-10-05T11:00:00Z",

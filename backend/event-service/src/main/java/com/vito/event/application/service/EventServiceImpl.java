@@ -36,6 +36,7 @@ public class EventServiceImpl implements EventService {
         
         Event event = Event.builder()
                 .organizerId(command.getOrganizerId())
+                .organizerDisplayName(command.getOrganizerDisplayName())
                 .title(command.getTitle())
                 .description(command.getDescription())
                 .details(command.getDetails())
@@ -82,7 +83,11 @@ public class EventServiceImpl implements EventService {
         if (command.getDescription() != null) event.setDescription(command.getDescription());
         if (command.getDetails() != null) event.setDetails(command.getDetails());
         if (command.getSettings() != null) event.setSettings(command.getSettings());
-        
+        // R6: el nombre vigente del organizador; sin X-User-Name se conserva el guardado
+        if (command.getOrganizerDisplayName() != null) {
+            event.setOrganizerDisplayName(command.getOrganizerDisplayName());
+        }
+
         event.setUpdatedAt(Instant.now());
         
         Event updatedEvent = eventRepository.save(event);
@@ -152,16 +157,23 @@ public class EventServiceImpl implements EventService {
         return Math.max(1, Math.min(size, MAX_PAGE_SIZE));
     }
     
-    /** Oculta la dirección exacta si el evento lo pide y quien consulta no puede verla. */
+    /**
+     * Vista según quién consulta. El organizador ve todo. Los demás reciben {@code stats} con solo
+     * {@code totalAccepted} (R7) y, si el evento lo pide, sin dirección exacta hasta confirmar.
+     */
     private Event forViewer(Event event, String viewerId) {
-        // Solo se consulta el RSVP cuando el evento oculta la dirección y el viewer no es el organizador
-        if (event.revealsExactAddressTo(viewerId, false)) {
+        if (viewerId != null && viewerId.equals(event.getOrganizerId())) {
             return event;
+        }
+        Event view = event.withAcceptedCountOnly();
+        // Solo se consulta el RSVP cuando el evento oculta la dirección
+        if (view.revealsExactAddressTo(viewerId, false)) {
+            return view;
         }
         boolean accepted = viewerId != null && rsvpRepository.findByEventIdAndUserId(event.getId(), viewerId)
                 .map(rsvp -> rsvp.getStatus() == RSVP.RSVPStatus.ACCEPTED)
                 .orElse(false);
-        return accepted ? event : event.withoutExactAddress();
+        return accepted ? view : view.withoutExactAddress();
     }
     
     @Override
@@ -187,9 +199,9 @@ public class EventServiceImpl implements EventService {
         // Cupo atómico (R1): AttendanceService reserva el lugar o deja la respuesta en lista de espera
         RSVP savedRsvp = switch (command.getStatus()) {
             case ACCEPTED -> withCheckInQr(attendanceService.confirm(
-                    command.getEventId(), command.getUserId(), null, command.getMessage()));
-            case DECLINED, MAYBE -> attendanceService.release(
-                    command.getEventId(), command.getUserId(), command.getStatus(), null, command.getMessage());
+                    command.getEventId(), command.getUserId(), command.getDisplayName(), command.getMessage()));
+            case DECLINED, MAYBE -> attendanceService.release(command.getEventId(), command.getUserId(),
+                    command.getStatus(), command.getDisplayName(), command.getMessage());
             default -> throw EventException.invalidRsvpStatus();
         };
 

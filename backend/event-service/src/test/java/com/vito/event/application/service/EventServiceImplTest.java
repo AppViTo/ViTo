@@ -593,4 +593,116 @@ class EventServiceImplTest {
             assertEquals("El scope debe ser mine o upcoming", ex.getMessage());
         }
     }
+
+    // ---- Nombre visible (T025, R6) ----------------------------------------------------
+
+    @Test
+    void createEvent_StoresOrganizerDisplayName() {
+        when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        eventService.createEvent(CreateEventCommand.builder()
+                .organizerId("organizer123").organizerDisplayName("Alex Villa").title("Asado").build());
+
+        ArgumentCaptor<Event> saved = ArgumentCaptor.forClass(Event.class);
+        verify(eventRepository).save(saved.capture());
+        assertEquals("Alex Villa", saved.getValue().getOrganizerDisplayName());
+    }
+
+    @Test
+    void updateEvent_RefreshesOrganizerDisplayNameOnlyWhenPresent() {
+        testEvent.setOrganizerDisplayName("Alex");
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+        when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Event unchanged = eventService.updateEvent(UpdateEventCommand.builder()
+                .eventId("event123").userId("organizer123").title("Otro").build());
+        assertEquals("Alex", unchanged.getOrganizerDisplayName());
+
+        Event renamed = eventService.updateEvent(UpdateEventCommand.builder()
+                .eventId("event123").userId("organizer123").organizerDisplayName("Alex Villa").build());
+        assertEquals("Alex Villa", renamed.getOrganizerDisplayName());
+    }
+
+    @Test
+    void respondToRSVP_PassesTheDisplayName() {
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
+        when(attendanceService.release("event123", "guest1", RSVP.RSVPStatus.MAYBE, "Ana", null))
+                .thenReturn(RSVP.builder().eventId("event123").userId("guest1").status(RSVP.RSVPStatus.MAYBE).build());
+
+        eventService.respondToRSVP(RespondRSVPCommand.builder().eventId("event123").userId("guest1")
+                .displayName("Ana").status(RSVP.RSVPStatus.MAYBE).build());
+
+        verify(attendanceService).release("event123", "guest1", RSVP.RSVPStatus.MAYBE, "Ana", null);
+    }
+
+    // ---- stats según quién consulta (T027, R7) ---------------------------------------
+
+    private Event eventWithStats() {
+        return testEvent.toBuilder().stats(Event.EventStats.builder()
+                .totalInvited(120).totalAccepted(96).totalDeclined(4).totalMaybe(10)
+                .totalWaitlisted(3).totalCheckedIn(80).totalViewers(0).build()).build();
+    }
+
+    @Test
+    void getEvent_OrganizerSeesAllStats() {
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(eventWithStats()));
+
+        Event.EventStats stats = eventService.getEvent("event123", "organizer123").getStats();
+
+        assertEquals(120, stats.getTotalInvited());
+        assertEquals(4, stats.getTotalDeclined());
+        assertEquals(3, stats.getTotalWaitlisted());
+    }
+
+    @Test
+    void getEvent_GuestSeesOnlyTheAcceptedCount() {
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(eventWithStats()));
+
+        Event.EventStats stats = eventService.getEvent("event123", "guest1").getStats();
+
+        assertEquals(96, stats.getTotalAccepted());
+        assertNull(stats.getTotalInvited());
+        assertNull(stats.getTotalDeclined());
+        assertNull(stats.getTotalMaybe());
+        assertNull(stats.getTotalWaitlisted());
+        assertNull(stats.getTotalCheckedIn());
+        assertNull(stats.getTotalViewers());
+        verifyNoInteractions(rsvpRepository);
+    }
+
+    @Test
+    void getEvent_ReducedViewDoesNotTouchTheStoredEvent() {
+        Event stored = eventWithStats();
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(stored));
+
+        eventService.getEvent("event123", "guest1");
+
+        assertEquals(120, stored.getStats().getTotalInvited());
+    }
+
+    @Test
+    void listEvents_Upcoming_GuestSeesOnlyTheAcceptedCount() {
+        when(eventRepository.findUpcomingEvents(0, 20)).thenReturn(java.util.List.of(eventWithStats()));
+
+        Event.EventStats stats = eventService.listEvents(ListScope.UPCOMING, "guest1", 0, 20).get(0).getStats();
+
+        assertEquals(96, stats.getTotalAccepted());
+        assertNull(stats.getTotalDeclined());
+    }
+
+    @Test
+    void listEvents_Upcoming_OrganizerSeesAllStatsOfOwnEvent() {
+        when(eventRepository.findUpcomingEvents(0, 20)).thenReturn(java.util.List.of(eventWithStats()));
+
+        Event.EventStats stats = eventService.listEvents(ListScope.UPCOMING, "organizer123", 0, 20).get(0).getStats();
+
+        assertEquals(4, stats.getTotalDeclined());
+    }
+
+    @Test
+    void getUpcomingEvents_GuestSeesOnlyTheAcceptedCount() {
+        when(eventRepository.findUpcomingEvents(0, 20)).thenReturn(java.util.List.of(eventWithStats()));
+
+        assertNull(eventService.getUpcomingEvents(0, 20, "guest1").get(0).getStats().getTotalInvited());
+    }
 }

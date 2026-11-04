@@ -5,6 +5,7 @@ import com.vito.event.domain.model.Invitation;
 import com.vito.event.domain.model.RSVP;
 import com.vito.event.domain.port.inbound.EventService;
 import com.vito.event.domain.exception.EventException;
+import com.vito.event.infrastructure.security.AuthenticatedUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,8 +28,9 @@ public class EventController {
     
     @PostMapping
     public ResponseEntity<Event> createEvent(@Valid @RequestBody EventService.CreateEventCommand command) {
-        String currentUserId = getCurrentUserId();
-        command.setOrganizerId(currentUserId);
+        AuthenticatedUser currentUser = getCurrentUser();
+        command.setOrganizerId(currentUser.id());
+        command.setOrganizerDisplayName(currentUser.displayName());
         
         Event event = eventService.createEvent(command);
         
@@ -40,10 +42,11 @@ public class EventController {
     public ResponseEntity<Event> updateEvent(
             @PathVariable String eventId,
             @RequestBody EventService.UpdateEventCommand command) {
-        String currentUserId = getCurrentUserId();
+        AuthenticatedUser currentUser = getCurrentUser();
         command.setEventId(eventId);
-        command.setUserId(currentUserId);
-        
+        command.setUserId(currentUser.id());
+        command.setOrganizerDisplayName(currentUser.displayName());
+
         Event event = eventService.updateEvent(command);
         
         return ResponseEntity.ok(event);
@@ -96,10 +99,11 @@ public class EventController {
     public ResponseEntity<RSVP> respondToRSVP(
             @PathVariable String eventId,
             @RequestBody EventService.RespondRSVPCommand command) {
-        String currentUserId = getCurrentUserId();
+        AuthenticatedUser currentUser = getCurrentUser();
         command.setEventId(eventId);
-        command.setUserId(currentUserId);
-        
+        command.setUserId(currentUser.id());
+        command.setDisplayName(currentUser.displayName());
+
         RSVP rsvp = eventService.respondToRSVP(command);
         
         return ResponseEntity.ok(rsvp);
@@ -171,6 +175,13 @@ public class EventController {
     
     private String getCurrentUserId() {
         return getCurrentUserId(EventException::unauthenticated);
+    }
+
+    /** userId y nombre visible (R6); sin nombre en el token ni en el header, {@code displayName} es null. */
+    private AuthenticatedUser getCurrentUser() {
+        String userId = getCurrentUserId();
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return principal instanceof AuthenticatedUser user ? user : new AuthenticatedUser(userId, null);
     }
 
     /** {@code onMissing}: el 401 con el mensaje que el contrato fija para la operación. */
