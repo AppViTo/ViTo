@@ -32,11 +32,11 @@ dependencies:
   
   # Camera & Media
   image_picker: ^1.2.4
-  camera: ^0.12.1
+  camera: ^0.12.2
   
   # QR Code
   qr_flutter: ^4.1.0
-  mobile_scanner: ^7.4.2
+  mobile_scanner: ^7.5.0
   
   # Video Player
   video_player: ^2.14.1
