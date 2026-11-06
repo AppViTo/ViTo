@@ -203,15 +203,34 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(EventException::eventNotFound);
         
         if (!event.getOrganizerId().equals(userId)) {
-            throw EventException.notAuthorized();
+            throw EventException.onlyOrganizerCanCancel();
         }
-        
-        event.setStatus(Event.EventStatus.CANCELLED);
-        event.setUpdatedAt(Instant.now());
-        
-        eventRepository.save(event);
-        
+        // FR-022: cancelar dos veces no es un error ni vuelve a avisar
+        if (event.getStatus() == Event.EventStatus.CANCELLED) {
+            return;
+        }
+        Instant now = Instant.now();
+        if (hasEnded(event, now)) {
+            throw EventException.eventAlreadyEnded();
+        }
+
+        // $set condicional: no reescribe stats ni toca invitaciones, RSVP ni enlaces
+        if (!eventRepository.cancel(eventId, now)) {
+            // Cambió entre la lectura y la escritura: otra cancelación (204) o terminó (409)
+            Event latest = eventRepository.findById(eventId).orElseThrow(EventException::eventNotFound);
+            if (latest.getStatus() == Event.EventStatus.CANCELLED) {
+                return;
+            }
+            throw EventException.eventAlreadyEnded();
+        }
         eventPublisher.publishEventCancelled(eventId, userId);
+        log.info("Event {} cancelled", eventId);
+    }
+
+    /** {@code COMPLETED} o con {@code endDate} ya pasada. */
+    private static boolean hasEnded(Event event, Instant now) {
+        Instant end = event.getDetails() != null ? event.getDetails().getEndDate() : null;
+        return event.getStatus() == Event.EventStatus.COMPLETED || (end != null && !end.isAfter(now));
     }
     
     @Override
@@ -376,6 +395,11 @@ public class EventServiceImpl implements EventService {
             throw EventException.notAuthorized();
         }
         
+        // US5: un evento cancelado o terminado no admite invitados (sendInvitation 409)
+        if (!event.isActiveAt(Instant.now())) {
+            throw EventException.eventNotAcceptingGuests();
+        }
+
         if (invitationRepository.existsByEventIdAndInviteeId(command.getEventId(), command.getInviteeId())) {
             throw EventException.alreadyInvited();
         }

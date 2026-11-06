@@ -175,6 +175,18 @@ public class EventException extends RuntimeException {
         return new EventException(Reason.CONFLICT, "El cupo no puede ser menor que los " + accepted + " confirmados");
     }
 
+    // ---- cancelEvent (US5) -----------------------------------------------------------
+
+    /** Texto del fixture cancelEvent.403. */
+    public static EventException onlyOrganizerCanCancel() {
+        return new EventException(Reason.FORBIDDEN, "Solo el organizador puede cancelar este evento");
+    }
+
+    /** {@code COMPLETED} o con {@code endDate} pasada (fixture cancelEvent.409). */
+    public static EventException eventAlreadyEnded() {
+        return new EventException(Reason.CONFLICT, "No se puede cancelar un evento que ya terminó");
+    }
+
     public static EventException rsvpClosed() {
         return new EventException(Reason.CONFLICT, "El evento ya no admite respuestas");
     }

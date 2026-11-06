@@ -179,8 +179,8 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 **Independent Test**: quickstart §4, paso 4.
 
-- [ ] T053 [P] [US5] [Bernardo] Pruebas en `ES-test/application/service/CancelEventTest.java` y contra `FX/events/cancelEvent.*`: `204` idempotente, `COMPLETED` → 409, otro usuario → 403; tras cancelar, RSVP, unión por enlace, invitar y `PATCH` → 409, y el evento sale de `upcoming` e `invited`
-- [ ] T054 [US5] [Bernardo] `DELETE /api/v1/events/{eventId}` → `CANCELLED` sin tocar invitaciones, RSVP ni enlaces en `EventServiceImpl.cancelEvent` y `EventController.java`; publica `EVENT_CANCELLED`
+- [X] T053 [P] [US5] [Bernardo] Pruebas en `ES-test/application/service/CancelEventTest.java` y contra `FX/events/cancelEvent.*`: `204` idempotente, `COMPLETED` → 409, otro usuario → 403; tras cancelar, RSVP, unión por enlace, invitar y `PATCH` → 409, y el evento sale de `upcoming` e `invited`
+- [X] T054 [US5] [Bernardo] `DELETE /api/v1/events/{eventId}` → `CANCELLED` sin tocar invitaciones, RSVP ni enlaces en `EventServiceImpl.cancelEvent` y `EventController.java`; publica `EVENT_CANCELLED`
 - [ ] T055 [P] [US5] [Alex] Caso de uso `cancel_event.dart` y acción "Cancelar evento" con confirmación en el detalle (solo organizador); los invitados ven el evento como "Cancelado"
 
 ---

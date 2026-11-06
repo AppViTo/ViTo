@@ -154,6 +154,18 @@ public class EventMongoAdapter implements EventRepository {
                 FindAndModifyOptions.options().returnNew(true), Event.class, "events"));
     }
 
+    @Override
+    public boolean cancel(String eventId, Instant now) {
+        Query query = new Query(new Criteria().andOperator(
+                Criteria.where("id").is(eventId),
+                Criteria.where("status").nin(Event.EventStatus.CANCELLED, Event.EventStatus.COMPLETED),
+                new Criteria().orOperator(
+                        Criteria.where("details.endDate").is(null),
+                        Criteria.where("details.endDate").gt(now))));
+        Update update = new Update().set("status", Event.EventStatus.CANCELLED).set("updatedAt", now);
+        return mongoTemplate.updateFirst(query, update, Event.class, "events").getModifiedCount() == 1;
+    }
+
     /** Merge patch: valor nuevo con {@code $set}; {@code null} enviado con {@code $unset}. */
     private static void set(Update update, String path, EventPatch.Change<?> change) {
         if (change == null) {
