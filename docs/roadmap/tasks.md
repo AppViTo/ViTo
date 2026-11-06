@@ -82,7 +82,7 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 |----|-------|------------|------------------------|
 | T-C10 | Contrato de la Ola 1 (🟡 RFC) | Agente frontend (Alex) | Issue `contract-change`, rama `contract/ola-1` y redacción de `openapi.yaml`, fixtures, CONVENTIONS y enmiendas a ADR-014/016 (T002, T006–T013). No se mergea sin D-08 y 1 CODEOWNER. |
 | T-F12 | App de la Ola 1 | Agente frontend (Alex) | Nada hasta el merge de T-C10; después avanza contra el mock de Prism. |
-| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | ✅ Todas sus historias: US3, US1, US2, US5 (#258–#265) y US4 y US6 (invitaciones y asistentes). |
+| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | ✅ Todas sus historias: US3, US1, US2, US5 (#258–#265) y US4 y US6 (#273). |
 | T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | ✅ HECHA (#262). |
 | T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); falta T061 (k6). |
 | T-B36 | Outbox y AsyncAPI de los eventos de `event-service` | Sesión de Bernardo | Bloqueada por T-C05. |
@@ -205,7 +205,7 @@ release del viernes 2026-11-06.
 | T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | 🟢 READY (antes del 2026-11-23) | — |
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | 🟡 RFC (requiere D-08 de la Ola 1) | — |
 | T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🟢 READY (contrato en #253); 🔥 RSVP para el release del 2026-11-06 | — |
-| T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y US4/US6) | — |
+| T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y #273) | — |
 | T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | ✅ HECHA (#262) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
 | T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🟢 READY | — |
