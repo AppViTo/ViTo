@@ -82,7 +82,7 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 |----|-------|------------|------------------------|
 | T-C10 | Contrato de la Ola 1 (🟡 RFC) | Agente frontend (Alex) | Issue `contract-change`, rama `contract/ola-1` y redacción de `openapi.yaml`, fixtures, CONVENTIONS y enmiendas a ADR-014/016 (T002, T006–T013). No se mergea sin D-08 y 1 CODEOWNER. |
 | T-F12 | App de la Ola 1 | Agente frontend (Alex) | Nada hasta el merge de T-C10; después avanza contra el mock de Prism. |
-| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | Fundacional, US3 y US1 (enlaces, `scope=invited`). Siguen US2, US4, US5 y US6. |
+| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | Fundacional, US3, US1 (enlaces, `scope=invited`) y US2 (editar). Siguen US4, US5 y US6. |
 | T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | Desbloqueada: contrato mergeado (#253). |
 | T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); falta T061 (k6). |
 | T-B36 | Outbox y AsyncAPI de los eventos de `event-service` | Sesión de Bernardo | Bloqueada por T-C05. |
@@ -975,6 +975,11 @@ depende del contrato.
   condicional de usos (20 uniones a la vez con `maxUses` 5 → 5); `scope=invited`. T067 hecho
   en `event-service` (trazas y logs de error con `/api/v1/invite-links/{token}`); falta el
   gateway con T-B35. Siguen US2 (editar, T045–T047), US4, US5 y US6.
+- **Avance (2026-11-04, US2):** `PATCH` con JSON Merge Patch (T045–T047). Solo se escriben
+  los campos enviados con un `$set` condicional que no toca `stats` (el `PUT` anterior
+  reescribía el documento y podía pisar un RSVP concurrente); el cupo por debajo de los
+  confirmados se rechaza en la misma operación; subir el cupo promueve la lista de espera. Se
+  retira el `PUT`: ninguna pantalla de la app lo usa. La pantalla de edición es T-F (T048–T049).
 
 ### T-B35 · `auth-service` y gateway de la Ola 1 — 🟢 READY (contrato en #253) · P0 · Principio III
 - **Qué:** T016–T019, T059 y T062 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): claim `name` en el access token; `X-User-Name`

@@ -2,6 +2,7 @@ package com.vito.event.domain.port.inbound;
 
 import com.vito.event.domain.exception.EventException;
 import com.vito.event.domain.model.Event;
+import com.vito.event.domain.model.EventPatch;
 import com.vito.event.domain.model.Invitation;
 import com.vito.event.domain.model.RSVP;
 import lombok.AllArgsConstructor;
@@ -98,10 +99,8 @@ public interface EventService {
         private String userId;
         /** Lo pone el controlador desde la identidad (R6); se ignora lo que mande el cliente. */
         private String organizerDisplayName;
-        private String title;
-        private String description;
-        private Event.EventDetails details;
-        private Event.EventSettings settings;
+        /** Solo los campos enviados (JSON Merge Patch, US2). */
+        private EventPatch patch;
     }
     
     @Data

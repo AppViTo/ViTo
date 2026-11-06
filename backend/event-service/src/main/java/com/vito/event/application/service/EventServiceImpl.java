@@ -2,6 +2,7 @@ package com.vito.event.application.service;
 
 import com.vito.event.domain.exception.EventException;
 import com.vito.event.domain.model.Event;
+import com.vito.event.domain.model.EventPatch;
 import com.vito.event.domain.model.Invitation;
 import com.vito.event.domain.model.RSVP;
 import com.vito.event.domain.port.inbound.EventService;
@@ -76,29 +77,122 @@ public class EventServiceImpl implements EventService {
                 .orElseThrow(EventException::eventNotFound);
         
         if (!event.getOrganizerId().equals(command.getUserId())) {
-            throw EventException.notAuthorized();
-        }
-        
-        if (event.getStatus() == Event.EventStatus.CANCELLED) {
-            throw EventException.eventAlreadyCancelled();
-        }
-        
-        if (command.getTitle() != null) event.setTitle(command.getTitle());
-        if (command.getDescription() != null) event.setDescription(command.getDescription());
-        if (command.getDetails() != null) event.setDetails(command.getDetails());
-        if (command.getSettings() != null) event.setSettings(command.getSettings());
-        // R6: el nombre vigente del organizador; sin X-User-Name se conserva el guardado
-        if (command.getOrganizerDisplayName() != null) {
-            event.setOrganizerDisplayName(command.getOrganizerDisplayName());
+            throw EventException.onlyOrganizerCanEdit();
         }
 
-        event.setUpdatedAt(Instant.now());
-        
-        Event updatedEvent = eventRepository.save(event);
-        
-        eventPublisher.publishEventUpdated(updatedEvent.getId(), updatedEvent.getOrganizerId());
-        
-        return updatedEvent;
+        EventPatch patch = command.getPatch();
+        if (patch == null || patch.isEmpty()) {
+            throw EventException.emptyPatch();
+        }
+        validate(patch, event);
+
+        Instant now = Instant.now();
+        if (!event.isEditableAt(now)) {
+            throw EventException.eventNotEditable();
+        }
+        int accepted = acceptedCount(event);
+        Integer newCapacity = patch.maxAttendees() != null ? patch.maxAttendees().value() : null;
+        if (newCapacity != null && newCapacity > 0 && newCapacity < accepted) {
+            throw EventException.capacityBelowAccepted(accepted);
+        }
+
+        // R6: el nombre vigente del organizador; sin nombre se conserva el guardado
+        Event updated = eventRepository.applyPatch(event.getId(), patch, command.getOrganizerDisplayName(), now)
+                .orElseThrow(() -> conflictAfterRace(event.getId(), newCapacity, now));
+
+        eventPublisher.publishEventUpdated(updated.getId(), updated.getOrganizerId());
+
+        // Cupo más alto (o sin límite): la lista de espera pasa a confirmados por orden de llegada
+        int oldCapacity = event.getSettings() != null ? event.getSettings().getMaxAttendees() : 0;
+        if (newCapacity != null && oldCapacity != 0 && (newCapacity == 0 || newCapacity > oldCapacity)) {
+            if (attendanceService.fillFreedSeats(updated.getId()) > 0) {
+                updated = eventRepository.findById(updated.getId()).orElse(updated);
+            }
+        }
+        log.info("Event {} updated", updated.getId());
+        return updated;
+    }
+
+    /** Límites de UpdateEventRequest: los mismos que createEvent (T-B29) más los de details/settings. */
+    static final int MAX_TITLE = 100;
+    static final int MIN_TITLE = 3;
+    static final int MAX_DESCRIPTION = 2000;
+    static final int MAX_PLACE = 300;
+    static final java.util.Set<String> CATEGORIES =
+            java.util.Set.of("BIRTHDAY", "MEETING", "WEDDING", "GRADUATION", "TRAVEL", "PARTY");
+
+    private static void validate(EventPatch patch, Event current) {
+        if (patch.title() != null) {
+            String title = patch.title().value();
+            if (title == null || title.isBlank()) {
+                throw EventException.invalidField("title", "Es obligatorio");
+            }
+            if (title.strip().length() < MIN_TITLE || title.length() > MAX_TITLE) {
+                throw EventException.invalidField("title", "Entre " + MIN_TITLE + " y " + MAX_TITLE + " caracteres");
+            }
+        }
+        maxLength(patch.description(), "description", MAX_DESCRIPTION);
+        maxLength(patch.location(), "details.location", MAX_PLACE);
+        maxLength(patch.address(), "details.address", MAX_PLACE);
+        if (patch.category() != null && patch.category().value() != null
+                && !CATEGORIES.contains(patch.category().value())) {
+            throw EventException.invalidField("details.category",
+                    "Valores permitidos: BIRTHDAY, MEETING, WEDDING, GRADUATION, TRAVEL, PARTY");
+        }
+        range(patch.latitude(), "details.latitude", 90);
+        range(patch.longitude(), "details.longitude", 180);
+        if (patch.maxAttendees() != null) {
+            Integer max = patch.maxAttendees().value();
+            if (max == null || max < 0) {
+                throw EventException.invalidField("settings.maxAttendees", "Mínimo 0 (0 = sin límite)");
+            }
+        }
+        for (var flag : java.util.Map.of(
+                "settings.isPublic", java.util.Optional.ofNullable(patch.isPublic()),
+                "settings.requiresApproval", java.util.Optional.ofNullable(patch.requiresApproval()),
+                "settings.allowGuestInvites", java.util.Optional.ofNullable(patch.allowGuestInvites()),
+                "settings.enableLiveStreaming", java.util.Optional.ofNullable(patch.enableLiveStreaming()),
+                "settings.enableMosaic", java.util.Optional.ofNullable(patch.enableMosaic()),
+                "settings.hideAddressUntilAccepted", java.util.Optional.ofNullable(patch.hideAddressUntilAccepted()))
+                .entrySet()) {
+            if (flag.getValue().isPresent() && flag.getValue().get().value() == null) {
+                throw EventException.invalidField(flag.getKey(), "Debe ser true o false");
+            }
+        }
+        // endDate > startDate con las fechas que quedan tras el parche
+        Event.EventDetails details = current.getDetails();
+        Instant start = EventPatch.valueOr(patch.startDate(), details != null ? details.getStartDate() : null);
+        Instant end = EventPatch.valueOr(patch.endDate(), details != null ? details.getEndDate() : null);
+        if (start != null && end != null && !end.isAfter(start)) {
+            throw EventException.invalidField(patch.endDate() != null ? "details.endDate" : "details.startDate",
+                    "endDate debe ser posterior a startDate");
+        }
+    }
+
+    private static void maxLength(EventPatch.Change<String> change, String field, int max) {
+        if (change != null && change.value() != null && change.value().length() > max) {
+            throw EventException.invalidField(field, "Máximo " + max + " caracteres");
+        }
+    }
+
+    private static void range(EventPatch.Change<Double> change, String field, double limit) {
+        if (change != null && change.value() != null && Math.abs(change.value()) > limit) {
+            throw EventException.invalidField(field, "Entre -" + (int) limit + " y " + (int) limit);
+        }
+    }
+
+    private static int acceptedCount(Event event) {
+        Integer accepted = event.getStats() != null ? event.getStats().getTotalAccepted() : null;
+        return accepted != null ? accepted : 0;
+    }
+
+    /** {@code applyPatch} no actualizó: alguien canceló el evento o confirmó entre la lectura y la escritura. */
+    private EventException conflictAfterRace(String eventId, Integer newCapacity, Instant now) {
+        Event latest = eventRepository.findById(eventId).orElseThrow(EventException::eventNotFound);
+        if (!latest.isEditableAt(now)) {
+            return EventException.eventNotEditable();
+        }
+        return EventException.capacityBelowAccepted(acceptedCount(latest));
     }
     
     @Override

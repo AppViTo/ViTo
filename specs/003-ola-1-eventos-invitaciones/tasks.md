@@ -148,12 +148,12 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 ### Tests for User Story 2
 
-- [ ] T045 [P] [US2] [Bernardo] Pruebas en `ES-test/application/service/UpdateEventTest.java`: solo cambian los campos enviados; mismas validaciones que `createEvent` (T-B29); `endDate > startDate`; `maxAttendees` por debajo de `totalAccepted` → 409; `stats`, `status`, `id` u `organizerId` → 400; otro usuario → 403; cancelado o terminado → 409
-- [ ] T046 [P] [US2] [Bernardo] Prueba de controlador contra `FX/events/updateEvent.*` en `ES-test/infrastructure/adapter/inbound/rest/UpdateEventContractTest.java`
+- [X] T045 [P] [US2] [Bernardo] Pruebas en `ES-test/application/service/UpdateEventTest.java`: solo cambian los campos enviados; mismas validaciones que `createEvent` (T-B29); `endDate > startDate`; `maxAttendees` por debajo de `totalAccepted` → 409; `stats`, `status`, `id` u `organizerId` → 400; otro usuario → 403; cancelado o terminado → 409
+- [X] T046 [P] [US2] [Bernardo] Prueba de controlador contra `FX/events/updateEvent.*` en `ES-test/infrastructure/adapter/inbound/rest/UpdateEventContractTest.java`
 
 ### Implementation for User Story 2
 
-- [ ] T047 [US2] [Bernardo] `@PutMapping` → `@PatchMapping(consumes = "application/merge-patch+json")` en `EventController.java` y merge parcial en `EventServiceImpl.updateEvent` (actualiza `organizerDisplayName`, publica `EVENT_UPDATED`)
+- [X] T047 [US2] [Bernardo] `@PutMapping` → `@PatchMapping(consumes = "application/merge-patch+json")` en `EventController.java` y merge parcial en `EventServiceImpl.updateEvent` (actualiza `organizerDisplayName`, publica `EVENT_UPDATED`)
 - [ ] T048 [P] [US2] [Alex] Caso de uso `APP/features/events/domain/usecases/update_event.dart` enviando solo los cambios, y su método en el datasource y el repositorio
 - [ ] T049 [US2] [Alex] Pantalla `APP/features/events/presentation/pages/edit_event_page.dart` (fecha, foto, descripción, lugar, cupo, visibilidad, ocultar dirección), accesible solo para el organizador desde el detalle; errores 409/400 con el mensaje del backend. Test de widget en `APP-test/features/events/`
 

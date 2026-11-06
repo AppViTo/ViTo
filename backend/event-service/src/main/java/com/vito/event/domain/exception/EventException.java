@@ -131,6 +131,50 @@ public class EventException extends RuntimeException {
     }
 
     /** R3: evento terminado, con {@code endDate} pasada o sin publicar. */
+    // ---- updateEvent (US2) -----------------------------------------------------------
+
+    /** Campo del recurso que no se edita; texto del fixture updateEvent.400. */
+    public static EventException notEditableField(String field) {
+        return new EventException(Reason.INVALID, "No se puede editar el campo " + field,
+                Map.of(field, "Campo no editable"));
+    }
+
+    /** {@code additionalProperties: false} de UpdateEventRequest. */
+    public static EventException unknownField(String field) {
+        return new EventException(Reason.INVALID, "El campo " + field + " no existe",
+                Map.of(field, "Campo desconocido"));
+    }
+
+    /** Valor de un campo que no cumple el contrato; mismo texto que la validación de createEvent. */
+    public static EventException invalidField(String field, String reason) {
+        return new EventException(Reason.INVALID, "El campo " + field + " no es válido", Map.of(field, reason));
+    }
+
+    /** {@code minProperties: 1}. */
+    public static EventException emptyPatch() {
+        return new EventException(Reason.INVALID, "Envía al menos un campo para editar");
+    }
+
+    /** El cuerpo no es un objeto JSON. */
+    public static EventException invalidPatchBody() {
+        return new EventException(Reason.INVALID, "El cuerpo de la petición no es un JSON válido");
+    }
+
+    /** Texto del fixture updateEvent.403. */
+    public static EventException onlyOrganizerCanEdit() {
+        return new EventException(Reason.FORBIDDEN, "Solo el organizador puede editar este evento");
+    }
+
+    /** Evento cancelado, completado o con {@code endDate} pasada (fixture updateEvent.state.409). */
+    public static EventException eventNotEditable() {
+        return new EventException(Reason.CONFLICT, "No se puede editar un evento cancelado o terminado");
+    }
+
+    /** FR-021 (fixture updateEvent.capacity.409). */
+    public static EventException capacityBelowAccepted(int accepted) {
+        return new EventException(Reason.CONFLICT, "El cupo no puede ser menor que los " + accepted + " confirmados");
+    }
+
     public static EventException rsvpClosed() {
         return new EventException(Reason.CONFLICT, "El evento ya no admite respuestas");
     }

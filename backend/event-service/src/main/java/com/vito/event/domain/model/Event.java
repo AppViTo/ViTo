@@ -50,6 +50,16 @@ public class Event {
     }
     
     /** Publicado y sin terminar: admite respuestas e invitados (R3, FR-007). */
+    /**
+     * US2: se edita mientras no esté cancelado ni completado y no haya terminado. A diferencia de
+     * {@link #isActiveAt}, un borrador ({@code DRAFT}) también se edita.
+     */
+    public boolean isEditableAt(Instant now) {
+        boolean closed = status == EventStatus.CANCELLED || status == EventStatus.COMPLETED;
+        Instant end = details != null ? details.getEndDate() : null;
+        return !closed && (end == null || end.isAfter(now));
+    }
+
     public boolean isActiveAt(Instant now) {
         return status == EventStatus.PUBLISHED
                 && (details == null || details.getEndDate() == null || details.getEndDate().isAfter(now));
