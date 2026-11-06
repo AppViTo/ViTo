@@ -81,6 +81,44 @@ spring:
                     redis-rate-limiter.replenishRate: 20
                     redis-rate-limiter.burstCapacity: 40
         
+            # Ola 1 (R5, T019): vista previa pública de un enlace de invitación. Límite por IP
+            # (no hay sesión): 6 tokens por petición y 1 de reposición por segundo = 10/min, con
+            # ráfaga de 20 (burstCapacity 120). Retry-After: 6 s (RateLimitedResponseFilter).
+            - id: invite-link-preview
+              uri: ${EVENT_SERVICE_URI:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/invite-links/{token}
+                - Method=GET
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: eventServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/events
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 1
+                    redis-rate-limiter.burstCapacity: 120
+                    redis-rate-limiter.requestedTokens: 6
+
+            # Unirse por enlace (con sesión): el límite por usuario de event-service (T-B23).
+            - id: invite-links
+              uri: ${EVENT_SERVICE_URI:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/invite-links/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: eventServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/events
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 20
+                    redis-rate-limiter.burstCapacity: 40
+
             - id: checkin-service
               uri: ${CHECKIN_SERVICE_URI:http://localhost:8084}
               predicates:

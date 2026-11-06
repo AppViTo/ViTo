@@ -71,10 +71,10 @@ contrato (T006–T013) esté mergeado.
 
 ### Backend transversal (tras el merge del contrato, dueño Bernardo)
 
-- [ ] T016 [P] [Bernardo] Claim `name` (= `displayName` del usuario) en el access token en `backend/auth-service/src/main/java/com/vito/auth/application/service/TokenProvider.java`, con prueba unitaria
-- [ ] T017 [Bernardo] Gateway: agregar `X-User-Name` a `USER_HEADERS` (se descarta la del cliente) y reenviarla desde el claim `name` en `backend/api-gateway/src/main/java/com/vito/gateway/security/JwtAuthenticationFilter.java`; prueba de que un `X-User-Name` del cliente nunca llega al servicio (T-B01)
-- [ ] T018 [Bernardo] Gateway: reemplazar el `startsWith` de `PUBLIC_PATHS` por una lista de reglas método + patrón exacto (R5) en `JwtAuthenticationFilter.java`; agregar `GET /api/v1/invite-links/{token}` (un solo segmento). Pruebas: `POST /api/v1/invite-links/x/accept` sin token → 401; `GET /api/v1/invite-links/x` sin token → reenviado; login, register y refresh siguen públicos
-- [ ] T019 [Bernardo] Gateway: ruta `/api/v1/invite-links/**` → `event-service` en `backend/api-gateway/src/main/resources/application.yml`, con `RequestRateLimiter` por IP para la vista previa (10/min, ráfaga 20) y el límite por usuario de T-B23 para `accept`; `429` con `Retry-After` y envelope ADR-003
+- [X] T016 [P] [Bernardo] Claim `name` (= `displayName` del usuario) en el access token en `backend/auth-service/src/main/java/com/vito/auth/application/service/TokenProvider.java`, con prueba unitaria
+- [X] T017 [Bernardo] Gateway: agregar `X-User-Name` a `USER_HEADERS` (se descarta la del cliente) y reenviarla desde el claim `name` en `backend/api-gateway/src/main/java/com/vito/gateway/security/JwtAuthenticationFilter.java`; prueba de que un `X-User-Name` del cliente nunca llega al servicio (T-B01)
+- [X] T018 [Bernardo] Gateway: reemplazar el `startsWith` de `PUBLIC_PATHS` por una lista de reglas método + patrón exacto (R5) en `JwtAuthenticationFilter.java`; agregar `GET /api/v1/invite-links/{token}` (un solo segmento). Pruebas: `POST /api/v1/invite-links/x/accept` sin token → 401; `GET /api/v1/invite-links/x` sin token → reenviado; login, register y refresh siguen públicos
+- [X] T019 [Bernardo] Gateway: ruta `/api/v1/invite-links/**` → `event-service` en `backend/api-gateway/src/main/resources/application.yml`, con `RequestRateLimiter` por IP para la vista previa (10/min, ráfaga 20) y el límite por usuario de T-B23 para `accept`; `429` con `Retry-After` y envelope ADR-003
 - [X] T020 [P] [Bernardo] Modelo de dominio según `data-model.md`: `Event.organizerDisplayName` (nullable), `Invitation.inviteLinkId` (nullable), `RSVP.displayName` (nullable) y `RSVP.waitlistedAt` (nullable), y quitar `guestsCount` de la entrada; nuevo `ES/domain/model/InviteLink.java` (`token` de 22 caracteres base64url, `expiresAt`, `maxUses` 1–1000 nullable, `uses` ≥ 0, `revoked`, `createdBy`, `createdAt`). Todas las fechas de `Invitation` (`sentAt`, `expiresAt`, `respondedAt`), `RSVP` (`respondedAt`, `waitlistedAt`) e `InviteLink` como `Instant`, como ya es `Event` desde Bug-B01 (FR-028); prueba de serialización con sufijo `Z` en `ES-test/domain/model/`
 - [X] T066 [Bernardo] Migración de datos de una sola vez (Principio IX), **antes** de T021: `ES/infrastructure/migration/Ola1DataMigration.java`, idempotente y registrada en una colección `migrations` para no repetirse. (1) Detecta duplicados `{eventId, userId}` en `rsvps` y `{eventId, inviteeId}` en `invitations`, conserva el más reciente y registra cuántos quitó (sin datos personales); (2) recalcula `stats.totalAccepted`, `totalDeclined`, `totalMaybe`, `totalWaitlisted` y `totalInvited` de cada evento desde `rsvps` e `invitations`; (3) completa `waitlistedAt` con `respondedAt` en los `WAITLISTED`; (4) convierte a `Date` UTC las fechas guardadas como texto local si las hay. Prueba con Testcontainers en `ES-test/infrastructure/migration/Ola1DataMigrationIntegrationTest.java`
 - [X] T021 [Bernardo] (los de `invite_links` van con su adaptador en T037) Índices declarados en código (Principio VII): único `{eventId, userId}` en `rsvps`, `{eventId, status, waitlistedAt}` en `rsvps`, único `{eventId, inviteeId}` y `{inviteeId, status}` en `invitations`, único `{token}` y `{eventId, revoked, expiresAt}` en `invite_links`, en los adaptadores de `ES/infrastructure/adapter/outbound/persistence/`
@@ -203,7 +203,7 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 **Independent Test**: quickstart §6.
 
-- [ ] T059 [P] [US7] [Bernardo] Alinear `AuthController.getCurrentUser` en `backend/auth-service/src/main/java/com/vito/auth/infrastructure/adapter/inbound/rest/AuthController.java` a `AuthUser` (ADR-004) y `401` con envelope; prueba contra `FX/authentication/getCurrentUser.*`
+- [X] T059 [P] [US7] [Bernardo] Alinear `AuthController.getCurrentUser` en `backend/auth-service/src/main/java/com/vito/auth/infrastructure/adapter/inbound/rest/AuthController.java` a `AuthUser` (ADR-004) y `401` con envelope; prueba contra `FX/authentication/getCurrentUser.*`
 - [ ] T060 [P] [US7] [Alex] En el arranque de la app (`AuthBloc`, `APP/features/auth/`), llamar a `getCurrentUser` con la sesión guardada; si responde 401, ir al inicio de sesión
 
 ---
@@ -211,7 +211,7 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 ## Phase 10: Polish & Cross-Cutting Concerns
 
 - [ ] T061 [P] [Bernardo] Escenarios k6 `backend/load-tests/ola-1-rsvp.js` (150 asistentes, RSVP concurrente, 0 cupos superados, < 1 s p95) y `backend/load-tests/ola-1-preview.js` (< 300 ms p95), siguiendo `backend/load-tests/event-load-test.js`
-- [ ] T062 [P] [Bernardo] Panel de `429` por ruta (vista previa y `accept`) en el tablero del gateway de T-I13 (`infrastructure/observability/`)
+- [X] T062 [P] [Bernardo] Panel de `429` por ruta (vista previa y `accept`) en el tablero del gateway de T-I13 (`infrastructure/observability/`)
 - [ ] T063 [Bernardo] Registrar como tarea del backlog la desviación del Principio V (outbox, sobre versionado y declaración de los eventos Kafka de `event-service` en `asyncapi.yaml`), con dependencia de T-C05 y antes del primer consumidor (Ola 2)
 - [ ] T064 [Bernardo] y [Alex] Recorrer `quickstart.md` completo contra el stack local y pegar la salida en el PR de cierre de la ola
 - [ ] T065 [Alex] Cerrar T-C07 Ola 1, Bug-F07 y la parte de enlace de Bug-F09 en `docs/roadmap/tasks.md`; comentar en el RFC #204 qué quedó y qué pasa a la Ola 2

@@ -198,6 +198,12 @@ loki.process "mask" {
 		replace    = "\\\"password\\\":\\\"[REDACTED]\\\""
 	}
 
+	// T067 (R4): el token de un enlace de invitación da acceso al evento.
+	stage.replace {
+		expression = "/api/v1/invite-links/([^/?#\\s\"'\\\\]+)"
+		replace    = "{token}"
+	}
+
 	stage.replace {
 		expression = "(eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+)"
 		replace    = "[REDACTED_JWT]"

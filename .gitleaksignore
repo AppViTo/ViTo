@@ -4,6 +4,8 @@
 6ffb811af1feaac699f51a1251494bb71da21d02:docs/api/fixtures/events/listInviteLinks.200.json:generic-api-key:16
 
 # Tokens de ejemplo de tests de invite-links; no son secretos.
+acb60eb0e713fb9afb6b59b3e77b1a1eae547ea4:backend/api-gateway/src/test/java/com/vito/gateway/security/InviteLinkTokenRedactionTest.java:generic-api-key:15
+acb60eb0e713fb9afb6b59b3e77b1a1eae547ea4:backend/api-gateway/src/test/java/com/vito/gateway/security/InviteLinkRoutesIntegrationTest.java:generic-api-key:42
 49fa64f337790c479b1aa219b3e68484bdb75e11:backend/event-service/src/test/java/com/vito/event/application/service/InviteLinkServiceTest.java:generic-api-key:49
 49fa64f337790c479b1aa219b3e68484bdb75e11:backend/event-service/src/test/java/com/vito/event/infrastructure/adapter/inbound/rest/InviteLinkContractTest.java:generic-api-key:69
 49fa64f337790c479b1aa219b3e68484bdb75e11:backend/event-service/src/test/java/com/vito/event/infrastructure/config/InviteLinkTokenRedactionTest.java:generic-api-key:20

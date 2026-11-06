@@ -6,6 +6,12 @@ import com.vito.auth.domain.exception.AuthenticationException;
 import com.vito.auth.domain.exception.UserAlreadyExistsException;
 import com.vito.auth.domain.model.User;
 import com.vito.auth.domain.port.inbound.AuthService;
+import org.junit.jupiter.api.AfterEach;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -233,5 +239,48 @@ class AuthControllerContractTest {
 
     private static JsonNode fixtureJson(String name) throws IOException {
         return MAPPER.readTree(fixture(name));
+    }
+
+    // ── getCurrentUser (T059, R11) ───────────────────────────────
+
+    @AfterEach
+    void clearSecurityContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void getCurrentUser200IsTheAuthUserOfTheFixture() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "usr_01H8X2K4QJ", null, AuthorityUtils.createAuthorityList("ROLE_USER")));
+        when(authService.getUserById("usr_01H8X2K4QJ")).thenReturn(User.builder()
+                .id("usr_01H8X2K4QJ").username("alex_villa").email("alex@vito.com").passwordHash("$2a$secret")
+                .profile(User.Profile.builder().displayName("Alex Villa")
+                        .avatar("https://cdn.vito.com/usr_01H8X2K4QJ/avatar.jpg").bio("no va en AuthUser").build())
+                .build());
+
+        MvcResult result = mvc.perform(get("/api/v1/auth/me")).andExpect(status().isOk()).andReturn();
+
+        assertEquals(fixtureJson("getCurrentUser.200.json"),
+                MAPPER.readTree(result.getResponse().getContentAsString(StandardCharsets.UTF_8)));
+    }
+
+    @Test
+    void getCurrentUser401WithoutSession() throws Exception {
+        JsonNode error = errorBody(mvc.perform(get("/api/v1/auth/me")), 401);
+
+        assertMatchesFixture(error, "getCurrentUser.401.json");
+        assertEquals(fixtureJson("getCurrentUser.401.json").get("message"), error.get("message"));
+    }
+
+    /** /auth/** es permitAll: sin token llega el usuario anónimo de Spring, no null. */
+    @Test
+    void getCurrentUser401ForTheAnonymousUser() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(new AnonymousAuthenticationToken(
+                "key", "anonymousUser", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS")));
+
+        JsonNode error = errorBody(mvc.perform(get("/api/v1/auth/me")), 401);
+
+        assertMatchesFixture(error, "getCurrentUser.401.json");
+        assertEquals(fixtureJson("getCurrentUser.401.json").get("message"), error.get("message"));
     }
 }

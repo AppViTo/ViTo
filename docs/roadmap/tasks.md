@@ -206,7 +206,7 @@ release del viernes 2026-11-06.
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | 🟡 RFC (requiere D-08 de la Ola 1) | — |
 | T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🟢 READY (contrato en #253); 🔥 RSVP para el release del 2026-11-06 | — |
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | 🔵 EN CURSO (base: T020–T024 y T066) | — |
-| T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | 🟢 READY (contrato en #253) | — |
+| T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | 🔵 EN CURSO | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
 | T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🟢 READY | — |
 
@@ -985,12 +985,16 @@ depende del contrato.
   ya terminó. Tras cancelar, RSVP, unión por enlace, invitar y `PATCH` responden `409`.
   Siguen US4 (invitaciones desde la app) y US6 (asistentes).
 
-### T-B35 · `auth-service` y gateway de la Ola 1 — 🟢 READY (contrato en #253) · P0 · Principio III
+### T-B35 · `auth-service` y gateway de la Ola 1 — 🔵 EN CURSO · P0 · Principio III
 - **Qué:** T016–T019, T059 y T062 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): claim `name` en el access token; `X-User-Name`
   en el gateway con la higiene de T-B01; rutas públicas por método y patrón exacto (hoy
   `startsWith` haría pública también `accept`); ruta `/api/v1/invite-links/**` con límite por
   IP; `/auth/me` alineado a `AuthUser`; panel de `429` en el tablero de T-I13.
 - **Cierre:** un `X-User-Name` del cliente nunca llega a un servicio; `accept` sin token → 401.
+- **Avance (2026-11-04):** T016–T019, T059 y T062 hechos en la rama
+  `backend/t-b35-auth-gateway-ola-1`, más la parte del gateway de T067 (trazas, logs y una
+  etapa de Alloy con `/api/v1/invite-links/{token}`). El 429 del gateway lleva ahora
+  `Retry-After` en todas las rutas.
 
 ### T-B36 · Outbox y AsyncAPI de los eventos de `event-service` — 🔴 BLOQUEADA por T-C05 · P1 · Principio V
 - **Por qué:** desviación registrada en el plan de la Ola 1: `event-service` publica eventos

@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import com.vito.auth.domain.exception.AuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -84,11 +86,14 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<AuthResponse.UserInfo> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        // R11 (ADR-004): sin token válido, el 401 con envelope de getCurrentUser.401. La ruta está
+        // en el permitAll de /auth/**, así que aquí puede llegar el usuario anónimo de Spring.
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+            throw AuthenticationException.invalidAccessToken();
         }
-        
+                
         String userId = authentication.getName();
         User user = authService.getUserById(userId);
         
