@@ -87,6 +87,45 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 | T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); falta T061 (k6). |
 | T-B36 | Outbox y AsyncAPI de los eventos de `event-service` | Sesión de Bernardo | Bloqueada por T-C05. |
 
+### Asignación del 2026-11-04 (agente frontend) — 🔥 prioridad alta, release del viernes 2026-11-06
+
+**Por qué:** #259 (T-B34, US3) borra `POST /api/v1/events/{eventId}/invitations/respond`
+(D-01, FR-030): desde la Ola 1, `POST /api/v1/events/{eventId}/rsvp` es la única forma de
+responder una invitación. La app todavía llama a la ruta vieja:
+`event_remote_datasource.dart` (`respondToInvitation`), `event_repository_impl.dart`,
+`event_bloc.dart` y los fakes de prueba. Si el backend sale sin el cambio de la app,
+**aceptar una invitación responde 404**. Por eso los dos cambios salen **juntos** en el
+release del viernes 2026-11-06.
+
+| ID | Tarea | Asignada a | Qué hacer |
+|----|-------|------------|-----------|
+| T-F12 (T014 parcial y T032) | App: responder con `respondRsvp` y quitar `invitations/respond` | Agente frontend (Alex) | **P0, obligatorio para el viernes.** Ver los pasos 1 a 4. |
+| T-F12 (T033) | UI de RSVP | Agente frontend (Alex) | Deseable para el viernes (paso 5). Si no llega, sale en el release siguiente. |
+
+**Pasos:**
+1. `rsvp_model.dart` según `Rsvp` del contrato: `eventId`, `userId`, `status`, `message`,
+   `respondedAt` y `waitlistedAt`; sin `guestsCount`, sin QR ni `id`. Es la parte de T014 que
+   necesita el RSVP. `event_model.dart` ya tolera `stats` reducido (`?? 0`).
+2. T032: `respond_rsvp.dart` y `event_repository_impl.dart` envían `RespondRsvpRequest`
+   (`status` = `ACCEPTED | DECLINED | MAYBE`, `message` opcional de hasta 280 caracteres) y
+   leen `Rsvp`. Un `ACCEPTED` puede volver como `WAITLISTED` (cupo lleno).
+3. Quitar `respondToInvitation` del datasource, el repositorio, el BLoC y los fakes. Aceptar o
+   rechazar una invitación llama a `respondRsvp` con `ACCEPTED` o `DECLINED`; el backend
+   actualiza la invitación en la misma petición (FR-017).
+4. Pruebas contra los fixtures `docs/api/fixtures/events/respondRsvp.*`: `accepted.200`,
+   `waitlisted.200`, `400`, `notFound.404`, `private.404` y `409`.
+5. T033: botones "Voy", "No voy" y "Tal vez" con el estado actual, aviso "Estás en lista de
+   espera" para `WAITLISTED` y botones deshabilitados en eventos cancelados o pasados.
+
+**Coordinación:**
+- **Plazo:** PR mergeado en `develop` antes del corte del release del viernes 2026-11-06.
+- **Orden de los PR de backend:** #257 (fixture, necesita la aprobación de Alex) → #258 → #259.
+  El PR de la app puede mergearse antes que #259. Contra el backend actual `/rsvp` ya
+  funciona; solo cambiar de respuesta da `409` ("Ya respondiste a este evento"), y eso lo
+  corrige #259.
+- **Si la app no llega al viernes:** avisar en #259. Ese release sale sin #259 y los dos pasan
+  juntos al siguiente.
+
 ---
 
 ## Resumen: qué se puede hacer desde ya
@@ -165,7 +204,7 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 | T-I26 | CI: las 10 imágenes Java arrancan con el perfil `prod` antes del release | I | P0 | ✅ HECHA (#236) | — |
 | T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | 🟢 READY (antes del 2026-11-23) | — |
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | 🟡 RFC (requiere D-08 de la Ola 1) | — |
-| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🔴 BLOQUEADA por T-C10 | — |
+| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🟢 READY (contrato en #253); 🔥 RSVP para el release del 2026-11-06 | — |
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | 🔵 EN CURSO (base: T020–T024 y T066) | — |
 | T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | 🟢 READY (contrato en #253) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
@@ -554,12 +593,15 @@ depende del contrato.
   mockeados) que compruebe splash → login sin excepciones.
 - **Cierre:** ningún archivo de test sin casos; el smoke test monta `ViToApp` y navega.
 
-### T-F12 · App de la Ola 1 — 🔴 BLOQUEADA por T-C10 · P0 · Principio IV
+### T-F12 · App de la Ola 1 — 🟢 READY · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 9 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): modelos y pruebas de contrato,
   RSVP con lista de espera, enlace (copiar, WhatsApp, ruta web `/i/<token>`), editar y
   cancelar evento, invitaciones, lista de asistentes del organizador y contador de confirmados
   para los invitados, y auto-login con `/auth/me`.
 - **Cierre:** quickstart de la spec en verde para la app; Bug-F07 y el enlace de Bug-F09 cerrados.
+- **Prioridad (2026-11-04):** primero el RSVP (T014 parcial, T032 y T033) y quitar
+  `invitations/respond` de la app, para el release del viernes 2026-11-06 junto con #259.
+  Detalle en la *Asignación del 2026-11-04*.
 
 ---
 
