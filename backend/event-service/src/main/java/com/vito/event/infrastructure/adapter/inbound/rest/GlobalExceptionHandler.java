@@ -1,5 +1,7 @@
 package com.vito.event.infrastructure.adapter.inbound.rest;
 
+import static com.vito.event.infrastructure.config.InviteLinkTokenRedaction.redact;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.vito.event.domain.exception.EventException;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +39,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EventException.class)
     public ResponseEntity<ErrorResponse> handleDomainException(EventException ex) {
-        log.info("Domain error ({}): {}", ex.getReason(), ex.getMessage());
+        log.info("Domain error ({}): {}", ex.getReason(), redact(ex.getMessage()));
         return switch (ex.getReason()) {
             case INVALID -> ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ErrorResponse.of(
                     HttpStatus.BAD_REQUEST, VALIDATION_ERROR, ex.getMessage(), ex.getDetails()));
@@ -65,7 +67,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleUnreadableBody(HttpMessageNotReadableException ex) {
-        log.info("Unreadable request body: {}", ex.getMessage());
+        log.info("Unreadable request body: {}", redact(ex.getMessage()));
         return error(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, "El cuerpo de la petición no es un JSON válido");
     }
 
@@ -76,7 +78,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-        log.warn("Invalid argument: {}", ex.getMessage());
+        log.warn("Invalid argument: {}", redact(ex.getMessage()));
         return error(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, "La petición contiene datos no válidos");
     }
 
@@ -94,7 +96,13 @@ public class GlobalExceptionHandler {
                 && springError.getStatusCode().is4xxClientError()) {
             return springClientError(springError.getStatusCode());
         }
-        log.error("Unexpected error: {}", ex.getMessage(), ex);
+        String message = redact(ex.getMessage());
+        if (message != null && !message.equals(ex.getMessage())) {
+            // T067: la traza de la pila repetiría la ruta con el token; solo el tipo
+            log.error("Unexpected error: {} ({})", message, ex.getClass().getName());
+        } else {
+            log.error("Unexpected error: {}", message, ex);
+        }
         return error(HttpStatus.INTERNAL_SERVER_ERROR, INTERNAL_ERROR,
                 "Ocurrió un error inesperado. Inténtalo de nuevo en unos minutos");
     }

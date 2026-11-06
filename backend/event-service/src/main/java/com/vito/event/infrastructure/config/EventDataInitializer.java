@@ -1,6 +1,7 @@
 package com.vito.event.infrastructure.config;
 
 import com.vito.event.infrastructure.adapter.outbound.persistence.InvitationMongoAdapter;
+import com.vito.event.infrastructure.adapter.outbound.persistence.InviteLinkMongoAdapter;
 import com.vito.event.infrastructure.adapter.outbound.persistence.RSVPMongoAdapter;
 import com.vito.event.infrastructure.migration.Ola1DataMigration;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +23,13 @@ public class EventDataInitializer implements ApplicationRunner {
     private final Ola1DataMigration ola1DataMigration;
     private final RSVPMongoAdapter rsvpMongoAdapter;
     private final InvitationMongoAdapter invitationMongoAdapter;
+    private final InviteLinkMongoAdapter inviteLinkMongoAdapter;
 
     @Override
     public void run(ApplicationArguments args) {
         ola1DataMigration.run();
         rsvpMongoAdapter.ensureIndexes();
         invitationMongoAdapter.ensureIndexes();
+        inviteLinkMongoAdapter.ensureIndexes();
     }
 }

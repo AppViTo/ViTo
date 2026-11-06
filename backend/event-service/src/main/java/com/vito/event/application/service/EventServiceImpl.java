@@ -139,10 +139,19 @@ public class EventServiceImpl implements EventService {
         List<Event> events = switch (scope) {
             case MINE -> eventRepository.findByOrganizerId(viewerId, page, pageSize(size));
             case UPCOMING -> eventRepository.findUpcomingEvents(page, pageSize(size));
+            case INVITED -> invitedEvents(viewerId, page, pageSize(size));
         };
         return events.stream()
                 .map(event -> forViewer(event, viewerId))
                 .toList();
+    }
+
+    /** R10: invitaciones vigentes o aceptadas y RSVP distintos de "no voy", sin repetir eventos. */
+    private List<Event> invitedEvents(String viewerId, int page, int size) {
+        Instant now = Instant.now();
+        java.util.Set<String> ids = new java.util.LinkedHashSet<>(invitationRepository.findEventIdsInviting(viewerId, now));
+        ids.addAll(rsvpRepository.findEventIdsAnsweredBy(viewerId));
+        return eventRepository.findActiveByIds(ids, now, page, size);
     }
 
     @Override
@@ -211,7 +220,7 @@ public class EventServiceImpl implements EventService {
         if (event.getStatus() == Event.EventStatus.CANCELLED) {
             throw EventException.eventAlreadyCancelled();
         }
-        if (event.getStatus() != Event.EventStatus.PUBLISHED || hasEnded(event)) {
+        if (!event.isActiveAt(Instant.now())) {
             throw EventException.rsvpClosed();
         }
 
@@ -239,11 +248,6 @@ public class EventServiceImpl implements EventService {
                 .filter(inv -> inv.getStatus() == Invitation.InvitationStatus.ACCEPTED || !inv.isExpired())
                 .isPresent();
         return validInvitation || rsvpRepository.existsByEventIdAndUserId(event.getId(), userId);
-    }
-
-    private static boolean hasEnded(Event event) {
-        return event.getDetails() != null && event.getDetails().getEndDate() != null
-                && event.getDetails().getEndDate().isBefore(Instant.now());
     }
 
     /** FR-017: "voy" (con lugar o en espera) acepta, "no voy" rechaza, "tal vez" la deja pendiente. */

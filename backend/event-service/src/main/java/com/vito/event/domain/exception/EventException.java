@@ -37,8 +37,8 @@ public class EventException extends RuntimeException {
 
     /** {@code scope} fuera del enum de listEvents (ADR-014); texto del fixture listEvents.400. */
     public static EventException invalidListScope() {
-        return new EventException(Reason.INVALID, "El scope debe ser mine o upcoming",
-                Map.of("scope", "Valores permitidos: mine, upcoming"));
+        return new EventException(Reason.INVALID, "El scope debe ser mine, upcoming o invited",
+                Map.of("scope", "Valores permitidos: mine, upcoming, invited"));
     }
 
     /** {@code size} mayor que el máximo de página (ADR-008). */
@@ -88,6 +88,46 @@ public class EventException extends RuntimeException {
     /** respondRsvp.409 */
     public static EventException cannotRSVPToOwnEvent() {
         return new EventException(Reason.CONFLICT, "No puedes responder RSVP a tu propio evento");
+    }
+
+    // ---- Enlaces de invitación (US1); textos de los fixtures *InviteLink*
+
+    /** FR-006: inexistente, vencido o revocado responden igual, sin revelar cuál es el caso. */
+    public static EventException inviteLinkUnavailable() {
+        return new EventException(Reason.NOT_FOUND, "El enlace no existe o ya no está disponible");
+    }
+
+    public static EventException inviteLinkExhausted() {
+        return new EventException(Reason.CONFLICT, "El enlace alcanzó su límite de usos");
+    }
+
+    /** FR-007: evento cancelado, terminado o sin publicar. */
+    public static EventException eventNotAcceptingGuests() {
+        return new EventException(Reason.CONFLICT, "El evento ya no admite invitados");
+    }
+
+    public static EventException eventOrLinkNotFound() {
+        return new EventException(Reason.NOT_FOUND, "El evento o el enlace no existe");
+    }
+
+    public static EventException onlyOrganizer(String message) {
+        return new EventException(Reason.FORBIDDEN, message);
+    }
+
+    public static EventException invalidExpiresInDays(int min, int max) {
+        return new EventException(Reason.INVALID, "expiresInDays debe estar entre " + min + " y " + max,
+                Map.of("expiresInDays", "Rango permitido: " + min + "–" + max));
+    }
+
+    public static EventException invalidMaxUses(int min, int max) {
+        return new EventException(Reason.INVALID, "maxUses debe estar entre " + min + " y " + max,
+                Map.of("maxUses", "Rango permitido: " + min + "–" + max));
+    }
+
+    /** Texto de listInviteLinks.400 (distinto del de listEvents). */
+    public static EventException linkPageSizeTooLarge(int max) {
+        return new EventException(Reason.INVALID, "El tamaño de página no puede superar " + max,
+                Map.of("size", "Máximo " + max));
     }
 
     /** R3: evento terminado, con {@code endDate} pasada o sin publicar. */
