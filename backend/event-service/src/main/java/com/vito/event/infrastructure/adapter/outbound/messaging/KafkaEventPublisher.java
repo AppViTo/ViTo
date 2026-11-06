@@ -55,7 +55,13 @@ public class KafkaEventPublisher implements EventPublisherPort {
         payload.put("eventId", eventId);
         payload.put("timestamp", System.currentTimeMillis());
 
-        kafkaTemplate.send(TOPIC, eventId, payload);
-        log.info("Published {} for event: {}", type, eventId);
+        // R12: el resultado real del envío; el error solo lleva tipo y eventId, nunca datos de personas
+        kafkaTemplate.send(TOPIC, eventId, payload).whenComplete((result, error) -> {
+            if (error != null) {
+                log.error("No se pudo publicar {} del evento {}: {}", type, eventId, error.getClass().getSimpleName());
+            } else {
+                log.info("Published {} for event: {}", type, eventId);
+            }
+        });
     }
 }

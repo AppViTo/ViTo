@@ -25,6 +25,9 @@ public interface RSVPRepository {
     void delete(String eventId, String userId);
     
     boolean existsByEventIdAndUserId(String eventId, String userId);
+
+    /** R10: eventos en los que la persona respondió algo distinto de {@code DECLINED}. */
+    List<String> findEventIdsAnsweredBy(String userId);
     
     /**
      * Pasa a {@code ACCEPTED} el {@code WAITLISTED} más antiguo del evento (por {@code waitlistedAt})

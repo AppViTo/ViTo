@@ -22,7 +22,9 @@ import java.util.List;
 @Slf4j
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    
+
+    static final String USER_NAME_HEADER = "X-User-Name";
+        
     @Value("${jwt.secret}")
     private String jwtSecret;
     
@@ -51,11 +53,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .getPayload();
             
             String userId = claims.getSubject();
-            
+
             if (userId != null) {
-                UsernamePasswordAuthenticationToken authentication = 
+                // Nombre visible (R6): el claim firmado; si el token aún no lo trae, el header del gateway
+                String name = claims.get("name", String.class);
+                AuthenticatedUser user = new AuthenticatedUser(userId,
+                        name != null ? name : request.getHeader(USER_NAME_HEADER));
+                UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                userId,
+                                user,
                                 null,
                                 List.of(new SimpleGrantedAuthority("USER"))
                         );

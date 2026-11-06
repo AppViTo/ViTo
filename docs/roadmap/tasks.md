@@ -82,10 +82,49 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 |----|-------|------------|------------------------|
 | T-C10 | Contrato de la Ola 1 (🟡 RFC) | Agente frontend (Alex) | Issue `contract-change`, rama `contract/ola-1` y redacción de `openapi.yaml`, fixtures, CONVENTIONS y enmiendas a ADR-014/016 (T002, T006–T013). No se mergea sin D-08 y 1 CODEOWNER. |
 | T-F12 | App de la Ola 1 | Agente frontend (Alex) | Nada hasta el merge de T-C10; después avanza contra el mock de Prism. |
-| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | T003 ya; base del cupo atómico, migración e índices (T020–T024, T066) en curso. |
+| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | Fundacional, US3, US1 (enlaces, `scope=invited`), US2 (editar) y US5 (cancelar). Siguen US4 y US6. |
 | T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | Desbloqueada: contrato mergeado (#253). |
 | T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); falta T061 (k6). |
 | T-B36 | Outbox y AsyncAPI de los eventos de `event-service` | Sesión de Bernardo | Bloqueada por T-C05. |
+
+### Asignación del 2026-11-04 (agente frontend) — 🔥 prioridad alta, release del viernes 2026-11-06
+
+**Por qué:** #259 (T-B34, US3) borra `POST /api/v1/events/{eventId}/invitations/respond`
+(D-01, FR-030): desde la Ola 1, `POST /api/v1/events/{eventId}/rsvp` es la única forma de
+responder una invitación. La app todavía llama a la ruta vieja:
+`event_remote_datasource.dart` (`respondToInvitation`), `event_repository_impl.dart`,
+`event_bloc.dart` y los fakes de prueba. Si el backend sale sin el cambio de la app,
+**aceptar una invitación responde 404**. Por eso los dos cambios salen **juntos** en el
+release del viernes 2026-11-06.
+
+| ID | Tarea | Asignada a | Qué hacer |
+|----|-------|------------|-----------|
+| T-F12 (T014 parcial y T032) | App: responder con `respondRsvp` y quitar `invitations/respond` | Agente frontend (Alex) | **P0, obligatorio para el viernes.** Ver los pasos 1 a 4. |
+| T-F12 (T033) | UI de RSVP | Agente frontend (Alex) | Deseable para el viernes (paso 5). Si no llega, sale en el release siguiente. |
+
+**Pasos:**
+1. `rsvp_model.dart` según `Rsvp` del contrato: `eventId`, `userId`, `status`, `message`,
+   `respondedAt` y `waitlistedAt`; sin `guestsCount`, sin QR ni `id`. Es la parte de T014 que
+   necesita el RSVP. `event_model.dart` ya tolera `stats` reducido (`?? 0`).
+2. T032: `respond_rsvp.dart` y `event_repository_impl.dart` envían `RespondRsvpRequest`
+   (`status` = `ACCEPTED | DECLINED | MAYBE`, `message` opcional de hasta 280 caracteres) y
+   leen `Rsvp`. Un `ACCEPTED` puede volver como `WAITLISTED` (cupo lleno).
+3. Quitar `respondToInvitation` del datasource, el repositorio, el BLoC y los fakes. Aceptar o
+   rechazar una invitación llama a `respondRsvp` con `ACCEPTED` o `DECLINED`; el backend
+   actualiza la invitación en la misma petición (FR-017).
+4. Pruebas contra los fixtures `docs/api/fixtures/events/respondRsvp.*`: `accepted.200`,
+   `waitlisted.200`, `400`, `notFound.404`, `private.404` y `409`.
+5. T033: botones "Voy", "No voy" y "Tal vez" con el estado actual, aviso "Estás en lista de
+   espera" para `WAITLISTED` y botones deshabilitados en eventos cancelados o pasados.
+
+**Coordinación:**
+- **Plazo:** PR mergeado en `develop` antes del corte del release del viernes 2026-11-06.
+- **Orden de los PR de backend:** #257 (fixture, necesita la aprobación de Alex) → #258 → #259.
+  El PR de la app puede mergearse antes que #259. Contra el backend actual `/rsvp` ya
+  funciona; solo cambiar de respuesta da `409` ("Ya respondiste a este evento"), y eso lo
+  corrige #259.
+- **Si la app no llega al viernes:** avisar en #259. Ese release sale sin #259 y los dos pasan
+  juntos al siguiente.
 
 ---
 
@@ -165,7 +204,7 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 | T-I26 | CI: las 10 imágenes Java arrancan con el perfil `prod` antes del release | I | P0 | ✅ HECHA (#236) | — |
 | T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | 🟢 READY (antes del 2026-11-23) | — |
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | 🟡 RFC (requiere D-08 de la Ola 1) | — |
-| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🔴 BLOQUEADA por T-C10 | — |
+| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🟢 READY (contrato en #253); 🔥 RSVP para el release del 2026-11-06 | — |
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | 🔵 EN CURSO (base: T020–T024 y T066) | — |
 | T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | 🔵 EN CURSO | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
@@ -554,12 +593,15 @@ depende del contrato.
   mockeados) que compruebe splash → login sin excepciones.
 - **Cierre:** ningún archivo de test sin casos; el smoke test monta `ViToApp` y navega.
 
-### T-F12 · App de la Ola 1 — 🔴 BLOQUEADA por T-C10 · P0 · Principio IV
+### T-F12 · App de la Ola 1 — 🟢 READY · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 9 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): modelos y pruebas de contrato,
   RSVP con lista de espera, enlace (copiar, WhatsApp, ruta web `/i/<token>`), editar y
   cancelar evento, invitaciones, lista de asistentes del organizador y contador de confirmados
   para los invitados, y auto-login con `/auth/me`.
 - **Cierre:** quickstart de la spec en verde para la app; Bug-F07 y el enlace de Bug-F09 cerrados.
+- **Prioridad (2026-11-04):** primero el RSVP (T014 parcial, T032 y T033) y quitar
+  `invitations/respond` de la app, para el release del viernes 2026-11-06 junto con #259.
+  Detalle en la *Asignación del 2026-11-04*.
 
 ---
 
@@ -919,8 +961,29 @@ depende del contrato.
 - **Avance (2026-11-02):** base de la ola: modelo (T020), migración de datos (T066), índices
   (T021), cupo con `$inc` condicional y `AttendanceService` con lista de espera y promoción
   (T022–T024). La prueba de concurrencia pasa 10 de 10 (20 confirmados y 30 en espera); la
-  lógica anterior confirmaba entre 40 y 50 con cupo 20. Siguen T025–T027 y T067, y las
-  historias de usuario.
+  lógica anterior confirmaba entre 40 y 50 con cupo 20 (#256).
+- **Avance (2026-11-04):** nombre visible desde el token o `X-User-Name` (T025), resultado de
+  cada envío a Kafka en el log (T026) y `stats` con solo `totalAccepted` para quien no organiza
+  (T027; el fixture de `upcoming` se corrige en #257). T067 (token del enlace fuera de trazas y
+  logs) va con las rutas de enlaces (T034–T040) y con T-B35 en el gateway.
+- **Avance (2026-11-04, US3):** `respondRsvp` como upsert con el acceso de R3, la invitación
+  que sigue a la respuesta (FR-017), sin QR y con la respuesta `Rsvp` del contrato; se retira
+  `invitations/respond` (T028–T031). La app aún llama a esa ruta: no se despliega antes de que
+  T-F12 la migre a `/rsvp`.
+- **Avance (2026-11-04, US1):** enlaces de invitación (T034–T040): crear, listar con los
+  vigentes primero, revocar, vista previa pública sin dirección y unión idempotente con `$inc`
+  condicional de usos (20 uniones a la vez con `maxUses` 5 → 5); `scope=invited`. T067 hecho
+  en `event-service` (trazas y logs de error con `/api/v1/invite-links/{token}`); falta el
+  gateway con T-B35. Siguen US2 (editar, T045–T047), US4, US5 y US6.
+- **Avance (2026-11-04, US2):** `PATCH` con JSON Merge Patch (T045–T047). Solo se escriben
+  los campos enviados con un `$set` condicional que no toca `stats` (el `PUT` anterior
+  reescribía el documento y podía pisar un RSVP concurrente); el cupo por debajo de los
+  confirmados se rechaza en la misma operación; subir el cupo promueve la lista de espera. Se
+  retira el `PUT`: ninguna pantalla de la app lo usa. La pantalla de edición es T-F (T048–T049).
+- **Avance (2026-11-04, US5):** cancelar (T053–T054) con un `$set` condicional que no toca
+  `stats`, invitaciones, RSVP ni enlaces; idempotente (`204` sin volver a publicar) y `409` si
+  ya terminó. Tras cancelar, RSVP, unión por enlace, invitar y `PATCH` responden `409`.
+  Siguen US4 (invitaciones desde la app) y US6 (asistentes).
 
 ### T-B35 · `auth-service` y gateway de la Ola 1 — 🔵 EN CURSO · P0 · Principio III
 - **Qué:** T016–T019, T059 y T062 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): claim `name` en el access token; `X-User-Name`
