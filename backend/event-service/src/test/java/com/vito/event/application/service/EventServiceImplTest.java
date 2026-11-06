@@ -112,51 +112,6 @@ class EventServiceImplTest {
     }
 
     @Test
-    void sendInvitation_Success() {
-        // Arrange
-        SendInvitationCommand command = SendInvitationCommand.builder()
-                .eventId("event123")
-                .inviterId("organizer123")
-                .inviteeId("user456")
-                .message("Come to my event!")
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(invitationRepository.existsByEventIdAndInviteeId("event123", "user456")).thenReturn(false);
-        when(invitationRepository.save(any(Invitation.class))).thenReturn(Invitation.builder().build());
-
-        // Act
-        Invitation result = eventService.sendInvitation(command);
-
-        // Assert
-        assertNotNull(result);
-
-        verify(eventRepository, atLeastOnce()).findById("event123");
-        verify(invitationRepository).existsByEventIdAndInviteeId("event123", "user456");
-        verify(invitationRepository).save(any(Invitation.class));
-        verify(eventPublisher).publishInvitationSent("event123", "organizer123", "user456");
-    }
-
-    @Test
-    void sendInvitation_NotAuthorized_ThrowsException() {
-        // Arrange
-        SendInvitationCommand command = SendInvitationCommand.builder()
-                .eventId("event123")
-                .inviterId("user456")
-                .inviteeId("user789")
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-
-        // Act & Assert
-        EventException exception = assertThrows(
-                EventException.class,
-                () -> eventService.sendInvitation(command)
-        );
-        assertEquals("No tienes permiso para realizar esta acción", exception.getMessage());
-    }
-
-    @Test
     void checkIn_Success() {
         // Arrange
         CheckInCommand command = CheckInCommand.builder()

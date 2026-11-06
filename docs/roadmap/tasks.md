@@ -82,8 +82,8 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 |----|-------|------------|------------------------|
 | T-C10 | Contrato de la Ola 1 (🟡 RFC) | Agente frontend (Alex) | Issue `contract-change`, rama `contract/ola-1` y redacción de `openapi.yaml`, fixtures, CONVENTIONS y enmiendas a ADR-014/016 (T002, T006–T013). No se mergea sin D-08 y 1 CODEOWNER. |
 | T-F12 | App de la Ola 1 | Agente frontend (Alex) | Nada hasta el merge de T-C10; después avanza contra el mock de Prism. |
-| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | Fundacional, US3, US1 (enlaces, `scope=invited`), US2 (editar) y US5 (cancelar). Siguen US4 y US6. |
-| T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | Desbloqueada: contrato mergeado (#253). |
+| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | ✅ Todas sus historias: US3, US1, US2, US5 (#258–#265) y US4 y US6 (invitaciones y asistentes). |
+| T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | ✅ HECHA (#262). |
 | T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); falta T061 (k6). |
 | T-B36 | Outbox y AsyncAPI de los eventos de `event-service` | Sesión de Bernardo | Bloqueada por T-C05. |
 
@@ -205,8 +205,8 @@ release del viernes 2026-11-06.
 | T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | 🟢 READY (antes del 2026-11-23) | — |
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | 🟡 RFC (requiere D-08 de la Ola 1) | — |
 | T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🟢 READY (contrato en #253); 🔥 RSVP para el release del 2026-11-06 | — |
-| T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | 🔵 EN CURSO (base: T020–T024 y T066) | — |
-| T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | 🔵 EN CURSO | — |
+| T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y US4/US6) | — |
+| T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | ✅ HECHA (#262) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
 | T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🟢 READY | — |
 
@@ -951,7 +951,7 @@ depende del contrato.
   `docs/api/fixtures/media/`; un test de que retirar un elemento del mosaico borra su archivo;
   salida real de `./mvnw test` en el PR; `/mosaic/photo` devuelve 404.
 
-### T-B34 · `event-service` de la Ola 1 — 🔵 EN CURSO · P0 · Principios III, IV y VII
+### T-B34 · `event-service` de la Ola 1 — ✅ HECHA · P0 · Principios III, IV y VII
 - **Qué:** las tareas `[Bernardo]` de `event-service` en [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): Testcontainers MongoDB,
   cupo con `$inc` condicional y lista de espera con promoción automática (TDD), RSVP como
   upsert que también responde la invitación (se retira `invitations/respond`), enlaces de
@@ -984,8 +984,17 @@ depende del contrato.
   `stats`, invitaciones, RSVP ni enlaces; idempotente (`204` sin volver a publicar) y `409` si
   ya terminó. Tras cancelar, RSVP, unión por enlace, invitar y `PATCH` responden `409`.
   Siguen US4 (invitaciones desde la app) y US6 (asistentes).
+- **Avance (2026-11-06, US4 y US6, cierre):** invitar y ver las invitaciones (T050–T051) y la
+  lista de asistentes (T056–T057) son solo del organizador; antes cualquier usuario veía los
+  invitados y los asistentes de cualquier evento (hallazgo del #204). `sendInvitation`
+  responde `201`, valida `inviteeId` y el mensaje de hasta 280 caracteres, y da `409` si la
+  persona ya está invitada, también si el índice único gana una carrera, sin contarla dos
+  veces. Las invitaciones `PENDING` vencidas se leen como `EXPIRED`. La lista de asistentes
+  usa `Attendee` (sin correo, teléfono ni QR) y admite el filtro `status`. `event-service` no
+  comprueba que el invitado exista (no conoce usuarios, R6): el `404` es solo del evento hasta
+  que haya búsqueda de usuarios (Ola 2). T067 cerrada con #261 y #262.
 
-### T-B35 · `auth-service` y gateway de la Ola 1 — 🔵 EN CURSO · P0 · Principio III
+### T-B35 · `auth-service` y gateway de la Ola 1 — ✅ HECHA (#262) · P0 · Principio III
 - **Qué:** T016–T019, T059 y T062 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): claim `name` en el access token; `X-User-Name`
   en el gateway con la higiene de T-B01; rutas públicas por método y patrón exacto (hoy
   `startsWith` haría pública también `accept`); ruta `/api/v1/invite-links/**` con límite por

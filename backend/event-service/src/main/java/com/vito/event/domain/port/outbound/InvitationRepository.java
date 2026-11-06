@@ -12,6 +12,7 @@ public interface InvitationRepository {
     
     Optional<Invitation> findByEventIdAndInviteeId(String eventId, String inviteeId);
     
+    /** Las más recientes primero ({@code sentAt} descendente, desempate por id). */
     List<Invitation> findByEventId(String eventId, int page, int size);
     
     List<Invitation> findByInviterId(String inviterId, int page, int size);

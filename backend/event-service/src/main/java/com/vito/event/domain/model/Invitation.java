@@ -43,6 +43,15 @@ public class Invitation {
         EXPIRED
     }
     
+    /**
+     * Como la ve quien la consulta en {@code now}: {@code PENDING} vencida sale {@code EXPIRED}
+     * (data-model). Es una copia; el estado guardado no cambia.
+     */
+    public Invitation asSeenAt(Instant now) {
+        boolean expired = status == InvitationStatus.PENDING && expiresAt != null && !expiresAt.isAfter(now);
+        return expired ? toBuilder().status(InvitationStatus.EXPIRED).build() : this;
+    }
+
     public boolean isExpired() {
         return expiresAt != null && Instant.now().isAfter(expiresAt);
     }
