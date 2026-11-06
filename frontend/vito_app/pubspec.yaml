@@ -26,7 +26,7 @@ dependencies:
   
   # UI
   cupertino_icons: ^1.0.6
-  cached_network_image: ^3.3.0
+  cached_network_image: ^4.0.6
   shimmer: ^4.0.0
   pull_to_refresh: ^2.0.0
   
