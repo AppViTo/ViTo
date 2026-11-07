@@ -24,8 +24,11 @@ RUN --mount=type=cache,target=/root/.m2,sharing=locked ./mvnw -B -q package -Dsk
 # ── Runtime ─────────────────────────────────────────────────────
 FROM eclipse-temurin:21.0.13_9-jre-jammy
 
-# curl solo para el healthcheck (GET /actuator/health/readiness)
+# upgrade: parches de seguridad de Ubuntu que la imagen base aún no trae (p. ej. apt 2.4.14
+# con un CVE HIGH ya corregido, que corta el Trivy de cd.yml). curl solo para el
+# healthcheck (GET /actuator/health/readiness)
 RUN apt-get update \
+ && apt-get upgrade -y --no-install-recommends \
  && apt-get install -y --no-install-recommends curl \
  && rm -rf /var/lib/apt/lists/* \
  && useradd --system --uid 10001 --no-create-home vito
