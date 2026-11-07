@@ -83,7 +83,7 @@ contrato (T006–T013) esté mergeado.
 - [X] T024 [Bernardo] Caso de uso compartido `ES/application/service/AttendanceService.java`: `confirm(eventId, userId, displayName)` reserva lugar o deja `WAITLISTED` con `waitlistedAt`; `release(eventId, userId)` libera y promueve al `WAITLISTED` más antiguo (si la reserva falla, vuelve a `WAITLISTED`). Pruebas unitarias primero en `ES-test/application/service/AttendanceServiceTest.java`
 - [X] T025 [P] [Bernardo] Tomar `X-User-Name` en `ES/infrastructure/security/JwtAuthenticationFilter.java` y exponerlo junto con el userId a los controladores; `organizerDisplayName` se guarda al crear el evento
 - [X] T026 [P] [Bernardo] `ES/infrastructure/adapter/outbound/messaging/KafkaEventPublisher.java`: registrar el resultado de cada `send` con `whenComplete` (error con `eventId` y tipo, sin datos personales) (R12)
-- [ ] T067 [P] [Bernardo] (event-service ✅ 2026-11-04; falta api-gateway, con T-B35) Redacción del token del enlace fuera de la app (Principio VI, R4): en `api-gateway` y `event-service`, las trazas OpenTelemetry usan la plantilla `/api/v1/invite-links/{token}` en lugar de la ruta real (`url.path`/`http.route`), y ningún log de acceso ni de error escribe la ruta con el token (`backend/api-gateway/src/main/java/com/vito/gateway/` y `ES/infrastructure/config/`). Prueba que verifica que el token no aparece en los atributos del span ni en la salida del log
+- [X] T067 [P] [Bernardo] (event-service en #261, api-gateway en #262) Redacción del token del enlace fuera de la app (Principio VI, R4): en `api-gateway` y `event-service`, las trazas OpenTelemetry usan la plantilla `/api/v1/invite-links/{token}` en lugar de la ruta real (`url.path`/`http.route`), y ningún log de acceso ni de error escribe la ruta con el token (`backend/api-gateway/src/main/java/com/vito/gateway/` y `ES/infrastructure/config/`). Prueba que verifica que el token no aparece en los atributos del span ni en la salida del log
 - [X] T027 [Bernardo] Vista según quién consulta (R7): quien no es organizador recibe `stats` con solo `totalAccepted`, en el mismo punto que aplica `hideAddressUntilAccepted` (`getEvent` y todos los `scope` de `listEvents`) en `ES/application/service/EventServiceImpl.java`; pruebas contra `getEvent.organizer.200.json` y `getEvent.guest.200.json`
 
 **Checkpoint**: contrato mergeado, mock de Prism con las 13 operaciones, cupo atómico verificado.
@@ -167,8 +167,8 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 **Independent Test**: quickstart §5, pasos 1–2.
 
-- [ ] T050 [P] [US4] [Bernardo] Pruebas en `ES-test/application/service/InvitationTest.java` y contra `FX/events/sendInvitation.*` y `listEventInvitations.*`: 403 a quien no es organizador en ambas (corrige el hallazgo del #204), 409 si ya está invitado, `EXPIRED` calculado al leer, `totalInvited` con `$inc`
-- [ ] T051 [US4] [Bernardo] Verificar organizador en `getEventInvitations`, `message` ≤ 280, `expiresAt` = envío + 7 días y `incrementStat` en `EventServiceImpl.sendInvitation`/`getEventInvitations`; ajustar `EventController.java` a los códigos del contrato
+- [X] T050 [P] [US4] [Bernardo] Pruebas en `ES-test/application/service/InvitationTest.java` y contra `FX/events/sendInvitation.*` y `listEventInvitations.*`: 403 a quien no es organizador en ambas (corrige el hallazgo del #204), 409 si ya está invitado, `EXPIRED` calculado al leer, `totalInvited` con `$inc`
+- [X] T051 [US4] [Bernardo] Verificar organizador en `getEventInvitations`, `message` ≤ 280, `expiresAt` = envío + 7 días y `incrementStat` en `EventServiceImpl.sendInvitation`/`getEventInvitations`; ajustar `EventController.java` a los códigos del contrato
 - [ ] T052 [P] [US4] [Alex] Casos de uso `send_invitation.dart` y `list_event_invitations.dart` en `APP/features/events/domain/usecases/` y lista de invitaciones del organizador (estado, origen app o enlace, fechas) en el detalle del evento. La búsqueda de invitados sigue con el aviso de Bug-F08 hasta la Ola 2
 
 ---
@@ -191,8 +191,8 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 **Independent Test**: quickstart §5, pasos 3–4.
 
-- [ ] T056 [P] [US6] [Bernardo] Pruebas contra `FX/events/listEventAttendees.*`: organizador → 200 paginado con `displayName` y sin correo ni teléfono; cualquier otro, aunque esté confirmado → 403; filtro `status` opcional
-- [ ] T057 [US6] [Bernardo] Autorización de organizador y mapeo a `Attendee` en `EventServiceImpl.getEventAttendees` y `EventController.java`
+- [X] T056 [P] [US6] [Bernardo] Pruebas contra `FX/events/listEventAttendees.*`: organizador → 200 paginado con `displayName` y sin correo ni teléfono; cualquier otro, aunque esté confirmado → 403; filtro `status` opcional
+- [X] T057 [US6] [Bernardo] Autorización de organizador y mapeo a `Attendee` en `EventServiceImpl.getEventAttendees` y `EventController.java`
 - [ ] T058 [P] [US6] [Alex] Lista de asistentes del organizador (`list_event_attendees.dart` y página o sección en el detalle) y contador "N personas confirmadas" para los invitados, desde `stats.totalAccepted`, en `APP/features/events/presentation/pages/event_detail_page.dart`
 
 ---

@@ -124,7 +124,7 @@ public class EventException extends RuntimeException {
                 Map.of("maxUses", "Rango permitido: " + min + "–" + max));
     }
 
-    /** Texto de listInviteLinks.400 (distinto del de listEvents). */
+    /** Texto de listInviteLinks.400 y listEventInvitations.400 (distinto del de listEvents). */
     public static EventException linkPageSizeTooLarge(int max) {
         return new EventException(Reason.INVALID, "El tamaño de página no puede superar " + max,
                 Map.of("size", "Máximo " + max));
@@ -196,8 +196,50 @@ public class EventException extends RuntimeException {
                 Map.of("message", "Máximo " + max + " caracteres"));
     }
 
+    /** Texto de sendInvitation.409; también si el índice único gana una carrera. */
     public static EventException alreadyInvited() {
-        return new EventException(Reason.CONFLICT, "Este usuario ya está invitado al evento");
+        return new EventException(Reason.CONFLICT, "El usuario ya está invitado a este evento");
+    }
+
+    // ---- invitaciones (US4) y asistentes (US6) -----------------------------------------
+
+    /** Texto de sendInvitation.404; event-service no conoce usuarios (R6), así que es el evento. */
+    public static EventException eventOrUserNotFound() {
+        return new EventException(Reason.NOT_FOUND, "El evento o el usuario no existe");
+    }
+
+    public static EventException onlyOrganizerCanInvite() {
+        return new EventException(Reason.FORBIDDEN, "Solo el organizador puede invitar a este evento");
+    }
+
+    public static EventException onlyOrganizerCanListInvitations() {
+        return new EventException(Reason.FORBIDDEN, "Solo el organizador puede ver las invitaciones");
+    }
+
+    public static EventException onlyOrganizerCanListAttendees() {
+        return new EventException(Reason.FORBIDDEN, "Solo el organizador puede ver la lista de asistentes");
+    }
+
+    /** Texto de sendInvitation.400. */
+    public static EventException inviteeRequired() {
+        return new EventException(Reason.INVALID, "El campo inviteeId es obligatorio",
+                Map.of("inviteeId", "Debe ser un usuario registrado"));
+    }
+
+    public static EventException cannotInviteYourself() {
+        return new EventException(Reason.INVALID, "No puedes invitarte a tu propio evento",
+                Map.of("inviteeId", "Debe ser otra persona"));
+    }
+
+    public static EventException invitationMessageTooLong(int max) {
+        return new EventException(Reason.INVALID, "El mensaje no puede superar " + max + " caracteres",
+                Map.of("message", "Máximo " + max + " caracteres"));
+    }
+
+    /** Texto de listEventAttendees.400. */
+    public static EventException invalidAttendeeStatus() {
+        return new EventException(Reason.INVALID, "El status del filtro no es válido",
+                Map.of("status", "Valores permitidos: PENDING, ACCEPTED, DECLINED, MAYBE, WAITLISTED"));
     }
 
     public static EventException invalidCheckIn() {

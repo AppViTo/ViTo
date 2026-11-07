@@ -38,6 +38,7 @@ public class InvitationMongoAdapter implements InvitationRepository {
     @Override
     public List<Invitation> findByEventId(String eventId, int page, int size) {
         Query query = new Query(Criteria.where("eventId").is(eventId))
+                .with(Sort.by(Sort.Order.desc("sentAt"), Sort.Order.desc("_id")))
                 .skip((long) page * size)
                 .limit(size);
         return mongoTemplate.find(query, Invitation.class, "invitations");

@@ -39,11 +39,13 @@ public interface EventService {
     
     RSVP respondToRSVP(RespondRSVPCommand command);
     
-    List<RSVP> getEventAttendees(String eventId, int page, int size);
+    /** US6: solo el organizador; {@code status} null no filtra. */
+    List<RSVP> getEventAttendees(String eventId, String userId, RSVP.RSVPStatus status, int page, int size);
     
     Invitation sendInvitation(SendInvitationCommand command);
     
-    List<Invitation> getEventInvitations(String eventId, int page, int size);
+    /** US4: solo el organizador; las {@code PENDING} vencidas salen {@code EXPIRED}. */
+    List<Invitation> getEventInvitations(String eventId, String userId, int page, int size);
     
     String generateCheckInQR(String eventId, String userId);
     

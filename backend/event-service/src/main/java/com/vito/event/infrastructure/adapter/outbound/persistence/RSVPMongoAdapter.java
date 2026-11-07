@@ -46,6 +46,19 @@ public class RSVPMongoAdapter implements RSVPRepository {
     }
     
     @Override
+    public List<RSVP> findByEventId(String eventId, RSVP.RSVPStatus status, int page, int size) {
+        Criteria criteria = Criteria.where("eventId").is(eventId);
+        if (status != null) {
+            criteria = criteria.and("status").is(status);
+        }
+        Query query = new Query(criteria)
+                .with(Sort.by(Sort.Order.asc("respondedAt"), Sort.Order.asc("_id")))
+                .skip((long) page * size)
+                .limit(size);
+        return mongoTemplate.find(query, RSVP.class, "rsvps");
+    }
+
+    @Override
     public List<RSVP> findByUserId(String userId, int page, int size) {
         Query query = new Query(Criteria.where("userId").is(userId))
                 .skip((long) page * size)

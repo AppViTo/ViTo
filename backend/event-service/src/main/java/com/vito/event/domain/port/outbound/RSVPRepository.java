@@ -13,6 +13,9 @@ public interface RSVPRepository {
     Optional<RSVP> findByEventIdAndUserId(String eventId, String userId);
     
     List<RSVP> findByEventId(String eventId, int page, int size);
+
+    /** US6: por orden de respuesta ({@code respondedAt}, desempate por id); {@code status} null no filtra. */
+    List<RSVP> findByEventId(String eventId, RSVP.RSVPStatus status, int page, int size);
     
     List<RSVP> findByUserId(String userId, int page, int size);
     

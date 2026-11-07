@@ -120,35 +120,57 @@ public class EventController {
         return ResponseEntity.ok(RsvpResponse.from(rsvp));
     }
 
+    /** listEventAttendees (US6, FR-024): solo el organizador; nunca correo ni teléfono. */
     @GetMapping("/{eventId}/attendees")
-    public ResponseEntity<List<RSVP>> getEventAttendees(
+    public ResponseEntity<List<AttendeeResponse>> getEventAttendees(
             @PathVariable String eventId,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        List<RSVP> attendees = eventService.getEventAttendees(eventId, page, size);
-        return ResponseEntity.ok(attendees);
+        String currentUserId = getCurrentUserId(
+                () -> EventException.unauthenticated("Debes iniciar sesión para realizar esta acción"));
+        List<RSVP> attendees = eventService.getEventAttendees(eventId, currentUserId, attendeeStatus(status), page, size);
+        return ResponseEntity.ok(attendees.stream().map(AttendeeResponse::from).toList());
     }
-    
+
+    /** {@code status} es opcional; uno desconocido es 400 (listEventAttendees.400). */
+    private static RSVP.RSVPStatus attendeeStatus(String status) {
+        if (status == null) {
+            return null;
+        }
+        try {
+            return RSVP.RSVPStatus.valueOf(status);
+        } catch (IllegalArgumentException unknown) {
+            throw EventException.invalidAttendeeStatus();
+        }
+    }
+
+    /** sendInvitation (US4, FR-010): 201 con la invitación {@code PENDING}. */
     @PostMapping("/{eventId}/invitations")
-    public ResponseEntity<Invitation> sendInvitation(
+    public ResponseEntity<InvitationResponse> sendInvitation(
             @PathVariable String eventId,
-            @RequestBody EventService.SendInvitationCommand command) {
-        String currentUserId = getCurrentUserId();
-        command.setEventId(eventId);
-        command.setInviterId(currentUserId);
-        
-        Invitation invitation = eventService.sendInvitation(command);
-        
-        return ResponseEntity.ok(invitation);
+            @RequestBody SendInvitationRequest request) {
+        String currentUserId = getCurrentUserId(
+                () -> EventException.unauthenticated("Debes iniciar sesión para realizar esta acción"));
+        Invitation invitation = eventService.sendInvitation(EventService.SendInvitationCommand.builder()
+                .eventId(eventId)
+                .inviterId(currentUserId)
+                .inviteeId(request.inviteeId())
+                .message(request.message())
+                .build());
+        return ResponseEntity.status(HttpStatus.CREATED).body(InvitationResponse.from(invitation));
     }
-    
+
+    /** listEventInvitations (US4, FR-012): solo el organizador. */
     @GetMapping("/{eventId}/invitations")
-    public ResponseEntity<List<Invitation>> getEventInvitations(
+    public ResponseEntity<List<InvitationResponse>> getEventInvitations(
             @PathVariable String eventId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        List<Invitation> invitations = eventService.getEventInvitations(eventId, page, size);
-        return ResponseEntity.ok(invitations);
+        String currentUserId = getCurrentUserId(
+                () -> EventException.unauthenticated("Debes iniciar sesión para realizar esta acción"));
+        List<Invitation> invitations = eventService.getEventInvitations(eventId, currentUserId, page, size);
+        return ResponseEntity.ok(invitations.stream().map(InvitationResponse::from).toList());
     }
     
     @PostMapping("/{eventId}/check-in")

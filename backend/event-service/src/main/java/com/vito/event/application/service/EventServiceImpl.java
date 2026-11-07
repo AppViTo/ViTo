@@ -10,12 +10,15 @@ import com.vito.event.domain.port.outbound.*;
 import com.vito.event.domain.port.outbound.EventRepository.StatCounter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 @Slf4j
 @Service
@@ -24,6 +27,9 @@ public class EventServiceImpl implements EventService {
     
     /** Máximo de elementos por página (CONVENTIONS §5); {@code size} &lt; 1 sería {@code limit(0)}, sin límite en Mongo. */
     static final int MAX_PAGE_SIZE = 100;
+    /** FR-010. */
+    static final int MAX_INVITATION_MESSAGE = 280;
+    static final Duration INVITATION_TTL = Duration.ofDays(7);
     
     private final EventRepository eventRepository;
     private final RSVPRepository rsvpRepository;
@@ -378,9 +384,30 @@ public class EventServiceImpl implements EventService {
         invitationRepository.save(invitation);
     }
     
+    /** US6 (FR-024): solo el organizador, aunque otra persona esté confirmada. */
     @Override
-    public List<RSVP> getEventAttendees(String eventId, int page, int size) {
-        return rsvpRepository.findByEventId(eventId, page, size);
+    public List<RSVP> getEventAttendees(String eventId, String userId, RSVP.RSVPStatus status, int page, int size) {
+        checkPage(page, size);
+        organizedEvent(eventId, userId, EventException::eventNotFound, EventException::onlyOrganizerCanListAttendees);
+        return rsvpRepository.findByEventId(eventId, status, page, Math.max(1, size));
+    }
+
+    private static void checkPage(int page, int size) {
+        if (size > MAX_PAGE_SIZE) {
+            throw EventException.linkPageSizeTooLarge(MAX_PAGE_SIZE);
+        }
+        if (page < 0) {
+            throw EventException.negativePage();
+        }
+    }
+
+    private Event organizedEvent(String eventId, String userId, Supplier<EventException> notFound,
+                                 Supplier<EventException> notOrganizer) {
+        Event event = eventRepository.findById(eventId).orElseThrow(notFound);
+        if (!event.getOrganizerId().equals(userId)) {
+            throw notOrganizer.get();
+        }
+        return event;
     }
     
     @Override
@@ -388,45 +415,67 @@ public class EventServiceImpl implements EventService {
         log.info("Sending invitation to {} for event {} by user: {}", 
                 command.getInviteeId(), command.getEventId(), command.getInviterId());
         
-        Event event = eventRepository.findById(command.getEventId())
-                .orElseThrow(EventException::eventNotFound);
-        
-        if (!event.getOrganizerId().equals(command.getInviterId())) {
-            throw EventException.notAuthorized();
+        // US4: 404 → 403 → 400 → 409, como editar y cancelar
+        Event event = organizedEvent(command.getEventId(), command.getInviterId(),
+                EventException::eventOrUserNotFound, EventException::onlyOrganizerCanInvite);
+
+        String inviteeId = command.getInviteeId() == null ? "" : command.getInviteeId().strip();
+        if (inviteeId.isEmpty()) {
+            throw EventException.inviteeRequired();
         }
-        
+        if (inviteeId.equals(command.getInviterId())) {
+            throw EventException.cannotInviteYourself();
+        }
+        String message = command.getMessage();
+        if (message != null && message.codePointCount(0, message.length()) > MAX_INVITATION_MESSAGE) {
+            throw EventException.invitationMessageTooLong(MAX_INVITATION_MESSAGE);
+        }
+
+        Instant now = Instant.now();
         // US5: un evento cancelado o terminado no admite invitados (sendInvitation 409)
-        if (!event.isActiveAt(Instant.now())) {
+        if (!event.isActiveAt(now)) {
             throw EventException.eventNotAcceptingGuests();
         }
 
-        if (invitationRepository.existsByEventIdAndInviteeId(command.getEventId(), command.getInviteeId())) {
+        // FR-011: también si antes rechazó o se venció; el índice único cubre la carrera
+        if (invitationRepository.existsByEventIdAndInviteeId(command.getEventId(), inviteeId)) {
             throw EventException.alreadyInvited();
         }
-        
+
         Invitation invitation = Invitation.builder()
                 .eventId(command.getEventId())
                 .inviterId(command.getInviterId())
-                .inviteeId(command.getInviteeId())
+                .inviteeId(inviteeId)
                 .status(Invitation.InvitationStatus.PENDING)
-                .message(command.getMessage())
-                .sentAt(Instant.now())
-                .expiresAt(Instant.now().plus(7, ChronoUnit.DAYS))
+                .message(message)
+                .sentAt(now)
+                .expiresAt(now.plus(INVITATION_TTL))
                 .build();
 
-        Invitation savedInvitation = invitationRepository.save(invitation);
+        Invitation savedInvitation;
+        try {
+            savedInvitation = invitationRepository.save(invitation);
+        } catch (DuplicateKeyException sameInviteeTwice) {
+            throw EventException.alreadyInvited();
+        }
 
+        // $inc: no pisa otros contadores
         eventRepository.incrementStat(command.getEventId(), StatCounter.INVITED, 1);
         
-        eventPublisher.publishInvitationSent(command.getEventId(), command.getInviterId(), 
-                command.getInviteeId());
+        eventPublisher.publishInvitationSent(command.getEventId(), command.getInviterId(), inviteeId);
         
         return savedInvitation;
     }
     
+    /** US4 (FR-012): solo el organizador (antes cualquiera las veía, hallazgo del #204). */
     @Override
-    public List<Invitation> getEventInvitations(String eventId, int page, int size) {
-        return invitationRepository.findByEventId(eventId, page, size);
+    public List<Invitation> getEventInvitations(String eventId, String userId, int page, int size) {
+        checkPage(page, size);
+        organizedEvent(eventId, userId, EventException::eventNotFound, EventException::onlyOrganizerCanListInvitations);
+        Instant now = Instant.now();
+        return invitationRepository.findByEventId(eventId, page, Math.max(1, size)).stream()
+                .map(invitation -> invitation.asSeenAt(now))
+                .toList();
     }
     
     @Override
