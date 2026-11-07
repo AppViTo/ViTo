@@ -212,7 +212,7 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 - [ ] T061 [P] [Bernardo] Escenarios k6 `backend/load-tests/ola-1-rsvp.js` (150 asistentes, RSVP concurrente, 0 cupos superados, < 1 s p95) y `backend/load-tests/ola-1-preview.js` (< 300 ms p95), siguiendo `backend/load-tests/event-load-test.js`
 - [X] T062 [P] [Bernardo] Panel de `429` por ruta (vista previa y `accept`) en el tablero del gateway de T-I13 (`infrastructure/observability/`)
-- [ ] T063 [Bernardo] Registrar como tarea del backlog la desviación del Principio V (outbox, sobre versionado y declaración de los eventos Kafka de `event-service` en `asyncapi.yaml`), con dependencia de T-C05 y antes del primer consumidor (Ola 2)
+- [X] T063 [Bernardo] (registrada como T-B36 en `docs/roadmap/tasks.md`) Registrar como tarea del backlog la desviación del Principio V (outbox, sobre versionado y declaración de los eventos Kafka de `event-service` en `asyncapi.yaml`), con dependencia de T-C05 y antes del primer consumidor (Ola 2)
 - [ ] T064 [Bernardo] y [Alex] Recorrer `quickstart.md` completo contra el stack local y pegar la salida en el PR de cierre de la ola
 - [ ] T065 [Alex] Cerrar T-C07 Ola 1, Bug-F07 y la parte de enlace de Bug-F09 en `docs/roadmap/tasks.md`; comentar en el RFC #204 qué quedó y qué pasa a la Ola 2
 

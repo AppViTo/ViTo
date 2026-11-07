@@ -89,6 +89,13 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 
 ### Asignación del 2026-11-04 (agente frontend) — 🔥 prioridad alta, release del viernes 2026-11-06
 
+> **Release v0.2.0 publicado (2026-11-06, #275).** Al revisar la app antes del release, las
+> pantallas ya respondían por `/rsvp` (`RespondToRSVP`); `respondToInvitation` sigue en el
+> datasource, el repositorio y el BLoC, pero ninguna pantalla lo usa, así que retirar
+> `invitations/respond` no rompió nada. Su limpieza (paso 3) queda en T-F12. Trivy bloqueaba
+> las imágenes Java por `apt` 2.4.14 de la imagen base (corregido en #274) y el Secrets Scan
+> del release, por las huellas del squash de #253 (#276).
+
 **Por qué:** #259 (T-B34, US3) borra `POST /api/v1/events/{eventId}/invitations/respond`
 (D-01, FR-030): desde la Ola 1, `POST /api/v1/events/{eventId}/rsvp` es la única forma de
 responder una invitación. La app todavía llama a la ruta vieja:
@@ -255,7 +262,7 @@ depende del contrato.
 | Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | ✅ HECHA (#203) | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
 | Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟡 RFC (`updateEvent` entra al contrato en la Ola 1) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
 | Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | ✅ HECHA (#227) | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
-| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10); la búsqueda real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
+| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10); la búsqueda real, 🟡 RFC [AppViTo/ViTo#277](https://github.com/AppViTo/ViTo/issues/277) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
 | Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10) | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
 | Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10); el enlace real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
 
@@ -301,6 +308,13 @@ depende del contrato.
     no basta: `social-service` busca en su colección `user_profiles` y nadie la llena
     (`auth-service` publica el registro en `user-events`, pero ningún servicio lo consume). El
     RFC pide consumir ese tópico y hacer una carga inicial de los usuarios que ya existen.
+  - **2026-11-07:** la parte de la Ola 1 de #204 entró con la spec 003 y `searchUsers` quedó
+    para la Ola 2. En la prueba de v0.2.0 los leads no pudieron encontrarse para invitarse. El
+    RFC propio es [#277](https://github.com/AppViTo/ViTo/issues/277): propone que
+    `auth-service`, dueño de la identidad (ADR-004), sirva `GET /api/v1/users/search`, porque
+    replicar perfiles en `social-service` exige cumplir el Principio V (`UserRegisteredEvent`
+    solo lleva `userId` y `email`, sin sobre ni outbox) y depende de T-C05. Mientras tanto, el
+    camino para invitar es el enlace (T041–T044 de T-F12; backend en producción desde v0.2.0).
 - **Bug-F10** (antes se registró como Bug-F08; se renombró porque VITO-83 ya usaba ese ID):
   la app está en español (`app_localization_test.dart`), pero
   `event_detail_page.dart` tiene los textos en inglés. Pasarlos al español, incluidos los estados
