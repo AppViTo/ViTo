@@ -5,10 +5,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
 public class Invitation {
@@ -25,11 +25,16 @@ public class Invitation {
     
     private String message;
     
-    private LocalDateTime sentAt;
+    /** Enlace por el que se unió la persona; null si la invitación se envió por la app. */
+    private String inviteLinkId;
     
-    private LocalDateTime expiresAt;
+    // Instantes UTC, como Event desde Bug-B01 (FR-028)
+    private Instant sentAt;
     
-    private LocalDateTime respondedAt;
+    /** {@code sentAt} + 7 días por la app; null por enlace (ya aceptada). */
+    private Instant expiresAt;
+    
+    private Instant respondedAt;
     
     public enum InvitationStatus {
         PENDING,
@@ -38,17 +43,26 @@ public class Invitation {
         EXPIRED
     }
     
+    /**
+     * Como la ve quien la consulta en {@code now}: {@code PENDING} vencida sale {@code EXPIRED}
+     * (data-model). Es una copia; el estado guardado no cambia.
+     */
+    public Invitation asSeenAt(Instant now) {
+        boolean expired = status == InvitationStatus.PENDING && expiresAt != null && !expiresAt.isAfter(now);
+        return expired ? toBuilder().status(InvitationStatus.EXPIRED).build() : this;
+    }
+
     public boolean isExpired() {
-        return expiresAt != null && LocalDateTime.now().isAfter(expiresAt);
+        return expiresAt != null && Instant.now().isAfter(expiresAt);
     }
     
     public void accept() {
         this.status = InvitationStatus.ACCEPTED;
-        this.respondedAt = LocalDateTime.now();
+        this.respondedAt = Instant.now();
     }
     
     public void decline() {
         this.status = InvitationStatus.DECLINED;
-        this.respondedAt = LocalDateTime.now();
+        this.respondedAt = Instant.now();
     }
 }

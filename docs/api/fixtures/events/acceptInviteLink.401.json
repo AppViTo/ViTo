@@ -1,0 +1,6 @@
+{
+  "error": "UNAUTHORIZED",
+  "message": "Debes iniciar sesión para realizar esta acción",
+  "status": 401,
+  "timestamp": "2026-10-28T02:10:00Z"
+}

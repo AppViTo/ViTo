@@ -456,3 +456,89 @@ jobs:
         with:
           sarif_file: ${{ runner.temp }}/trivy.sarif
           category: trivy-${{ matrix.service }}
+
+      # Para Prod Startup: la imagen Java tal cual se construyó (zstd rápido, artifact de 1 día)
+      - name: Comprimir imagen Java
+        if: startsWith(matrix.context, 'backend/')
+        run: zstd -T0 -3 -q "$RUNNER_TEMP/image.tar" -o "$RUNNER_TEMP/prod-image-${{ matrix.service }}.tar.zst"
+
+      - uses: actions/upload-artifact@v7
+        if: startsWith(matrix.context, 'backend/')
+        with:
+          name: prod-image-${{ matrix.service }}
+          path: ${{ runner.temp }}/prod-image-${{ matrix.service }}.tar.zst
+          retention-days: 1
+          compression-level: 0
+
+  # Arranque en prod (T-I26): sin staging (ADR-011), un fallo de runtime (p. ej. una
+  # dependencia en scope test, release 2026-10-30) solo aparecía en el VPS. Las 10 imágenes
+  # Java con docker-compose.prod.yml (perfil prod, Mongo, Redis y Kafka SASL) y los valores
+  # ficticios de Deploy Scripts; --wait falla si alguna no llega a healthy en readiness.
+  prod-startup:
+    name: Prod Startup
+    runs-on: ubuntu-latest
+    needs: [docker-build]
+    timeout-minutes: 20
+    env:
+      SERVICES: >-
+        api-gateway auth-service social-service event-service checkin-service
+        mosaic-service streaming-service archive-service chat-service media-service
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: prod-image-*
+          path: ${{ runner.temp }}/images
+          merge-multiple: true
+
+      - name: Cargar imágenes
+        run: |
+          for f in "$RUNNER_TEMP"/images/*.tar.zst; do
+            zstd -dc "$f" | docker load
+          done
+
+      # Las imágenes de CI son vito/<svc>:ci. Kafka exige un CLUSTER_ID de 22 caracteres
+      # en base64 (el de los fixtures solo sirve para `config`). restart "no": un servicio
+      # que se cae hace fallar --wait al momento en vez de reiniciarse hasta el timeout.
+      - name: Entorno y override de CI
+        run: |
+          {
+            for svc in $SERVICES transcode-service moderation-service mongo-backup; do
+              key=${svc//-/_}
+              echo "TAG_${key^^}=ci"
+            done
+            echo "KAFKA_CLUSTER_ID=$(head -c 16 /dev/urandom | base64 | tr '+/' '-_' | cut -c1-22)"
+          } > "$RUNNER_TEMP/ci.env"
+          {
+            echo "services:"
+            for svc in $SERVICES; do
+              echo "  $svc:"
+              echo '    restart: "no"'
+            done
+          } > "$RUNNER_TEMP/compose.ci.yml"
+          {
+            echo "COMPOSE_PROJECT_NAME=vito-ci"
+            echo "COMPOSE_FILE=docker-compose.prod.yml:$RUNNER_TEMP/compose.ci.yml"
+            echo "COMPOSE_ENV_FILES=infrastructure/deploy/tests/fixtures/.env.test,infrastructure/deploy/tests/fixtures/versions.env,$RUNNER_TEMP/ci.env"
+          } >> "$GITHUB_ENV"
+
+      - name: docker compose up --wait
+        run: |
+          # shellcheck disable=SC2086  # SERVICES es una lista
+          docker compose up -d --no-build --wait --wait-timeout 480 $SERVICES
+
+      - name: Estado y logs
+        if: always()
+        run: |
+          docker compose ps -a
+          for svc in $SERVICES; do
+            health=$(docker inspect -f '{{.State.Health.Status}}' "vito-ci-$svc-1" 2>/dev/null || echo ausente)
+            if [ "$health" != healthy ]; then
+              echo "::error::$svc no llegó a healthy ($health)"
+              echo "::group::logs de $svc"
+              docker compose logs --no-color --tail 200 "$svc"
+              echo "::endgroup::"
+            fi
+          done

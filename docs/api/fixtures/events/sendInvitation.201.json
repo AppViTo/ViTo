@@ -1,0 +1,12 @@
+{
+  "id": "inv_01HA1B2C3D",
+  "eventId": "evt_01H8X2K4QJ",
+  "inviterId": "usr_01H8X2K4QJ",
+  "inviteeId": "usr_01H8X2K4QV",
+  "status": "PENDING",
+  "message": "¡Te espero!",
+  "inviteLinkId": null,
+  "sentAt": "2026-10-28T02:10:00Z",
+  "expiresAt": "2026-11-04T02:10:00Z",
+  "respondedAt": null
+}

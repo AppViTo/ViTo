@@ -2,6 +2,7 @@ package com.vito.event.domain.port.inbound;
 
 import com.vito.event.domain.exception.EventException;
 import com.vito.event.domain.model.Event;
+import com.vito.event.domain.model.EventPatch;
 import com.vito.event.domain.model.Invitation;
 import com.vito.event.domain.model.RSVP;
 import lombok.AllArgsConstructor;
@@ -38,13 +39,13 @@ public interface EventService {
     
     RSVP respondToRSVP(RespondRSVPCommand command);
     
-    List<RSVP> getEventAttendees(String eventId, int page, int size);
+    /** US6: solo el organizador; {@code status} null no filtra. */
+    List<RSVP> getEventAttendees(String eventId, String userId, RSVP.RSVPStatus status, int page, int size);
     
     Invitation sendInvitation(SendInvitationCommand command);
     
-    List<Invitation> getEventInvitations(String eventId, int page, int size);
-    
-    void respondToInvitation(RespondInvitationCommand command);
+    /** US4: solo el organizador; las {@code PENDING} vencidas salen {@code EXPIRED}. */
+    List<Invitation> getEventInvitations(String eventId, String userId, int page, int size);
     
     String generateCheckInQR(String eventId, String userId);
     
@@ -53,7 +54,9 @@ public interface EventService {
     /** Valores de {@code scope} en listEvents: enum cerrado (ADR-014). */
     enum ListScope {
         MINE("mine"),
-        UPCOMING("upcoming");
+        UPCOMING("upcoming"),
+        /** R10: invitaciones vigentes o aceptadas y RSVP distintos de DECLINED de quien consulta. */
+        INVITED("invited");
 
         private final String value;
 
@@ -78,6 +81,8 @@ public interface EventService {
     @AllArgsConstructor
     class CreateEventCommand {
         private String organizerId;
+        /** Lo pone el controlador desde la identidad (R6); se ignora lo que mande el cliente. */
+        private String organizerDisplayName;
         @NotBlank(message = "Es obligatorio")
         @Size(min = 3, max = 100, message = "Mínimo 3 caracteres")
         private String title;
@@ -94,10 +99,10 @@ public interface EventService {
     class UpdateEventCommand {
         private String eventId;
         private String userId;
-        private String title;
-        private String description;
-        private Event.EventDetails details;
-        private Event.EventSettings settings;
+        /** Lo pone el controlador desde la identidad (R6); se ignora lo que mande el cliente. */
+        private String organizerDisplayName;
+        /** Solo los campos enviados (JSON Merge Patch, US2). */
+        private EventPatch patch;
     }
     
     @Data
@@ -107,9 +112,10 @@ public interface EventService {
     class RespondRSVPCommand {
         private String eventId;
         private String userId;
+        /** Lo pone el controlador desde la identidad (R6); se ignora lo que mande el cliente. */
+        private String displayName;
         private RSVP.RSVPStatus status;
         private String message;
-        private int guestsCount;
     }
     
     @Data
@@ -121,16 +127,6 @@ public interface EventService {
         private String inviterId;
         private String inviteeId;
         private String message;
-    }
-    
-    @Data
-    @Builder
-    @NoArgsConstructor
-    @AllArgsConstructor
-    class RespondInvitationCommand {
-        private String eventId;
-        private String inviteeId;
-        private Invitation.InvitationStatus status;
     }
     
     @Data

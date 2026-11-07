@@ -4,11 +4,14 @@ import com.vito.event.domain.model.Invitation;
 import com.vito.event.domain.port.outbound.InvitationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,6 +38,7 @@ public class InvitationMongoAdapter implements InvitationRepository {
     @Override
     public List<Invitation> findByEventId(String eventId, int page, int size) {
         Query query = new Query(Criteria.where("eventId").is(eventId))
+                .with(Sort.by(Sort.Order.desc("sentAt"), Sort.Order.desc("_id")))
                 .skip((long) page * size)
                 .limit(size);
         return mongoTemplate.find(query, Invitation.class, "invitations");
@@ -81,5 +85,23 @@ public class InvitationMongoAdapter implements InvitationRepository {
         Query query = new Query(Criteria.where("eventId").is(eventId)
                 .and("inviteeId").is(inviteeId));
         return mongoTemplate.exists(query, Invitation.class, "invitations");
+    }
+
+    @Override
+    public List<String> findEventIdsInviting(String inviteeId, Instant now) {
+        Query query = new Query(Criteria.where("inviteeId").is(inviteeId).orOperator(
+                Criteria.where("status").is(Invitation.InvitationStatus.ACCEPTED),
+                new Criteria().andOperator(Criteria.where("status").is(Invitation.InvitationStatus.PENDING),
+                        new Criteria().orOperator(Criteria.where("expiresAt").is(null), Criteria.where("expiresAt").gt(now)))));
+        return mongoTemplate.findDistinct(query, "eventId", "invitations", String.class);
+    }
+
+    /** T021: una invitación por persona y evento; {@code {inviteeId, status}} para {@code scope=invited} (R10). */
+    public void ensureIndexes() {
+        var indexOps = mongoTemplate.indexOps("invitations");
+        indexOps.createIndex(new Index().on("eventId", Sort.Direction.ASC).on("inviteeId", Sort.Direction.ASC)
+                .unique().named("eventId_inviteeId_unique"));
+        indexOps.createIndex(new Index().on("inviteeId", Sort.Direction.ASC).on("status", Sort.Direction.ASC)
+                .named("inviteeId_status"));
     }
 }

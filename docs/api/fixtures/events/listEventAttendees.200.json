@@ -1,0 +1,14 @@
+[
+  {
+    "userId": "usr_01H8X2K4QV",
+    "displayName": "Carolina Martínez",
+    "status": "ACCEPTED",
+    "respondedAt": "2026-10-28T02:10:00Z"
+  },
+  {
+    "userId": "usr_01H8X2K4QW",
+    "displayName": null,
+    "status": "WAITLISTED",
+    "respondedAt": "2026-10-28T02:12:00Z"
+  }
+]

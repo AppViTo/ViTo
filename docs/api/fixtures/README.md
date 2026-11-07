@@ -37,8 +37,9 @@ events/listEvents.400.json                  → `scope` inválido o `size` > 100
 
 1. **Una carpeta por tag**, no por servicio: el consumidor del fixture es el
    contrato, no el código.
-2. **Cada operación con `requestBody` tiene un `.request.json`**, salvo
-   `multipart/form-data` (ver §Multipart abajo).
+2. **Cada operación con `requestBody` JSON tiene un `.request.json`**, incluido
+   `application/merge-patch+json`; la excepción es `multipart/form-data` (ver
+   §Multipart abajo).
 3. **Cada status declarado en `responses` tiene su `.<status>.json`**, incluidos
    los 4xx/5xx. No se inventan statuses que el YAML no declare.
 4. **Un fixture nunca contradice su schema.** Si el ejemplo y el schema
@@ -103,11 +104,11 @@ representar el `file` binario. El validador solo aplica schema a las respuestas
 de esa operación. El `eventId` que acompaña al multipart sí queda documentado en
 el `description` del YAML (CONVENTIONS §8).
 
-## Cobertura actual (Ola 0)
+## Cobertura actual (Olas 0 y 1)
 
-Las **15 operaciones** de `openapi.yaml` están cubiertas: 8 requests (las 7 con
-body JSON + los casos ya citados) y 47 fixtures de respuesta (55 en total,
-contando variantes de `examples`). Verificación:
+Las **38 operaciones** de `openapi.yaml` están cubiertas: 12 requests (incluye
+`updateEvent`, cuyo body es `application/merge-patch+json`) y 158 fixtures de
+respuesta (170 en total, contando variantes de `examples`). Verificación:
 
 ```bash
 npm ci

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "inv_01HA1B2C3D",
+    "eventId": "evt_01H8X2K4QJ",
+    "inviterId": "usr_01H8X2K4QJ",
+    "inviteeId": "usr_01H8X2K4QV",
+    "status": "PENDING",
+    "message": "¡Te espero!",
+    "inviteLinkId": null,
+    "sentAt": "2026-10-28T02:10:00Z",
+    "expiresAt": "2026-11-04T02:10:00Z",
+    "respondedAt": null
+  },
+  {
+    "id": "inv_01HA9Z8Y7X",
+    "eventId": "evt_01H8X2K4QJ",
+    "inviterId": "usr_01H8X2K4QJ",
+    "inviteeId": "usr_01H8X2K4QW",
+    "status": "ACCEPTED",
+    "message": null,
+    "inviteLinkId": "inl_01HA1B2C3D",
+    "sentAt": "2026-10-27T15:00:00Z",
+    "expiresAt": null,
+    "respondedAt": "2026-10-28T02:12:00Z"
+  }
+]

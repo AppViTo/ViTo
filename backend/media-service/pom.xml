@@ -64,7 +64,7 @@
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>s3</artifactId>
-            <version>2.57.3</version>
+            <version>2.57.8</version>
         </dependency>
         <!-- Tipo real del archivo por magic bytes (T-B19); tika-core no trae parsers -->
         <dependency>
@@ -133,7 +133,7 @@
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
-            <version>7.4</version>
+            <version>9.0</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
@@ -163,7 +163,7 @@
         <dependency>
             <groupId>at.yawk.lz4</groupId>
             <artifactId>lz4-java</artifactId>
-            <version>1.11.4</version>
+            <version>1.12.1</version>
         </dependency>
         <!-- CVE-2026-108106 y CVE-2026-93451 (HIGH): snappy-java 1.1.10.7 llega transitivo por Kafka; fix en 1.1.10.9 -->
         <dependency>

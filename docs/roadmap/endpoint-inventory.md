@@ -2,13 +2,18 @@
 
 > Generado del código el 2026-10-16 (rama `docs/constitution-v1`, commit `1e80ac4`).
 > **100 operaciones de negocio**: 87 Java + 13 FastAPI (sin contar `/health`, `/actuator/*`
-> ni `/fallback/*`). En `openapi.yaml`: **15** (una de ellas, `GET /events`, no existe en el código). Total de filas: 101.
+> ni `/fallback/*`). En `openapi.yaml`: **38** tras la Ola 1 (una de ellas, `GET /events`, no existe en el código). Total de filas: 106.
 >
 > La columna **Decisión propuesta** NO es vinculante hasta que los leads la aprueben por
 > ola (D-08 en `decisions-pending.md`). Mientras tanto, según la constitución (Principio I),
 > todo lo que no está en el contrato se considera **no publicado**.
 > **✅ OLA 3 APROBADA (D-08) el 2026-10-24 por AlexVilla y Bernardo.** Los endpoints de mosaico
 > de la Ola 3 pasan a ser oficiales para el contrato (T-C07).
+> **✅ OLA 1 APROBADA (D-08) el 2026-11-01 por AlexVilla y Bernardo (PR #245)**, con el alcance de
+> `specs/003-ola-1-eventos-invitaciones`: las operaciones de la Ola 1 más los enlaces de
+> invitación y `scope=invited` (RFC #204); `PUT /events/{eventId}` pasa a `PATCH` y
+> `invitations/respond` se fusiona en `/rsvp`. `searchUsers` sigue en la Ola 2. La rama
+> `contract/ola-1` (T-C10) aplica estos cambios en la tabla.
 
 ## Leyenda
 
@@ -30,7 +35,7 @@ Columna **Front**: ✔ = el código Flutter ya lo llama (`lib/**/datasources`, `
 | POST | `/api/v1/auth/login` | ✔ | ✔ | `CONTRATO` | 0 |
 | POST | `/api/v1/auth/refresh` | ✔ | ✔ | `CONTRATO` | 0 |
 | POST | `/api/v1/auth/logout` | ✔ | ✔ | `CONTRATO` | 0 |
-| GET | `/api/v1/auth/me` | | ✔ | `PUBLICAR` (auto-login) | 1 |
+| GET | `/api/v1/auth/me` | ✔ | ✔ | `CONTRATO (Ola 1)` (auto-login) | 1 |
 | GET | `/api/v1/auth/validate` | | | `INTERNO` (el gateway valida el JWT localmente) | — |
 
 ## Events — `event-service` (:8083)
@@ -40,15 +45,20 @@ Columna **Front**: ✔ = el código Flutter ya lo llama (`lib/**/datasources`, `
 | POST | `/api/v1/events` | ✔ | ✔ | `CONTRATO` | 0 |
 | GET | `/api/v1/events` | ✔ | ✔ | `CONTRATO` — **no implementado en backend** (O-26, D-03) | 0 |
 | GET | `/api/v1/events/{eventId}` | ✔ | ✔ | `CONTRATO` | 0 |
-| PUT | `/api/v1/events/{eventId}` | | | `PUBLICAR` (solo organizador) | 1 |
-| DELETE | `/api/v1/events/{eventId}` | | ✔ | `PUBLICAR` (solo organizador) | 1 |
+| PATCH | `/api/v1/events/{eventId}` | ✔ | | `CONTRATO (Ola 1)` (solo organizador; `application/merge-patch+json`) | 1 |
+| DELETE | `/api/v1/events/{eventId}` | ✔ | ✔ | `CONTRATO (Ola 1)` (solo organizador; pasa a `CANCELLED`) | 1 |
 | GET | `/api/v1/events/my-events` | | | `FUSIONAR→GET /events?scope=mine` (D-03) | 0 |
 | GET | `/api/v1/events/upcoming` | | ✔ | `FUSIONAR→GET /events?scope=upcoming` (D-03) | 0 |
-| POST | `/api/v1/events/{eventId}/rsvp` | | ✔ | `PUBLICAR` (ACCEPTED/DECLINED/MAYBE/WAITLIST, cupo atómico) | 1 |
-| GET | `/api/v1/events/{eventId}/attendees` | | ✔ | `PUBLICAR` (paginado) | 1 |
-| POST | `/api/v1/events/{eventId}/invitations` | | ✔ | `PUBLICAR` (app + link externo) | 1 |
-| GET | `/api/v1/events/{eventId}/invitations` | | ✔ | `PUBLICAR` (solo organizador) | 1 |
-| POST | `/api/v1/events/{eventId}/invitations/respond` | | ✔ | `PUBLICAR` o `FUSIONAR→/rsvp` (se fija en la spec de la Ola 1, ADR-016) | 1 |
+| POST | `/api/v1/events/{eventId}/rsvp` | ✔ | ✔ | `CONTRATO (Ola 1)` (ACCEPTED/DECLINED/MAYBE/WAITLISTED, cupo atómico) | 1 |
+| GET | `/api/v1/events/{eventId}/attendees` | ✔ | ✔ | `CONTRATO (Ola 1)` (solo organizador, paginado) | 1 |
+| POST | `/api/v1/events/{eventId}/invitations` | ✔ | ✔ | `CONTRATO (Ola 1)` (solo organizador) | 1 |
+| GET | `/api/v1/events/{eventId}/invitations` | ✔ | ✔ | `CONTRATO (Ola 1)` (solo organizador, paginado) | 1 |
+| POST | `/api/v1/events/{eventId}/invitations/respond` | | ✔ | `FUSIONAR→/rsvp` (D-01, ADR-016) | 1 |
+| POST | `/api/v1/events/{eventId}/invite-links` | ✔ | | `CONTRATO (Ola 1)` (solo organizador) | 1 |
+| GET | `/api/v1/events/{eventId}/invite-links` | ✔ | | `CONTRATO (Ola 1)` (solo organizador, paginado) | 1 |
+| DELETE | `/api/v1/events/{eventId}/invite-links/{linkId}` | ✔ | | `CONTRATO (Ola 1)` (solo organizador, idempotente) | 1 |
+| GET | `/api/v1/invite-links/{token}` | ✔ | | `CONTRATO (Ola 1)` (**público**, sin dirección exacta) | 1 |
+| POST | `/api/v1/invite-links/{token}/accept` | ✔ | | `CONTRATO (Ola 1)` (idempotente) | 1 |
 | POST | `/api/v1/events/{eventId}/check-in` | | ✔ | `FUSIONAR→/checkin/validate` (ADR-016) | 2 |
 | GET | `/api/v1/events/{eventId}/qr-code` | | ✔ | `FUSIONAR→/checkin/ticket` (ADR-016) | 2 |
 
@@ -189,9 +199,9 @@ Ninguna ruta WS pasa por el gateway: falta la ruta `/ws/**` (O-08, T-B04).
 
 | Decisión | Filas |
 |----------|------:|
-| `CONTRATO` (ya publicado; incluye `GET /events` sin implementar) | 14 |
-| `PUBLICAR` (incluye `invitations/respond`, se fija en la Ola 1) | 53 |
-| `FUSIONAR` | 10 |
+| `CONTRATO` (ya publicado; incluye `GET /events` sin implementar) | 26 |
+| `PUBLICAR` | 44 |
+| `FUSIONAR` | 11 |
 | `INTERNO` (incluye `moderation/check`, hoy en el contrato) | 7 |
 | `DIFERIR` | 18 |
-| **Total** | **101** = 100 del código + `GET /events` |
+| **Total** | **106** = 100 del código + `GET /events` + 5 rutas de enlaces |

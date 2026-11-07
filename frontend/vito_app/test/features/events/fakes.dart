@@ -37,11 +37,15 @@ class FakeEventRepository implements EventRepository {
   final List<Event>? myEvents;
   final List<Event>? upcomingEvents;
 
+  /// `null` responde `ServerFailure`; un evento, `Right` con ese detalle.
+  final Event? eventDetail;
+
   FakeEventRepository({
     this.failCreate = false,
     this.failCoverUpload = false,
     this.myEvents,
     this.upcomingEvents,
+    this.eventDetail,
   });
 
   @override
@@ -100,7 +104,7 @@ class FakeEventRepository implements EventRepository {
 
   @override
   Future<Either<Failure, Event>> getEvent(String eventId) async =>
-      const Left(ServerFailure());
+      eventDetail != null ? Right(eventDetail!) : const Left(ServerFailure());
 
   @override
   Future<Either<Failure, List<Event>>> getMyEvents({

@@ -97,7 +97,7 @@
         <dependency>
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
-            <version>7.4</version>
+            <version>9.0</version>
         </dependency>
         <dependency>
             <groupId>io.micrometer</groupId>
@@ -127,7 +127,7 @@
         <dependency>
             <groupId>at.yawk.lz4</groupId>
             <artifactId>lz4-java</artifactId>
-            <version>1.11.4</version>
+            <version>1.12.1</version>
         </dependency>
         <!-- CVE-2026-108106 y CVE-2026-93451 (HIGH): snappy-java 1.1.10.7 llega transitivo por Kafka; fix en 1.1.10.9 -->
         <dependency>

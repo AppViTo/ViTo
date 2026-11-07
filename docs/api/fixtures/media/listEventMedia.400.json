@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "size debe estar entre 1 y 100",
+  "status": 400,
+  "timestamp": "2026-10-16T22:15:00Z",
+  "details": {
+    "size": "debe ser menor o igual a 100"
+  }
+}

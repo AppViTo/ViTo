@@ -1,0 +1,6 @@
+{
+  "error": "FORBIDDEN",
+  "message": "Solo quien subió el archivo o el organizador del evento puede borrarlo",
+  "status": 403,
+  "timestamp": "2026-10-16T22:15:00Z"
+}

@@ -37,8 +37,8 @@ public class EventException extends RuntimeException {
 
     /** {@code scope} fuera del enum de listEvents (ADR-014); texto del fixture listEvents.400. */
     public static EventException invalidListScope() {
-        return new EventException(Reason.INVALID, "El scope debe ser mine o upcoming",
-                Map.of("scope", "Valores permitidos: mine, upcoming"));
+        return new EventException(Reason.INVALID, "El scope debe ser mine, upcoming o invited",
+                Map.of("scope", "Valores permitidos: mine, upcoming, invited"));
     }
 
     /** {@code size} mayor que el máximo de página (ADR-008). */
@@ -51,6 +51,12 @@ public class EventException extends RuntimeException {
     public static EventException negativePage() {
         return new EventException(Reason.INVALID, "La página no puede ser negativa",
                 Map.of("page", "Mínimo 0"));
+    }
+
+    /** RSVP con un {@code status} que no es de entrada; texto del fixture respondRsvp.400. */
+    public static EventException invalidRsvpStatus() {
+        return new EventException(Reason.INVALID, "El status debe ser ACCEPTED, DECLINED o MAYBE",
+                Map.of("status", "Valores permitidos: ACCEPTED, DECLINED, MAYBE"));
     }
 
     /** Sin usuario autenticado en el contexto de seguridad. */
@@ -79,24 +85,161 @@ public class EventException extends RuntimeException {
         return new EventException(Reason.CONFLICT, "El evento alcanzó su capacidad máxima");
     }
 
-    public static EventException alreadyRSVP() {
-        return new EventException(Reason.CONFLICT, "Ya respondiste a este evento");
-    }
-
+    /** respondRsvp.409 */
     public static EventException cannotRSVPToOwnEvent() {
-        return new EventException(Reason.INVALID, "No puedes responder a tu propio evento");
+        return new EventException(Reason.CONFLICT, "No puedes responder RSVP a tu propio evento");
     }
 
-    public static EventException invitationNotFound() {
-        return new EventException(Reason.NOT_FOUND, "La invitación no existe");
+    // ---- Enlaces de invitación (US1); textos de los fixtures *InviteLink*
+
+    /** FR-006: inexistente, vencido o revocado responden igual, sin revelar cuál es el caso. */
+    public static EventException inviteLinkUnavailable() {
+        return new EventException(Reason.NOT_FOUND, "El enlace no existe o ya no está disponible");
     }
 
-    public static EventException invitationExpired() {
-        return new EventException(Reason.INVALID, "La invitación expiró");
+    public static EventException inviteLinkExhausted() {
+        return new EventException(Reason.CONFLICT, "El enlace alcanzó su límite de usos");
     }
 
+    /** FR-007: evento cancelado, terminado o sin publicar. */
+    public static EventException eventNotAcceptingGuests() {
+        return new EventException(Reason.CONFLICT, "El evento ya no admite invitados");
+    }
+
+    public static EventException eventOrLinkNotFound() {
+        return new EventException(Reason.NOT_FOUND, "El evento o el enlace no existe");
+    }
+
+    public static EventException onlyOrganizer(String message) {
+        return new EventException(Reason.FORBIDDEN, message);
+    }
+
+    public static EventException invalidExpiresInDays(int min, int max) {
+        return new EventException(Reason.INVALID, "expiresInDays debe estar entre " + min + " y " + max,
+                Map.of("expiresInDays", "Rango permitido: " + min + "–" + max));
+    }
+
+    public static EventException invalidMaxUses(int min, int max) {
+        return new EventException(Reason.INVALID, "maxUses debe estar entre " + min + " y " + max,
+                Map.of("maxUses", "Rango permitido: " + min + "–" + max));
+    }
+
+    /** Texto de listInviteLinks.400 y listEventInvitations.400 (distinto del de listEvents). */
+    public static EventException linkPageSizeTooLarge(int max) {
+        return new EventException(Reason.INVALID, "El tamaño de página no puede superar " + max,
+                Map.of("size", "Máximo " + max));
+    }
+
+    /** R3: evento terminado, con {@code endDate} pasada o sin publicar. */
+    // ---- updateEvent (US2) -----------------------------------------------------------
+
+    /** Campo del recurso que no se edita; texto del fixture updateEvent.400. */
+    public static EventException notEditableField(String field) {
+        return new EventException(Reason.INVALID, "No se puede editar el campo " + field,
+                Map.of(field, "Campo no editable"));
+    }
+
+    /** {@code additionalProperties: false} de UpdateEventRequest. */
+    public static EventException unknownField(String field) {
+        return new EventException(Reason.INVALID, "El campo " + field + " no existe",
+                Map.of(field, "Campo desconocido"));
+    }
+
+    /** Valor de un campo que no cumple el contrato; mismo texto que la validación de createEvent. */
+    public static EventException invalidField(String field, String reason) {
+        return new EventException(Reason.INVALID, "El campo " + field + " no es válido", Map.of(field, reason));
+    }
+
+    /** {@code minProperties: 1}. */
+    public static EventException emptyPatch() {
+        return new EventException(Reason.INVALID, "Envía al menos un campo para editar");
+    }
+
+    /** El cuerpo no es un objeto JSON. */
+    public static EventException invalidPatchBody() {
+        return new EventException(Reason.INVALID, "El cuerpo de la petición no es un JSON válido");
+    }
+
+    /** Texto del fixture updateEvent.403. */
+    public static EventException onlyOrganizerCanEdit() {
+        return new EventException(Reason.FORBIDDEN, "Solo el organizador puede editar este evento");
+    }
+
+    /** Evento cancelado, completado o con {@code endDate} pasada (fixture updateEvent.state.409). */
+    public static EventException eventNotEditable() {
+        return new EventException(Reason.CONFLICT, "No se puede editar un evento cancelado o terminado");
+    }
+
+    /** FR-021 (fixture updateEvent.capacity.409). */
+    public static EventException capacityBelowAccepted(int accepted) {
+        return new EventException(Reason.CONFLICT, "El cupo no puede ser menor que los " + accepted + " confirmados");
+    }
+
+    // ---- cancelEvent (US5) -----------------------------------------------------------
+
+    /** Texto del fixture cancelEvent.403. */
+    public static EventException onlyOrganizerCanCancel() {
+        return new EventException(Reason.FORBIDDEN, "Solo el organizador puede cancelar este evento");
+    }
+
+    /** {@code COMPLETED} o con {@code endDate} pasada (fixture cancelEvent.409). */
+    public static EventException eventAlreadyEnded() {
+        return new EventException(Reason.CONFLICT, "No se puede cancelar un evento que ya terminó");
+    }
+
+    public static EventException rsvpClosed() {
+        return new EventException(Reason.CONFLICT, "El evento ya no admite respuestas");
+    }
+
+    public static EventException rsvpMessageTooLong(int max) {
+        return new EventException(Reason.INVALID, "El mensaje admite máximo " + max + " caracteres",
+                Map.of("message", "Máximo " + max + " caracteres"));
+    }
+
+    /** Texto de sendInvitation.409; también si el índice único gana una carrera. */
     public static EventException alreadyInvited() {
-        return new EventException(Reason.CONFLICT, "Este usuario ya está invitado al evento");
+        return new EventException(Reason.CONFLICT, "El usuario ya está invitado a este evento");
+    }
+
+    // ---- invitaciones (US4) y asistentes (US6) -----------------------------------------
+
+    /** Texto de sendInvitation.404; event-service no conoce usuarios (R6), así que es el evento. */
+    public static EventException eventOrUserNotFound() {
+        return new EventException(Reason.NOT_FOUND, "El evento o el usuario no existe");
+    }
+
+    public static EventException onlyOrganizerCanInvite() {
+        return new EventException(Reason.FORBIDDEN, "Solo el organizador puede invitar a este evento");
+    }
+
+    public static EventException onlyOrganizerCanListInvitations() {
+        return new EventException(Reason.FORBIDDEN, "Solo el organizador puede ver las invitaciones");
+    }
+
+    public static EventException onlyOrganizerCanListAttendees() {
+        return new EventException(Reason.FORBIDDEN, "Solo el organizador puede ver la lista de asistentes");
+    }
+
+    /** Texto de sendInvitation.400. */
+    public static EventException inviteeRequired() {
+        return new EventException(Reason.INVALID, "El campo inviteeId es obligatorio",
+                Map.of("inviteeId", "Debe ser un usuario registrado"));
+    }
+
+    public static EventException cannotInviteYourself() {
+        return new EventException(Reason.INVALID, "No puedes invitarte a tu propio evento",
+                Map.of("inviteeId", "Debe ser otra persona"));
+    }
+
+    public static EventException invitationMessageTooLong(int max) {
+        return new EventException(Reason.INVALID, "El mensaje no puede superar " + max + " caracteres",
+                Map.of("message", "Máximo " + max + " caracteres"));
+    }
+
+    /** Texto de listEventAttendees.400. */
+    public static EventException invalidAttendeeStatus() {
+        return new EventException(Reason.INVALID, "El status del filtro no es válido",
+                Map.of("status", "Valores permitidos: PENDING, ACCEPTED, DECLINED, MAYBE, WAITLISTED"));
     }
 
     public static EventException invalidCheckIn() {

@@ -60,6 +60,72 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 - **T-C07 Ola 3:** figura en curso en `contract/ola-3`. Confirmar con Alex antes de tocar nada
   del contrato.
 
+### Asignación del 2026-11-01 (agente frontend)
+
+Cierre de la Ola 3. Mismas reglas que la asignación anterior: solo indica el dueño sugerido;
+el estado cambia en el PR que tome la tarea.
+
+| ID | Tarea | Asignada a | Qué puede avanzar hoy |
+|----|-------|------------|------------------------|
+| T-C09 | Contrato de las 3 operaciones de media de la Ola 3 (🟡 RFC) | Agente frontend (dueño de `docs/api/**`) | Revisar y aprobar la propuesta que redacta la sesión backend en `contract/ola-3-media` y confirmar las 4 decisiones de la ficha (tomadas por Bernardo el 2026-11-01). El merge es de Alex. |
+| T-F11 | App: consumir las operaciones de media | Agente frontend | Nada: ⚪ `DIFERIDA`. Vuelve solo si T-C09 decide el bucket privado. |
+
+**Sin asignar al agente frontend:** T-B33 (media-service) es de la sesión backend y empieza
+cuando T-C09 esté mergeada.
+
+### Asignación del 2026-11-01 (Ola 1)
+
+Reparto de las tareas de la Ola 1 ([`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md)). Cada bloque es un PR a `develop`; el de contrato
+va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T001 de la spec).
+
+| ID | Tarea | Asignada a | Qué puede avanzar hoy |
+|----|-------|------------|------------------------|
+| T-C10 | Contrato de la Ola 1 (🟡 RFC) | Agente frontend (Alex) | Issue `contract-change`, rama `contract/ola-1` y redacción de `openapi.yaml`, fixtures, CONVENTIONS y enmiendas a ADR-014/016 (T002, T006–T013). No se mergea sin D-08 y 1 CODEOWNER. |
+| T-F12 | App de la Ola 1 | Agente frontend (Alex) | Nada hasta el merge de T-C10; después avanza contra el mock de Prism. |
+| T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | ✅ Todas sus historias: US3, US1, US2, US5 (#258–#265) y US4 y US6 (#273). |
+| T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | ✅ HECHA (#262). |
+| T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); falta T061 (k6). |
+| T-B36 | Outbox y AsyncAPI de los eventos de `event-service` | Sesión de Bernardo | Bloqueada por T-C05. |
+
+### Asignación del 2026-11-04 (agente frontend) — 🔥 prioridad alta, release del viernes 2026-11-06
+
+**Por qué:** #259 (T-B34, US3) borra `POST /api/v1/events/{eventId}/invitations/respond`
+(D-01, FR-030): desde la Ola 1, `POST /api/v1/events/{eventId}/rsvp` es la única forma de
+responder una invitación. La app todavía llama a la ruta vieja:
+`event_remote_datasource.dart` (`respondToInvitation`), `event_repository_impl.dart`,
+`event_bloc.dart` y los fakes de prueba. Si el backend sale sin el cambio de la app,
+**aceptar una invitación responde 404**. Por eso los dos cambios salen **juntos** en el
+release del viernes 2026-11-06.
+
+| ID | Tarea | Asignada a | Qué hacer |
+|----|-------|------------|-----------|
+| T-F12 (T014 parcial y T032) | App: responder con `respondRsvp` y quitar `invitations/respond` | Agente frontend (Alex) | **P0, obligatorio para el viernes.** Ver los pasos 1 a 4. |
+| T-F12 (T033) | UI de RSVP | Agente frontend (Alex) | Deseable para el viernes (paso 5). Si no llega, sale en el release siguiente. |
+
+**Pasos:**
+1. `rsvp_model.dart` según `Rsvp` del contrato: `eventId`, `userId`, `status`, `message`,
+   `respondedAt` y `waitlistedAt`; sin `guestsCount`, sin QR ni `id`. Es la parte de T014 que
+   necesita el RSVP. `event_model.dart` ya tolera `stats` reducido (`?? 0`).
+2. T032: `respond_rsvp.dart` y `event_repository_impl.dart` envían `RespondRsvpRequest`
+   (`status` = `ACCEPTED | DECLINED | MAYBE`, `message` opcional de hasta 280 caracteres) y
+   leen `Rsvp`. Un `ACCEPTED` puede volver como `WAITLISTED` (cupo lleno).
+3. Quitar `respondToInvitation` del datasource, el repositorio, el BLoC y los fakes. Aceptar o
+   rechazar una invitación llama a `respondRsvp` con `ACCEPTED` o `DECLINED`; el backend
+   actualiza la invitación en la misma petición (FR-017).
+4. Pruebas contra los fixtures `docs/api/fixtures/events/respondRsvp.*`: `accepted.200`,
+   `waitlisted.200`, `400`, `notFound.404`, `private.404` y `409`.
+5. T033: botones "Voy", "No voy" y "Tal vez" con el estado actual, aviso "Estás en lista de
+   espera" para `WAITLISTED` y botones deshabilitados en eventos cancelados o pasados.
+
+**Coordinación:**
+- **Plazo:** PR mergeado en `develop` antes del corte del release del viernes 2026-11-06.
+- **Orden de los PR de backend:** #257 (fixture, necesita la aprobación de Alex) → #258 → #259.
+  El PR de la app puede mergearse antes que #259. Contra el backend actual `/rsvp` ya
+  funciona; solo cambiar de respuesta da `409` ("Ya respondiste a este evento"), y eso lo
+  corrige #259.
+- **Si la app no llega al viernes:** avisar en #259. Ese release sale sin #259 y los dos pasan
+  juntos al siguiente.
+
 ---
 
 ## Resumen: qué se puede hacer desde ya
@@ -73,6 +139,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC | [VITO-14](https://bernardo-mira.atlassian.net/browse/VITO-14) |
 | T-C06 | `listEvents` con `scope=mine\|upcoming` según ADR-014 | C | P0 | ✅ HECHA (#147) | [VITO-15](https://bernardo-mira.atlassian.net/browse/VITO-15) |
 | T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | ✅ HECHA (#45) | [VITO-17](https://bernardo-mira.atlassian.net/browse/VITO-17) |
+| T-C09 | Contrato de las 3 operaciones de media de la Ola 3 (`listEventMedia`, `deleteMedia`, `getMediaPresignedUrl`) | C | P1 | 🟡 RFC | — |
 | T-F01 | AuthBloc real: login/register/logout/refresh sin mocks | F | P0 | ✅ HECHA (#46, #56) | [VITO-18](https://bernardo-mira.atlassian.net/browse/VITO-18) |
 | T-F03 | Proveer `CheckInBloc` en raíz y ruta de `ArchiveDetailPage` | F | P1 | ✅ HECHA (#63) | [VITO-20](https://bernardo-mira.atlassian.net/browse/VITO-20) |
 | T-F04 | WS clients envían `?token=` (checkin, mosaic, streaming, chat sin `?userId=`) | F | P0 | ✅ HECHA (#60) | [VITO-21](https://bernardo-mira.atlassian.net/browse/VITO-21) |
@@ -80,6 +147,7 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-F07 | Rellenar tests vacíos y subir cobertura de auth | F | P1 | ✅ HECHA (#65) | [VITO-24](https://bernardo-mira.atlassian.net/browse/VITO-24) |
 | T-F09 | Probar en dispositivo `mobile_scanner` 7 y `share_plus` 10 (#158) antes del evento | F | P0 | 🟢 READY (manual) | — |
 | T-F10 | Moderación del mosaico en la app del organizador (excepción A3) | F | P0 | ✅ HECHA (#185) | — |
+| T-F11 | App: consumir las operaciones de media de la Ola 3 | F | P2 | ⚪ DIFERIDA (ninguna pantalla las necesita; vuelve si T-C09 privatiza el bucket) | — |
 | T-B01 | Gateway: borrar `X-User-*` entrantes en todas las rutas + rate limit por IP en públicas | B | P0 | ✅ HECHA (#19) | [VITO-26](https://bernardo-mira.atlassian.net/browse/VITO-26) |
 | T-B02 | Gateway: 401/fallbacks con envelope ADR-003 | B | P1 | ✅ HECHA (#38) | [VITO-27](https://bernardo-mira.atlassian.net/browse/VITO-27) |
 | T-B04 | Gateway: ruta `/ws/**` con validación de `?token=` y cierre 4401 | B | P0 | ✅ HECHA (#22, re-entrega de #20) | [VITO-29](https://bernardo-mira.atlassian.net/browse/VITO-29) |
@@ -107,17 +175,18 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-B25 | media-service: re-codificar imágenes y quitar metadatos (excepción A3) | B | P0 | ✅ HECHA (#174) | — |
 | T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | ✅ HECHA (#189) | — |
 | T-B27 | Logs en INFO en `prod` en los 9 servicios Java restantes | B | P1 | ✅ HECHA (#175) | — |
-| T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | 🟢 READY | — |
-| T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | 🔵 EN CURSO (backend/t-b29-create-event-valid) | — |
+| T-B28 | auth, chat y media: 404/405 sin 500 y 401/403 de Spring Security con envelope | B | P1 | ✅ HECHA (#229) | — |
+| T-B29 | `createEvent` con `@Valid` (400 del fixture) | B | P1 | ✅ HECHA (#228) | — |
 | T-B30 | JWT con firma asimétrica (RS256/ES256 + JWKS) | B | P1 | 🔴 BLOQUEADA (requiere spec) | — |
-| T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | 🔵 EN CURSO (backend/t-b31-spring-boot-soporte, spec) | — |
+| T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | ✅ HECHA (#224; A9 cerrada el 2026-11-01) | — |
 | T-B32 | Reacciones y mensajes del streaming no llegan en vivo a los espectadores (fan-out sin Redis Pub/Sub ni consumidor Kafka) | B | P1 | 🟡 RFC (contrato de reacciones; T-C05) | — |
+| T-B33 | media-service: las 3 operaciones de la Ola 3 según el contrato y retirar `/mosaic/photo` | B | P1 | 🔴 BLOQUEADA (T-C09) | — |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
 | T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY | [VITO-51](https://bernardo-mira.atlassian.net/browse/VITO-51) |
 | T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | ✅ HECHA (manual, 2026-10-24; pendientes menores en ADR-013) | [VITO-45](https://bernardo-mira.atlassian.net/browse/VITO-45) |
-| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | 🔵 EN CURSO (despliegue verificado; falta ensayar el rollback) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
+| T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | ✅ HECHA (rollback ensayado el 2026-11-01) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
 | T-I11 | Frontend web en Cloudflare Pages, con la CSP/HSTS de la web (antes en T-I18) | I/F | P1 | 🔵 EN CURSO (#179 · falta verificar en prod) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
 | T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🟡 EN CURSO (falta T041) | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔵 EN CURSO (#167 · falta el ensayo manual) | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
@@ -128,19 +197,28 @@ de hoy; los estados no cambian aquí. El agente marca 🔵 `EN CURSO` en el PR q
 | T-I19 | Un usuario de Mongo por servicio (sin root) | I/B | P1 | 🟢 READY | — |
 | T-I20 | Kafka con TLS y ACL por tópico (excepción A7) | I | P2 | ⚪ DIFERIDA (Fase Crecimiento; revisión 2027-04-22) | — |
 | T-I21 | Subida al mosaico en `prod` detrás de una propiedad (excepción A3) | I/B | P0 | ✅ HECHA (#177, #183 · activar tras T-B26) | — |
-| T-I22 | `cd.yml`: opción para reconstruir todas las imágenes (VPS vacío) | I | P1 | 🔵 EN CURSO (backend/t-i22-rebuild-all) | — |
+| T-I22 | `cd.yml`: opción para reconstruir todas las imágenes (VPS vacío) | I | P1 | ✅ HECHA (#230) | — |
 | T-I23 | Recomendaciones en `prod` sin `recommendation-service`: fallback y degradación | I/F | P2 | 🟢 READY | — |
 | T-I24 | Registro de imágenes para no depender del VPS | I | P2 | ⚪ DIFERIDA (Fase Crecimiento) | — |
-| T-I25 | Smoke E2E automático contra producción (post-deploy + cron) | I | P1 | 🔵 EN CURSO (infra/t-i21-smoke-e2e-produccion) | — |
+| T-I25 | Smoke E2E automático contra producción (post-deploy + cron) | I | P1 | ✅ HECHA (#211) | — |
+| T-I26 | CI: las 10 imágenes Java arrancan con el perfil `prod` antes del release | I | P0 | ✅ HECHA (#236) | — |
+| T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | 🟢 READY (antes del 2026-11-23) | — |
+| T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | 🟡 RFC (requiere D-08 de la Ola 1) | — |
+| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🟢 READY (contrato en #253); 🔥 RSVP para el release del 2026-11-06 | — |
+| T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y #273) | — |
+| T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | ✅ HECHA (#262) | — |
+| T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
+| T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🟢 READY | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
 gitleaks, Dependabot). Las de P1 del triage bloquean la apertura a usuarios reales.
 
-Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-B06 (VITO-31), T-B10 (VITO-35), T-B13 (VITO-38), T-B18, T-B30.
+Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-B06 (VITO-31), T-B13 (VITO-38), T-B18, T-B30.
 Desbloqueadas el 2026-10-24: T-C07 Ola 3 (D-08), T-B07 y T-F08 (T-C06 hecha en #147), y T-I11
 (Pages, dominio, secretos y variables listos en T-I06).
-Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento).
+Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento). T-B10 quedó
+reemplazada por T-B31 (#224).
 
 ---
 
@@ -156,7 +234,7 @@ depende del contrato.
 |----|-----|-----------|--------|------|
 | Bug-F01 | Eventos mock en producción que dan 404 y Retry no permite volver | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-76](https://bernardo-mira.atlassian.net/browse/VITO-76) |
 | Bug-F02 | El nombre del dashboard es fijo, no el del usuario con sesión | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-77](https://bernardo-mira.atlassian.net/browse/VITO-77) |
-| Bug-F03 | El evento creado no aparece en próximos eventos ni hay lista de "mis eventos" | P0 | 🟢 READY (el home ya carga `scope=mine`; falta la sección propia) | [VITO-78](https://bernardo-mira.atlassian.net/browse/VITO-78) |
+| Bug-F03 | El evento creado no aparece en próximos eventos ni hay lista de "mis eventos" | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10) | [VITO-78](https://bernardo-mira.atlassian.net/browse/VITO-78) |
 | Bug-F04 | Quitar los datos mock del dashboard y mostrar estados vacíos | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-79](https://bernardo-mira.atlassian.net/browse/VITO-79) |
 | Bug-F05 | El buscador solo encuentra eventos mock | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-80](https://bernardo-mira.atlassian.net/browse/VITO-80) |
 | Bug-F06 | "Mi Gente" muestra amigos mock a cualquier usuario (privacidad) | P0 | ✅ HECHA (#198, hotfix #199) | [VITO-81](https://bernardo-mira.atlassian.net/browse/VITO-81) |
@@ -174,12 +252,12 @@ depende del contrato.
 
 | ID | Bug | Prioridad | Estado | Jira |
 |----|-----|-----------|--------|------|
-| Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | 🟢 READY | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
+| Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | ✅ HECHA (#203) | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
 | Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟡 RFC (`updateEvent` entra al contrato en la Ola 1) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
-| Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | 🔵 EN CURSO (backend/bug-b02-publicar-al-crear) | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
-| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🟢 READY (avisar en la pantalla); la búsqueda real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
-| Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🟢 READY | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
-| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🟢 READY (ocultarlos); el enlace real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
+| Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | ✅ HECHA (#227) | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
+| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10); la búsqueda real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
+| Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10) | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
+| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10); el enlace real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
 
 - **Bug-B01, causa:** la app envía bien la hora. `create_event_screen.dart` toma las 20:00
   locales y `EventDetailsModel.toJson` las manda en UTC (`2026-12-10T01:00:00.000Z`), como pide
@@ -245,7 +323,7 @@ depende del contrato.
 
 | ID | Bug | Prioridad | Estado | Jira |
 |----|-----|-----------|--------|------|
-| Bug-F11 | "¿Olvidaste tu contraseña?" no hace nada: quien olvida su contraseña pierde la cuenta | P0 | 🟢 READY (decir qué hacer); el flujo real, 🟡 RFC [AppViTo/ViTo#213](https://github.com/AppViTo/ViTo/issues/213) | [VITO-89](https://bernardo-mira.atlassian.net/browse/VITO-89) |
+| Bug-F11 | "¿Olvidaste tu contraseña?" no hace nada: quien olvida su contraseña pierde la cuenta | P0 | ✅ aviso HECHO (#214); el flujo real, 🟡 RFC [AppViTo/ViTo#213](https://github.com/AppViTo/ViTo/issues/213) | [VITO-89](https://bernardo-mira.atlassian.net/browse/VITO-89) |
 
 - **Causa:** en `login_page.dart`, `_buildForgotPassword` tiene `onPressed: () {}`. Detrás no hay
   nada en ninguna capa: el contrato no tiene operaciones de recuperación, el inventario no las
@@ -340,11 +418,23 @@ depende del contrato.
   `listEvents.mine.200.json`.
 
 ### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔵 EN CURSO (contract/ola-3) · D-08 aprobada 2026-10-24 (por ola) · O-02, O-30, ADR-016
+- **Ola 1 (spec en borrador, 2026-11-01, `contract/ola-1-spec`):**
+  [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/spec.md).
+  Las 8 operaciones del inventario más los enlaces de invitación y `scope=invited` del RFC #204,
+  sin `searchUsers` (Ola 2). Decisiones de los leads: `invitations/respond` se fusiona en
+  `/rsvp` (cierra la fila pendiente de ADR-016); cancelar no borra; la lista de asistentes es
+  solo del organizador y los invitados ven el número de confirmados. Sigue `/speckit-plan` y
+  `/speckit-tasks`, con tareas separadas por dueño (contrato y app: agente de Alex; backend e
+  infra: sesión de Bernardo). El contrato se mergea solo con D-08 de la Ola 1 aprobada.
 - **Ola 3 REST (#182):** las 7 rutas del handoff más `removeMosaicItem`
   (`DELETE /mosaic/item/{itemId}`, moderación del organizador), `ITEM_REMOVED` en
   `asyncapi.yaml`, 33 fixtures en `fixtures/mosaic/` y CONVENTIONS §8 sin `video/mp4`. La
   escribió la sesión de terminal; el lead la aprueba. Quedan de la ola `DELETE /media/{mediaId}`
   y `GET /media/{mediaId}/presigned-url`, que el evento de prueba no necesita.
+- **Cierre de la Ola 3 (2026-11-01):** revisado contra `endpoint-inventory.md`, también falta
+  `GET /media/event/{eventId}` (`PUBLICAR`, paginado). Las 3 operaciones pasan a T-C09
+  (contrato), T-B33 (backend) y T-F11 (app). La Ola 3 se marca completa cuando T-C09 y
+  T-B33 estén mergeadas.
 - **Ola 3 (aprobada por D-08 el 2026-10-24, #169):** #171 incorporó `/ws/mosaic/{eventId}` en
   `asyncapi.yaml` y el handoff `docs/handoff/ola-3-mosaico.md`. Falta el endpoint de moderación
   del organizador que pide la excepción A3 (lo implementa T-B26).
@@ -361,6 +451,45 @@ depende del contrato.
 - **Ola 3 incompleta tras #171 (revisado 2026-10-24, #178):** #171 solo cambió `asyncapi.yaml`
   y el handoff; faltaban las rutas REST, sus fixtures y la moderación. Lo resuelve #182 (viñeta
   "Ola 3 REST" de arriba).
+
+### T-C09 · Contrato de las 3 operaciones de media de la Ola 3 — 🟡 RFC · P1 · ADR-003, ADR-016, Principio IX, CONVENTIONS §5 y §8
+- **Por qué:** `endpoint-inventory.md` marca para la Ola 3 tres operaciones de media-service
+  que no están en `openapi.yaml`: `GET /media/event/{eventId}` (`PUBLICAR`, paginado),
+  `DELETE /media/{mediaId}` (`PUBLICAR`, dueño u organizador) y
+  `GET /media/{mediaId}/presigned-url` (`PUBLICAR`, Principio IX). Sin ellas la Ola 3 no
+  cierra (T-C07) y el backend las expone sin contrato.
+- **Qué:** en `contract/ola-3-media`, las 3 rutas en `openapi.yaml` con `operationId`
+  (`listEventMedia`, `deleteMedia`, `getMediaPresignedUrl`), ejemplos, `ErrorResponse` en
+  todo 4xx/5xx, `page`/`size` en la lista, y fixtures en `docs/api/fixtures/media/`. Pasa
+  `npm run` de contrato (Spectral y validación de fixtures). Issue `contract-change` y PR
+  como RFC.
+- **Decisiones (Bernardo, 2026-11-01; Alex las confirma al aprobar la RFC):**
+  1. **Principio IX:** el bucket de R2 sigue público en esta ola; `location.url` y
+     `mediaUrls` no cambian. `getMediaPresignedUrl` se publica igual (R2 firma con la API
+     S3). Privatizar el bucket queda como deuda para antes de abrir a usuarios reales; si se
+     hace, T-F11 vuelve a 🟢 `READY`.
+  2. **Fotos retiradas por moderación:** retirar un elemento del mosaico borra también su
+     archivo en R2. El mecanismo (llamada a media-service o evento Kafka) se decide en T-B33.
+  3. **Quién lista y pide URL:** el organizador y los usuarios con RSVP `ACCEPTED` (los
+     mismos que publican en el mosaico). Borra el dueño o el organizador.
+  4. **Vida de la URL prefirmada:** `expiresIn` en segundos (como ADR-004), 900 por defecto y
+     3600 como máximo.
+- **No hacer:** publicar `GET /media/user`, `PUT /media/{mediaId}` ni
+  `POST /media/{mediaId}/process` (`DIFERIR`/`INTERNO`). No volver a aceptar `video/mp4`
+  (excepción A3).
+- **Cierre:** PR aprobado por 1 CODEOWNER de `docs/api/**`; job "contract" en verde;
+  desbloquea T-B33.
+
+### T-C10 · Contrato de la Ola 1 — 🟡 RFC (requiere D-08 de la Ola 1) · P0 · Principio I, ADR-014, ADR-016
+- **Por qué:** Bug-F07 (editar evento) y el enlace de Bug-F09 necesitan operaciones que no
+  están en el contrato; son los hitos MVP 4 y 5.
+- **Qué:** T002 y T006–T013 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): 13 operaciones en `openapi.yaml` (8 de la Ola 1 del
+  inventario, los enlaces de invitación y `scope=invited` del RFC #204), fixtures,
+  `X-User-Name` en CONVENTIONS y enmiendas a ADR-014 y ADR-016. Diseño en
+  `specs/003-ola-1-eventos-invitaciones/contracts/ola-1-operations.md`.
+- **No hacer:** `searchUsers` (Ola 2); mergear sin D-08 de la Ola 1 y 1 CODEOWNER.
+- **Cierre:** PR de `contract/ola-1` mergeado con `npm run contract` en verde; desbloquea
+  T-F12, T-B34 y T-B35.
 
 ---
 
@@ -442,6 +571,19 @@ depende del contrato.
 - **Cierre:** tests de widget (la acción solo aparece al organizador) y del bloc (la foto sale
   del estado al recibir el aviso de retiro), contra los fixtures de la Ola 3.
 
+### T-F11 · Consumir las operaciones de media de la Ola 3 — ⚪ DIFERIDA (hasta que una pantalla las necesite) · P2 · T-C09
+- **Por qué está diferida:** ni el mosaico ni la galería las necesitan hoy. El mosaico pinta
+  las fotos con `mediaUrls` de `MosaicFeedItem` y la moderación retira el elemento con
+  `removeMosaicItem` (T-F10), no el archivo. La galería post-evento usa `/archive/**`
+  (Ola 5). En `frontend/vito_app/lib` solo se llama a `POST /media/upload`.
+- **Vuelve si:** los leads deciden en T-C09 que `location.url` y `mediaUrls` dejan de ser
+  URLs públicas (bucket privado, Principio IX). Entonces la app pide la URL con
+  `getMediaPresignedUrl` antes de pintar cada foto, y la tarea pasa a 🟢 `READY`.
+- **No hacer:** consumir `listEventMedia` o `deleteMedia` "por si acaso"; cada operación entra
+  en la app con la pantalla que la use.
+- **Cierre (cuando se reactive):** datasource y tests contra los fixtures de
+  `docs/api/fixtures/media/`.
+
 ### T-F07 · Tests vacíos y cobertura — ✅ HECHA (#65) · P1 · O-19
 - **Qué (ajustado 2026-10-22):** la premisa de O-19 está desactualizada:
   `create_event_screen_test.dart` ya tiene 11 casos y `ci.yml` ya corre
@@ -450,6 +592,16 @@ depende del contrato.
   un smoke test de `ViToApp` con `di.init()` real (SharedPreferences y secure storage
   mockeados) que compruebe splash → login sin excepciones.
 - **Cierre:** ningún archivo de test sin casos; el smoke test monta `ViToApp` y navega.
+
+### T-F12 · App de la Ola 1 — 🟢 READY · P0 · Principio IV
+- **Qué:** las tareas `[Alex]` de las fases 2 a 9 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): modelos y pruebas de contrato,
+  RSVP con lista de espera, enlace (copiar, WhatsApp, ruta web `/i/<token>`), editar y
+  cancelar evento, invitaciones, lista de asistentes del organizador y contador de confirmados
+  para los invitados, y auto-login con `/auth/me`.
+- **Cierre:** quickstart de la spec en verde para la app; Bug-F07 y el enlace de Bug-F09 cerrados.
+- **Prioridad (2026-11-04):** primero el RSVP (T014 parcial, T032 y T033) y quitar
+  `invitations/respond` de la app, para el release del viernes 2026-11-06 junto con #259.
+  Detalle en la *Asignación del 2026-11-04*.
 
 ---
 
@@ -535,8 +687,9 @@ depende del contrato.
 - **Cierre:** test de contexto que verifica que la ruta `auth-service` tiene
   `RequestRateLimiter` y `CircuitBreaker` con los perfiles `dev` y `docker`.
 
-### T-B10 · Spring Boot y Java unificados — 🔴 BLOQUEADA: requiere spec propio (Principio X) · P1 · O-21, O-35
-- 10 poms en 3.2.1, 2 en 3.5.3, Java 17. Planificar con `/speckit-specify`.
+### T-B10 · Spring Boot y Java unificados — ⚪ REEMPLAZADA por T-B31 (#224) · P1 · O-21, O-35
+- 10 poms en 3.2.1, 2 en 3.5.3, Java 17. Resuelto con T-B31: los 10 servicios en Spring Boot
+  4.0.9 y Java 21 ([`specs/002-spring-boot-upgrade`](../../specs/002-spring-boot-upgrade/spec.md), ADR-018).
 
 ### T-B12 · `isPublic` con el nombre del contrato — ✅ HECHA (#28) · P0 · Principio I, ADR-001
 - **Hallazgo (T-B08):** `Event.EventSettings` declara `boolean isPublic` con Lombok, que
@@ -714,7 +867,7 @@ depende del contrato.
 - **Cierre:** un test por servicio con los perfiles de `docker-compose.prod.yml` que verifique
   que no hay DEBUG.
 
-### T-B28 · Errores de Spring con envelope en auth, chat y media — 🔵 EN CURSO (backend/t-b28-envelope-spring-errores) · P1 · ADR-003, ADR-017
+### T-B28 · Errores de Spring con envelope en auth, chat y media — ✅ HECHA (#229) · P1 · ADR-003, ADR-017
 - **Por qué (hallazgo de T-B03, #164):** el handler de esos tres servicios convierte en `500`
   una ruta inexistente o un método no soportado; las copias de los otros 6 conservan el
   status de Spring. ADR-017 pide que las copias no diverjan. Además, los `401`/`403` que
@@ -725,7 +878,7 @@ depende del contrato.
 - **Cierre:** tests de ruta inexistente (`404`), método no soportado (`405`) y petición sin
   token (`401`) con envelope en los tres servicios.
 
-### T-B29 · Validación del cuerpo en `createEvent` — 🔵 EN CURSO (backend/t-b29-create-event-valid) · P1 · CONVENTIONS §3.3
+### T-B29 · Validación del cuerpo en `createEvent` — ✅ HECHA (#228) · P1 · CONVENTIONS §3.3
 - **Por qué (hallazgo de T-B03):** `createEvent` no tiene `@Valid`, así que nunca produce el
   `400` "El campo title es obligatorio" del fixture `createEvent.400`.
 - **Cierre:** test que reproduce el fixture.
@@ -739,7 +892,7 @@ depende del contrato.
   anterior (el request no lo trae; requiere RFC al contrato) y las copias de
   `JwtAuthenticationFilter` no consultan la revocación (se resuelve con T-B18).
 
-### T-B31 · Spring Boot con soporte en los 10 servicios Java — 🔵 EN CURSO (backend/t-b31-spring-boot-soporte, spec; Principio X) · P0 · Principio III, excepción A9
+### T-B31 · Spring Boot con soporte en los 10 servicios Java — ✅ HECHA (#224; A9 cerrada el 2026-11-01) · P0 · Principio III, excepción A9
 - **Por qué:** el primer escaneo real de Trivy (release 0.1.0) encontró de 39 a 57 CVE
   HIGH/CRITICAL con arreglo por imagen Java: Spring Boot 3.2.12 ya no tiene soporte. Algunos
   CRITICAL (`spring-webmvc`, `spring-webflux`) solo tienen arreglo en Spring Framework 7. La
@@ -753,6 +906,9 @@ depende del contrato.
 - **Cierre:** los 10 servicios en la versión destino, CI verde y un `cd.yml` con Trivy
   bloqueante sin CVE HIGH/CRITICAL con arreglo fuera de `.trivyignore`. Se cierran la
   excepción A9 y T-B10.
+- **Cerrada (2026-11-01):** Spring Boot 4.0.9 y Java 21 en los 10 servicios (#224, ADR-018),
+  en producción desde v0.1.3 (hotfix v0.1.4). Trivy da 0 CVE HIGH/CRITICAL en las 13 imágenes
+  (run 41169636050) y `cd.yml` bloquea sin la ventana de A9.
 
 ### T-B32 · Fan-out en vivo de reacciones y mensajes del streaming — 🟡 RFC · P1 · Principio III, ADR-006, O-28
 - **Por qué:** una reacción enviada por REST no llega en vivo a ningún espectador. Revisado
@@ -773,6 +929,87 @@ depende del contrato.
   en menos de 1 s, aunque estén en otra instancia. Hay un test de integración que lo prueba con
   dos instancias o con dos sesiones en réplicas distintas. Se cumple el KPI "Latencia
   reacciones stream < 1 s" y el criterio MVP n.º 9.
+
+### T-B33 · media-service: las 3 operaciones de la Ola 3 según el contrato — 🔴 BLOQUEADA por T-C09 · P1 · ADR-003, ADR-010, ADR-016, Principio IX
+- **Por qué:** `MediaController` ya expone `GET /media/event/{eventId}`,
+  `DELETE /media/{mediaId}` y `GET /media/{mediaId}/presigned-url`, pero fuera del contrato:
+  la lista no pagina, cualquiera con token lista las fotos de cualquier evento, el borrado
+  solo deja al dueño (no al organizador), la URL prefirmada acepta cualquier
+  `expirationMinutes` y no comprueba quién la pide. Ante la diferencia gana el contrato
+  (ADR-010).
+- **Qué:** alinear las 3 operaciones con lo que apruebe T-C09: autorización (dueño u
+  organizador del evento, con el mismo lookup a event-service que usa mosaic-service en
+  T-B26), `page`/`size` según CONVENTIONS §5, errores con envelope ADR-003 y borrado del
+  objeto y su miniatura en R2. `removeMosaicItem` borra también el archivo del elemento
+  (decisión 2 de T-C09). Retirar `POST /mosaic/photo` de mosaic-service si sigue enrutado
+  (`FUSIONAR`, ADR-016: CONVENTIONS §8 dice que no existe).
+- **No hacer:** publicar ni tocar `GET /media/user`, `PUT /media/{mediaId}` (`DIFERIR`) ni
+  `POST /media/{mediaId}/process` (`INTERNO`); dejarlos como están o cerrarlos en el gateway,
+  pero no documentarlos. No cambiar el bucket ni la forma de `Media` si T-C09 no lo decide.
+- **Cierre:** tests de controlador y servicio por cada código de respuesta del contrato
+  (incluido 403 para quien no es dueño ni organizador), comparados con los fixtures de
+  `docs/api/fixtures/media/`; un test de que retirar un elemento del mosaico borra su archivo;
+  salida real de `./mvnw test` en el PR; `/mosaic/photo` devuelve 404.
+
+### T-B34 · `event-service` de la Ola 1 — ✅ HECHA · P0 · Principios III, IV y VII
+- **Qué:** las tareas `[Bernardo]` de `event-service` en [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): Testcontainers MongoDB,
+  cupo con `$inc` condicional y lista de espera con promoción automática (TDD), RSVP como
+  upsert que también responde la invitación (se retira `invitations/respond`), enlaces de
+  invitación, `scope=invited`, editar con `PATCH`, cancelar sin borrar, asistentes solo para
+  el organizador y `stats` reducido para los demás.
+- **Cierre:** prueba de concurrencia (50 respuestas, cupo 20 → 20 y 30) y pruebas de contrato en verde.
+- **Avance (2026-11-02):** base de la ola: modelo (T020), migración de datos (T066), índices
+  (T021), cupo con `$inc` condicional y `AttendanceService` con lista de espera y promoción
+  (T022–T024). La prueba de concurrencia pasa 10 de 10 (20 confirmados y 30 en espera); la
+  lógica anterior confirmaba entre 40 y 50 con cupo 20 (#256).
+- **Avance (2026-11-04):** nombre visible desde el token o `X-User-Name` (T025), resultado de
+  cada envío a Kafka en el log (T026) y `stats` con solo `totalAccepted` para quien no organiza
+  (T027; el fixture de `upcoming` se corrige en #257). T067 (token del enlace fuera de trazas y
+  logs) va con las rutas de enlaces (T034–T040) y con T-B35 en el gateway.
+- **Avance (2026-11-04, US3):** `respondRsvp` como upsert con el acceso de R3, la invitación
+  que sigue a la respuesta (FR-017), sin QR y con la respuesta `Rsvp` del contrato; se retira
+  `invitations/respond` (T028–T031). La app aún llama a esa ruta: no se despliega antes de que
+  T-F12 la migre a `/rsvp`.
+- **Avance (2026-11-04, US1):** enlaces de invitación (T034–T040): crear, listar con los
+  vigentes primero, revocar, vista previa pública sin dirección y unión idempotente con `$inc`
+  condicional de usos (20 uniones a la vez con `maxUses` 5 → 5); `scope=invited`. T067 hecho
+  en `event-service` (trazas y logs de error con `/api/v1/invite-links/{token}`); falta el
+  gateway con T-B35. Siguen US2 (editar, T045–T047), US4, US5 y US6.
+- **Avance (2026-11-04, US2):** `PATCH` con JSON Merge Patch (T045–T047). Solo se escriben
+  los campos enviados con un `$set` condicional que no toca `stats` (el `PUT` anterior
+  reescribía el documento y podía pisar un RSVP concurrente); el cupo por debajo de los
+  confirmados se rechaza en la misma operación; subir el cupo promueve la lista de espera. Se
+  retira el `PUT`: ninguna pantalla de la app lo usa. La pantalla de edición es T-F (T048–T049).
+- **Avance (2026-11-04, US5):** cancelar (T053–T054) con un `$set` condicional que no toca
+  `stats`, invitaciones, RSVP ni enlaces; idempotente (`204` sin volver a publicar) y `409` si
+  ya terminó. Tras cancelar, RSVP, unión por enlace, invitar y `PATCH` responden `409`.
+  Siguen US4 (invitaciones desde la app) y US6 (asistentes).
+- **Avance (2026-11-06, US4 y US6, cierre):** invitar y ver las invitaciones (T050–T051) y la
+  lista de asistentes (T056–T057) son solo del organizador; antes cualquier usuario veía los
+  invitados y los asistentes de cualquier evento (hallazgo del #204). `sendInvitation`
+  responde `201`, valida `inviteeId` y el mensaje de hasta 280 caracteres, y da `409` si la
+  persona ya está invitada, también si el índice único gana una carrera, sin contarla dos
+  veces. Las invitaciones `PENDING` vencidas se leen como `EXPIRED`. La lista de asistentes
+  usa `Attendee` (sin correo, teléfono ni QR) y admite el filtro `status`. `event-service` no
+  comprueba que el invitado exista (no conoce usuarios, R6): el `404` es solo del evento hasta
+  que haya búsqueda de usuarios (Ola 2). T067 cerrada con #261 y #262.
+
+### T-B35 · `auth-service` y gateway de la Ola 1 — ✅ HECHA (#262) · P0 · Principio III
+- **Qué:** T016–T019, T059 y T062 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): claim `name` en el access token; `X-User-Name`
+  en el gateway con la higiene de T-B01; rutas públicas por método y patrón exacto (hoy
+  `startsWith` haría pública también `accept`); ruta `/api/v1/invite-links/**` con límite por
+  IP; `/auth/me` alineado a `AuthUser`; panel de `429` en el tablero de T-I13.
+- **Cierre:** un `X-User-Name` del cliente nunca llega a un servicio; `accept` sin token → 401.
+- **Avance (2026-11-04):** T016–T019, T059 y T062 hechos en la rama
+  `backend/t-b35-auth-gateway-ola-1`, más la parte del gateway de T067 (trazas, logs y una
+  etapa de Alloy con `/api/v1/invite-links/{token}`). El 429 del gateway lleva ahora
+  `Retry-After` en todas las rutas.
+
+### T-B36 · Outbox y AsyncAPI de los eventos de `event-service` — 🔴 BLOQUEADA por T-C05 · P1 · Principio V
+- **Por qué:** desviación registrada en el plan de la Ola 1: `event-service` publica eventos
+  sin sobre versionado, sin outbox y sin declarar en `asyncapi.yaml`.
+- **Qué:** sobre común, Transactional Outbox y declaración en AsyncAPI de los eventos de
+  `event-service`, antes de que exista el primer consumidor (ticket QR de la Ola 2).
 
 ---
 
@@ -859,7 +1096,7 @@ depende del contrato.
   `docker compose ... up` en local con un `.env` de prueba levanta todo dentro de 12 GB
   (`docker stats` en el PR).
 
-### T-I08 · Pipeline de despliegue — 🔵 EN CURSO (despliegue verificado; falta ensayar el rollback) · P0 · O-12, ADR-011, ADR-012
+### T-I08 · Pipeline de despliegue — ✅ HECHA (rollback ensayado el 2026-11-01) · P0 · O-12, ADR-011, ADR-012
 - **Qué:** rehacer `cd.yml`: al entrar un commit a `main`, construir solo las imágenes de
   los servicios cambiados (tag = SHA), copiarlas al VPS con `docker save | ssh docker load`,
   ejecutar `docker compose up -d` con el nuevo `IMAGE_TAG` y verificar los healthchecks.
@@ -870,7 +1107,12 @@ depende del contrato.
   2026-10-27). Pendiente: el hotfix #201 (cabeceras de la web) no salió; su aprobación venció
   (`Expire Approvals`) y el despliegue quedó en `error`.
 - **Cierre:** un merge a `main` despliega sin intervención (cumplido); el rollback a un SHA anterior
-  funciona y queda documentado en el runbook (pendiente: `rollback.yml` no tiene ninguna ejecución).
+  funciona y queda documentado en el runbook (cumplido).
+- **Ensayo del rollback (2026-11-01):** v0.1.4 → v0.1.1 (run 41352214076, ~51 s) y de vuelta a
+  v0.1.4 (run 41352453129, ~36 s), con el smoke de producción en verde después de cada uno
+  (runs 41352420837 y 41352898753). Un primer intento con un SHA de un hotfix solo de la web
+  salió con código 4 sin tocar nada (run 41351472623); el runbook ya advierte no tomar el SHA
+  de *Deployments*. Detalle en `docs/runbooks/despliegue.md`, sección Rollback.
 - **Diseño y tareas:** [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md).
   El triage de seguridad (T051) exige Trivy, gitleaks y Dependabot (T048–T050) antes del
   primer release.
@@ -929,6 +1171,21 @@ depende del contrato.
   logs JSON, tableros y plantilla de alertas (T034–T036, T038–T040, T053). Falta crear el
   contact point, las alertas, el check sintético y el tablero en Grafana Cloud, y probar
   `api-down` (T041).
+- **Avance (2026-11-02):** en producción llegan las métricas de los 12 servicios, pero ningún
+  log: `docker-socket-proxy` respondía 403 a `/networks` y `discovery.docker` no descubría
+  contenedores. Se habilita `NETWORKS=1` (sigue sin `POST`) y se corrige `service-unhealthy`,
+  que con `== 0` y `noDataState: Alerting` se disparaba con todos los servicios sanos (#251).
+  Además, Alloy buscaba los 9 servicios Java en el `8080` y escuchan en `8081`–`8089`:
+  solo gateway, transcode y moderation tenían `up = 1` (#251).
+- **Avance (2026-11-02, T041):** en Grafana Cloud están el contact point `leads` (correo y
+  Telegram), el check sintético de `/healthz` (London y Ohio), los dos tableros y 6 de las 7
+  alertas (`alerts/apply_alerts.py`). Prueba de `api-down` deteniendo `api-gateway`: las
+  sondas bajan a 0 al primer minuto y llegan el aviso y el *Resolved* por los dos canales.
+  Dos fallos de configuración encontrados y documentados en el README: el check apuntaba al
+  frontend (siempre `200`) y la política por defecto enviaba a un contact point vacío.
+  **Falta:** desplegar #251 y cargar `backup-missing` cuando haya logs en Loki
+  (`apply_alerts.py --with-backup`), y los paneles de contenedor: cAdvisor solo ve el
+  cgroup de Alloy (sin montar `/sys/fs/cgroup` del host no hay métricas por contenedor).
 - **Qué:** Grafana Alloy (u OTel Collector) en el VPS que envía métricas, logs y trazas a
   Grafana Cloud free; dashboard RED del gateway; alertas de caída y de disco/RAM > 80 % a
   ambos leads; monitor de uptime externo. Alertas de picos de `401` y `429` en el gateway
@@ -950,8 +1207,10 @@ depende del contrato.
   (RTO ≤ 4 h).
 - **Avance:**
   - Runbooks: ✅ #167 ([restore.md](../runbooks/restore.md), [incident.md](../runbooks/incident.md)).
-  - Ensayo de restauración (tarea manual de un lead, requiere SSH y secretos): pendiente.
-    Se hace con `restore.md` C.2 y sus tiempos se anotan en el PR o issue que lo cierre.
+  - Prueba C.1 (último backup restaurado en un Mongo temporal del VPS): ✅ 2026-11-01,
+    coincide con producción ([restore.md, C.1](../runbooks/restore.md#c1-prueba-mensual-de-restauración-adr-011)).
+  - Ensayo completo C.2 en una máquina limpia (tarea manual de un lead, requiere SSH y
+    secretos): pendiente, en un VPS por horas. Sus tiempos se anotan en el PR o issue que lo cierre.
 
 ### T-I15 · Protocolo de bloqueos entre agentes — 🟢 READY · P1 · CONTRIBUTING (cadencia)
 - **Por qué:** el agente frontend y el backend/infra trabajan en paralelo. Ya existen las
@@ -1037,7 +1296,7 @@ depende del contrato.
 - **Activación en producción:** solo cuando T-B25 y T-B26 estén desplegadas.
 - **Cierre:** tests con la propiedad apagada (lo de T-I17 sigue igual) y encendida.
 
-### T-I22 · Reconstruir todas las imágenes desde el CD — 🔵 EN CURSO (backend/t-i22-rebuild-all) · P1 · ADR-011, Principio IX
+### T-I22 · Reconstruir todas las imágenes desde el CD — ✅ HECHA (#230) · P1 · ADR-011, Principio IX
 - **Por qué (hallazgo de T-I14, #167):** `cd.yml` construye solo lo que cambió desde el
   último despliegue exitoso. En un VPS vacío o reconstruido, `deploy.sh` sale con código 4
   por imágenes faltantes; hoy el rodeo de `docs/runbooks/restore.md` compila en el VPS, sin
@@ -1061,7 +1320,7 @@ depende del contrato.
   VPS. Perderlo obliga a recompilar las 13, y eso es lo que más pesa en el RTO.
 - **Revisión:** con la Fase Crecimiento o si el ensayo de T-I14 supera el RTO.
 
-### T-I25 · Smoke E2E automático contra producción — 🔵 EN CURSO (infra/t-i21-smoke-e2e-produccion) · P1 · Principio VI, T-I13
+### T-I25 · Smoke E2E automático contra producción — ✅ HECHA (#211) · P1 · Principio VI, T-I13
 - **Por qué:** el runbook de incidentes pide una prueba de punta a punta manual antes de
   cada evento, y no hay ninguna comprobación automática que detecte una caída del gateway,
   de auth o de la revocación de tokens entre despliegues.
@@ -1083,3 +1342,56 @@ depende del contrato.
   `size > 100` se recorta en vez de devolver `400` (ADR-008): no se comprueba todavía.
 - **Cierre:** un run verde en Actions contra producción con los secretos cargados
   (`docs/runbooks/aprovisionamiento.md`, paso 12) y el job `smoke` de `cd.yml` en verde.
+
+### T-I26 · Arranque de las imágenes Java con el perfil `prod` en CI — ✅ HECHA (#236) · P0 · ADR-011, Principio VI
+- **Por qué (incidente del release 2026-10-30, #234):** `mosaic-service` no arrancó en
+  producción porque `spring-boot-restclient` estaba en scope `test` y `RestClient.Builder`
+  no existía en runtime. Los tests de contexto pasaban (usan el classpath de test) y
+  `deploy.sh` hizo rollback (código 5). Sin staging (ADR-011), un error de runtime solo
+  aparecía en el VPS. El arreglo es el hotfix #235.
+- **Qué:** job `Prod Startup` en `ci.yml`, después de `Docker Build`: carga las 10 imágenes
+  Java construidas y las levanta con `docker-compose.prod.yml` (perfil `prod`, Mongo, Redis
+  y Kafka con SASL) y los valores ficticios de `infrastructure/deploy/tests/fixtures/`;
+  `docker compose up --wait` falla si alguna no llega a `healthy` en
+  `/actuator/health/readiness`. Sin Caddy, Alloy, backup ni servicios Python.
+- **No hacer:** secretos reales; publicar puertos; tocar el compose de producción.
+- **Cierre:** el job falla con `spring-boot-restclient` en scope `test` en
+  `backend/mosaic-service/pom.xml` y pasa con el pom de #235; duración razonable frente al
+  resto del CI.
+- **Verificado:** en #236 (base `develop`, pom roto) el job falló en `mosaic-service` con
+  el mismo `RestClient$Builder` de producción y los otros 9 llegaron a `healthy` en ~80 s;
+  con el pom de #235 (#237, rama de prueba) pasó. El job dura ~2 min, en paralelo con el
+  final de `Docker Build`.
+
+### T-I27 · Vencimiento de las excepciones de Trivy de `mongo-backup` — 🟢 READY (antes del 2026-11-23) · P1 · Principio III
+- **Por qué:** `.trivyignore` tiene 4 excepciones de la imagen `mongo-backup` (hotfix #192),
+  aprobadas por los dos leads con vencimiento el **2026-11-23**: `CVE-2026-78667`,
+  `CVE-2026-78669` y `CVE-2026-97031` (Go stdlib y `golang.org/x/net` en
+  mongodump/mongorestore de `mongo:7.0`) y `CVE-2026-111943` (`crypto/x509` en esas tools y en
+  rclone 1.75.2). La fecha `Vence` es solo un comentario: Trivy no la aplica, así que, si nadie
+  la revisa, las excepciones siguen activas sin aprobación vigente. Desde el cierre de A9
+  (T-B31) Trivy bloquea siempre, y estas son las únicas excepciones que quedan.
+- **Qué:** antes del 2026-11-23, revisar si ya hay arreglo:
+  - MongoDB publicó las database tools compiladas con Go >= 1.27.3 y `x/net` >= 0.60.0, y
+    rclone tiene una versión compilada con Go >= 1.27.3.
+  - **Si lo hay:** subir la imagen base o la versión en `infrastructure/backup/Dockerfile`,
+    quitar las excepciones correspondientes de `.trivyignore` y comprobar que el escaneo de
+    CI (`Docker Build (mongo-backup)`) da 0 HIGH/CRITICAL.
+  - **Si no lo hay:** renovarlas en un PR con la aprobación de los dos leads y una nueva
+    fecha, después de confirmar que el motivo sigue siendo válido (red interna sin TLS hacia
+    Mongo, rclone solo hacia R2).
+  - Opcional: usar la sintaxis `exp:AAAA-MM-DD` de `.trivyignore` para que Trivy deje de
+    ignorar el CVE solo cuando vence, en lugar de depender del comentario.
+- **No hacer:** quitar las excepciones sin arreglo (bloquearía todo release que reconstruya
+  `mongo-backup`) ni extender la fecha sin la aprobación de los dos leads.
+- **Cierre:** ninguna excepción de `.trivyignore` con fecha vencida; las que queden, con la
+  aprobación de los dos leads vigente; el runbook de despliegue (sección *Si Trivy bloquea el
+  release*) sigue siendo correcto.
+
+### T-I28 · `INVITE_LINK_BASE_URL` y carga de la Ola 1 — 🟢 READY · P1 · Principios VII y VIII
+- **Qué:** T004, T005 👤 y T061 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): la variable en `application.yml` (sin default en
+  `prod`), `.env.example`, los dos Compose y los fixtures de Prod Startup; un lead la agrega a
+  `DOTENV_PRODUCTION` antes del release; escenarios k6 de RSVP concurrente y de vista previa.
+- **Avance:** T004 en #248 (con T003 de T-B34). T005 ✅ 2026-11-01: la variable está en
+  `DOTENV_PRODUCTION` de los tres Environments y en la copia del gestor. Falta T061.
+- **Cierre:** Prod Startup en verde con la variable; k6 sin cupos superados y dentro de los SLO.

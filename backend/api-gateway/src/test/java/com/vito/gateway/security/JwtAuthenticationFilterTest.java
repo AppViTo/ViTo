@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpMethod;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.reactive.socket.WebSocketHandler;
@@ -28,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -278,5 +280,110 @@ public class JwtAuthenticationFilterTest {
         assertNull(rejectedHandshake.get());
         assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
         assertUnauthorizedEnvelope(exchange, JwtAuthenticationFilter.MISSING_TOKEN_MESSAGE);
+    }
+
+    // ---- Ola 1: rutas públicas por método y patrón exacto (T018, R5) ----------------------
+
+    /** Token como los de auth-service desde T-B35: con el claim {@code name} (R6). */
+    static String tokenWithName(String userId, String name) {
+        return Jwts.builder()
+                .subject(userId)
+                .claim("email", userId + "@vito.test")
+                .claim("roles", List.of("USER"))
+                .claim("name", name)
+                .expiration(Date.from(Instant.now().plus(Duration.ofMinutes(15))))
+                .signWith(Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+    }
+
+    private MockServerWebExchange anonymous(HttpMethod method, String path) {
+        return MockServerWebExchange.from(MockServerHttpRequest.method(method, path)
+                .header("X-User-Id", "victim").header("X-User-Name", "Suplantado"));
+    }
+
+    @Test
+    void inviteLinkPreviewIsPublicAndCarriesNoIdentity() {
+        ServerWebExchange downstream = forwarded(anonymous(HttpMethod.GET, "/api/v1/invite-links/k3J9xQ2mV7pL1sT8wY4zBc"));
+
+        assertNotNull(downstream, "la vista previa no exige sesión");
+        JwtAuthenticationFilter.USER_HEADERS.forEach(h -> assertNull(downstream.getRequest().getHeaders().get(h), h));
+    }
+
+    @Test
+    void acceptingAnInviteLinkWithoutTokenIs401() {
+        MockServerWebExchange exchange = anonymous(HttpMethod.POST, "/api/v1/invite-links/k3J9xQ2mV7pL1sT8wY4zBc/accept");
+
+        assertNull(forwarded(exchange), "accept no es pública");
+        assertUnauthorizedEnvelope(exchange, JwtAuthenticationFilter.MISSING_TOKEN_MESSAGE);
+    }
+
+    @Test
+    void onlyTheExactMethodAndPatternArePublic() {
+        String[][] protectedRequests = {
+                {"GET", "/api/v1/invite-links/k3J9xQ2mV7pL1sT8wY4zBc/accept"},
+                {"POST", "/api/v1/invite-links/k3J9xQ2mV7pL1sT8wY4zBc"},
+                {"DELETE", "/api/v1/invite-links/k3J9xQ2mV7pL1sT8wY4zBc"},
+                {"GET", "/api/v1/invite-links"},
+                {"GET", "/api/v1/auth/login"},
+                {"POST", "/api/v1/auth/login/extra"},
+                {"POST", "/api/v1/auth/loginx"},
+                {"POST", "/api/v1/auth/logout"},
+                {"GET", "/api/v1/auth/me"},
+        };
+        for (String[] r : protectedRequests) {
+            MockServerWebExchange exchange = anonymous(HttpMethod.valueOf(r[0]), r[1]);
+            assertNull(forwarded(exchange), r[0] + " " + r[1] + " no debe ser pública");
+            assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode(), r[0] + " " + r[1]);
+        }
+    }
+
+    @Test
+    void loginRegisterAndRefreshRemainPublic() {
+        for (String path : new String[]{"/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh"}) {
+            assertNotNull(forwarded(anonymous(HttpMethod.POST, path)), path);
+        }
+    }
+
+    // ---- X-User-Name (T017, R6) ----------------------------------------------------------
+
+    @Test
+    void userNameComesFromTheClaimAndNeverFromTheClient() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
+                .post("/api/v1/invite-links/k3J9xQ2mV7pL1sT8wY4zBc/accept")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + tokenWithName("usr_real", "José Begoña"))
+                .header("X-User-Name", "Suplantado"));
+
+        HttpHeaders headers = forwarded(exchange).getRequest().getHeaders();
+
+        assertEquals(List.of("José Begoña"), headers.get("X-User-Name"));
+        assertEquals(List.of("usr_real"), headers.get("X-User-Id"));
+    }
+
+    @Test
+    void tokenWithoutNameDropsTheClientHeader() {
+        MockServerWebExchange exchange = MockServerWebExchange.from(MockServerHttpRequest
+                .get("/api/v1/events")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token("usr_real"))
+                .header("X-User-Name", "Suplantado"));
+
+        assertNull(forwarded(exchange).getRequest().getHeaders().get("X-User-Name"));
+    }
+
+    @Test
+    void nameHeaderIsTrimmedCappedAndOnlyLatin1() {
+        assertEquals("Alex Villa", JwtAuthenticationFilter.nameHeader("  Alex Villa  "));
+        assertEquals(100, JwtAuthenticationFilter.nameHeader("a".repeat(150)).length());
+        assertNull(JwtAuthenticationFilter.nameHeader("   "));
+        assertNull(JwtAuthenticationFilter.nameHeader(null));
+        assertNull(JwtAuthenticationFilter.nameHeader(42));
+        assertNull(JwtAuthenticationFilter.nameHeader("Ana\r\nX-User-Id: victim"), "sin saltos de línea");
+        assertNull(JwtAuthenticationFilter.nameHeader("Ana 🎉"), "fuera de ISO-8859-1 no se envía");
+        assertTrue(JwtAuthenticationFilter.USER_HEADERS.contains("X-User-Name"));
+    }
+
+    @Test
+    void rejectedTokenLogNeverCarriesTheInviteToken() {
+        assertEquals("/api/v1/invite-links/{token}/accept",
+                InviteLinkTokenRedaction.redact("/api/v1/invite-links/k3J9xQ2mV7pL1sT8wY4zBc/accept"));
     }
 }

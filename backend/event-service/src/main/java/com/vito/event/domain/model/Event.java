@@ -1,5 +1,6 @@
 package com.vito.event.domain.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,6 +18,9 @@ public class Event {
     private String id;
     
     private String organizerId;
+    
+    /** Nombre del organizador al crear o editar, desde {@code X-User-Name} (R6); null en eventos anteriores. */
+    private String organizerDisplayName;
     
     private String title;
     
@@ -45,6 +49,27 @@ public class Event {
         return viewerAccepted || (viewerId != null && viewerId.equals(organizerId));
     }
     
+    /** Publicado y sin terminar: admite respuestas e invitados (R3, FR-007). */
+    /**
+     * US2: se edita mientras no esté cancelado ni completado y no haya terminado. A diferencia de
+     * {@link #isActiveAt}, un borrador ({@code DRAFT}) también se edita.
+     */
+    public boolean isEditableAt(Instant now) {
+        boolean closed = status == EventStatus.CANCELLED || status == EventStatus.COMPLETED;
+        Instant end = details != null ? details.getEndDate() : null;
+        return !closed && (end == null || end.isAfter(now));
+    }
+
+    public boolean isActiveAt(Instant now) {
+        return status == EventStatus.PUBLISHED
+                && (details == null || details.getEndDate() == null || details.getEndDate().isAfter(now));
+    }
+
+    /** Copia con {@code stats} reducido a {@code totalAccepted} (R7); nunca se guarda. */
+    public Event withAcceptedCountOnly() {
+        return toBuilder().stats(stats == null ? null : stats.acceptedOnly()).build();
+    }
+
     /** Copia sin {@code address}, {@code latitude} ni {@code longitude}; se conserva {@code location}. */
     public Event withoutExactAddress() {
         if (details == null) {
@@ -96,13 +121,27 @@ public class Event {
     @Builder
     @NoArgsConstructor
     @AllArgsConstructor
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class EventStats {
-        private int totalInvited;
-        private int totalAccepted;
-        private int totalDeclined;
-        private int totalMaybe;
-        private int totalWaitlisted;
-        private int totalCheckedIn;
-        private int totalViewers;
+        // Integer y no int: la vista de quien no organiza omite los demás contadores (R7)
+        @Builder.Default
+        private Integer totalInvited = 0;
+        @Builder.Default
+        private Integer totalAccepted = 0;
+        @Builder.Default
+        private Integer totalDeclined = 0;
+        @Builder.Default
+        private Integer totalMaybe = 0;
+        @Builder.Default
+        private Integer totalWaitlisted = 0;
+        @Builder.Default
+        private Integer totalCheckedIn = 0;
+        @Builder.Default
+        private Integer totalViewers = 0;
+
+        /** Solo {@code totalAccepted}: lo que ve quien no organiza (R7, FR-024a). */
+        public EventStats acceptedOnly() {
+            return new EventStats(null, totalAccepted, null, null, null, null, null);
+        }
     }
 }

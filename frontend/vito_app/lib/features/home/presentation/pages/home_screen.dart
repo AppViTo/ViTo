@@ -24,10 +24,12 @@ class _HomeScreenState extends State<HomeScreen> {
   late final EventRepository _eventRepository =
       widget.eventRepository ?? sl<EventRepository>();
   bool _isLoading = true;
-  bool _eventsFailed = false;
+  bool _myEventsFailed = false;
+  bool _upcomingEventsFailed = false;
   String _searchQuery = '';
 
-  List<HomeEvent> _events = [];
+  List<HomeEvent> _myEvents = [];
+  List<HomeEvent> _upcomingEvents = [];
 
   @override
   void initState() {
@@ -35,33 +37,59 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
   }
 
-  /// Próximos eventos visibles para el usuario más los que organiza
-  /// (`listEvents` con `scope=upcoming` y `scope=mine`, ADR-014).
+  /// Eventos que organiza el usuario (`scope=mine`) y próximos eventos
+  /// visibles (`scope=upcoming`, ADR-014), en secciones separadas.
+  /// Los propios no se repiten en "Próximos eventos".
   /// Amigos, historias y transmisiones aún no tienen contrato (Olas 1–2):
   /// se muestran vacíos en vez de datos de ejemplo.
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     final results = await Future.wait([
-      _eventRepository.getUpcomingEvents(),
       _eventRepository.getMyEvents(),
+      _eventRepository.getUpcomingEvents(),
     ]);
     if (!mounted) return;
 
-    final byId = <String, Event>{};
-    var failures = 0;
-    for (final result in results) {
-      result.fold(
-        (_) => failures++,
-        (events) {
-          for (final event in events) {
-            byId[event.id] = event;
-          }
-        },
-      );
-    }
+    final myById = <String, Event>{};
+    final upcomingById = <String, Event>{};
+    var myFailed = false;
+    var upcomingFailed = false;
 
+    results[0].fold(
+      (_) => myFailed = true,
+      (events) {
+        for (final event in events) {
+          myById[event.id] = event;
+        }
+      },
+    );
+    results[1].fold(
+      (_) => upcomingFailed = true,
+      (events) {
+        for (final event in events) {
+          upcomingById[event.id] = event;
+        }
+      },
+    );
+
+    final myEvents = _visibleEvents(myById);
+    final myIds = myEvents.map((event) => event.id).toSet();
+    final upcomingEvents = _visibleEvents(upcomingById)
+        .where((event) => !myIds.contains(event.id))
+        .toList();
+
+    setState(() {
+      _myEvents = myEvents;
+      _upcomingEvents = upcomingEvents;
+      _myEventsFailed = myFailed;
+      _upcomingEventsFailed = upcomingFailed;
+      _isLoading = false;
+    });
+  }
+
+  List<HomeEvent> _visibleEvents(Map<String, Event> byId) {
     final now = DateTime.now();
-    final events = byId.values
+    return byId.values
         .where((e) =>
             e.status != EventStatus.cancelled &&
             e.status != EventStatus.completed)
@@ -72,12 +100,6 @@ class _HomeScreenState extends State<HomeScreen> {
         .map(_toHomeEvent)
         .toList()
       ..sort((a, b) => a.date.compareTo(b.date));
-
-    setState(() {
-      _events = events;
-      _eventsFailed = failures == results.length;
-      _isLoading = false;
-    });
   }
 
   HomeEvent _toHomeEvent(Event event) {
@@ -110,12 +132,14 @@ class _HomeScreenState extends State<HomeScreen> {
     return const HomeUser(id: '', displayName: '');
   }
 
-  List<HomeEvent> get _filteredEvents {
-    if (_searchQuery.isEmpty) return _events;
-    return _events.where((e) =>
-      e.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-      (e.location?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false)
-    ).toList();
+  List<HomeEvent> _filtered(List<HomeEvent> events) {
+    if (_searchQuery.isEmpty) return events;
+    final query = _searchQuery.toLowerCase();
+    return events
+        .where((e) =>
+            e.title.toLowerCase().contains(query) ||
+            (e.location?.toLowerCase().contains(query) ?? false))
+        .toList();
   }
 
   @override
@@ -151,10 +175,33 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 8)),
           SliverToBoxAdapter(
+            child: _buildSectionTitle('Mis eventos'),
+          ),
+          SliverToBoxAdapter(
+            child: _buildEventsCarousel(
+              events: _filtered(_myEvents),
+              failed: _myEventsFailed,
+              emptyMessage: _myEvents.isEmpty
+                  ? 'Aún no has creado eventos'
+                  : 'No hay eventos que coincidan con tu búsqueda',
+              failureMessage:
+                  'No pudimos cargar tus eventos. Desliza hacia abajo para reintentar.',
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 8)),
+          SliverToBoxAdapter(
             child: _buildSectionTitle('Próximos eventos'),
           ),
           SliverToBoxAdapter(
-            child: _buildEventsCarousel(),
+            child: _buildEventsCarousel(
+              events: _filtered(_upcomingEvents),
+              failed: _upcomingEventsFailed,
+              emptyMessage: _upcomingEvents.isEmpty
+                  ? 'Aún no tienes eventos para asistir'
+                  : 'No hay eventos que coincidan con tu búsqueda',
+              failureMessage:
+                  'No pudimos cargar los próximos eventos. Desliza hacia abajo para reintentar.',
+            ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 8)),
           SliverToBoxAdapter(
@@ -206,16 +253,16 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildEventsCarousel() {
-    final events = _filteredEvents;
+  Widget _buildEventsCarousel({
+    required List<HomeEvent> events,
+    required bool failed,
+    required String emptyMessage,
+    required String failureMessage,
+  }) {
     if (events.isEmpty) {
       return _buildEmptyState(
         icon: Icons.event_busy_rounded,
-        message: _eventsFailed
-            ? 'No pudimos cargar tus eventos. Desliza hacia abajo para reintentar.'
-            : _searchQuery.isNotEmpty
-                ? 'No hay eventos que coincidan con tu búsqueda'
-                : 'Aún no tienes eventos para asistir',
+        message: failed ? failureMessage : emptyMessage,
       );
     }
 

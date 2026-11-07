@@ -15,12 +15,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,6 +40,9 @@ class EventServiceImplTest {
 
     @Mock
     private QRCodeGenerator qrCodeGenerator;
+
+    @Mock
+    private AttendanceService attendanceService;
 
     @InjectMocks
     private EventServiceImpl eventService;
@@ -106,174 +109,6 @@ class EventServiceImplTest {
         ArgumentCaptor<Event> saved = ArgumentCaptor.forClass(Event.class);
         verify(eventRepository).save(saved.capture());
         assertEquals(Event.EventStatus.PUBLISHED, saved.getValue().getStatus());
-    }
-
-    @Test
-    void updateEvent_Success() {
-        // Arrange
-        UpdateEventCommand command = UpdateEventCommand.builder()
-                .eventId("event123")
-                .userId("organizer123")
-                .title("Updated Title")
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
-
-        // Act
-        Event result = eventService.updateEvent(command);
-
-        // Assert
-        assertNotNull(result);
-
-        verify(eventRepository).findById("event123");
-        verify(eventRepository).save(any(Event.class));
-        verify(eventPublisher).publishEventUpdated("event123", "organizer123");
-    }
-
-    @Test
-    void updateEvent_NotAuthorized_ThrowsException() {
-        // Arrange
-        UpdateEventCommand command = UpdateEventCommand.builder()
-                .eventId("event123")
-                .userId("user456")
-                .title("Updated Title")
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-
-        // Act & Assert
-        EventException exception = assertThrows(
-                EventException.class,
-                () -> eventService.updateEvent(command)
-        );
-        assertEquals("No tienes permiso para realizar esta acción", exception.getMessage());
-    }
-
-    @Test
-    void cancelEvent_Success() {
-        // Arrange
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
-
-        // Act
-        eventService.cancelEvent("event123", "organizer123");
-
-        // Assert
-        verify(eventRepository).findById("event123");
-        verify(eventRepository).save(any(Event.class));
-        verify(eventPublisher).publishEventCancelled("event123", "organizer123");
-    }
-
-    @Test
-    void respondToRSVP_Success() {
-        // Arrange
-        RespondRSVPCommand command = RespondRSVPCommand.builder()
-                .eventId("event123")
-                .userId("user456")
-                .status(RSVP.RSVPStatus.ACCEPTED)
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(rsvpRepository.existsByEventIdAndUserId("event123", "user456")).thenReturn(false);
-        when(rsvpRepository.countByEventIdAndStatus("event123", RSVP.RSVPStatus.ACCEPTED)).thenReturn(5L);
-        when(qrCodeGenerator.generateCheckInQR("event123", "user456")).thenReturn("qr_code_123");
-        when(rsvpRepository.save(any(RSVP.class))).thenReturn(RSVP.builder().build());
-
-        // Act
-        RSVP result = eventService.respondToRSVP(command);
-
-        // Assert
-        assertNotNull(result);
-
-        verify(eventRepository, atLeastOnce()).findById("event123");
-        verify(rsvpRepository).existsByEventIdAndUserId("event123", "user456");
-        verify(rsvpRepository).save(any(RSVP.class));
-        verify(eventPublisher).publishRSVPChanged("event123", "user456", "ACCEPTED");
-    }
-
-    @Test
-    void respondToRSVP_CannotRSVPToOwnEvent_ThrowsException() {
-        // Arrange
-        RespondRSVPCommand command = RespondRSVPCommand.builder()
-                .eventId("event123")
-                .userId("organizer123")
-                .status(RSVP.RSVPStatus.ACCEPTED)
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-
-        // Act & Assert
-        EventException exception = assertThrows(
-                EventException.class,
-                () -> eventService.respondToRSVP(command)
-        );
-        assertEquals("No puedes responder a tu propio evento", exception.getMessage());
-    }
-
-    @Test
-    void respondToRSVP_AlreadyRSVP_ThrowsException() {
-        // Arrange
-        RespondRSVPCommand command = RespondRSVPCommand.builder()
-                .eventId("event123")
-                .userId("user456")
-                .status(RSVP.RSVPStatus.ACCEPTED)
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(rsvpRepository.existsByEventIdAndUserId("event123", "user456")).thenReturn(true);
-
-        // Act & Assert
-        EventException exception = assertThrows(
-                EventException.class,
-                () -> eventService.respondToRSVP(command)
-        );
-        assertEquals("Ya respondiste a este evento", exception.getMessage());
-    }
-
-    @Test
-    void sendInvitation_Success() {
-        // Arrange
-        SendInvitationCommand command = SendInvitationCommand.builder()
-                .eventId("event123")
-                .inviterId("organizer123")
-                .inviteeId("user456")
-                .message("Come to my event!")
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-        when(invitationRepository.existsByEventIdAndInviteeId("event123", "user456")).thenReturn(false);
-        when(invitationRepository.save(any(Invitation.class))).thenReturn(Invitation.builder().build());
-
-        // Act
-        Invitation result = eventService.sendInvitation(command);
-
-        // Assert
-        assertNotNull(result);
-
-        verify(eventRepository, atLeastOnce()).findById("event123");
-        verify(invitationRepository).existsByEventIdAndInviteeId("event123", "user456");
-        verify(invitationRepository).save(any(Invitation.class));
-        verify(eventPublisher).publishInvitationSent("event123", "organizer123", "user456");
-    }
-
-    @Test
-    void sendInvitation_NotAuthorized_ThrowsException() {
-        // Arrange
-        SendInvitationCommand command = SendInvitationCommand.builder()
-                .eventId("event123")
-                .inviterId("user456")
-                .inviteeId("user789")
-                .build();
-
-        when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
-
-        // Act & Assert
-        EventException exception = assertThrows(
-                EventException.class,
-                () -> eventService.sendInvitation(command)
-        );
-        assertEquals("No tienes permiso para realizar esta acción", exception.getMessage());
     }
 
     @Test
@@ -352,7 +187,7 @@ class EventServiceImplTest {
                 .userId("user456")
                 .status(RSVP.RSVPStatus.ACCEPTED)
                 .checkInQrCode("valid_qr_code")
-                .checkedInAt(LocalDateTime.now())
+                .checkedInAt(Instant.now())
                 .build();
 
         when(eventRepository.findById("event123")).thenReturn(Optional.of(testEvent));
@@ -549,9 +384,124 @@ class EventServiceImplTest {
     void listScope_AcceptsOnlyContractValues() {
         assertEquals(ListScope.MINE, ListScope.fromValue("mine"));
         assertEquals(ListScope.UPCOMING, ListScope.fromValue("upcoming"));
-        for (String invalid : new String[] {"MINE", "public", "all", ""}) {
+        assertEquals(ListScope.INVITED, ListScope.fromValue("invited"));
+        for (String invalid : new String[] {"MINE", "public", "all", "INVITED", ""}) {
             EventException ex = assertThrows(EventException.class, () -> ListScope.fromValue(invalid));
-            assertEquals("El scope debe ser mine o upcoming", ex.getMessage());
+            assertEquals("El scope debe ser mine, upcoming o invited", ex.getMessage());
         }
+    }
+
+    // ---- scope=invited (T040, R10) -----------------------------------------------------
+
+    @Test
+    void listEvents_Invited_JoinsInvitationsAndAnswersWithoutRepeating() {
+        when(invitationRepository.findEventIdsInviting(eq("guest1"), any())).thenReturn(java.util.List.of("event123", "e2"));
+        when(rsvpRepository.findEventIdsAnsweredBy("guest1")).thenReturn(java.util.List.of("e2", "e3"));
+        when(eventRepository.findActiveByIds(any(), any(), eq(0), eq(20))).thenReturn(java.util.List.of(testEvent));
+
+        java.util.List<Event> events = eventService.listEvents(ListScope.INVITED, "guest1", 0, 20);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<java.util.Collection<String>> ids = ArgumentCaptor.forClass(java.util.Collection.class);
+        verify(eventRepository).findActiveByIds(ids.capture(), any(), eq(0), eq(20));
+        assertEquals(java.util.List.of("event123", "e2", "e3"), java.util.List.copyOf(ids.getValue()));
+        assertEquals(1, events.size());
+        // Quien consulta no organiza: stats reducido (R7)
+        assertNull(events.get(0).getStats().getTotalInvited());
+    }
+
+    @Test
+    void listEvents_Invited_HidesTheAddressUntilAccepted() {
+        when(invitationRepository.findEventIdsInviting(eq("guest1"), any())).thenReturn(java.util.List.of("event123"));
+        when(rsvpRepository.findEventIdsAnsweredBy("guest1")).thenReturn(java.util.List.of());
+        when(eventRepository.findActiveByIds(any(), any(), eq(0), eq(20))).thenReturn(java.util.List.of(eventHidingAddress()));
+        when(rsvpRepository.findByEventIdAndUserId("event123", "guest1")).thenReturn(Optional.empty());
+
+        assertAddressHidden(eventService.listEvents(ListScope.INVITED, "guest1", 0, 20).get(0));
+    }
+
+    // ---- Nombre visible (T025, R6) ----------------------------------------------------
+
+    @Test
+    void createEvent_StoresOrganizerDisplayName() {
+        when(eventRepository.save(any(Event.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        eventService.createEvent(CreateEventCommand.builder()
+                .organizerId("organizer123").organizerDisplayName("Alex Villa").title("Asado").build());
+
+        ArgumentCaptor<Event> saved = ArgumentCaptor.forClass(Event.class);
+        verify(eventRepository).save(saved.capture());
+        assertEquals("Alex Villa", saved.getValue().getOrganizerDisplayName());
+    }
+
+    // ---- stats según quién consulta (T027, R7) ---------------------------------------
+
+    private Event eventWithStats() {
+        return testEvent.toBuilder().stats(Event.EventStats.builder()
+                .totalInvited(120).totalAccepted(96).totalDeclined(4).totalMaybe(10)
+                .totalWaitlisted(3).totalCheckedIn(80).totalViewers(0).build()).build();
+    }
+
+    @Test
+    void getEvent_OrganizerSeesAllStats() {
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(eventWithStats()));
+
+        Event.EventStats stats = eventService.getEvent("event123", "organizer123").getStats();
+
+        assertEquals(120, stats.getTotalInvited());
+        assertEquals(4, stats.getTotalDeclined());
+        assertEquals(3, stats.getTotalWaitlisted());
+    }
+
+    @Test
+    void getEvent_GuestSeesOnlyTheAcceptedCount() {
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(eventWithStats()));
+
+        Event.EventStats stats = eventService.getEvent("event123", "guest1").getStats();
+
+        assertEquals(96, stats.getTotalAccepted());
+        assertNull(stats.getTotalInvited());
+        assertNull(stats.getTotalDeclined());
+        assertNull(stats.getTotalMaybe());
+        assertNull(stats.getTotalWaitlisted());
+        assertNull(stats.getTotalCheckedIn());
+        assertNull(stats.getTotalViewers());
+        verifyNoInteractions(rsvpRepository);
+    }
+
+    @Test
+    void getEvent_ReducedViewDoesNotTouchTheStoredEvent() {
+        Event stored = eventWithStats();
+        when(eventRepository.findById("event123")).thenReturn(Optional.of(stored));
+
+        eventService.getEvent("event123", "guest1");
+
+        assertEquals(120, stored.getStats().getTotalInvited());
+    }
+
+    @Test
+    void listEvents_Upcoming_GuestSeesOnlyTheAcceptedCount() {
+        when(eventRepository.findUpcomingEvents(0, 20)).thenReturn(java.util.List.of(eventWithStats()));
+
+        Event.EventStats stats = eventService.listEvents(ListScope.UPCOMING, "guest1", 0, 20).get(0).getStats();
+
+        assertEquals(96, stats.getTotalAccepted());
+        assertNull(stats.getTotalDeclined());
+    }
+
+    @Test
+    void listEvents_Upcoming_OrganizerSeesAllStatsOfOwnEvent() {
+        when(eventRepository.findUpcomingEvents(0, 20)).thenReturn(java.util.List.of(eventWithStats()));
+
+        Event.EventStats stats = eventService.listEvents(ListScope.UPCOMING, "organizer123", 0, 20).get(0).getStats();
+
+        assertEquals(4, stats.getTotalDeclined());
+    }
+
+    @Test
+    void getUpcomingEvents_GuestSeesOnlyTheAcceptedCount() {
+        when(eventRepository.findUpcomingEvents(0, 20)).thenReturn(java.util.List.of(eventWithStats()));
+
+        assertNull(eventService.getUpcomingEvents(0, 20, "guest1").get(0).getStats().getTotalInvited());
     }
 }

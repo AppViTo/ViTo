@@ -2,6 +2,7 @@ package com.vito.event.domain.port.outbound;
 
 import com.vito.event.domain.model.Invitation;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -11,6 +12,7 @@ public interface InvitationRepository {
     
     Optional<Invitation> findByEventIdAndInviteeId(String eventId, String inviteeId);
     
+    /** Las más recientes primero ({@code sentAt} descendente, desempate por id). */
     List<Invitation> findByEventId(String eventId, int page, int size);
     
     List<Invitation> findByInviterId(String inviterId, int page, int size);
@@ -24,4 +26,7 @@ public interface InvitationRepository {
     void delete(String eventId, String inviteeId);
     
     boolean existsByEventIdAndInviteeId(String eventId, String inviteeId);
+
+    /** R10: eventos con invitación {@code PENDING} sin vencer en {@code now} o {@code ACCEPTED} de la persona. */
+    List<String> findEventIdsInviting(String inviteeId, Instant now);
 }

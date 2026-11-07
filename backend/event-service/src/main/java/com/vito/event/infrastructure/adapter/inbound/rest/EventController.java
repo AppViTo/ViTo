@@ -5,6 +5,7 @@ import com.vito.event.domain.model.Invitation;
 import com.vito.event.domain.model.RSVP;
 import com.vito.event.domain.port.inbound.EventService;
 import com.vito.event.domain.exception.EventException;
+import com.vito.event.infrastructure.security.AuthenticatedUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import tools.jackson.databind.JsonNode;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -27,8 +29,9 @@ public class EventController {
     
     @PostMapping
     public ResponseEntity<Event> createEvent(@Valid @RequestBody EventService.CreateEventCommand command) {
-        String currentUserId = getCurrentUserId();
-        command.setOrganizerId(currentUserId);
+        AuthenticatedUser currentUser = getCurrentUser();
+        command.setOrganizerId(currentUser.id());
+        command.setOrganizerDisplayName(currentUser.displayName());
         
         Event event = eventService.createEvent(command);
         
@@ -36,22 +39,30 @@ public class EventController {
         return ResponseEntity.status(HttpStatus.CREATED).body(event);
     }
     
-    @PutMapping("/{eventId}")
+    /** US2 (FR-020): edición parcial con JSON Merge Patch; reemplaza al PUT, que reescribía todo. */
+    @PatchMapping(value = "/{eventId}", consumes = "application/merge-patch+json")
     public ResponseEntity<Event> updateEvent(
             @PathVariable String eventId,
-            @RequestBody EventService.UpdateEventCommand command) {
-        String currentUserId = getCurrentUserId();
+            @RequestBody JsonNode body) {
+        AuthenticatedUser currentUser = getCurrentUser(
+                () -> EventException.unauthenticated("Debes iniciar sesión para realizar esta acción"));
+        EventService.UpdateEventCommand command = EventService.UpdateEventCommand.builder()
+                .patch(EventPatchReader.read(body))
+                .build();
         command.setEventId(eventId);
-        command.setUserId(currentUserId);
-        
+        command.setUserId(currentUser.id());
+        command.setOrganizerDisplayName(currentUser.displayName());
+
         Event event = eventService.updateEvent(command);
         
         return ResponseEntity.ok(event);
     }
     
+    /** US5 (FR-022): pasa a {@code CANCELLED} sin borrar; idempotente. */
     @DeleteMapping("/{eventId}")
     public ResponseEntity<Void> cancelEvent(@PathVariable String eventId) {
-        String currentUserId = getCurrentUserId();
+        String currentUserId = getCurrentUser(
+                () -> EventException.unauthenticated("Debes iniciar sesión para realizar esta acción")).id();
         eventService.cancelEvent(eventId, currentUserId);
         return ResponseEntity.noContent().build();
     }
@@ -92,61 +103,74 @@ public class EventController {
         return ResponseEntity.ok(events);
     }
     
+    /** respondRsvp (T031): upsert; el cuerpo es {@code RespondRsvpRequest} y la respuesta {@code Rsvp}. */
     @PostMapping("/{eventId}/rsvp")
-    public ResponseEntity<RSVP> respondToRSVP(
+    public ResponseEntity<RsvpResponse> respondToRSVP(
             @PathVariable String eventId,
-            @RequestBody EventService.RespondRSVPCommand command) {
-        String currentUserId = getCurrentUserId();
-        command.setEventId(eventId);
-        command.setUserId(currentUserId);
-        
-        RSVP rsvp = eventService.respondToRSVP(command);
-        
-        return ResponseEntity.ok(rsvp);
+            @RequestBody RespondRsvpRequest request) {
+        AuthenticatedUser currentUser = getCurrentUser(
+                () -> EventException.unauthenticated("Debes iniciar sesión para realizar esta acción"));
+        RSVP rsvp = eventService.respondToRSVP(EventService.RespondRSVPCommand.builder()
+                .eventId(eventId)
+                .userId(currentUser.id())
+                .displayName(currentUser.displayName())
+                .status(request.parsedStatus())
+                .message(request.message())
+                .build());
+        return ResponseEntity.ok(RsvpResponse.from(rsvp));
     }
-    
+
+    /** listEventAttendees (US6, FR-024): solo el organizador; nunca correo ni teléfono. */
     @GetMapping("/{eventId}/attendees")
-    public ResponseEntity<List<RSVP>> getEventAttendees(
+    public ResponseEntity<List<AttendeeResponse>> getEventAttendees(
             @PathVariable String eventId,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        List<RSVP> attendees = eventService.getEventAttendees(eventId, page, size);
-        return ResponseEntity.ok(attendees);
+        String currentUserId = getCurrentUserId(
+                () -> EventException.unauthenticated("Debes iniciar sesión para realizar esta acción"));
+        List<RSVP> attendees = eventService.getEventAttendees(eventId, currentUserId, attendeeStatus(status), page, size);
+        return ResponseEntity.ok(attendees.stream().map(AttendeeResponse::from).toList());
     }
-    
+
+    /** {@code status} es opcional; uno desconocido es 400 (listEventAttendees.400). */
+    private static RSVP.RSVPStatus attendeeStatus(String status) {
+        if (status == null) {
+            return null;
+        }
+        try {
+            return RSVP.RSVPStatus.valueOf(status);
+        } catch (IllegalArgumentException unknown) {
+            throw EventException.invalidAttendeeStatus();
+        }
+    }
+
+    /** sendInvitation (US4, FR-010): 201 con la invitación {@code PENDING}. */
     @PostMapping("/{eventId}/invitations")
-    public ResponseEntity<Invitation> sendInvitation(
+    public ResponseEntity<InvitationResponse> sendInvitation(
             @PathVariable String eventId,
-            @RequestBody EventService.SendInvitationCommand command) {
-        String currentUserId = getCurrentUserId();
-        command.setEventId(eventId);
-        command.setInviterId(currentUserId);
-        
-        Invitation invitation = eventService.sendInvitation(command);
-        
-        return ResponseEntity.ok(invitation);
+            @RequestBody SendInvitationRequest request) {
+        String currentUserId = getCurrentUserId(
+                () -> EventException.unauthenticated("Debes iniciar sesión para realizar esta acción"));
+        Invitation invitation = eventService.sendInvitation(EventService.SendInvitationCommand.builder()
+                .eventId(eventId)
+                .inviterId(currentUserId)
+                .inviteeId(request.inviteeId())
+                .message(request.message())
+                .build());
+        return ResponseEntity.status(HttpStatus.CREATED).body(InvitationResponse.from(invitation));
     }
-    
+
+    /** listEventInvitations (US4, FR-012): solo el organizador. */
     @GetMapping("/{eventId}/invitations")
-    public ResponseEntity<List<Invitation>> getEventInvitations(
+    public ResponseEntity<List<InvitationResponse>> getEventInvitations(
             @PathVariable String eventId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        List<Invitation> invitations = eventService.getEventInvitations(eventId, page, size);
-        return ResponseEntity.ok(invitations);
-    }
-    
-    @PostMapping("/{eventId}/invitations/respond")
-    public ResponseEntity<Void> respondToInvitation(
-            @PathVariable String eventId,
-            @RequestBody EventService.RespondInvitationCommand command) {
-        String currentUserId = getCurrentUserId();
-        command.setEventId(eventId);
-        command.setInviteeId(currentUserId);
-        
-        eventService.respondToInvitation(command);
-        
-        return ResponseEntity.ok().build();
+        String currentUserId = getCurrentUserId(
+                () -> EventException.unauthenticated("Debes iniciar sesión para realizar esta acción"));
+        List<Invitation> invitations = eventService.getEventInvitations(eventId, currentUserId, page, size);
+        return ResponseEntity.ok(invitations.stream().map(InvitationResponse::from).toList());
     }
     
     @PostMapping("/{eventId}/check-in")
@@ -171,6 +195,17 @@ public class EventController {
     
     private String getCurrentUserId() {
         return getCurrentUserId(EventException::unauthenticated);
+    }
+
+    /** userId y nombre visible (R6); sin nombre en el token ni en el header, {@code displayName} es null. */
+    private AuthenticatedUser getCurrentUser() {
+        return getCurrentUser(EventException::unauthenticated);
+    }
+
+    private AuthenticatedUser getCurrentUser(Supplier<EventException> onMissing) {
+        String userId = getCurrentUserId(onMissing);
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return principal instanceof AuthenticatedUser user ? user : new AuthenticatedUser(userId, null);
     }
 
     /** {@code onMissing}: el 401 con el mensaje que el contrato fija para la operación. */

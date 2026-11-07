@@ -38,10 +38,20 @@ public class TokenProvider {
         claims.put("username", user.getUsername());
         claims.put("email", user.getEmail());
         claims.put("roles", user.getRoles());
-        
+        // R6 (Ola 1): nombre visible; el gateway lo reenvía como X-User-Name
+        claims.put(NAME_CLAIM, displayName(user));
+
         return createToken(claims, user.getId(), accessExpiration);
     }
     
+    static final String NAME_CLAIM = "name";
+
+    /** {@code profile.displayName}; si falta o está en blanco, el {@code username}. */
+    static String displayName(User user) {
+        String name = user.getProfile() != null ? user.getProfile().getDisplayName() : null;
+        return name != null && !name.isBlank() ? name.strip() : user.getUsername();
+    }
+
     public String generateRefreshToken(User user) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.getId());

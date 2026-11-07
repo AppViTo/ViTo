@@ -191,8 +191,9 @@ components:
           default: false
         maxAttendees:
           type: integer
-          minimum: 1
+          minimum: 0
           default: 100
+          description: 0 significa sin límite de cupo.
         allowGuestInvites:
           type: boolean
           default: true
@@ -212,7 +213,10 @@ components:
 
     EventStats:
       type: object
-      description: Contadores derivados. **Solo lectura**, calculados por el backend.
+      description: >
+        Contadores derivados. **Solo lectura**, calculados por el backend.
+        Quien no es el organizador recibe únicamente `totalAccepted`; el resto
+        de contadores solo se expone al organizador (R7).
       properties:
         totalInvited:
           type: integer
@@ -269,6 +273,10 @@ components:
         organizerId:
           type: string
           example: usr_01H8X2K4QJ
+        organizerDisplayName:
+          type: [string, 'null']
+          description: Nombre visible del organizador, tomado de `X-User-Name`.
+          example: Alex Villa
         title:
           type: string
           example: Los 30 de Marta
@@ -294,6 +302,251 @@ components:
           type: string
           format: date-time
           example: '2026-09-01T10:00:00Z'
+
+    # Ola 1 — Eventos, invitaciones y RSVP
+    Rsvp:
+      type: object
+      required: [eventId, userId, status, respondedAt]
+      description: Respuesta de un usuario a un evento. Sin QR ni `guestsCount`.
+      properties:
+        eventId:
+          type: string
+          example: evt_01H8X2K4QJ
+        userId:
+          type: string
+          example: usr_01H8X2K4QV
+        status:
+          type: string
+          description: Enum de CONVENTIONS §6.
+          enum: [PENDING, ACCEPTED, DECLINED, MAYBE, WAITLISTED]
+          example: ACCEPTED
+        message:
+          type: [string, 'null']
+          maxLength: 280
+          example: ¡Ahí estaré!
+        respondedAt:
+          type: string
+          format: date-time
+          description: ISO-8601 UTC con sufijo Z.
+          example: '2026-10-28T02:10:00Z'
+        waitlistedAt:
+          type: [string, 'null']
+          format: date-time
+          description: Presente solo si el RSVP está en lista de espera.
+          example: null
+
+    RespondRsvpRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ACCEPTED, DECLINED, MAYBE]
+          example: ACCEPTED
+        message:
+          type: string
+          maxLength: 280
+          example: ¡Ahí estaré!
+
+    Attendee:
+      type: object
+      required: [userId, status, respondedAt]
+      description: Asistente visible solo para el organizador. Sin correo ni teléfono.
+      properties:
+        userId:
+          type: string
+          example: usr_01H8X2K4QV
+        displayName:
+          type: [string, 'null']
+          example: Carolina Martínez
+        status:
+          type: string
+          enum: [PENDING, ACCEPTED, DECLINED, MAYBE, WAITLISTED]
+          example: ACCEPTED
+        respondedAt:
+          type: string
+          format: date-time
+          example: '2026-10-28T02:10:00Z'
+
+    UpdateEventRequest:
+      type: object
+      description: >
+        Cuerpo parcial de `PATCH /events/{eventId}`
+        (`application/merge-patch+json`). Solo se envían los campos que cambian;
+        `id`, `organizerId`, `status`, `stats` y `createdAt` no son editables.
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: Los 30 de Marta
+        description:
+          type: [string, 'null']
+          maxLength: 2000
+          example: Te espero con toda el alma
+        details:
+          $ref: '#/components/schemas/EventDetails'
+        settings:
+          $ref: '#/components/schemas/EventSettings'
+
+    Invitation:
+      type: object
+      required: [id, eventId, inviterId, inviteeId, status, sentAt]
+      description: Invitación a un evento. Enum de status en CONVENTIONS §6.
+      properties:
+        id:
+          type: string
+          example: inv_01HA1B2C3D
+        eventId:
+          type: string
+          example: evt_01H8X2K4QJ
+        inviterId:
+          type: string
+          example: usr_01H8X2K4QJ
+        inviteeId:
+          type: string
+          example: usr_01H8X2K4QV
+        status:
+          type: string
+          enum: [PENDING, ACCEPTED, DECLINED, EXPIRED]
+          example: PENDING
+        message:
+          type: [string, 'null']
+          maxLength: 280
+          example: ¡Te espero!
+        inviteLinkId:
+          type: [string, 'null']
+          description: Enlace por el que llegó el invitado; null si se invitó desde la app.
+          example: null
+        sentAt:
+          type: string
+          format: date-time
+          description: ISO-8601 UTC con sufijo Z.
+          example: '2026-10-28T02:10:00Z'
+        expiresAt:
+          type: [string, 'null']
+          format: date-time
+          example: '2026-11-04T02:10:00Z'
+        respondedAt:
+          type: [string, 'null']
+          format: date-time
+          example: null
+
+    SendInvitationRequest:
+      type: object
+      required: [inviteeId]
+      properties:
+        inviteeId:
+          type: string
+          description: Usuario registrado que se invita.
+          example: usr_01H8X2K4QV
+        message:
+          type: string
+          maxLength: 280
+          example: ¡Te espero!
+
+    InviteLink:
+      type: object
+      description: >
+        Enlace de invitación. Solo lo ve el organizador. El token es secreto:
+        quien lo tiene puede unirse mientras el enlace esté vigente.
+      required: [id, eventId, token, url, expiresAt, uses, revoked, createdAt]
+      properties:
+        id:
+          type: string
+          example: inl_01HA1B2C3D
+        eventId:
+          type: string
+          example: evt_01H8X2K4QJ
+        token:
+          type: string
+          pattern: '^[A-Za-z0-9_-]{22}$'
+          description: 22 caracteres base64url (128 bits aleatorios).
+          example: k3J9xQ2mV7pL1sT8wY4zBc
+        url:
+          type: string
+          format: uri
+          example: https://app.vitoevents.app/i/k3J9xQ2mV7pL1sT8wY4zBc
+        expiresAt:
+          type: string
+          format: date-time
+          example: '2026-11-03T15:00:00Z'
+        maxUses:
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 1000
+          description: null significa sin límite de usos.
+          example: null
+        uses:
+          type: integer
+          minimum: 0
+          example: 0
+        revoked:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-10-27T15:00:00Z'
+
+    CreateInviteLinkRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        expiresInDays:
+          type: integer
+          minimum: 1
+          maximum: 30
+          default: 7
+          example: 7
+        maxUses:
+          type: [integer, 'null']
+          minimum: 1
+          maximum: 1000
+          description: null significa sin límite de usos.
+          example: null
+
+    InviteLinkPreview:
+      type: object
+      description: >
+        Lo mínimo para mostrar la invitación a alguien sin sesión. Nunca incluye
+        la dirección exacta ni coordenadas, aunque el evento no oculte la dirección.
+      required: [eventId, title, organizerDisplayName, expiresAt]
+      properties:
+        eventId:
+          type: string
+          example: evt_01H8X2K4QJ
+        title:
+          type: string
+          example: Cumple de Caro
+        startDate:
+          type: [string, 'null']
+          format: date-time
+          example: '2026-12-26T01:00:00Z'
+        endDate:
+          type: [string, 'null']
+          format: date-time
+          example: '2026-12-26T07:00:00Z'
+        location:
+          type: [string, 'null']
+          description: Barrio o nombre del lugar, sin dirección exacta.
+          example: Cartagena de Indias
+        coverImage:
+          type: [string, 'null']
+          format: uri
+          example: null
+        category:
+          type: [string, 'null']
+          example: BIRTHDAY
+        organizerDisplayName:
+          type: string
+          example: Bernardo
+        expiresAt:
+          type: string
+          format: date-time
+          example: '2026-11-03T15:00:00Z'
 
     # Chat Schemas
     ChatMessage:
@@ -394,6 +647,29 @@ components:
         uploadedAt:
           type: string
           format: date-time
+
+    # Ola 3 (T-C09, Principio IX)
+    PresignedUrl:
+      type: object
+      required: [url, expiresIn, expiresAt]
+      description: >
+        URL prefirmada de lectura (GET) de un archivo de media. Caduca a los
+        `expiresIn` segundos; después hay que pedir otra.
+      properties:
+        url:
+          type: string
+          format: uri
+          example: https://vito-events.r2.cloudflarestorage.com/evt_01H8X/portada.jpg?X-Amz-Expires=900&X-Amz-Signature=3f1c
+        expiresIn:
+          type: integer
+          description: Segundos de vida de la URL (como `AuthResponse.expiresIn`, ADR-004).
+          minimum: 1
+          maximum: 3600
+          example: 900
+        expiresAt:
+          type: string
+          format: date-time
+          example: '2026-10-16T22:30:00Z'
 
     # Mosaic Schemas — Ola 3 (T-C07). Mismo MosaicFeedItem que asyncapi.yaml.
     MosaicFeedItem:
@@ -706,6 +982,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v1/auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user
+      description: >
+        Devuelve el usuario autenticado con la misma forma que
+        `AuthResponse.user` (ADR-004). La identidad sale de `X-User-Id`.
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Usuario autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUser'
+        '401':
+          description: Token ausente, inválido o revocado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: UNAUTHORIZED
+                message: El token de acceso es inválido o ha expirado
+                status: 401
+                timestamp: '2026-10-28T02:10:00Z'
+
   # Event Endpoints — contrato ADR-001
   /api/v1/events:
     post:
@@ -817,9 +1120,13 @@ paths:
         descendente (CONVENTIONS §5). `scope=upcoming` devuelve los eventos
         `PUBLISHED`, públicos (`settings.isPublic: true`) y con
         `details.startDate` mayor o igual a ahora, orden `details.startDate`
-        ascendente (excepción documentada a CONVENTIONS §5). La identidad sale
-        solo de `X-User-Id` (ADR-007): no se aceptan `organizerId` ni `userId`.
-        `hideAddressUntilAccepted` aplica igual que en `getEvent` (ADR-014).
+        ascendente (excepción documentada a CONVENTIONS §5). `scope=invited`
+        devuelve los eventos `PUBLISHED` y no vencidos con invitación `PENDING`
+        (no expirada) o `ACCEPTED`, o con un RSVP distinto de `DECLINED`, orden
+        `details.startDate` ascendente (ADR-014, enmienda de la Ola 1). La
+        identidad sale solo de `X-User-Id` (ADR-007): no se aceptan
+        `organizerId` ni `userId`. `hideAddressUntilAccepted` aplica igual que
+        en `getEvent` (ADR-014).
       operationId: listEvents
       parameters:
         - name: scope
@@ -828,11 +1135,13 @@ paths:
           description: >
             `mine`: eventos del usuario autenticado (cualquier estado).
             `upcoming`: eventos públicos publicados con `details.startDate`
-            mayor o igual a ahora. Por defecto `mine`, para no listar nunca un
-            catálogo global (ADR-014).
+            mayor o igual a ahora. `invited`: eventos publicados y no vencidos
+            a los que el usuario fue invitado o respondió algo distinto de
+            `DECLINED`. Por defecto `mine`, para no listar nunca un catálogo
+            global (ADR-014).
           schema:
             type: string
-            enum: [mine, upcoming]
+            enum: [mine, upcoming, invited]
             default: mine
         - name: page
           in: query
@@ -851,7 +1160,8 @@ paths:
         '200':
           description: >
             Array plano de `Event`. `scope=mine` ordena por `createdAt`
-            descendente; `scope=upcoming` por `details.startDate` ascendente.
+            descendente; `scope=upcoming` e `invited` por `details.startDate`
+            ascendente.
           content:
             application/json:
               schema:
@@ -881,6 +1191,19 @@ paths:
                         category: PARTY
                       settings:
                         isPublic: true
+                invited:
+                  summary: Eventos a los que el usuario fue invitado
+                  value:
+                    - id: evt_01H8X2K4QJ
+                      organizerId: usr_01H8X2K4QJ
+                      title: Los 30 de Marta
+                      status: PUBLISHED
+                      details:
+                        startDate: '2026-08-23T01:00:00.000Z'
+                        endDate: '2026-08-23T07:00:00.000Z'
+                        category: BIRTHDAY
+                      settings:
+                        isPublic: false
         '400':
           description: >
             `scope` fuera del enum o `size` mayor que 100 (ADR-003, ADR-008).
@@ -890,11 +1213,11 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 error: VALIDATION_ERROR
-                message: El scope debe ser mine o upcoming
+                message: El scope debe ser mine, upcoming o invited
                 status: 400
                 timestamp: '2026-10-22T14:03:22Z'
                 details:
-                  scope: 'Valores permitidos: mine, upcoming'
+                  scope: 'Valores permitidos: mine, upcoming, invited'
         '401':
           description: Unauthorized
           content:
@@ -919,11 +1242,40 @@ paths:
             type: string
       responses:
         '200':
-          description: Event details
+          description: >
+            Evento completo. El organizador recibe todos los contadores; los
+            demás reciben `stats` solo con `totalAccepted` (R7).
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
+              examples:
+                organizer:
+                  summary: Vista del organizador (stats completo)
+                  value:
+                    id: evt_01H9ZP5RKM
+                    organizerId: usr_01H8X2K4QJ
+                    organizerDisplayName: Alex Villa
+                    title: Boda Andrea & Luis
+                    status: PUBLISHED
+                    stats:
+                      totalInvited: 120
+                      totalAccepted: 96
+                      totalDeclined: 4
+                      totalMaybe: 10
+                      totalWaitlisted: 3
+                      totalCheckedIn: 80
+                      totalViewers: 0
+                guest:
+                  summary: Vista de un invitado (stats reducido)
+                  value:
+                    id: evt_01H9ZP5RKM
+                    organizerId: usr_01H8X2K4QJ
+                    organizerDisplayName: Alex Villa
+                    title: Boda Andrea & Luis
+                    status: PUBLISHED
+                    stats:
+                      totalAccepted: 96
         '401':
           description: Unauthorized
           content:
@@ -941,6 +1293,676 @@ paths:
                 message: El evento no existe
                 status: 404
                 timestamp: '2026-10-02T14:03:22Z'
+
+    patch:
+      tags: [Events]
+      summary: Update an event
+      description: >
+        Edición parcial del evento por el organizador. Solo se envían los
+        campos que cambian (`application/merge-patch+json`). `id`,
+        `organizerId`, `status`, `stats` y `createdAt` no son editables; si
+        llegan, responden `400`. Bajar `settings.maxAttendees` por debajo de
+        `stats.totalAccepted` responde `409`.
+      operationId: updateEvent
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/merge-patch+json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventRequest'
+      responses:
+        '200':
+          description: Evento actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Validación fallida o campo no editable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es el organizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Cupo menor que los confirmados o evento no vigente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                capacity:
+                  summary: El cupo no puede bajar de los confirmados
+                  value:
+                    error: CONFLICT
+                    message: El cupo no puede ser menor que los 96 confirmados
+                    status: 409
+                    timestamp: '2026-10-28T02:10:00Z'
+                state:
+                  summary: Evento cancelado o terminado
+                  value:
+                    error: CONFLICT
+                    message: No se puede editar un evento cancelado o terminado
+                    status: 409
+                    timestamp: '2026-10-28T02:10:00Z'
+
+    delete:
+      tags: [Events]
+      summary: Cancel an event
+      description: >
+        Cancela el evento (pasa a `CANCELLED`) sin borrarlo. Es idempotente:
+        cancelar un evento ya cancelado responde `204`. Un evento `COMPLETED`
+        responde `409`.
+      operationId: cancelEvent
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Evento cancelado (sin cuerpo)
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es el organizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: El evento ya terminó
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/events/{eventId}/rsvp:
+    post:
+      tags: [Events]
+      summary: Respond to an event
+      description: >
+        Única forma de responder una invitación. Es un upsert idempotente: la
+        misma respuesta repetida no duplica ni cambia contadores. Si el cupo
+        está lleno, un `ACCEPTED` queda en `WAITLISTED`. Un evento privado sin
+        acceso responde el mismo `404` que uno inexistente.
+      operationId: respondRsvp
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RespondRsvpRequest'
+      responses:
+        '200':
+          description: Respuesta registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rsvp'
+              examples:
+                accepted:
+                  summary: Confirmado con cupo
+                  value:
+                    eventId: evt_01H8X2K4QJ
+                    userId: usr_01H8X2K4QV
+                    status: ACCEPTED
+                    message: ¡Ahí estaré!
+                    respondedAt: '2026-10-28T02:10:00Z'
+                    waitlistedAt: null
+                waitlisted:
+                  summary: Confirmado sin cupo, en lista de espera
+                  value:
+                    eventId: evt_01H8X2K4QJ
+                    userId: usr_01H8X2K4QW
+                    status: WAITLISTED
+                    message: null
+                    respondedAt: '2026-10-28T02:12:00Z'
+                    waitlistedAt: '2026-10-28T02:12:00Z'
+        '400':
+          description: Status inválido o mensaje demasiado largo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Evento inexistente o privado sin acceso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notFound:
+                  summary: El evento no existe
+                  value:
+                    error: NOT_FOUND
+                    message: El evento no existe
+                    status: 404
+                    timestamp: '2026-10-28T02:10:00Z'
+                private:
+                  summary: Evento privado sin invitación (mismo cuerpo)
+                  value:
+                    error: NOT_FOUND
+                    message: El evento no existe
+                    status: 404
+                    timestamp: '2026-10-28T02:10:00Z'
+        '409':
+          description: Organizador, evento cancelado, terminado o pasado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: "Rate limit superado (rsvp: 20 req/s)"
+          headers:
+            Retry-After:
+              description: Segundos hasta poder reintentar.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/events/{eventId}/attendees:
+    get:
+      tags: [Events]
+      summary: List event attendees
+      description: >
+        Lista paginada de asistentes, solo para el organizador. Nunca incluye
+        correo ni teléfono. Cualquier otra persona recibe `403`, aunque esté
+        confirmada.
+      operationId: listEventAttendees
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: status
+          in: query
+          required: false
+          description: Filtra por estado del RSVP.
+          schema:
+            type: string
+            enum: [PENDING, ACCEPTED, DECLINED, MAYBE, WAITLISTED]
+        - name: page
+          in: query
+          description: Base 0.
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: Máximo 100 (ADR-008).
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Array plano de asistentes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Attendee'
+        '400':
+          description: Filtro o paginación inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es el organizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/events/{eventId}/invitations:
+    post:
+      tags: [Events]
+      summary: Invite a registered user
+      description: >
+        Invita a un usuario registrado. Solo el organizador. La invitación
+        nace `PENDING` y vence en 7 días.
+      operationId: sendInvitation
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendInvitationRequest'
+      responses:
+        '201':
+          description: Invitación creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invitation'
+        '400':
+          description: Validación fallida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es el organizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Evento o usuario inexistente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: El usuario ya está invitado o el evento no está vigente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags: [Events]
+      summary: List event invitations
+      description: Lista paginada de invitaciones, solo para el organizador.
+      operationId: listEventInvitations
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Base 0.
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: Máximo 100 (ADR-008).
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Array plano de invitaciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invitation'
+        '400':
+          description: Paginación inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es el organizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/events/{eventId}/invite-links:
+    post:
+      tags: [Events]
+      summary: Create an invite link
+      description: >
+        Crea un enlace de invitación compartible. Sin cuerpo usa 7 días y sin
+        límite de usos. Solo el organizador.
+      operationId: createInviteLink
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInviteLinkRequest'
+      responses:
+        '201':
+          description: Enlace creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteLink'
+        '400':
+          description: Vigencia o límite de usos fuera de rango
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es el organizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: El evento no está vigente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags: [Events]
+      summary: List invite links
+      description: >
+        Lista paginada de enlaces del evento, solo para el organizador. Los
+        enlaces vigentes aparecen primero.
+      operationId: listInviteLinks
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Base 0.
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          description: Máximo 100 (ADR-008).
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        '200':
+          description: Array plano de enlaces
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InviteLink'
+        '400':
+          description: Paginación inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es el organizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/events/{eventId}/invite-links/{linkId}:
+    delete:
+      tags: [Events]
+      summary: Revoke an invite link
+      description: >
+        Revoca un enlace. Es idempotente: revocar uno ya revocado responde
+        `204`. No afecta a quienes ya se unieron.
+      operationId: revokeInviteLink
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: linkId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Enlace revocado (sin cuerpo)
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es el organizador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Evento o enlace inexistente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/invite-links/{token}:
+    get:
+      tags: [Events]
+      summary: Preview an invite link
+      description: >
+        Vista previa pública de un enlace vigente. Nunca incluye la dirección
+        exacta ni coordenadas. Un token inexistente, vencido o revocado
+        responde el mismo `404`.
+      operationId: getInviteLinkPreview
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9_-]{22}$'
+      responses:
+        '200':
+          description: Vista previa del enlace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InviteLinkPreview'
+        '404':
+          description: El enlace no existe o ya no está disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: "Rate limit por IP superado (preview: 10/min)"
+          headers:
+            Retry-After:
+              description: Segundos hasta poder reintentar.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/invite-links/{token}/accept:
+    post:
+      tags: [Events]
+      summary: Accept an invite link
+      description: >
+        Une al usuario autenticado al evento. Es idempotente: si ya tiene
+        invitación, devuelve la existente sin sumar un uso. Si el usuario es
+        el organizador, responde `200` sin crear nada.
+      operationId: acceptInviteLink
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[A-Za-z0-9_-]{22}$'
+      responses:
+        '200':
+          description: Invitación existente o creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invitation'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El enlace no existe o ya no está disponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Límite de usos alcanzado o evento no vigente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                max-uses:
+                  summary: El enlace alcanzó su límite de usos
+                  value:
+                    error: CONFLICT
+                    message: El enlace alcanzó su límite de usos
+                    status: 409
+                    timestamp: '2026-10-28T02:10:00Z'
+                event-not-active:
+                  summary: El evento no está vigente
+                  value:
+                    error: CONFLICT
+                    message: El evento ya no admite invitados
+                    status: 409
+                    timestamp: '2026-10-28T02:10:00Z'
+        '429':
+          description: Rate limit por usuario superado
+          headers:
+            Retry-After:
+              description: Segundos hasta poder reintentar.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # Chat Endpoints
   /api/v1/chat/rooms:
@@ -1211,6 +2233,184 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Media]
+      summary: Delete media
+      description: >
+        Ola 3 (T-C09). Borra el archivo y su miniatura del almacenamiento y el
+        registro de media. Pueden borrar quien lo subió (`uploadedBy`) y el
+        organizador del evento. La identidad sale de `X-User-Id` (ADR-007). Si
+        el archivo está publicado en el mosaico, retirarlo es
+        `removeMosaicItem`, que también borra el archivo.
+      operationId: deleteMedia
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Archivo borrado
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no subió el archivo ni organiza el evento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/media/{mediaId}/presigned-url:
+    get:
+      tags: [Media]
+      summary: Get a presigned URL for a media file
+      description: >
+        Ola 3 (T-C09, Principio IX). Devuelve una URL prefirmada de lectura y
+        vida corta. Mismo acceso que `listEventMedia`: el organizador del
+        evento y los usuarios con RSVP `ACCEPTED`. En esta ola el bucket sigue
+        público y `Media.location.url` no cambia; esta operación es la vía
+        prevista cuando el bucket pase a privado.
+      operationId: getMediaPresignedUrl
+      parameters:
+        - name: mediaId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: expiresIn
+          in: query
+          description: Segundos de vida de la URL. Por defecto 900, máximo 3600.
+          schema:
+            type: integer
+            default: 900
+            minimum: 1
+            maximum: 3600
+      responses:
+        '200':
+          description: URL prefirmada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PresignedUrl'
+              example:
+                url: https://vito-events.r2.cloudflarestorage.com/evt_01H8X/portada.jpg?X-Amz-Expires=900&X-Amz-Signature=3f1c
+                expiresIn: 900
+                expiresAt: '2026-10-16T22:30:00Z'
+        '400':
+          description: '`expiresIn` fuera de 1–3600'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es organizador ni tiene RSVP `ACCEPTED` en el evento del archivo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Media not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/media/event/{eventId}:
+    get:
+      tags: [Media]
+      summary: List the media of an event
+      description: >
+        Ola 3 (T-C09). Archivos subidos al evento como **array plano**
+        (ADR-002), orden `uploadedAt` descendente, paginado con `page`/`size`
+        (CONVENTIONS §5). Lo ven el organizador y los usuarios con RSVP
+        `ACCEPTED`. No incluye los archivos retirados del mosaico:
+        `removeMosaicItem` los borra.
+      operationId: listEventMedia
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Base 0.
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Máximo 100 (ADR-008).
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Array plano de `Media`
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Media'
+              example:
+                - id: med_01H8X2K4QK
+                  eventId: evt_01H8X2K4QJ
+                  uploadedBy: usr_01H8X2K4QL
+                  fileName: brindis.jpg
+                  contentType: image/jpeg
+                  fileSize: 391204
+                  status: UPLOADED
+                  location:
+                    bucket: vito-events
+                    key: evt_01H8X/brindis.jpg
+                    url: https://cdn.vito.com/evt_01H8X/brindis.jpg
+                    thumbnailUrl: https://cdn.vito.com/evt_01H8X/thumb_brindis.jpg
+                  uploadedAt: '2026-10-16T22:20:00Z'
+        '400':
+          description: '`page` negativo o `size` fuera de 1–100'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: El usuario no es organizador ni tiene RSVP `ACCEPTED` en el evento
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Event not found
           content:
             application/json:
               schema:
@@ -1536,7 +2736,9 @@ paths:
         elemento: deja de salir en feed, grilla y `getMosaicItem`, su celda
         vuelve a `null` y los clientes conectados reciben `ITEM_REMOVED` por
         `/ws/mosaic/{eventId}`. Solo el organizador del evento del elemento.
-        Es un borrado lógico: el servicio conserva el registro para auditoría.
+        El elemento es un borrado lógico (el servicio conserva el registro
+        para auditoría), pero su archivo se borra del almacenamiento y deja de
+        salir en `listEventMedia` (T-C09).
       operationId: removeMosaicItem
       parameters:
         - name: itemId

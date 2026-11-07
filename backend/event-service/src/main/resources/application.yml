@@ -33,6 +33,12 @@ jwt:
 qr:
   secret: ${QR_SECRET}
 
+# Ola 1 (R4): base de las URLs de los enlaces de invitación, <base>/i/<token>. Es la web de
+# la app, no el gateway. En prod no tiene valor por defecto (application-prod.yml).
+vito:
+  invite-links:
+    base-url: ${INVITE_LINK_BASE_URL:http://localhost:3000}
+
 logging:
   level:
     com.vito: DEBUG

@@ -1,0 +1,6 @@
+{
+  "error": "FORBIDDEN",
+  "message": "Solo el organizador puede ver la lista de asistentes",
+  "status": 403,
+  "timestamp": "2026-10-28T02:10:00Z"
+}

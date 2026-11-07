@@ -84,6 +84,23 @@ void main() {
     expect(find.text('Aún no tienes amigos'), findsOneWidget);
   });
 
+  testWidgets('muestra una sección "Mis eventos" con los eventos propios',
+      (tester) async {
+    await pumpHome(
+      tester,
+      FakeEventRepository(
+        myEvents: [_event('evt_1', 'Cumpleaños de Ana')],
+        upcomingEvents: [_event('evt_2', 'Concierto')],
+      ),
+    );
+
+    expect(find.text('Mis eventos'), findsOneWidget);
+    expect(find.text('Próximos eventos'), findsOneWidget);
+    expect(find.text('Cumpleaños de Ana'), findsOneWidget);
+    expect(find.text('Concierto'), findsOneWidget);
+    expect(find.text('Aún no has creado eventos'), findsNothing);
+  });
+
   testWidgets('muestra los eventos propios y los próximos sin duplicar',
       (tester) async {
     final cumple = _event('evt_1', 'Cumpleaños de Ana');

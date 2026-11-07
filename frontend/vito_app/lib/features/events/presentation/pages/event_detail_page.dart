@@ -124,7 +124,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              event.settings?.isPublic == true ? 'Public' : 'Private',
+                              event.settings?.isPublic == true
+                                  ? 'Público'
+                                  : 'Privado',
                               style: const TextStyle(color: AppColors.textSecondary),
                             ),
                           ],
@@ -134,7 +136,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         // Description
                         if (event.description != null) ...[
                           const Text(
-                            'About',
+                            'Descripción',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -156,9 +158,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         if (event.details?.startDate != null) ...[
                           _buildInfoRow(
                             Icons.calendar_today,
-                            'Date & Time',
-                            DateFormat('EEEE, MMMM d, yyyy • h:mm a')
-                                .format(event.details!.startDate!),
+                            'Fecha y hora',
+                            DateFormat(
+                              "EEEE, d 'de' MMMM 'de' yyyy • h:mm a",
+                              'es',
+                            ).format(event.details!.startDate!),
                           ),
                           const SizedBox(height: 12),
                         ],
@@ -167,7 +171,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         if (event.details?.location != null) ...[
                           _buildInfoRow(
                             Icons.location_on,
-                            'Location',
+                            'Ubicación',
                             event.details!.location!,
                           ),
                           const SizedBox(height: 12),
@@ -177,7 +181,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         if (event.details?.address != null) ...[
                           _buildInfoRow(
                             Icons.map,
-                            'Address',
+                            'Dirección',
                             event.details!.address!,
                           ),
                           const SizedBox(height: 12),
@@ -187,7 +191,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         if (event.details?.category != null) ...[
                           _buildInfoRow(
                             Icons.category,
-                            'Category',
+                            'Categoría',
                             event.details!.category!,
                           ),
                           const SizedBox(height: 12),
@@ -197,7 +201,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         if (event.stats != null) ...[
                           const SizedBox(height: 8),
                           const Text(
-                            'Statistics',
+                            'Estadísticas',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -272,10 +276,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
       crossAxisSpacing: 8,
       childAspectRatio: 1,
       children: [
-        _buildStatCard(Icons.people, '${stats.totalInvited}', 'Invited'),
-        _buildStatCard(Icons.check_circle, '${stats.totalAccepted}', 'Accepted'),
-        _buildStatCard(Icons.cancel, '${stats.totalDeclined}', 'Declined'),
-        _buildStatCard(Icons.help_outline, '${stats.totalMaybe}', 'Maybe'),
+        _buildStatCard(Icons.people, '${stats.totalInvited}', 'Invitados'),
+        _buildStatCard(Icons.check_circle, '${stats.totalAccepted}', 'Confirmados'),
+        _buildStatCard(Icons.cancel, '${stats.totalDeclined}', 'Rechazados'),
+        _buildStatCard(Icons.help_outline, '${stats.totalMaybe}', 'Tal vez'),
       ],
     );
   }
@@ -316,7 +320,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             _showRSVPDialog(context, event.id);
           },
           icon: const Icon(Icons.how_to_reg),
-          label: const Text('RSVP'),
+          label: const Text('Confirmar asistencia'),
         ),
         const SizedBox(height: 8),
 
@@ -330,7 +334,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             );
           },
           icon: const Icon(Icons.qr_code_scanner),
-          label: const Text('Check In'),
+          label: const Text('Registrar entrada'),
         ),
         const SizedBox(height: 8),
 
@@ -347,7 +351,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             );
           },
           icon: const Icon(Icons.grid_view),
-          label: const Text('Mosaic'),
+          label: const Text('Mosaico'),
         ),
         const SizedBox(height: 8),
 
@@ -364,7 +368,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             );
           },
           icon: const Icon(Icons.videocam),
-          label: const Text('Start Stream'),
+          label: const Text('Iniciar transmisión'),
         ),
       ],
     );
@@ -374,13 +378,13 @@ class _EventDetailPageState extends State<EventDetailPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('RSVP'),
+        title: const Text('Confirmar asistencia'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Icons.check_circle, color: AppColors.success),
-              title: const Text('Accept'),
+              title: const Text('Aceptar'),
               onTap: () {
                 context.read<EventBloc>().add(RespondToRSVP(
                   eventId: eventId,
@@ -391,7 +395,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             ),
             ListTile(
               leading: const Icon(Icons.help_outline, color: AppColors.warning),
-              title: const Text('Maybe'),
+              title: const Text('Tal vez'),
               onTap: () {
                 context.read<EventBloc>().add(RespondToRSVP(
                   eventId: eventId,
@@ -402,7 +406,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
             ),
             ListTile(
               leading: const Icon(Icons.cancel, color: AppColors.error),
-              title: const Text('Decline'),
+              title: const Text('Rechazar'),
               onTap: () {
                 context.read<EventBloc>().add(RespondToRSVP(
                   eventId: eventId,
@@ -424,19 +428,19 @@ class _EventDetailPageState extends State<EventDetailPage> {
     switch (status) {
       case EventStatus.draft:
         color = AppColors.grey500;
-        text = 'Draft';
+        text = 'Borrador';
         break;
       case EventStatus.published:
         color = AppColors.success;
-        text = 'Published';
+        text = 'Publicado';
         break;
       case EventStatus.cancelled:
         color = AppColors.error;
-        text = 'Cancelled';
+        text = 'Cancelado';
         break;
       case EventStatus.completed:
         color = AppColors.info;
-        text = 'Completed';
+        text = 'Finalizado';
         break;
     }
 
