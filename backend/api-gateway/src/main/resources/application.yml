@@ -315,62 +315,52 @@ vito:
 
 # Resilience4j Circuit Breaker
 resilience4j:
+  # T-B37: configuración común. Las instancias la heredan con base-config y las rutas sin
+  # instancia propia (chat, media, archive, Python) la reciben como valor por defecto.
   circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        wait-duration-in-open-state: 5s
+        failure-rate-threshold: 50
+        # Un bulkhead lleno es exceso de concurrencia en el gateway, no una falla del servicio:
+        # recibe el fallback (503), pero no cuenta para abrir el breaker
+        ignore-exceptions:
+          - io.github.resilience4j.bulkhead.BulkheadFullException
     instances:
       authServiceCircuitBreaker:
+        base-config: default
         register-health-indicator: true
-        sliding-window-size: 10
-        minimum-number-of-calls: 5
-        permitted-number-of-calls-in-half-open-state: 3
-        automatic-transition-from-open-to-half-open-enabled: true
-        wait-duration-in-open-state: 5s
-        failure-rate-threshold: 50
         event-consumer-buffer-size: 10
-      
       socialServiceCircuitBreaker:
+        base-config: default
         register-health-indicator: true
-        sliding-window-size: 10
-        minimum-number-of-calls: 5
-        permitted-number-of-calls-in-half-open-state: 3
-        automatic-transition-from-open-to-half-open-enabled: true
-        wait-duration-in-open-state: 5s
-        failure-rate-threshold: 50
-      
       eventServiceCircuitBreaker:
+        base-config: default
         register-health-indicator: true
-        sliding-window-size: 10
-        minimum-number-of-calls: 5
-        permitted-number-of-calls-in-half-open-state: 3
-        automatic-transition-from-open-to-half-open-enabled: true
-        wait-duration-in-open-state: 5s
-        failure-rate-threshold: 50
-      
       checkinServiceCircuitBreaker:
+        base-config: default
         register-health-indicator: true
-        sliding-window-size: 10
-        minimum-number-of-calls: 5
-        permitted-number-of-calls-in-half-open-state: 3
-        automatic-transition-from-open-to-half-open-enabled: true
-        wait-duration-in-open-state: 5s
-        failure-rate-threshold: 50
-      
       mosaicServiceCircuitBreaker:
+        base-config: default
         register-health-indicator: true
-        sliding-window-size: 10
-        minimum-number-of-calls: 5
-        permitted-number-of-calls-in-half-open-state: 3
-        automatic-transition-from-open-to-half-open-enabled: true
-        wait-duration-in-open-state: 5s
-        failure-rate-threshold: 50
-      
       streamingServiceCircuitBreaker:
+        base-config: default
         register-health-indicator: true
-        sliding-window-size: 10
-        minimum-number-of-calls: 5
-        permitted-number-of-calls-in-half-open-state: 3
-        automatic-transition-from-open-to-half-open-enabled: true
-        wait-duration-in-open-state: 5s
-        failure-rate-threshold: 50
+
+  # T-B37: el filtro CircuitBreaker de Spring Cloud envuelve cada ruta en un bulkhead creado con
+  # esta configuración por defecto (ignora resilience4j.bulkhead.instances). Sin ella, el
+  # límite de Resilience4j es de 25 llamadas concurrentes por ruta: en k6 (T061), 150 RSVP
+  # simultáneos recibían ~120 respuestas 503 al instante. 200 = hilos de Tomcat por defecto de
+  # cada servicio: por encima de eso el servicio ya encola, así que el gateway no corta antes.
+  bulkhead:
+    configs:
+      default:
+        max-concurrent-calls: 200
+        max-wait-duration: 0s
 
   retry:
     instances:
