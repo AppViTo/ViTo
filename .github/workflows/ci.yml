@@ -461,11 +461,11 @@ jobs:
 
       # Para Prod Startup: la imagen Java tal cual se construyó (zstd rápido, artifact de 1 día)
       - name: Comprimir imagen Java
-        if: startsWith(matrix.context, 'backend/')
+        if: matrix.context == 'backend'
         run: zstd -T0 -3 -q "$RUNNER_TEMP/image.tar" -o "$RUNNER_TEMP/prod-image-${{ matrix.service }}.tar.zst"
 
       - uses: actions/upload-artifact@v7
-        if: startsWith(matrix.context, 'backend/')
+        if: matrix.context == 'backend'
         with:
           name: prod-image-${{ matrix.service }}
           path: ${{ runner.temp }}/prod-image-${{ matrix.service }}.tar.zst

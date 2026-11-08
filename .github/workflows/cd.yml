@@ -155,9 +155,11 @@ jobs:
             mongo-backup) ctx=infrastructure/backup; file="$ctx/Dockerfile" ;;
             *) ctx=backend; file=backend/Dockerfile; args="SERVICE=$SVC" ;;
           esac
-          echo "context=$ctx" >> "$GITHUB_OUTPUT"
-          echo "file=$file" >> "$GITHUB_OUTPUT"
-          echo "build_args=${args:-}" >> "$GITHUB_OUTPUT"
+          {
+            echo "context=$ctx"
+            echo "file=$file"
+            echo "build_args=${args:-}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
