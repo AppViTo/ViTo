@@ -32,9 +32,13 @@ class WebSocketRoutingIntegrationTest {
 
     private static final DisposableServer backend = HttpServer.create()
             .port(0)
+            // Envía y espera a que el cliente cierre: si el servicio cerraba enseguida, el cierre
+            // podía llegar al cliente por el gateway antes que el mensaje (fallo intermitente)
             .route(routes -> routes.get("/ws/checkin/{eventId}", (request, response) ->
                     response.sendWebsocket((in, out) -> out.sendString(Mono.just(
-                            request.requestHeaders().get("X-User-Id") + "|" + request.uri())))))
+                                    request.requestHeaders().get("X-User-Id") + "|" + request.uri()))
+                            .then()
+                            .then(in.receive().then()))))
             .bindNow();
 
     @DynamicPropertySource
