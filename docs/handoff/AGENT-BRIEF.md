@@ -133,7 +133,7 @@ Tareas atómicas (≤ 1 día, sin contrato nuevo) van directo. Las olas de contr
 
 ```bash
 # Backend (un servicio)
-cd backend/<svc> && mvn clean verify
+cd backend && ./mvnw -pl <svc> -am clean verify   # reactor con shared-web (T-B18)
 
 # Stack local completo
 docker compose --profile app up -d --build

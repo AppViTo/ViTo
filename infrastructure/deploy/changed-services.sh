@@ -51,7 +51,9 @@ is_one_of() {
 
 while IFS= read -r path; do
   case "$path" in
-    backend/Dockerfile | backend/Dockerfile.dockerignore | backend/pom.xml | backend/shared-*/*)
+    # El wrapper es común al reactor (T-B18): un cambio de versión de Maven reconstruye todo
+    backend/Dockerfile | backend/Dockerfile.dockerignore | backend/pom.xml | backend/shared-*/* \
+      | backend/mvnw | backend/mvnw.cmd | backend/.mvn/*)
       for svc in "${JAVA[@]}"; do hit[$svc]=1; done
       ;;
     backend/*/*)

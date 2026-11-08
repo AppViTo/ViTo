@@ -1,11 +1,14 @@
-# Se aplica al contexto de cada servicio cuando se construye con backend/Dockerfile
-target/
-bin/
-.idea/
-*.iml
-.classpath
-.project
-.settings/
-*.log
-.env
-.env.*
+# Se aplica al contexto backend/ cuando se construye con backend/Dockerfile (T-B18).
+# Los patrones son relativos a backend/: ** para que alcancen a cada módulo.
+**/target/
+**/bin/
+**/.idea/
+**/*.iml
+**/.classpath
+**/.project
+**/.settings/
+**/*.log
+**/.env
+**/.env.*
+load-tests/
+integration-tests/

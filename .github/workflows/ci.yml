@@ -219,9 +219,10 @@ jobs:
           - chat-service
           - media-service
 
+    # Reactor de backend/ (T-B18): -am construye y prueba también shared-web
     defaults:
       run:
-        working-directory: backend/${{ matrix.service }}
+        working-directory: backend
 
     services:
       mongodb:
@@ -248,7 +249,7 @@ jobs:
           cache: maven
 
       - name: Build and test
-        run: ./mvnw -B clean verify
+        run: ./mvnw -B -pl ${{ matrix.service }} -am clean verify
         env:
           # Solo para los tests de contexto sin src/test/resources propio
           MONGODB_URI: mongodb://admin:test_password@localhost:27017/test_db?authSource=admin
@@ -405,16 +406,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { service: api-gateway,       context: backend/api-gateway,       dockerfile: backend/Dockerfile }
-          - { service: auth-service,      context: backend/auth-service,      dockerfile: backend/Dockerfile }
-          - { service: social-service,    context: backend/social-service,    dockerfile: backend/Dockerfile }
-          - { service: event-service,     context: backend/event-service,     dockerfile: backend/Dockerfile }
-          - { service: checkin-service,   context: backend/checkin-service,   dockerfile: backend/Dockerfile }
-          - { service: mosaic-service,    context: backend/mosaic-service,    dockerfile: backend/Dockerfile }
-          - { service: streaming-service, context: backend/streaming-service, dockerfile: backend/Dockerfile }
-          - { service: archive-service,   context: backend/archive-service,   dockerfile: backend/Dockerfile }
-          - { service: chat-service,      context: backend/chat-service,      dockerfile: backend/Dockerfile }
-          - { service: media-service,     context: backend/media-service,     dockerfile: backend/Dockerfile }
+          - { service: api-gateway,       context: backend,                   dockerfile: backend/Dockerfile, build_args: "SERVICE=api-gateway" }
+          - { service: auth-service,      context: backend,                   dockerfile: backend/Dockerfile, build_args: "SERVICE=auth-service" }
+          - { service: social-service,    context: backend,                   dockerfile: backend/Dockerfile, build_args: "SERVICE=social-service" }
+          - { service: event-service,     context: backend,                   dockerfile: backend/Dockerfile, build_args: "SERVICE=event-service" }
+          - { service: checkin-service,   context: backend,                   dockerfile: backend/Dockerfile, build_args: "SERVICE=checkin-service" }
+          - { service: mosaic-service,    context: backend,                   dockerfile: backend/Dockerfile, build_args: "SERVICE=mosaic-service" }
+          - { service: streaming-service, context: backend,                   dockerfile: backend/Dockerfile, build_args: "SERVICE=streaming-service" }
+          - { service: archive-service,   context: backend,                   dockerfile: backend/Dockerfile, build_args: "SERVICE=archive-service" }
+          - { service: chat-service,      context: backend,                   dockerfile: backend/Dockerfile, build_args: "SERVICE=chat-service" }
+          - { service: media-service,     context: backend,                   dockerfile: backend/Dockerfile, build_args: "SERVICE=media-service" }
           - { service: transcode-service, context: ai-services/transcode-service, dockerfile: ai-services/transcode-service/Dockerfile }
           - { service: moderation-service, context: ai-services/moderation-service, dockerfile: ai-services/moderation-service/Dockerfile }
           - { service: mongo-backup,      context: infrastructure/backup,     dockerfile: infrastructure/backup/Dockerfile }
@@ -430,6 +431,7 @@ jobs:
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
+          build-args: ${{ matrix.build_args }}
           push: false
           tags: vito/${{ matrix.service }}:ci
           cache-from: type=gha,scope=${{ matrix.service }}

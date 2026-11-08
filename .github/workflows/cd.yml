@@ -153,10 +153,11 @@ jobs:
           case "$SVC" in
             transcode-service|moderation-service) ctx="ai-services/$SVC"; file="$ctx/Dockerfile" ;;
             mongo-backup) ctx=infrastructure/backup; file="$ctx/Dockerfile" ;;
-            *) ctx="backend/$SVC"; file=backend/Dockerfile ;;
+            *) ctx=backend; file=backend/Dockerfile; args="SERVICE=$SVC" ;;
           esac
           echo "context=$ctx" >> "$GITHUB_OUTPUT"
           echo "file=$file" >> "$GITHUB_OUTPUT"
+          echo "build_args=${args:-}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -167,6 +168,7 @@ jobs:
         with:
           context: ${{ steps.ctx.outputs.context }}
           file: ${{ steps.ctx.outputs.file }}
+          build-args: ${{ steps.ctx.outputs.build_args }}
           push: false
           tags: |
             vito/${{ matrix.service }}:${{ github.sha }}
