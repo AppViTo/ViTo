@@ -202,7 +202,8 @@ release del viernes 2026-11-06.
 | T-I24 | Registro de imágenes para no depender del VPS | I | P2 | ⚪ DIFERIDA (Fase Crecimiento) | — |
 | T-I25 | Smoke E2E automático contra producción (post-deploy + cron) | I | P1 | ✅ HECHA (#211) | — |
 | T-I26 | CI: las 10 imágenes Java arrancan con el perfil `prod` antes del release | I | P0 | ✅ HECHA (#236) | — |
-| T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | 🟢 READY (antes del 2026-11-23) | — |
+| T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | 🔵 EN CURSO (infra/t-i27-trivy-mongo-backup) | — |
+| T-I29 | Excepción de Trivy `CVE-2026-78661` de `mongo-backup` que vence el 2026-12-23 | I | P1 | 🔴 BLOQUEADA por T-I27 (antes del 2026-12-23) | — |
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | 🟡 RFC (requiere D-08 de la Ola 1) | — |
 | T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🟢 READY (contrato en #253); 🔥 RSVP para el release del 2026-11-06 | — |
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y #273) | — |
@@ -1363,7 +1364,7 @@ depende del contrato.
   con el pom de #235 (#237, rama de prueba) pasó. El job dura ~2 min, en paralelo con el
   final de `Docker Build`.
 
-### T-I27 · Vencimiento de las excepciones de Trivy de `mongo-backup` — 🟢 READY (antes del 2026-11-23) · P1 · Principio III
+### T-I27 · Vencimiento de las excepciones de Trivy de `mongo-backup` — 🔵 EN CURSO (infra/t-i27-trivy-mongo-backup) · P1 · Principio III
 - **Por qué:** `.trivyignore` tiene 4 excepciones de la imagen `mongo-backup` (hotfix #192),
   aprobadas por los dos leads con vencimiento el **2026-11-23**: `CVE-2026-78667`,
   `CVE-2026-78669` y `CVE-2026-97031` (Go stdlib y `golang.org/x/net` en
@@ -1387,6 +1388,26 @@ depende del contrato.
 - **Cierre:** ninguna excepción de `.trivyignore` con fecha vencida; las que queden, con la
   aprobación de los dos leads vigente; el runbook de despliegue (sección *Si Trivy bloquea el
   release*) sigue siendo correcto.
+- **Avance (2026-11-07):** hay arreglo para las 4. `mongo:7.0` trae ahora las database tools
+  100.20.0 compiladas con Go 1.27.3 y rclone 1.76.0 (2026-11-06) también; se sube rclone y se
+  quitan las 4 excepciones. El escaneo encontró dos hallazgos nuevos que también bloquearían
+  cualquier reconstrucción de la imagen: `apt` 2.4.14 (CVE-2026-109518, se parchea con
+  `apt-get upgrade` solo desde las fuentes de Ubuntu, como la imagen Java) y CVE-2026-78661 en
+  `golang.org/x/net/html` de mongodump/mongorestore, sin tools publicadas con el arreglo. Ese
+  queda como única excepción, con `exp:2026-12-23` para que Trivy la deje de ignorar sola
+  (T-I29). Trivy 0 HIGH/CRITICAL con `.trivyignore`; dump, copia con rclone y restore probados
+  contra un Mongo 7.0 local.
+
+### T-I29 · Vencimiento de la excepción `CVE-2026-78661` de `mongo-backup` — 🔴 BLOQUEADA por T-I27 (antes del 2026-12-23) · P1 · Principio III
+- **Por qué:** `golang.org/x/net/html` (denegación de servicio con HTML armado) en mongodump y
+  mongorestore 100.20.0; no aplica porque esos binarios solo hablan BSON con Mongo por la red
+  interna. Excepción aprobada por los dos leads en el PR de T-I27, con `exp:2026-12-23`: ese
+  día Trivy vuelve a bloquear cualquier release que reconstruya `mongo-backup`.
+- **Qué:** antes del 2026-12-23, ver si MongoDB publicó las tools con `x/net` >= 0.62.0. Si
+  sí, reconstruir con la imagen base nueva y quitar la excepción; si no, renovarla con la
+  aprobación de los dos leads.
+- **Cierre:** `.trivyignore` sin excepciones vencidas y `Docker Build (mongo-backup)` sin
+  HIGH/CRITICAL.
 
 ### T-I28 · `INVITE_LINK_BASE_URL` y carga de la Ola 1 — 🟢 READY · P1 · Principios VII y VIII
 - **Qué:** T004, T005 👤 y T061 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): la variable en `application.yml` (sin default en
