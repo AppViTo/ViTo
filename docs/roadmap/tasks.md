@@ -84,7 +84,7 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 | T-F12 | App de la Ola 1 | Agente frontend (Alex) | Nada hasta el merge de T-C10; después avanza contra el mock de Prism. |
 | T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | ✅ Todas sus historias: US3, US1, US2, US5 (#258–#265) y US4 y US6 (#273). |
 | T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | ✅ HECHA (#262). |
-| T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); falta T061 (k6). |
+| T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); T061 escrito; falta el p95 del RSVP (T-B37). |
 | T-B36 | Outbox y AsyncAPI de los eventos de `event-service` | Sesión de Bernardo | Bloqueada por T-C05. |
 
 ### Asignación del 2026-11-04 (agente frontend) — 🔥 prioridad alta, release del viernes 2026-11-06
@@ -216,7 +216,8 @@ release del viernes 2026-11-06.
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y #273) | — |
 | T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | ✅ HECHA (#262) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
-| T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🟢 READY | — |
+| T-B37 | Concurrencia del gateway y latencia del RSVP (hallazgos de k6) | B | P1 | 🟢 READY | — |
+| T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🔵 EN CURSO | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
@@ -1026,6 +1027,25 @@ depende del contrato.
 - **Qué:** sobre común, Transactional Outbox y declaración en AsyncAPI de los eventos de
   `event-service`, antes de que exista el primer consumidor (ticket QR de la Ola 2).
 
+### T-B37 · Concurrencia del gateway y latencia del RSVP — 🟢 READY · P1 · Principio VIII
+- **Por qué:** hallazgos de los escenarios k6 de la Ola 1 (T061, 2026-11-07) en el stack local.
+  1. El CircuitBreaker de Spring Cloud Gateway trae un **bulkhead por defecto de 25 llamadas
+     concurrentes por ruta**. Con 150 RSVP a la vez, ~120 reciben `503 SERVICE_UNAVAILABLE` al
+     instante; el breaker las cuenta como fallos y se abre. Pasa igual en producción (misma
+     configuración) y en cualquier ruta, no solo en eventos.
+  2. Sin el bulkhead, el cupo se respeta, pero el p95 del RSVP queda por encima de 1 s: con 20
+     simultáneos `event-service` tarda 0,77 s de media (111 ms con uno solo) y el gateway suma
+     otro tanto. El RSVP hace 6–7 operaciones en Mongo, varias sobre el mismo documento del evento.
+     El portátil (4 CPU compartidas) exagera la cifra; no se sabe cuánto.
+  3. Bajo carga, la consulta de revocación del JWT en Redis supera sus 250 ms y el gateway
+     **acepta el token sin comprobar la revocación** (fail-open, se registra como aviso).
+- **Qué:** (1) configurar el bulkhead (`max-concurrent-calls` por ruta o desactivarlo, con
+  justificación) y que su rechazo no abra el breaker; (2) medir el RSVP en un entorno con los
+  recursos del VPS y, si sigue lento, reducir viajes a Mongo; (3) decidir con los dos leads si
+  el fail-open de la revocación es aceptable o necesita métrica y alerta.
+- **Cierre:** `ola-1-rsvp.js` con 150 asistentes sin `503` y con p95 < 1 s en el entorno
+  representativo; la decisión del punto 3 registrada.
+
 ---
 
 ## Pista I — Infra, CI/CD e higiene
@@ -1423,10 +1443,14 @@ depende del contrato.
 - **Cierre:** `.trivyignore` sin excepciones vencidas y `Docker Build (mongo-backup)` sin
   HIGH/CRITICAL.
 
-### T-I28 · `INVITE_LINK_BASE_URL` y carga de la Ola 1 — 🟢 READY · P1 · Principios VII y VIII
+### T-I28 · `INVITE_LINK_BASE_URL` y carga de la Ola 1 — 🔵 EN CURSO · P1 · Principios VII y VIII
 - **Qué:** T004, T005 👤 y T061 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): la variable en `application.yml` (sin default en
   `prod`), `.env.example`, los dos Compose y los fixtures de Prod Startup; un lead la agrega a
   `DOTENV_PRODUCTION` antes del release; escenarios k6 de RSVP concurrente y de vista previa.
 - **Avance:** T004 en #248 (con T003 de T-B34). T005 ✅ 2026-11-01: la variable está en
-  `DOTENV_PRODUCTION` de los tres Environments y en la copia del gestor. Falta T061.
+  `DOTENV_PRODUCTION` de los tres Environments y en la copia del gestor. T061 (2026-11-07): los
+  escenarios `ola-1-rsvp.js` y `ola-1-preview.js` corren contra el stack local. Cupo nunca
+  superado (20, 50 y 150 asistentes); vista previa con p95 de 159 ms y límite del gateway
+  correcto. El p95 del RSVP no se cumple en local y destapó T-B37. Falta medirlo en un entorno
+  representativo después de T-B37.
 - **Cierre:** Prod Startup en verde con la variable; k6 sin cupos superados y dentro de los SLO.

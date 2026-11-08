@@ -210,7 +210,7 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 ## Phase 10: Polish & Cross-Cutting Concerns
 
-- [ ] T061 [P] [Bernardo] Escenarios k6 `backend/load-tests/ola-1-rsvp.js` (150 asistentes, RSVP concurrente, 0 cupos superados, < 1 s p95) y `backend/load-tests/ola-1-preview.js` (< 300 ms p95), siguiendo `backend/load-tests/event-load-test.js`
+- [X] T061 [P] [Bernardo] Escenarios k6 `backend/load-tests/ola-1-rsvp.js` (150 asistentes, RSVP concurrente, 0 cupos superados, < 1 s p95) y `backend/load-tests/ola-1-preview.js` (< 300 ms p95), siguiendo `backend/load-tests/event-load-test.js` (2026-11-07: escritos y corridos en local; cupo nunca superado y vista previa en SLO; el p95 del RSVP queda en T-B37)
 - [X] T062 [P] [Bernardo] Panel de `429` por ruta (vista previa y `accept`) en el tablero del gateway de T-I13 (`infrastructure/observability/`)
 - [X] T063 [Bernardo] (registrada como T-B36 en `docs/roadmap/tasks.md`) Registrar como tarea del backlog la desviación del Principio V (outbox, sobre versionado y declaración de los eventos Kafka de `event-service` en `asyncapi.yaml`), con dependencia de T-C05 y antes del primer consumidor (Ola 2)
 - [ ] T064 [Bernardo] y [Alex] Recorrer `quickstart.md` completo contra el stack local y pegar la salida en el PR de cierre de la ola
@@ -296,7 +296,7 @@ Se registran en `docs/roadmap/tasks.md` con este PR, con su fila en la tabla res
 | T-F12 · App de la Ola 1 | Agente de Alex | T014–T015, T032–T033, T041–T044, T048–T049, T052, T055, T058, T060 | 🔴 BLOQUEADA por T-C10 |
 | T-B34 · `event-service` de la Ola 1 | Bernardo | T003, T020–T031, T066, T034–T040, T045–T047, T050–T051, T053–T054, T056–T057 | 🔴 BLOQUEADA por T-C10 (T003 se puede adelantar) |
 | T-B35 · `auth-service` y gateway de la Ola 1 | Bernardo | T016–T019, T059, T062, T067 | 🔴 BLOQUEADA por T-C10 |
-| T-I28 · `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Bernardo | T004–T005, T061 | 🟢 READY: T004 en #248, T005 ✅ (2026-11-01); falta T061 |
+| T-I28 · `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Bernardo | T004–T005, T061 | 🔵 EN CURSO: T004 en #248, T005 ✅ (2026-11-01), T061 escrito; falta el p95 del RSVP (T-B37) |
 | T-B36 · Outbox y AsyncAPI de los eventos de `event-service` | Bernardo | T063 | 🔴 BLOQUEADA por T-C05 |
 
 T001 (D-08) y T064 son compartidas por los dos leads.
