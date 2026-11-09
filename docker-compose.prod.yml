@@ -250,6 +250,9 @@ services:
     <<: *java-service
     image: vito/social-service:${TAG_SOCIAL_SERVICE:?}
     build: { context: ./backend/social-service, dockerfile: ../Dockerfile }
+    environment:
+      <<: *java-env
+      AUTH_SERVICE_URI: http://auth-service:8081       # identidad por lotes, getUsersByIds (Ola 2a)
     healthcheck:
       <<: *java-healthcheck
       test: ["CMD", "curl", "-fsS", "http://localhost:8082/actuator/health/readiness"]

@@ -25,6 +25,11 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
 
+# T004 (Ola 2a): auth-service es dueño de la identidad; social-service le pide nombre y avatar
+# por lotes (getUsersByIds) en cada perfil y lista. En Compose, por su DNS interno.
+auth-service:
+  uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+
 logging:
   level:
     com.vito: DEBUG

@@ -187,6 +187,7 @@ services:
     container_name: vito-social-service
     environment:
       <<: *java-env
+      AUTH_SERVICE_URI: http://auth-service:8081  # identidad por lotes, getUsersByIds (Ola 2a)
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8082/actuator/health/readiness"]
       interval: 15s
