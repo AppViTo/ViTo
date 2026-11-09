@@ -84,10 +84,17 @@ va primero y solo se mergea con D-08 de la Ola 1 aprobada por los dos leads (T00
 | T-F12 | App de la Ola 1 | Agente frontend (Alex) | Nada hasta el merge de T-C10; después avanza contra el mock de Prism. |
 | T-B34 | `event-service` de la Ola 1 | Sesión de Bernardo | ✅ Todas sus historias: US3, US1, US2, US5 (#258–#265) y US4 y US6 (#273). |
 | T-B35 | `auth-service` y gateway de la Ola 1 | Sesión de Bernardo | ✅ HECHA (#262). |
-| T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); falta T061 (k6). |
+| T-I28 | `INVITE_LINK_BASE_URL` y carga de la Ola 1 | Sesión de Bernardo | T004 en #248; T005 ✅ (2026-11-01); T061 escrito; falta el p95 del RSVP (T-B37). |
 | T-B36 | Outbox y AsyncAPI de los eventos de `event-service` | Sesión de Bernardo | Bloqueada por T-C05. |
 
 ### Asignación del 2026-11-04 (agente frontend) — 🔥 prioridad alta, release del viernes 2026-11-06
+
+> **Release v0.2.0 publicado (2026-11-06, #275).** Al revisar la app antes del release, las
+> pantallas ya respondían por `/rsvp` (`RespondToRSVP`); `respondToInvitation` sigue en el
+> datasource, el repositorio y el BLoC, pero ninguna pantalla lo usa, así que retirar
+> `invitations/respond` no rompió nada. Su limpieza (paso 3) queda en T-F12. Trivy bloqueaba
+> las imágenes Java por `apt` 2.4.14 de la imagen base (corregido en #274) y el Secrets Scan
+> del release, por las huellas del squash de #253 (#276).
 
 **Por qué:** #259 (T-B34, US3) borra `POST /api/v1/events/{eventId}/invitations/respond`
 (D-01, FR-030): desde la Ola 1, `POST /api/v1/events/{eventId}/rsvp` es la única forma de
@@ -202,13 +209,15 @@ release del viernes 2026-11-06.
 | T-I24 | Registro de imágenes para no depender del VPS | I | P2 | ⚪ DIFERIDA (Fase Crecimiento) | — |
 | T-I25 | Smoke E2E automático contra producción (post-deploy + cron) | I | P1 | ✅ HECHA (#211) | — |
 | T-I26 | CI: las 10 imágenes Java arrancan con el perfil `prod` antes del release | I | P0 | ✅ HECHA (#236) | — |
-| T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | 🟢 READY (antes del 2026-11-23) | — |
+| T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | 🔵 EN CURSO (infra/t-i27-trivy-mongo-backup) | — |
+| T-I29 | Excepción de Trivy `CVE-2026-78661` de `mongo-backup` que vence el 2026-12-23 | I | P1 | 🔴 BLOQUEADA por T-I27 (antes del 2026-12-23) | — |
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | 🟡 RFC (requiere D-08 de la Ola 1) | — |
 | T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🟢 READY (contrato en #253); 🔥 RSVP para el release del 2026-11-06 | — |
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y #273) | — |
 | T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | ✅ HECHA (#262) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
-| T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🟢 READY | — |
+| T-B37 | Concurrencia del gateway y latencia del RSVP (hallazgos de k6) | B | P1 | 🟢 READY | — |
+| T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🔵 EN CURSO | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
@@ -255,7 +264,7 @@ depende del contrato.
 | Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | ✅ HECHA (#203) | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
 | Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟡 RFC (`updateEvent` entra al contrato en la Ola 1) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
 | Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | ✅ HECHA (#227) | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
-| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10); la búsqueda real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
+| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10); la búsqueda real, 🟡 RFC [AppViTo/ViTo#277](https://github.com/AppViTo/ViTo/issues/277) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
 | Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10) | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
 | Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | 🔵 EN CURSO (frontend/bugs-f03-f08-f09-f10); el enlace real, 🟡 RFC [AppViTo/ViTo#204](https://github.com/AppViTo/ViTo/issues/204) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
 
@@ -301,6 +310,13 @@ depende del contrato.
     no basta: `social-service` busca en su colección `user_profiles` y nadie la llena
     (`auth-service` publica el registro en `user-events`, pero ningún servicio lo consume). El
     RFC pide consumir ese tópico y hacer una carga inicial de los usuarios que ya existen.
+  - **2026-11-07:** la parte de la Ola 1 de #204 entró con la spec 003 y `searchUsers` quedó
+    para la Ola 2. En la prueba de v0.2.0 los leads no pudieron encontrarse para invitarse. El
+    RFC propio es [#277](https://github.com/AppViTo/ViTo/issues/277): propone que
+    `auth-service`, dueño de la identidad (ADR-004), sirva `GET /api/v1/users/search`, porque
+    replicar perfiles en `social-service` exige cumplir el Principio V (`UserRegisteredEvent`
+    solo lleva `userId` y `email`, sin sobre ni outbox) y depende de T-C05. Mientras tanto, el
+    camino para invitar es el enlace (T041–T044 de T-F12; backend en producción desde v0.2.0).
 - **Bug-F10** (antes se registró como Bug-F08; se renombró porque VITO-83 ya usaba ese ID):
   la app está en español (`app_localization_test.dart`), pero
   `event_detail_page.dart` tiene los textos en inglés. Pasarlos al español, incluidos los estados
@@ -1011,6 +1027,25 @@ depende del contrato.
 - **Qué:** sobre común, Transactional Outbox y declaración en AsyncAPI de los eventos de
   `event-service`, antes de que exista el primer consumidor (ticket QR de la Ola 2).
 
+### T-B37 · Concurrencia del gateway y latencia del RSVP — 🟢 READY · P1 · Principio VIII
+- **Por qué:** hallazgos de los escenarios k6 de la Ola 1 (T061, 2026-11-07) en el stack local.
+  1. El CircuitBreaker de Spring Cloud Gateway trae un **bulkhead por defecto de 25 llamadas
+     concurrentes por ruta**. Con 150 RSVP a la vez, ~120 reciben `503 SERVICE_UNAVAILABLE` al
+     instante; el breaker las cuenta como fallos y se abre. Pasa igual en producción (misma
+     configuración) y en cualquier ruta, no solo en eventos.
+  2. Sin el bulkhead, el cupo se respeta, pero el p95 del RSVP queda por encima de 1 s: con 20
+     simultáneos `event-service` tarda 0,77 s de media (111 ms con uno solo) y el gateway suma
+     otro tanto. El RSVP hace 6–7 operaciones en Mongo, varias sobre el mismo documento del evento.
+     El portátil (4 CPU compartidas) exagera la cifra; no se sabe cuánto.
+  3. Bajo carga, la consulta de revocación del JWT en Redis supera sus 250 ms y el gateway
+     **acepta el token sin comprobar la revocación** (fail-open, se registra como aviso).
+- **Qué:** (1) configurar el bulkhead (`max-concurrent-calls` por ruta o desactivarlo, con
+  justificación) y que su rechazo no abra el breaker; (2) medir el RSVP en un entorno con los
+  recursos del VPS y, si sigue lento, reducir viajes a Mongo; (3) decidir con los dos leads si
+  el fail-open de la revocación es aceptable o necesita métrica y alerta.
+- **Cierre:** `ola-1-rsvp.js` con 150 asistentes sin `503` y con p95 < 1 s en el entorno
+  representativo; la decisión del punto 3 registrada.
+
 ---
 
 ## Pista I — Infra, CI/CD e higiene
@@ -1363,7 +1398,7 @@ depende del contrato.
   con el pom de #235 (#237, rama de prueba) pasó. El job dura ~2 min, en paralelo con el
   final de `Docker Build`.
 
-### T-I27 · Vencimiento de las excepciones de Trivy de `mongo-backup` — 🟢 READY (antes del 2026-11-23) · P1 · Principio III
+### T-I27 · Vencimiento de las excepciones de Trivy de `mongo-backup` — 🔵 EN CURSO (infra/t-i27-trivy-mongo-backup) · P1 · Principio III
 - **Por qué:** `.trivyignore` tiene 4 excepciones de la imagen `mongo-backup` (hotfix #192),
   aprobadas por los dos leads con vencimiento el **2026-11-23**: `CVE-2026-78667`,
   `CVE-2026-78669` y `CVE-2026-97031` (Go stdlib y `golang.org/x/net` en
@@ -1387,11 +1422,35 @@ depende del contrato.
 - **Cierre:** ninguna excepción de `.trivyignore` con fecha vencida; las que queden, con la
   aprobación de los dos leads vigente; el runbook de despliegue (sección *Si Trivy bloquea el
   release*) sigue siendo correcto.
+- **Avance (2026-11-07):** hay arreglo para las 4. `mongo:7.0` trae ahora las database tools
+  100.20.0 compiladas con Go 1.27.3 y rclone 1.76.0 (2026-11-06) también; se sube rclone y se
+  quitan las 4 excepciones. El escaneo encontró dos hallazgos nuevos que también bloquearían
+  cualquier reconstrucción de la imagen: `apt` 2.4.14 (CVE-2026-109518, se parchea con
+  `apt-get upgrade` solo desde las fuentes de Ubuntu, como la imagen Java) y CVE-2026-78661 en
+  `golang.org/x/net/html` de mongodump/mongorestore, sin tools publicadas con el arreglo. Ese
+  queda como única excepción, con `exp:2026-12-23` para que Trivy la deje de ignorar sola
+  (T-I29). Trivy 0 HIGH/CRITICAL con `.trivyignore`; dump, copia con rclone y restore probados
+  contra un Mongo 7.0 local.
 
-### T-I28 · `INVITE_LINK_BASE_URL` y carga de la Ola 1 — 🟢 READY · P1 · Principios VII y VIII
+### T-I29 · Vencimiento de la excepción `CVE-2026-78661` de `mongo-backup` — 🔴 BLOQUEADA por T-I27 (antes del 2026-12-23) · P1 · Principio III
+- **Por qué:** `golang.org/x/net/html` (denegación de servicio con HTML armado) en mongodump y
+  mongorestore 100.20.0; no aplica porque esos binarios solo hablan BSON con Mongo por la red
+  interna. Excepción aprobada por los dos leads en el PR de T-I27, con `exp:2026-12-23`: ese
+  día Trivy vuelve a bloquear cualquier release que reconstruya `mongo-backup`.
+- **Qué:** antes del 2026-12-23, ver si MongoDB publicó las tools con `x/net` >= 0.62.0. Si
+  sí, reconstruir con la imagen base nueva y quitar la excepción; si no, renovarla con la
+  aprobación de los dos leads.
+- **Cierre:** `.trivyignore` sin excepciones vencidas y `Docker Build (mongo-backup)` sin
+  HIGH/CRITICAL.
+
+### T-I28 · `INVITE_LINK_BASE_URL` y carga de la Ola 1 — 🔵 EN CURSO · P1 · Principios VII y VIII
 - **Qué:** T004, T005 👤 y T061 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): la variable en `application.yml` (sin default en
   `prod`), `.env.example`, los dos Compose y los fixtures de Prod Startup; un lead la agrega a
   `DOTENV_PRODUCTION` antes del release; escenarios k6 de RSVP concurrente y de vista previa.
 - **Avance:** T004 en #248 (con T003 de T-B34). T005 ✅ 2026-11-01: la variable está en
-  `DOTENV_PRODUCTION` de los tres Environments y en la copia del gestor. Falta T061.
+  `DOTENV_PRODUCTION` de los tres Environments y en la copia del gestor. T061 (2026-11-07): los
+  escenarios `ola-1-rsvp.js` y `ola-1-preview.js` corren contra el stack local. Cupo nunca
+  superado (20, 50 y 150 asistentes); vista previa con p95 de 159 ms y límite del gateway
+  correcto. El p95 del RSVP no se cumple en local y destapó T-B37. Falta medirlo en un entorno
+  representativo después de T-B37.
 - **Cierre:** Prod Startup en verde con la variable; k6 sin cupos superados y dentro de los SLO.
