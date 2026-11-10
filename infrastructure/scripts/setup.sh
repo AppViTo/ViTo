@@ -62,18 +62,8 @@ docker-compose ps
 echo "🔨 Building Java services..."
 cd backend
 
-for service in auth-service social-service event-service checkin-service mosaic-service streaming-service archive-service chat-service media-service api-gateway; do
-    if [ -d "$service" ]; then
-        echo "  Building $service..."
-        cd $service
-        if [ -f "mvnw" ]; then
-            ./mvnw clean package -DskipTests -q
-        elif [ -f "pom.xml" ]; then
-            mvn clean package -DskipTests -q
-        fi
-        cd ..
-    fi
-done
+# Un solo reactor Maven: shared-web y los 10 servicios (T-B18)
+./mvnw clean install -DskipTests -q
 
 cd ..
 
@@ -111,7 +101,7 @@ echo "✅ Setup complete!"
 echo ""
 echo "📚 Next steps:"
 echo "  1. Start development tools: docker-compose up -d"
-echo "  2. Run auth-service: cd backend/auth-service && ./mvnw spring-boot:run"
+echo "  2. Run auth-service: cd backend && ./mvnw -pl auth-service spring-boot:run"
 echo "  3. Run Flutter app: cd frontend/vito_app && flutter run"
 echo ""
 echo "🌐 Service URLs:"

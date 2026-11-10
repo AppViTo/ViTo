@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Agregador del backend (T-B18, ADR-017). Construye shared-web y los 10 servicios en un solo
+  reactor; cada servicio conserva spring-boot-starter-parent como padre.
+
+    ./mvnw -B verify                              todo el backend
+    ./mvnw -B -pl event-service -am verify        un servicio y lo que necesita (shared-web)
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.vito</groupId>
+    <artifactId>vito-backend</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>vito-backend</name>
+
+    <modules>
+        <module>shared-web</module>
+        <module>api-gateway</module>
+        <module>auth-service</module>
+        <module>social-service</module>
+        <module>event-service</module>
+        <module>checkin-service</module>
+        <module>mosaic-service</module>
+        <module>streaming-service</module>
+        <module>archive-service</module>
+        <module>chat-service</module>
+        <module>media-service</module>
+    </modules>
+</project>
