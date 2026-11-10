@@ -5,6 +5,10 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  # T-I12: en los PR solo corre lo que cambió; el lunes, todo (dependencias e imágenes base)
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
 
 env:
   JAVA_VERSION: '21.0.13+9'
@@ -13,6 +17,48 @@ env:
   FLUTTER_VERSION: '3.47.x'
 
 jobs:
+  # T-I12: qué partes del CI corren (.github/scripts/ci-changes.sh). Fuera de un PR
+  # (push a develop/main, semanal, manual) corre todo.
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      java: ${{ steps.detect.outputs.java }}
+      images: ${{ steps.detect.outputs.images }}
+      prod: ${{ steps.detect.outputs.prod }}
+      python: ${{ steps.detect.outputs.python }}
+      flutter: ${{ steps.detect.outputs.flutter }}
+      deploy: ${{ steps.detect.outputs.deploy }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+
+      - name: Archivos cambiados
+        id: detect
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            gh api --paginate "repos/$REPO/pulls/$PR/files" \
+              --jq '.[] | .filename, (.previous_filename // empty)' > "$RUNNER_TEMP/files.txt"
+            export FORCE_ALL=0
+          else
+            : > "$RUNNER_TEMP/files.txt"
+            export FORCE_ALL=1
+          fi
+          echo "::group::Archivos cambiados ($(wc -l < "$RUNNER_TEMP/files.txt"))"
+          cat "$RUNNER_TEMP/files.txt"
+          echo "::endgroup::"
+          bash .github/scripts/ci-changes.sh < "$RUNNER_TEMP/files.txt" | tee -a "$GITHUB_OUTPUT"
+
   # Contrato (T-C03): Spectral sobre openapi.yaml + fixtures validados contra su schema.
   # Corre en todos los PR (es barato) para poder marcarlo como check requerido.
   contract:
@@ -50,6 +96,8 @@ jobs:
   deploy-scripts:
     name: Deploy Scripts
     runs-on: ubuntu-latest
+    needs: [changes]
+    if: needs.changes.outputs.deploy == 'true'
 
     steps:
       - uses: actions/checkout@v7
@@ -72,7 +120,7 @@ jobs:
       - name: ShellCheck
         run: |
           shopt -s globstar
-          shellcheck infrastructure/**/*.sh infrastructure/deploy/tests/fake-docker
+          shellcheck infrastructure/**/*.sh infrastructure/deploy/tests/fake-docker .github/scripts/*.sh
 
       - name: Install bats
         run: sudo apt-get update -qq && sudo apt-get install -y -qq bats
@@ -201,9 +249,13 @@ jobs:
         run: echo "Solo se exige en los PR con base main."
 
   # Servicios Spring Boot: compilación limpia + tests de cada uno
+  # T-I12: los checks de esta matriz (y de Python, Flutter y Docker Build) son requeridos por
+  # la protección de rama. El job corre siempre y salta sus pasos si no hay cambios: un job
+  # saltado entero no publica el check con el nombre de la matriz y el PR quedaría bloqueado.
   backend:
     name: Backend Tests (${{ matrix.service }})
     runs-on: ubuntu-latest
+    needs: [changes]
     strategy:
       fail-fast: false
       matrix:
@@ -239,9 +291,16 @@ jobs:
           - 6379:6379
 
     steps:
+      - name: Sin cambios
+        if: ${{ !(contains(fromJSON(needs.changes.outputs.java), matrix.service)) }}
+        working-directory: .
+        run: echo "Ni el servicio ni el reactor cambiaron en este PR; corre completo en el push a develop y cada lunes."
+
       - uses: actions/checkout@v7
+        if: contains(fromJSON(needs.changes.outputs.java), matrix.service)
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
+        if: contains(fromJSON(needs.changes.outputs.java), matrix.service)
         uses: actions/setup-java@v6
         with:
           java-version: ${{ env.JAVA_VERSION }}
@@ -249,13 +308,14 @@ jobs:
           cache: maven
 
       - name: Build and test
+        if: contains(fromJSON(needs.changes.outputs.java), matrix.service)
         run: ./mvnw -B -pl ${{ matrix.service }} -am clean verify
         env:
           # Solo para los tests de contexto sin src/test/resources propio
           MONGODB_URI: mongodb://admin:test_password@localhost:27017/test_db?authSource=admin
 
       - name: Upload test reports
-        if: failure()
+        if: ${{ (contains(fromJSON(needs.changes.outputs.java), matrix.service)) && (failure()) }}
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.service }}-surefire-reports
@@ -265,6 +325,7 @@ jobs:
   transcode-service:
     name: Transcode Service Tests
     runs-on: ubuntu-latest
+    needs: [changes]
     
     defaults:
       run:
@@ -277,21 +338,30 @@ jobs:
           - 6379:6379
     
     steps:
+      - name: Sin cambios
+        if: ${{ !(contains(fromJSON(needs.changes.outputs.python), 'transcode-service')) }}
+        working-directory: .
+        run: echo "transcode-service no cambió en este PR; corre completo en el push a develop y cada lunes."
+
       - uses: actions/checkout@v7
+        if: contains(fromJSON(needs.changes.outputs.python), 'transcode-service')
       
       - name: Set up Python ${{ env.PYTHON_VERSION }}
+        if: contains(fromJSON(needs.changes.outputs.python), 'transcode-service')
         uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
       
       - name: Install dependencies
+        if: contains(fromJSON(needs.changes.outputs.python), 'transcode-service')
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-cov
       
       - name: Run tests
+        if: contains(fromJSON(needs.changes.outputs.python), 'transcode-service')
         run: |
           pytest --cov=app --cov-report=xml --cov-report=html
         env:
@@ -301,7 +371,7 @@ jobs:
           S3_SECRET_KEY: test
       
       - name: Upload coverage reports
-        if: always()
+        if: ${{ (contains(fromJSON(needs.changes.outputs.python), 'transcode-service')) && (always()) }}
         uses: actions/upload-artifact@v7
         with:
           name: transcode-service-coverage
@@ -311,27 +381,37 @@ jobs:
   moderation-service:
     name: Moderation Service Tests
     runs-on: ubuntu-latest
+    needs: [changes]
 
     defaults:
       run:
         working-directory: ai-services/moderation-service
 
     steps:
+      - name: Sin cambios
+        if: ${{ !(contains(fromJSON(needs.changes.outputs.python), 'moderation-service')) }}
+        working-directory: .
+        run: echo "moderation-service no cambió en este PR; corre completo en el push a develop y cada lunes."
+
       - uses: actions/checkout@v7
+        if: contains(fromJSON(needs.changes.outputs.python), 'moderation-service')
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
+        if: contains(fromJSON(needs.changes.outputs.python), 'moderation-service')
         uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
       - name: Install dependencies
+        if: contains(fromJSON(needs.changes.outputs.python), 'moderation-service')
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
       - name: Run tests
+        if: contains(fromJSON(needs.changes.outputs.python), 'moderation-service')
         run: |
           pytest --cov=app --cov-report=xml
         env:
@@ -342,33 +422,45 @@ jobs:
   flutter-app:
     name: Flutter App Tests
     runs-on: ubuntu-latest
+    needs: [changes]
     
     defaults:
       run:
         working-directory: frontend/vito_app
     
     steps:
+      - name: Sin cambios
+        if: ${{ !(needs.changes.outputs.flutter == 'true') }}
+        working-directory: .
+        run: echo "La app no cambió en este PR; corre completo en el push a develop y cada lunes."
+
       - uses: actions/checkout@v7
+        if: needs.changes.outputs.flutter == 'true'
       
       - name: Set up Flutter
+        if: needs.changes.outputs.flutter == 'true'
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       
       - name: Install dependencies
+        if: needs.changes.outputs.flutter == 'true'
         run: flutter pub get
       
       - name: Analyze code
+        if: needs.changes.outputs.flutter == 'true'
         run: flutter analyze --fatal-infos
       
       - name: Run tests
+        if: needs.changes.outputs.flutter == 'true'
         run: flutter test --coverage
 
       # T030 (feature 001, T-I11): el artefacto que sube deploy-frontend.yml a Pages trae
       # _redirects (rutas internas sin 404), _headers con la CSP completable y CanvasKit
       # servido desde el propio sitio. URLs de ejemplo: no se publica nada.
       - name: Build web (Pages)
+        if: needs.changes.outputs.flutter == 'true'
         run: |
           flutter build web --release --no-web-resources-cdn \
             --dart-define=ENVIRONMENT=production \
@@ -376,6 +468,7 @@ jobs:
             --dart-define=WS_BASE_URL=wss://api.example.test
 
       - name: Verify Pages files
+        if: needs.changes.outputs.flutter == 'true'
         env:
           VITO_API_BASE_URL: https://api.example.test/api/v1
           VITO_WS_BASE_URL: wss://api.example.test
@@ -387,7 +480,7 @@ jobs:
           ../../infrastructure/deploy/render-web-headers.sh "$RUNNER_TEMP/_headers"
       
       - name: Upload coverage reports
-        if: always()
+        if: ${{ (needs.changes.outputs.flutter == 'true') && (always()) }}
         uses: actions/upload-artifact@v7
         with:
           name: flutter-coverage
@@ -398,7 +491,7 @@ jobs:
   docker-build:
     name: Docker Build (${{ matrix.service }})
     runs-on: ubuntu-latest
-    needs: [backend, transcode-service]
+    needs: [changes, backend, transcode-service]
     permissions:
       contents: read
       security-events: write   # SARIF de Trivy a Code Scanning (T049)
@@ -421,12 +514,19 @@ jobs:
           - { service: mongo-backup,      context: infrastructure/backup,     dockerfile: infrastructure/backup/Dockerfile }
 
     steps:
+      - name: Sin cambios
+        if: ${{ !(contains(fromJSON(needs.changes.outputs.images), matrix.service)) }}
+        run: echo "La imagen no cambió en este PR; corre completo en el push a develop y cada lunes."
+
       - uses: actions/checkout@v7
+        if: contains(fromJSON(needs.changes.outputs.images), matrix.service)
 
       - name: Set up Docker Buildx
+        if: contains(fromJSON(needs.changes.outputs.images), matrix.service)
         uses: docker/setup-buildx-action@v4
 
       - name: Build ${{ matrix.service }} image
+        if: contains(fromJSON(needs.changes.outputs.images), matrix.service)
         uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
@@ -441,6 +541,7 @@ jobs:
       # Informativo (T049, research R17): el mismo escaneo que bloquea en cd.yml, aquí sin
       # bloquear, para ver el problema en el PR antes del release
       - name: Trivy
+        if: contains(fromJSON(needs.changes.outputs.images), matrix.service)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           input: ${{ runner.temp }}/image.tar
@@ -451,9 +552,10 @@ jobs:
           format: sarif
           output: ${{ runner.temp }}/trivy.sarif
 
-      # Los PR desde un fork no tienen permiso de escritura en Code Scanning
+      # Los PR desde un fork no tienen permiso de escritura en Code Scanning (push, semanal y
+      # manual sí suben)
       - name: Subir a Code Scanning
-        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ (contains(fromJSON(needs.changes.outputs.images), matrix.service)) && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: ${{ runner.temp }}/trivy.sarif
@@ -461,11 +563,11 @@ jobs:
 
       # Para Prod Startup: la imagen Java tal cual se construyó (zstd rápido, artifact de 1 día)
       - name: Comprimir imagen Java
-        if: matrix.context == 'backend'
+        if: ${{ (contains(fromJSON(needs.changes.outputs.images), matrix.service)) && (matrix.context == 'backend') }}
         run: zstd -T0 -3 -q "$RUNNER_TEMP/image.tar" -o "$RUNNER_TEMP/prod-image-${{ matrix.service }}.tar.zst"
 
       - uses: actions/upload-artifact@v7
-        if: matrix.context == 'backend'
+        if: ${{ (contains(fromJSON(needs.changes.outputs.images), matrix.service)) && (matrix.context == 'backend') }}
         with:
           name: prod-image-${{ matrix.service }}
           path: ${{ runner.temp }}/prod-image-${{ matrix.service }}.tar.zst
@@ -479,7 +581,8 @@ jobs:
   prod-startup:
     name: Prod Startup
     runs-on: ubuntu-latest
-    needs: [docker-build]
+    needs: [changes, docker-build]
+    if: needs.changes.outputs.prod == 'true'
     timeout-minutes: 20
     env:
       SERVICES: >-

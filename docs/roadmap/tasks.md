@@ -1279,12 +1279,26 @@ depende del contrato.
   producción; `curl -I` muestra HSTS y la CSP en la web, que carga sin violaciones de CSP en la
   consola del navegador (quickstart, paso 6).
 
-### T-I12 · CI incremental — 🟢 READY · P1 · ADR-011
+### T-I12 · CI incremental — 🔵 EN CURSO (PR abierto) · P1 · ADR-011
 - **Qué:** que `ci.yml` construya y pruebe solo los servicios cuyos archivos cambiaron
   (filtros `paths` o `dorny/paths-filter`), más un job semanal completo. El repo es público y
   Actions no tiene cuota de minutos (ADR-011, actualización del 2026-10-22): el objetivo es
   feedback rápido.
 - **Cierre:** un PR que solo toca `frontend/` no ejecuta jobs de backend, y viceversa.
+- **Avance (2026-11-10):** en el PR `ci/T-I12-incremental`:
+  - Job `Changes` y `.github/scripts/ci-changes.sh`: leen los archivos del PR y deciden qué
+    servicios Java y Python, qué imágenes, Flutter, Deploy Scripts y Prod Startup corren.
+  - Los checks requeridos por la protección de rama (las matrices Backend y Docker Build,
+    Python y Flutter) corren siempre y **saltan sus pasos**: un job saltado entero no publica
+    el check con el nombre de la matriz y dejaría el PR bloqueado.
+  - Deploy Scripts y Prod Startup sí se saltan enteros. Prod Startup necesita las 10 imágenes
+    Java, así que se construyen todas si cambia cualquiera.
+  - Corre todo en el push a `develop`/`main`, el lunes a las 06:00 UTC (`schedule`), a mano
+    (`workflow_dispatch`) y cuando cambia el propio CI. `docs/api/**` dispara todos los Java y
+    Flutter, porque sus pruebas leen los fixtures.
+  - 13 tests bats en `infrastructure/deploy/tests/ci-changes.bats`.
+  - **Falta:** ver en el primer PR que solo toque `frontend/` que los jobs de backend terminan
+    en segundos. Este PR toca `ci.yml` y, por eso, corre todo.
 
 ### T-I13 · Observabilidad con Grafana Cloud — 🔵 EN CURSO (T041 ✅ #254; faltan `backup-missing` y los paneles por contenedor) · P1 · Principio VI
 - **Avance (2026-10-29):** `https://api.<dominio>/healthz` (T037 de la feature 001, hotfix #192)
