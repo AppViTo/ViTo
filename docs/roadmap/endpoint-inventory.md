@@ -14,6 +14,11 @@
 > invitación y `scope=invited` (RFC #204); `PUT /events/{eventId}` pasa a `PATCH` y
 > `invitations/respond` se fusiona en `/rsvp`. `searchUsers` sigue en la Ola 2. La rama
 > `contract/ola-1` (T-C10) aplica estos cambios en la tabla.
+> **✅ OLA 2a APROBADA (D-08) el 2026-11-10 por AlexVilla y Bernardo (PR #283)**, con el alcance de
+> `specs/004-ola-2a-social-busqueda`: la parte social (follow, unfollow, perfil con
+> `isFollowing`, seguidores y seguidos), `searchUsers` en `auth-service` (RFC #277) y
+> `getUsersByIds`. El check-in/QR queda para la Ola 2b. La rama `contract/ola-2a` (T-C11) aplica
+> estos cambios en la tabla.
 
 ## Leyenda
 

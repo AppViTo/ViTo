@@ -16,7 +16,7 @@ Las opciones listadas son las que salieron del análisis del 2026-10-16. **La co
 | D-05 | Estrategia de código compartido Java (`shared-*`) | T-B03, O-23 | ver §D-05 | ✅ [ADR-017](../decisions/adr-017-shared-java-code.md) (C ahora; A en T-B18 tras la Ola 1) |
 | D-06 | Identidad en el WS de chat (`?userId=`) | T-B06, T-F04 (parte chat) | ver §D-06 | ✅ [ADR-015](../decisions/adr-015-chat-ws-identity.md) (se retira `userId`; identidad de `X-User-Id`) |
 | D-07 | Estrategia de ramas (`develop` vs `main`) | O-24, **T-I08 (deploy)** | ver §D-07 | ✅ [ADR-012](../decisions/adr-012-branching-and-release.md) |
-| D-08 | Aprobación del triage de `endpoint-inventory.md` | Olas 1–6 | aprobar por ola | ✅ **Olas 1 y 3 aprobadas** (Ola 3 el 2026-10-24; Ola 1 con el merge del PR #245); olas 2, 4-6 pendientes |
+| D-08 | Aprobación del triage de `endpoint-inventory.md` | Olas 1–6 | aprobar por ola | ✅ **Olas 1, 2a y 3 aprobadas** (Ola 3 el 2026-10-24; Ola 1 con el merge del PR #245; Ola 2a con el del PR #283); olas 2b, 4-6 pendientes |
 | D-09 | Titularidad de cuentas y medio de pago de la infraestructura | T-I06 (aprovisionar) | ver §D-09 | ✅ [ADR-013](../decisions/adr-013-account-ownership.md) |
 | D-10 | Tipo de cuenta de Google Play (personal u organización) | Publicación Android | ver §D-10 | ⏳ **prioritaria** · pospuesta el 2026-10-22 |
 | D-11 | Modelo de monetización (qué se cobra y a quién) | Ola de pagos (nueva), primeros ingresos | ver §D-11 | ⏳ pospuesta el 2026-10-22 |
@@ -138,6 +138,13 @@ las 8 operaciones de la Ola 1 del inventario (`updateEvent` como `PATCH`, cancel
 más los enlaces de invitación y `scope=invited` del RFC #204. `invitations/respond` se fusiona
 en `/rsvp` (D-01). `searchUsers` queda en la Ola 2. Autor Bernardo; aprobación de AlexVilla en
 el PR #245. Desbloquea `contract/ola-1` (T-C10).
+**Actualización (2026-11-10):** Se aprueba la **Ola 2a** (grafo social y búsqueda de usuarios)
+con el alcance de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/spec.md):
+la parte social del inventario (follow, unfollow, perfil con `isFollowing`, seguidores y
+seguidos), `searchUsers` del RFC #277 en `auth-service` y `getUsersByIds`. `GET /social/search`
+se retira y `is-following` se fusiona en el perfil. Los perfiles privados no salen en la
+búsqueda. El check-in/QR de la Ola 2 queda para la **Ola 2b**. Autor Bernardo; aprobación de
+AlexVilla en el PR #283. Desbloquea `contract/ola-2a` (T-C11).
 
 ## D-09 — Titularidad de cuentas y medio de pago
 
