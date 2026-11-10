@@ -6,6 +6,8 @@ import com.vito.auth.domain.model.User;
 import com.vito.auth.domain.port.inbound.AuthService;
 import com.vito.auth.domain.port.outbound.CachePort;
 import com.vito.auth.domain.port.outbound.EventPublisherPort;
+import com.vito.auth.domain.port.outbound.SecurityAuditPort;
+import com.vito.auth.domain.port.outbound.SecurityAuditPort.SecurityEvent;
 import com.vito.auth.domain.port.outbound.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,13 +30,15 @@ public class AuthServiceImpl implements AuthService {
     private final CachePort cachePort;
     private final EventPublisherPort eventPublisher;
     private final TokenProvider tokenProvider;
+    private final SecurityAuditPort audit;
     
     @Value("${jwt.expiration}")
     private Long jwtExpiration;
     
     @Override
     public AuthResult register(RegisterCommand command) {
-        log.info("Registering new user with email: {}", command.getEmail());
+        // Principio VI: sin el correo en los logs
+        log.info("Registering new user");
         
         // Validate unique constraints
         if (userRepository.existsByUsername(command.getUsername())) {
@@ -76,6 +80,7 @@ public class AuthServiceImpl implements AuthService {
         eventPublisher.publish("user-events", savedUser.getId(), 
                 new UserRegisteredEvent(savedUser.getId(), savedUser.getEmail()));
         
+        audit.record(SecurityEvent.REGISTER, savedUser.getId());
         log.info("User registered successfully: {}", savedUser.getId());
         
         return AuthResult.builder()
@@ -88,12 +93,16 @@ public class AuthServiceImpl implements AuthService {
     
     @Override
     public AuthResult login(LoginCommand command) {
-        log.info("Login attempt for email: {}", command.getEmail());
+        log.info("Login attempt");
         
-        User user = userRepository.findByEmail(command.getEmail())
-                .orElseThrow(AuthenticationException::invalidCredentials);
+        User user = userRepository.findByEmail(command.getEmail()).orElse(null);
+        if (user == null) {
+            audit.record(SecurityEvent.LOGIN_FAILURE, null);
+            throw AuthenticationException.invalidCredentials();
+        }
         
         if (!passwordEncoder.matches(command.getPassword(), user.getPasswordHash())) {
+            audit.record(SecurityEvent.LOGIN_FAILURE, user.getId());
             throw AuthenticationException.invalidCredentials();
         }
         
@@ -105,6 +114,7 @@ public class AuthServiceImpl implements AuthService {
         cachePort.set("refresh_token:" + user.getId(), refreshToken, 
                 Duration.ofMillis(jwtExpiration * 7));
         
+        audit.record(SecurityEvent.LOGIN_SUCCESS, user.getId());
         log.info("User logged in successfully: {}", user.getId());
         
         return AuthResult.builder()
@@ -119,13 +129,23 @@ public class AuthServiceImpl implements AuthService {
     public AuthResult refreshToken(RefreshTokenCommand command) {
         log.info("Refreshing token");
         
-        String userId = tokenProvider.validateRefreshToken(command.getRefreshToken());
+        String userId;
+        try {
+            userId = tokenProvider.validateRefreshToken(command.getRefreshToken());
+        } catch (AuthenticationException e) {
+            audit.record(SecurityEvent.REFRESH_REJECTED, null);
+            throw e;
+        }
         
-        User user = userRepository.findById(userId)
-                .orElseThrow(AuthenticationException::invalidRefreshToken);
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            audit.record(SecurityEvent.REFRESH_REJECTED, userId);
+            throw AuthenticationException.invalidRefreshToken();
+        }
         
-        // Check if refresh token is blacklisted
+        // Check if refresh token is blacklisted (reutilizar un refresh ya rotado)
         if (cachePort.isBlacklisted(command.getRefreshToken())) {
+            audit.record(SecurityEvent.REFRESH_REJECTED, userId);
             throw AuthenticationException.invalidRefreshToken();
         }
         
@@ -169,6 +189,7 @@ public class AuthServiceImpl implements AuthService {
         // Remove refresh token from cache
         cachePort.delete("refresh_token:" + userId);
         
+        audit.record(SecurityEvent.LOGOUT, userId);
         log.info("User logged out successfully: {}", userId);
     }
     
