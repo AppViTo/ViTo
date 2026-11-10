@@ -161,7 +161,9 @@ escribe en `/opt/vito/.env` (`0600`) en cada despliegue: para cambiar un valor s
 secreto y se redespliega, sin entrar por SSH.
 
 - Los secretos aleatorios (`MONGO_ROOT_PASSWORD`, `REDIS_PASSWORD`, `KAFKA_PASSWORD`,
-  `JWT_SECRET`, `QR_SECRET`) se generan con el `openssl` de la tabla, cada uno distinto.
+  `JWT_SECRET`, `QR_SECRET` y las 9 `MONGO_<SVC>_PASSWORD` de T-I19) se generan con el
+  `openssl` de la tabla, cada uno distinto. Las de Mongo deben quedar alfanuméricas: van sin
+  codificar en `MONGODB_URI`.
 - `KAFKA_CLUSTER_ID` se genera una vez (comando en el ejemplo) y no cambia nunca.
 - `DOMAIN` es el dominio raíz; `ACME_EMAIL`, el correo de equipo; `CORS_ALLOWED_ORIGINS`,
   `https://app.<dominio>`; `SRS_CANDIDATE`, la IP del VPS.

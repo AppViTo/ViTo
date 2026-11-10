@@ -1385,7 +1385,7 @@ depende del contrato.
   levanta el Caddyfile real con backends falsos y comprueba con `curl` las cabeceras en
   `api.` y `live.`, también en lo que llega por `reverse_proxy`.
 
-### T-I19 · Un usuario de Mongo por servicio — 🟢 READY · P1 · Principios II y III, T051 (M12)
+### T-I19 · Un usuario de Mongo por servicio — 🔵 EN CURSO (PR abierto) · P1 · Principios II y III, T051 (M12)
 - **Hallazgo:** los 10 servicios Java usan el usuario root (`MONGODB_URI` en
   `x-java-service` de `docker-compose.prod.yml`). Si se compromete uno, quedan expuestas
   todas las bases, y nada hace cumplir el Principio II.
@@ -1397,6 +1397,20 @@ depende del contrato.
 - **Cierre:** cada servicio arranca sano con su usuario; un test de integración comprueba
   que el usuario de event-service no puede leer la base de auth (`vito_db`). Si algún servicio lee la base de otro, se
   registra como deuda del Principio II.
+- **Hecho en el PR:** `service-users.js` (lista y lógica, una sola vez) +
+  `ensure-service-users.sh` en `cd.yml` y `rollback.yml`, junto a `ensure-ro-user.sh`. El
+  mismo `.js` corre en el initdb de `mongodb`, así un volumen vacío (VPS nuevo o
+  restauración en otra máquina) ya tiene los usuarios antes del primer `up`. El gateway
+  ya no recibe `MONGODB_URI`, y transcode y moderation lo reciben sin credenciales porque hoy
+  no usan Mongo. Prueba: `tests/service-users-mongo.bats` contra `mongo:7.0.14`.
+- **Antes de desplegar:** agregar las 9 `MONGO_<SVC>_PASSWORD` al secreto `DOTENV_PRODUCTION`.
+  Sin ellas, `config -q` falla con código 2 y no se toca nada. El primer despliegue recrea
+  `mongodb`, porque cambian su entorno y sus montajes, así que hay que desplegar fuera de evento.
+- **Deuda del Principio II:** `chat-service` y `media-service` comparten `vito_db` con
+  `auth-service`, así que `vito_chat` y `vito_media` pueden leer `users`. Para cerrarla hay que
+  mover cada uno a su propia base (`vito_chat`, `vito_media`) con una migración de datos.
+  Queda como tarea nueva por abrir.
+
 
 ### T-I20 · Kafka con TLS y ACL por tópico — ⚪ DIFERIDA (Fase Crecimiento) · P2 · Principio III, T051 (A7)
 - **Excepción A7:** Kafka usa `SASL_PLAINTEXT` con un solo usuario y sin ACL. Se acepta

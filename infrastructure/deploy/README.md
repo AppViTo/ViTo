@@ -19,6 +19,7 @@ merge a main ─► cd.yml: changes ─► build ─► (aprobación del Environ
 | `remote/deploy.sh` | VPS, como `deploy` | `apply`, `rollback`, `check` y `status` sobre los bundles ([contrato](../../specs/001-cd-produccion/contracts/remote-scripts.md)) |
 | `remote/live-check.sh` + `live-check.js` | VPS | ¿evento o stream en vivo? (R6, FR-028), con el usuario de solo lectura |
 | `remote/ensure-ro-user.sh` | VPS | crea o actualiza `vito_deploy_ro` (rol `read` en `vito_events` y `vito_streaming`) |
+| `remote/ensure-service-users.sh` + `service-users.js` | VPS (y el initdb de `mongodb`) | crea o actualiza `vito_<svc>` con `readWrite` solo en la base de cada servicio (T-I19) |
 | `tests/` | CI (`Deploy Scripts`) | `bats` con un `docker` falso y fixtures sin secretos |
 
 ## En el VPS
