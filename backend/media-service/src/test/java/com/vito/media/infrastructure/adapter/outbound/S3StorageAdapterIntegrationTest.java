@@ -77,7 +77,7 @@ class S3StorageAdapterIntegrationTest {
         byte[] data = "foto".getBytes(StandardCharsets.UTF_8);
         adapter.uploadFile("k/photo.jpg", data, "image/jpeg");
 
-        String presigned = adapter.generatePresignedUrl("k/photo.jpg", 5);
+        String presigned = adapter.generatePresignedUrl("k/photo.jpg", java.time.Duration.ofMinutes(5));
 
         assertThat(presigned).startsWith(endpoint() + "/it-presign/k/photo.jpg?");
         HttpResponse<byte[]> response = HttpClient.newHttpClient().send(

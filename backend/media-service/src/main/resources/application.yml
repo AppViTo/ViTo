@@ -18,6 +18,9 @@ spring:
     consumer:
       group-id: media-service-group
       auto-offset-reset: earliest
+      # T-B33: MOSAIC_ITEM_REMOVED se lee como texto y se interpreta en MosaicEventsListener
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -55,6 +58,11 @@ s3:
   path-style: ${S3_PATH_STYLE:true}
   create-bucket: ${S3_CREATE_BUCKET:true}
   public-url: ${S3_PUBLIC_URL:}
+
+# T-B33: event-service decide quién organiza y quién confirmó (ruta INTERNO my-access).
+# En Compose, por su DNS interno.
+event-service:
+  uri: ${EVENT_SERVICE_URI:http://localhost:8083}
 
 # Media Configuration
 media:

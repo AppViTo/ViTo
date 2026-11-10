@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,7 +59,7 @@ class MosaicServiceRemoveItemTest {
                 .eventId(EVENT)
                 .userId("usr_guest")
                 .type(MosaicFeedItem.FeedItemType.PHOTO)
-                .mediaUrls(new ArrayList<>())
+                .mediaUrls(new ArrayList<>(List.of("https://cdn.vito.com/events/evt_1/usr_g/foto.jpg")))
                 .likedBy(new ArrayList<>())
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -91,7 +92,8 @@ class MosaicServiceRemoveItemTest {
         assertEquals(1, grid.getTotalItems());
 
         verify(realtimeNotifier).itemRemoved(EVENT, ITEM);
-        verify(eventPublisher).publishItemRemoved(EVENT, ITEM);
+        verify(eventPublisher).publishItemRemoved(EVENT, ITEM,
+                List.of("https://cdn.vito.com/events/evt_1/usr_g/foto.jpg"));
     }
 
     @Test
@@ -150,7 +152,7 @@ class MosaicServiceRemoveItemTest {
         when(eventOrganizerLookup.findOrganizerId(EVENT)).thenReturn(Optional.of(ORGANIZER));
         when(gridRepository.findByEventId(EVENT)).thenReturn(Optional.empty());
         doThrow(new IllegalStateException("broker caido")).when(eventPublisher)
-                .publishItemRemoved(anyString(), anyString());
+                .publishItemRemoved(anyString(), anyString(), any());
 
         service.removeItem(ITEM, ORGANIZER);
 

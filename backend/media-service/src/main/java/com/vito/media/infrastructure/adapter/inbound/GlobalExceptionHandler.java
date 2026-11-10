@@ -3,11 +3,13 @@ package com.vito.media.infrastructure.adapter.inbound;
 import static com.vito.shared.web.error.ErrorCodes.FORBIDDEN;
 import static com.vito.shared.web.error.ErrorCodes.INTERNAL_ERROR;
 import static com.vito.shared.web.error.ErrorCodes.NOT_FOUND;
+import static com.vito.shared.web.error.ErrorCodes.UNAUTHORIZED;
 import static com.vito.shared.web.error.ErrorCodes.VALIDATION_ERROR;
 
 import com.vito.media.domain.exception.MediaException;
 import com.vito.shared.web.error.BaseExceptionHandler;
 import com.vito.shared.web.error.ErrorResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,8 +23,12 @@ import java.util.Map;
  * Envelope único de error de ADR-003: los handlers genéricos vienen de
  * {@link BaseExceptionHandler} (shared-web, T-B18); aquí solo las excepciones de media.
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler extends BaseExceptionHandler {
+
+    /** T-B33: event-service no responde (shared-web no tiene este código). */
+    static final String SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE";
 
     @Value("${media.max-file-size:10485760}")
     private long maxFileSize;
@@ -30,6 +36,31 @@ public class GlobalExceptionHandler extends BaseExceptionHandler {
     @ExceptionHandler(MediaException.MediaNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleMediaNotFound(MediaException.MediaNotFoundException ex) {
         return error(HttpStatus.NOT_FOUND, NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(MediaException.EventNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEventNotFound(MediaException.EventNotFoundException ex) {
+        return error(HttpStatus.NOT_FOUND, NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(MediaException.NotAuthenticatedException.class)
+    public ResponseEntity<ErrorResponse> handleNotAuthenticated(MediaException.NotAuthenticatedException ex) {
+        return error(HttpStatus.UNAUTHORIZED, UNAUTHORIZED, ex.getMessage());
+    }
+
+    /** T-B33: sin event-service no se puede decidir el acceso; el cliente reintenta. */
+    @ExceptionHandler(MediaException.DependencyUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleDependencyUnavailable(MediaException.DependencyUnavailableException ex) {
+        log.warn("event-service unavailable: {}", ex.getCause() != null ? ex.getCause().toString() : "-");
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header("Retry-After", "5")
+                .body(ErrorResponse.of(HttpStatus.SERVICE_UNAVAILABLE, SERVICE_UNAVAILABLE, ex.getMessage(), null));
+    }
+
+    /** page, size o expiresIn fuera de rango (T-C09). */
+    @ExceptionHandler(MediaException.InvalidParameterException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidParameter(MediaException.InvalidParameterException ex) {
+        return validationError(ex.getMessage(), Map.of(ex.getParameter(), ex.getDetail()));
     }
 
     @ExceptionHandler(MediaException.UploadFailedException.class)

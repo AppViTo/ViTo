@@ -30,6 +30,8 @@ import java.util.Optional;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -135,7 +137,7 @@ class MosaicModerationIntegrationTest {
                 .andExpect(jsonPath("$.error").value("NOT_FOUND"));
 
         verify(webSocketHandler).itemRemoved(EVENT, REMOVED);
-        verify(eventPublisher).publishItemRemoved(EVENT, REMOVED);
+        verify(eventPublisher).publishItemRemoved(eq(EVENT), eq(REMOVED), any());
     }
 
     @Test
@@ -152,12 +154,22 @@ class MosaicModerationIntegrationTest {
                 .andExpect(jsonPath("$[*].id").value(contains(KEPT, REMOVED)));
 
         verify(webSocketHandler, never()).itemRemoved(anyString(), anyString());
-        verify(eventPublisher, never()).publishItemRemoved(anyString(), anyString());
+        verify(eventPublisher, never()).publishItemRemoved(anyString(), anyString(), any());
     }
 
     @Test
     void unknownItemIs404() throws Exception {
         mvc.perform(delete("/api/v1/mosaic/item/itm_no_existe").header(HttpHeaders.AUTHORIZATION, bearer(ORGANIZER)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("NOT_FOUND"));
+    }
+
+    /** T-B33: POST /mosaic/photo se retiró (ADR-016 FUSIONAR); la ruta ya no existe. */
+    @Test
+    void retiredPhotoRouteIs404() throws Exception {
+        mvc.perform(post("/api/v1/mosaic/photo").header(HttpHeaders.AUTHORIZATION, bearer(GUEST))
+                        .contentType("application/json")
+                        .content("{\"eventId\":\"" + EVENT + "\",\"mediaUrl\":\"https://cdn.vito.com/x.jpg\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("NOT_FOUND"));
     }

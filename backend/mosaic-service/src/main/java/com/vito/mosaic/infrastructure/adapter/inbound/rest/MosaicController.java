@@ -34,19 +34,9 @@ public class MosaicController {
         return ResponseEntity.ok(item);
     }
     
-    @PostMapping("/photo")
-    public ResponseEntity<MosaicFeedItem> addPhoto(@RequestBody MosaicService.AddPhotoCommand command) {
-        String currentUserId = getCurrentUserId();
-        String username = getCurrentUsername();
-        
-        command.setUserId(currentUserId);
-        command.setUsername(username);
-        
-        MosaicFeedItem item = mosaicService.addPhoto(command);
-        
-        return ResponseEntity.ok(item);
-    }
-    
+    // POST /photo retirado (T-B33, ADR-016 FUSIONAR): la foto se sube con uploadMedia y se
+    // publica con createMosaicPost (POST /post); CONVENTIONS §8 dice que no existe.
+
     @PostMapping("/checkin")
     public ResponseEntity<MosaicFeedItem> addCheckIn(@RequestBody MosaicService.AddCheckInCommand command) {
         String currentUserId = getCurrentUserId();

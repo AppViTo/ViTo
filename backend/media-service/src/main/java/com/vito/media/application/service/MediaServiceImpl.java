@@ -1,8 +1,11 @@
 package com.vito.media.application.service;
 
 import com.vito.media.domain.exception.MediaException;
+import com.vito.media.domain.model.EventAccess;
 import com.vito.media.domain.model.Media;
+import com.vito.media.domain.model.PresignedUrl;
 import com.vito.media.domain.port.inbound.MediaService;
+import com.vito.media.domain.port.outbound.EventAccessLookup;
 import com.vito.media.domain.port.outbound.FileTypeDetectorPort;
 import com.vito.media.domain.port.outbound.ImageProcessingPort;
 import com.vito.media.domain.port.outbound.ImageReencoderPort;
@@ -17,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -34,6 +39,13 @@ public class MediaServiceImpl implements MediaService {
     private final ImageProcessingPort imageProcessingPort;
     private final FileTypeDetectorPort fileTypeDetector;
     private final ImageReencoderPort imageReencoder;
+    private final EventAccessLookup eventAccessLookup;
+
+    static final int MAX_PAGE_SIZE = 100;
+    static final int DEFAULT_URL_SECONDS = 900;
+    static final int MAX_URL_SECONDS = 3600;
+    // Organizador o RSVP ACCEPTED (decisión 3 de T-C09); mismo texto que los fixtures 403
+    static final String NO_ACCESS = "No tienes acceso a los archivos de este evento";
 
     // CONVENTIONS §8: 10 MB y estos cuatro formatos
     @Value("${media.max-file-size:10485760}")
@@ -104,7 +116,7 @@ public class MediaServiceImpl implements MediaService {
             Media saved = mediaRepository.save(media);
             eventPublisher.publishMediaUploaded(saved);
 
-            log.info("Media uploaded: {} by user {} for event {}", saved.getId(), userId, eventId);
+            log.info("Media uploaded: {} for event {}", saved.getId(), eventId);
             return saved;
 
         } catch (IOException e) {
@@ -112,19 +124,31 @@ public class MediaServiceImpl implements MediaService {
         }
     }
 
+    /** Un registro con el borrado lógico anterior a T-B33 responde como inexistente. */
     @Override
     @Transactional(readOnly = true)
     public Optional<Media> getMediaById(String mediaId) {
-        return mediaRepository.findById(mediaId);
+        return mediaRepository.findById(mediaId).filter(media -> !media.isDeleted());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<Media> getMediaByEventId(String eventId, Media.MediaType type) {
-        if (type != null) {
-            return mediaRepository.findByEventIdAndType(eventId, type);
+    public List<Media> listEventMedia(String eventId, String userId, int page, int size) {
+        if (page < 0) {
+            throw new MediaException.InvalidParameterException("page", "page debe ser 0 o mayor",
+                    "debe ser mayor o igual a 0");
         }
-        return mediaRepository.findByEventId(eventId);
+        if (size < 1 || size > MAX_PAGE_SIZE) {
+            throw new MediaException.InvalidParameterException("size", "size debe estar entre 1 y " + MAX_PAGE_SIZE,
+                    size < 1 ? "debe ser mayor o igual a 1" : "debe ser menor o igual a " + MAX_PAGE_SIZE);
+        }
+        EventAccess access = eventAccessLookup.findAccess(eventId)
+                .orElseThrow(MediaException.EventNotFoundException::new);
+        if (!access.canView(userId)) {
+            throw new MediaException.UnauthorizedException(
+                    NO_ACCESS);
+        }
+        return mediaRepository.findByEventId(eventId, page, size);
     }
 
     @Override
@@ -136,8 +160,7 @@ public class MediaServiceImpl implements MediaService {
     @Override
     @Transactional
     public Media updateMedia(String mediaId, String fileName, String userId) {
-        Media media = mediaRepository.findById(mediaId)
-                .orElseThrow(() -> new MediaException.MediaNotFoundException(mediaId));
+        Media media = activeMedia(mediaId);
 
         if (!media.getUploadedBy().equals(userId)) {
             throw new MediaException.UnauthorizedException("Can only update your own media");
@@ -146,46 +169,85 @@ public class MediaServiceImpl implements MediaService {
         media.setFileName(fileName);
         Media updated = mediaRepository.save(media);
 
-        log.info("Media updated: {} by user {}", mediaId, userId);
+        log.info("Media updated: {}", mediaId);
         return updated;
     }
 
+    /**
+     * Borra quien lo subió o el organizador (T-C09). Primero los archivos y después el registro:
+     * si el almacenamiento falla, el registro sigue ahí y el borrado se puede repetir.
+     */
     @Override
     @Transactional
     public void deleteMedia(String mediaId, String userId) {
-        Media media = mediaRepository.findById(mediaId)
-                .orElseThrow(() -> new MediaException.MediaNotFoundException(mediaId));
+        Media media = activeMedia(mediaId);
 
-        if (!media.getUploadedBy().equals(userId)) {
-            throw new MediaException.UnauthorizedException("Can only delete your own media");
-        }
-
-        // Delete from S3
-        if (media.getLocation() != null) {
-            storagePort.deleteFile(media.getLocation().getKey());
-            if (media.getLocation().getThumbnailKey() != null) {
-                storagePort.deleteFile(media.getLocation().getThumbnailKey());
+        if (!userId.equals(media.getUploadedBy())) {
+            boolean organizer = eventAccessLookup.findAccess(media.getEventId())
+                    .map(access -> access.isOrganizer(userId))
+                    .orElse(false);
+            if (!organizer) {
+                throw new MediaException.UnauthorizedException(
+                        "Solo quien subió el archivo o el organizador del evento puede borrarlo");
             }
         }
 
-        media.setDeleted(true);
-        mediaRepository.save(media);
-
-        eventPublisher.publishMediaDeleted(mediaId, media.getEventId());
-        log.info("Media deleted: {} by user {}", mediaId, userId);
+        delete(media);
+        log.info("Media {} deleted", mediaId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public String generatePresignedUrl(String mediaId, long expirationMinutes) {
-        Media media = mediaRepository.findById(mediaId)
-                .orElseThrow(() -> new MediaException.MediaNotFoundException(mediaId));
-
+    public PresignedUrl generatePresignedUrl(String mediaId, String userId, Integer expiresIn) {
+        int seconds = expiresIn == null ? DEFAULT_URL_SECONDS : expiresIn;
+        if (seconds < 1 || seconds > MAX_URL_SECONDS) {
+            throw new MediaException.InvalidParameterException("expiresIn",
+                    "expiresIn debe estar entre 1 y " + MAX_URL_SECONDS + " segundos",
+                    seconds < 1 ? "debe ser mayor o igual a 1" : "debe ser menor o igual a " + MAX_URL_SECONDS);
+        }
+        Media media = activeMedia(mediaId);
+        boolean canView = eventAccessLookup.findAccess(media.getEventId())
+                .map(access -> access.canView(userId))
+                .orElse(false);
+        if (!canView) {
+            throw new MediaException.UnauthorizedException(
+                    NO_ACCESS);
+        }
         if (media.getLocation() == null || media.getLocation().getKey() == null) {
             throw new MediaException("Media location not configured");
         }
 
-        return storagePort.generatePresignedUrl(media.getLocation().getKey(), expirationMinutes);
+        Instant now = Instant.now();
+        String url = storagePort.generatePresignedUrl(media.getLocation().getKey(), Duration.ofSeconds(seconds));
+        return new PresignedUrl(url, seconds, now.plusSeconds(seconds));
+    }
+
+    @Override
+    public int deleteMosaicItemMedia(String eventId, List<String> mediaUrls) {
+        if (eventId == null || mediaUrls == null || mediaUrls.isEmpty()) {
+            return 0;
+        }
+        List<Media> media = mediaRepository.findByEventIdAndUrls(eventId, mediaUrls);
+        media.forEach(this::delete);
+        log.info("Mosaic item removed in event {}: {} media file(s) deleted", eventId, media.size());
+        return media.size();
+    }
+
+    private Media activeMedia(String mediaId) {
+        return getMediaById(mediaId).orElseThrow(() -> new MediaException.MediaNotFoundException(mediaId));
+    }
+
+    private void delete(Media media) {
+        if (media.getLocation() != null) {
+            if (media.getLocation().getKey() != null) {
+                storagePort.deleteFile(media.getLocation().getKey());
+            }
+            if (media.getLocation().getThumbnailKey() != null) {
+                storagePort.deleteFile(media.getLocation().getThumbnailKey());
+            }
+        }
+        mediaRepository.deleteById(media.getId());
+        eventPublisher.publishMediaDeleted(media.getId(), media.getEventId());
     }
 
     @Override

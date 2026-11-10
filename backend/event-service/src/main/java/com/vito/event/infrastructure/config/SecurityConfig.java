@@ -28,6 +28,8 @@ public class SecurityConfig {
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/events/**").authenticated()
+                // T-B33: rutas INTERNO (no las enruta el gateway); llevan el Bearer reenviado
+                .requestMatchers("/internal/**").authenticated()
                 // R5: solo GET /api/v1/invite-links/{token} (un segmento) es público; accept no
                 .requestMatchers(HttpMethod.GET, "/api/v1/invite-links/*").permitAll()
                 .requestMatchers("/api/v1/invite-links/**").authenticated()

@@ -346,6 +346,7 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY:?}
       S3_CREATE_BUCKET: "false"
       S3_PUBLIC_URL: ${S3_PUBLIC_URL:?}
+      EVENT_SERVICE_URI: http://event-service:8083     # organizador y RSVP de quien pide (T-B33)
     healthcheck:
       <<: *java-healthcheck
       test: ["CMD", "curl", "-fsS", "http://localhost:8089/actuator/health/readiness"]

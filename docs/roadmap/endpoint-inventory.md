@@ -61,6 +61,7 @@ Columna **Front**: ✔ = el código Flutter ya lo llama (`lib/**/datasources`, `
 | POST | `/api/v1/invite-links/{token}/accept` | ✔ | | `CONTRATO (Ola 1)` (idempotente) | 1 |
 | POST | `/api/v1/events/{eventId}/check-in` | | ✔ | `FUSIONAR→/checkin/validate` (ADR-016) | 2 |
 | GET | `/api/v1/events/{eventId}/qr-code` | | ✔ | `FUSIONAR→/checkin/ticket` (ADR-016) | 2 |
+| GET | `/internal/v1/events/{eventId}/my-access` | | | `INTERNO` (T-B33: organizador y RSVP de quien llama, para el acceso de `media-service`; con el Bearer reenviado) | 3 |
 
 ## Check-in / QR — `checkin-service` (:8084)
 
@@ -202,6 +203,6 @@ Ninguna ruta WS pasa por el gateway: falta la ruta `/ws/**` (O-08, T-B04).
 | `CONTRATO` (ya publicado; incluye `GET /events` sin implementar) | 26 |
 | `PUBLICAR` | 44 |
 | `FUSIONAR` | 11 |
-| `INTERNO` (incluye `moderation/check`, hoy en el contrato) | 7 |
+| `INTERNO` (incluye `moderation/check`, hoy en el contrato) | 8 |
 | `DIFERIR` | 18 |
-| **Total** | **106** = 100 del código + `GET /events` + 5 rutas de enlaces |
+| **Total** | **107** = 100 del código + `GET /events` + 5 rutas de enlaces + `my-access` (T-B33) |

@@ -9,6 +9,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -36,8 +37,9 @@ public class KafkaMosaicEventPublisher implements MosaicEventPublisher {
     }
 
     @Override
-    public void publishItemRemoved(String eventId, String itemId) {
-        send(eventId, "MOSAIC_ITEM_REMOVED", Map.of("itemId", itemId));
+    public void publishItemRemoved(String eventId, String itemId, List<String> mediaUrls) {
+        send(eventId, "MOSAIC_ITEM_REMOVED", Map.of("itemId", itemId,
+                "mediaUrls", mediaUrls == null ? List.of() : List.copyOf(mediaUrls)));
     }
 
     /** Clave = eventId: el orden de las actualizaciones del mosaico de un evento se conserva. */

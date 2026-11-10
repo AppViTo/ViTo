@@ -209,7 +209,7 @@ public class MosaicServiceImpl implements MosaicService {
         // Primero el WS: un Kafka caído no debe retrasar el aviso a los clientes conectados
         realtimeNotifier.itemRemoved(eventId, itemId);
         try {
-            eventPublisher.publishItemRemoved(eventId, itemId);
+            eventPublisher.publishItemRemoved(eventId, itemId, item.getMediaUrls());
         } catch (Exception e) {
             log.error("Failed to publish removal of item {} for event {}", itemId, eventId, e);
         }
