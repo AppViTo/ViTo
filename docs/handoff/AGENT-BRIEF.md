@@ -2,7 +2,7 @@
 
 > **Para quién:** cualquier agente (frontend, backend o DevOps) que vaya a implementar
 > tareas de [`docs/roadmap/tasks.md`](../roadmap/tasks.md).
-> **Léelo completo antes de tomar tu primera tarea.** Vigente desde 2026-10-16.
+> **Léelo completo antes de tomar tu primera tarea.** Vigente desde 2026-10-16; §6 al día el 2026-11-10.
 
 ---
 
@@ -70,25 +70,23 @@ a través del contrato**.
 | Fechas | ISO-8601 UTC en payloads REST, WS y Kafka (no epoch) |
 | WebSocket | WS **crudo** (no STOMP/SockJS) vía gateway `/ws/...?token=<jwt>`; frames `{ "type": "SCREAMING_SNAKE", "data": {…} }`; token inválido → cierre `4401` (ADR-006) |
 
-## 6. Estado real del repo (2026-10-16) — lo que vas a encontrar
+## 6. Estado real del repo (2026-11-10) — lo que vas a encontrar
 
-**Lo documentado que NO es cierto todavía** (no lo asumas):
+El estado de cada tarea está en `docs/roadmap/tasks.md`; esta sección resume lo que más
+confunde a un agente nuevo. Si algo de aquí contradice a `tasks.md` o a `develop`, gana el repo.
 
-| Documento dice | Realidad |
-|----------------|----------|
-| `asyncapi.yaml`, `docs/api/fixtures/`, `npm run mock:api` existen | No existen (T-C01, T-C02, T-C05) |
-| El gateway rutea `/ws/**` y valida `?token=` | No hay ruta WS (T-B04) |
-| Todos los WS son crudos | chat usa STOMP/SockJS; mosaic y streaming tienen handler pero **no** están registrados (T-B05, T-B06) |
-| Todo error sigue ADR-003 | Solo auth, chat y media tienen handler; el gateway responde `{error,status}` (T-B02, T-B03) |
-| `GET /api/v1/events` existe | Está en el contrato y el front lo llama, pero el backend no lo implementa → 405 (D-03) |
-| Stack: Dragonfly, Eureka, S3/MinIO, Kubernetes+ArgoCD | **Resuelto por ADR-011 (Fase Tracción):** VPS + Docker Compose, Redis, DNS de Compose, Kafka de 1 broker, R2 en producción y SeaweedFS en local. Kubernetes/ArgoCD quedan para la Fase Crecimiento: no trabajar en `infrastructure/kubernetes/`. |
-| Java 21 / Spring Boot soportado | Java 17; Spring Boot 3.2.1 (10 poms) y 3.5.3 (2) |
-| CD despliega | `cd.yml` solo construye 2 imágenes (una rota) y el deploy es `echo`; se rehace en T-I08 |
-
-**Lo que sí funciona:** CI (`ci.yml`) con `mvn clean verify` ×10, pytest de transcode,
-`flutter analyze --fatal-infos` + `flutter test`, build de 11 imágenes con
-`backend/Dockerfile`; compose `--profile app`. El deploy web de `deploy-frontend.yml`
-aún apunta a Vercel; pasa a Cloudflare Pages en T-I11 (ADR-011).
+| Tema | Realidad |
+|------|----------|
+| Olas del contrato (D-08) | **1, 2a y 3 aprobadas**; 2b (check-in/QR), 4, 5 y 6 pendientes. Specs: `specs/003` (Ola 1), `specs/004` (Ola 2a). La Ola 2a no tiene contrato aún (T-C11) |
+| Ramas `contract/ola-N` | Su contenido entró a `develop` por otros PR. **No mergear** `contract/ola-1`: es anterior a `develop` y revertiría `scope=invited` y el límite por IP de la vista previa |
+| `asyncapi.yaml` y fixtures | Existen (`docs/api/fixtures/`, `npm run mock:api`), pero `asyncapi.yaml` sigue en v0 como RFC (T-C05). Por eso siguen bloqueados el chat en WS crudo (T-B06), el outbox de Kafka (T-B36) y `/ws/checkin` |
+| Gateway | Rutea `/api/v1/**` y `/ws/{checkin,mosaic,streaming,chat}/**` y responde con el envelope de ADR-003. Las rutas `/internal/**` (INTERNO en `endpoint-inventory.md`) no pasan por él |
+| Errores | Los 9 servicios Java heredan de `BaseExceptionHandler` en `backend/shared-web` (T-B18, ADR-017) |
+| Backend | Java 21, Spring Boot 4.0.9 (T-B31). `backend/` es un reactor Maven: `cd backend && ./mvnw -pl <svc> -am test`. Ya no hay `mvnw` por servicio |
+| Kafka | No hay outbox ni sobre versionado (T-B36): ningún consumidor nuevo hasta cerrarlo |
+| Mongo | Hasta T-I19 (#302), todos los servicios usan root. `auth`, `chat` y `media` comparten `vito_db` (deuda del Principio II, T-B40) |
+| Despliegue | ADR-011: VPS con Docker Compose (`docker-compose.prod.yml`), CD real con aprobación y rollback (T-I08) y web en Cloudflare Pages (T-I11). No trabajar en `infrastructure/kubernetes/` |
+| App de la Ola 1 | El backend está en producción desde v0.2.0. En la app faltan las tareas `[Alex]` abiertas de `specs/003` (editar, cancelar, enlaces, asistentes, `getCurrentUser`) y el cierre T065 |
 
 **Mapa rápido de código:**
 

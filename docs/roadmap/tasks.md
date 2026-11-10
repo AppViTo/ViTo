@@ -457,7 +457,18 @@ depende del contrato.
   type declara `examples` (validador y README actualizados). `listEvents.200.json` pasa a
   `listEvents.mine.200.json`.
 
-### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔵 EN CURSO (Olas 1 y 3 publicadas; Ola 2a en spec) · D-08 aprobada 2026-10-24 (por ola) · O-02, O-30, ADR-016
+### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔵 EN CURSO (Olas 1 y 3 publicadas; 2a aprobada, contrato en T-C11; 2b sin spec) · D-08 aprobada 2026-10-24 (por ola) · O-02, O-30, ADR-016
+- **Estado (2026-11-10):**
+  - La Ola 2a tiene D-08 aprobada (#283) y spec (`specs/004-ola-2a-social-busqueda`). Su
+    contrato es T-C11 (🟢 READY).
+  - No necesita T-C05 ni T-B36: la identidad llega por lotes y por REST (`getUsersByIds`), sin
+    consumidor nuevo de Kafka.
+  - La Ola 2b (check-in/QR: `checkin-service`, `/ws/checkin` y retirar `POST /events/{id}/check-in`
+    y `GET /events/{id}/qr-code` de `event-service`, ADR-016) no tiene D-08 ni spec.
+  - Cuando se escriba la spec de la 2b, debe fijar cómo obtiene `checkin` la capacidad y el
+    estado sin una llamada síncrona por escaneo (<200 ms), HMAC o RSA, y la autorización del staff.
+  - La 2b sí depende de T-C05 (WS) y de T-B36 (outbox antes del primer consumidor de
+    `checkin-events`).
 - **Estado (2026-11-09):** Ola 3 publicada (#182, #244) y Ola 1 publicada (#253, backend en
   producción desde v0.2.0). La Ola 2 se divide: la 2a (grafo social y búsqueda de usuarios,
   `specs/004-ola-2a-social-busqueda`) está en spec; la 2b (check-in/QR) tendrá su propia spec.
@@ -565,8 +576,10 @@ depende del contrato.
   restaurada, `POST /auth/register` deja de enviar `displayName` (fuera de
   `RegisterRequest`; hallazgo para RFC) y los flujos se verifican contra el mock.
 
-### T-F02 · Retirar `MockApiService` (home, people) — 🔴 BLOQUEADA por T-C07 (Olas 1–2)
-- Home necesita eventos (`GET /events` → D-03) y people necesita `social/search` (Ola 2).
+### T-F02 · Retirar `MockApiService` (home, people) — 🔴 BLOQUEADA por T-C11 (people) · P1
+- Home necesita eventos (`GET /events` → D-03), que ya están en el contrato de la Ola 1 (#253).
+- People necesita la Ola 2a: `searchUsers` en `GET /api/v1/users/search`, cuyo dueño es
+  `auth-service` según el RFC #277 (no `social/search`), y el grafo social. Su contrato es T-C11.
 
 ### T-F03 · Wiring de blocs y rutas — ✅ HECHA (#63) · P1
 - **Qué:** proveer `CheckInBloc` donde se usan sus páginas (o en el `MultiBlocProvider`
@@ -1004,7 +1017,7 @@ depende del contrato.
   dos instancias o con dos sesiones en réplicas distintas. Se cumple el KPI "Latencia
   reacciones stream < 1 s" y el criterio MVP n.º 9.
 
-### T-B33 · media-service: las 3 operaciones de la Ola 3 según el contrato — 🟢 READY (contrato en #244) · P1 · ADR-003, ADR-010, ADR-016, Principio IX
+### T-B33 · media-service: las 3 operaciones de la Ola 3 según el contrato — ✅ HECHA (#287) · P1 · ADR-003, ADR-010, ADR-016, Principio IX
 - **Desbloqueada (2026-11-09):** T-C09 se mergeó en #244 con `listEventMedia`, `deleteMedia` y
   `getMediaPresignedUrl` en `openapi.yaml`. El código de `MediaController` sigue sin alinear.
 - **Por qué:** `MediaController` ya expone `GET /media/event/{eventId}`,
@@ -1087,7 +1100,7 @@ depende del contrato.
 - **Qué:** sobre común, Transactional Outbox y declaración en AsyncAPI de los eventos de
   `event-service`, antes de que exista el primer consumidor (ticket QR de la Ola 2).
 
-### T-B37 · Concurrencia del gateway y latencia del RSVP — 🔵 EN CURSO (punto 1 en #281) · P1 · Principio VIII
+### T-B37 · Concurrencia del gateway y latencia del RSVP — 🔵 EN CURSO (punto 1 ✅ #281; faltan los puntos 2 y 3) · P1 · Principio VIII
 - **Por qué:** hallazgos de los escenarios k6 de la Ola 1 (T061, 2026-11-07) en el stack local.
   1. El CircuitBreaker de Spring Cloud Gateway trae un **bulkhead por defecto de 25 llamadas
      concurrentes por ruta**. Con 150 RSVP a la vez, ~120 reciben `503 SERVICE_UNAVAILABLE` al
@@ -1518,7 +1531,7 @@ depende del contrato.
   (T-I29). Trivy 0 HIGH/CRITICAL con `.trivyignore`; dump, copia con rclone y restore probados
   contra un Mongo 7.0 local.
 
-### T-I29 · Vencimiento de la excepción `CVE-2026-78661` de `mongo-backup` — 🟢 READY (antes del 2026-12-23) · P1 · Principio III
+### T-I29 · Vencimiento de la excepción `CVE-2026-78661` de `mongo-backup` — ✅ HECHA (#289; nueva fecha 2027-02-07) · P1 · Principio III
 - **Por qué:** `golang.org/x/net/html` (denegación de servicio con HTML armado) en mongodump y
   mongorestore 100.20.0; no aplica porque esos binarios solo hablan BSON con Mongo por la red
   interna. Excepción aprobada por los dos leads en el PR de T-I27 (#278), con `exp:2026-12-23`:
