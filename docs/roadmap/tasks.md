@@ -133,6 +133,21 @@ release del viernes 2026-11-06.
 - **Si la app no llega al viernes:** avisar en #259. Ese release sale sin #259 y los dos pasan
   juntos al siguiente.
 
+### Asignación del 2026-11-09 (Ola 2a)
+
+Reparto de las tareas de la Ola 2a ([`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md)): grafo social y búsqueda de usuarios. La Ola 2 se
+divide (decisión de Bernardo, 2026-11-09): el check-in/QR va en una Ola 2b con su propia spec.
+Cada bloque es un PR a `develop`; el de contrato va primero y solo se mergea con D-08 de la
+Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
+
+| ID | Tarea | Asignada a | Qué puede avanzar hoy |
+|----|-------|------------|------------------------|
+| T-C11 | Contrato de la Ola 2a (🟡 RFC) | Agente frontend (Alex) | Revisar y aprobar el PR de la spec (D-08); después, rama `contract/ola-2a` con `openapi.yaml`, fixtures, CONVENTIONS §9, inventario y nota en ADR-016 (T002, T005–T010). Absorbe el RFC #277. |
+| T-F13 | App de la Ola 2a | Agente frontend (Alex) | Nada hasta el merge de T-C11; después avanza contra el mock de Prism. Primero la búsqueda en "¿A quién invitamos?" (Bug-F08). |
+| T-B38 | `auth-service` y gateway: búsqueda y datos por lotes | Sesión de Bernardo | Bloqueada por T-C11. |
+| T-B39 | `social-service`: grafo social | Sesión de Bernardo | T003 (Testcontainers) se puede adelantar; el resto, tras T-C11. |
+| T-I30 | `AUTH_SERVICE_URI`, carga y tablero de la Ola 2a | Sesión de Bernardo | T004 se puede adelantar. |
+
 ---
 
 ## Resumen: qué se puede hacer desde ya
@@ -218,6 +233,11 @@ release del viernes 2026-11-06.
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
 | T-B37 | Concurrencia del gateway y latencia del RSVP (hallazgos de k6) | B | P1 | 🔵 EN CURSO (punto 1 en #281; puntos 2–4 abiertos) | — |
 | T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🔵 EN CURSO | — |
+| T-C11 | Contrato de la Ola 2a: grafo social y búsqueda de usuarios (spec 004) | C | P0 | 🟡 RFC (requiere D-08 de la Ola 2a) | — |
+| T-F13 | App de la Ola 2a: búsqueda para invitar, seguir, perfil social y "Mi Gente" | F | P0 | 🔴 BLOQUEADA por T-C11 | — |
+| T-B38 | `auth-service` y gateway de la Ola 2a: `searchUsers` y `getUsersByIds` | B | P0 | 🔴 BLOQUEADA por T-C11 | — |
+| T-B39 | `social-service` de la Ola 2a: follow idempotente, perfil, seguidores y seguidos | B | P1 | 🔴 BLOQUEADA por T-C11 (T003 se puede adelantar) | — |
+| T-I30 | `AUTH_SERVICE_URI`, escenarios k6 y tablero de la Ola 2a | I | P1 | 🟢 READY (T004); el resto tras T-B39 | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
@@ -507,6 +527,19 @@ depende del contrato.
 - **Cierre:** PR de `contract/ola-1` mergeado con `npm run contract` en verde; desbloquea
   T-F12, T-B34 y T-B35.
 
+### T-C11 · Contrato de la Ola 2a — 🟡 RFC (requiere D-08 de la Ola 2a) · P0 · Principio I, ADR-004, ADR-016
+- **Por qué:** Bug-F08 (los leads no pudieron encontrarse para invitarse en v0.2.0) y el hito 2
+  del MVP (seguir y dejar de seguir) necesitan operaciones que no están en el contrato.
+- **Qué:** T002 y T005–T010 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): 7 operaciones en `openapi.yaml` (`searchUsers` y
+  `getUsersByIds` en `auth-service`; `followUser`, `unfollowUser`, `getSocialProfile`,
+  `listFollowers` y `listFollowing` en `social-service`), fixtures, la excepción de límite en
+  CONVENTIONS §9, el inventario y una nota en ADR-016. Diseño en
+  `specs/004-ola-2a-social-busqueda/contracts/ola-2a-operations.md`.
+- **No hacer:** check-in/QR (Ola 2b); `/social/search` ni `/social/is-following`; mergear sin
+  D-08 de la Ola 2a y 1 CODEOWNER.
+- **Cierre:** PR de `contract/ola-2a` mergeado con `npm run contract` en verde; RFC #277
+  cerrado; desbloquea T-F13, T-B38 y T-B39.
+
 ---
 
 ## Pista F — Frontend Flutter
@@ -618,6 +651,13 @@ depende del contrato.
 - **Prioridad (2026-11-04):** primero el RSVP (T014 parcial, T032 y T033) y quitar
   `invitations/respond` de la app, para el release del viernes 2026-11-06 junto con #259.
   Detalle en la *Asignación del 2026-11-04*.
+
+### T-F13 · App de la Ola 2a — 🔴 BLOQUEADA por T-C11 · P0 · Principio IV
+- **Qué:** las tareas `[Alex]` de las fases 2 a 6 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): modelos y pruebas de contrato,
+  búsqueda en "¿A quién invitamos?" con invitación al crear el evento, botón de seguir, perfil
+  social con "te sigue", listas de seguidores y seguidos, y "Mi Gente" con datos reales.
+- **Cierre:** quickstart §2 y §6 de la spec en verde para la app; Bug-F08 cerrado y la parte social
+  de T-F02 sin `MockApiService`.
 
 ---
 
@@ -1066,6 +1106,21 @@ depende del contrato.
   representativo, ninguna petición colgada más que el timeout del gateway y la decisión del punto 3
   registrada.
 
+### T-B38 · `auth-service` y gateway de la Ola 2a — 🔴 BLOQUEADA por T-C11 · P0 · Principios II, III y IX
+- **Qué:** T021–T033 y T061–T062 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): búsqueda por prefijo sin tildes con campos
+  normalizados, índices y migración de los usuarios existentes; sin correo, sin privados y sin
+  quien busca; `getUsersByIds` para `social-service`; rutas `users-search` (1/s, ráfaga 10) y
+  `users` en el gateway; retirar `/social/search`.
+- **Cierre:** quickstart §2 de la spec en verde; se puede liberar sola para cerrar Bug-F08.
+
+### T-B39 · `social-service` de la Ola 2a — 🔴 BLOQUEADA por T-C11 · P1 · Principios II, IV y VII
+- **Qué:** T003, T013–T020, T036–T041, T043–T047, T049–T052, T055 y T058 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): solo el
+  grafo (identidad por lotes desde `auth-service`, sin `user_profiles`), follow atómico e
+  idempotente con índice único, contadores calculados, paginación en la base, `503` si
+  `auth-service` no responde, `isFollowing`/`isFollowedBy` con su nombre (parte social de T-B13) y
+  retirar `/social/is-following`.
+- **Cierre:** quickstart §3–§5 de la spec en verde; T-B13 sin la parte social.
+
 ---
 
 ## Pista I — Infra, CI/CD e higiene
@@ -1474,3 +1529,10 @@ depende del contrato.
   correcto. El p95 del RSVP no se cumple en local y destapó T-B37. Falta medirlo en un entorno
   representativo después de T-B37.
 - **Cierre:** Prod Startup en verde con la variable; k6 sin cupos superados y dentro de los SLO.
+
+### T-I30 · `AUTH_SERVICE_URI`, carga y tablero de la Ola 2a — 🟢 READY (T004) · P1 · Principios VI, VII y VIII
+- **Qué:** T004, T056 y T057 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): `AUTH_SERVICE_URI` para `social-service` en
+  `application.yml`, `.env.example`, los dos Compose y los fixtures de Prod Startup; escenario k6
+  `ola-2a-social.js`; paneles de `429` de la búsqueda y de la llamada `social` → `auth` en Grafana.
+- **Cierre:** Prod Startup en verde con la variable; k6 dentro de los SLO en un entorno
+  representativo.
