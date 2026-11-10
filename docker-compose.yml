@@ -166,8 +166,10 @@ services:
   auth-service:
     <<: *java-service
     build:
-      context: ./backend/auth-service
-      dockerfile: ../Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: auth-service
     image: vito/auth-service:local
     container_name: vito-auth-service
     environment:
@@ -181,8 +183,10 @@ services:
   social-service:
     <<: *java-service
     build:
-      context: ./backend/social-service
-      dockerfile: ../Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: social-service
     image: vito/social-service:local
     container_name: vito-social-service
     environment:
@@ -197,8 +201,10 @@ services:
   event-service:
     <<: *java-service
     build:
-      context: ./backend/event-service
-      dockerfile: ../Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: event-service
     image: vito/event-service:local
     container_name: vito-event-service
     environment:
@@ -214,8 +220,10 @@ services:
   checkin-service:
     <<: *java-service
     build:
-      context: ./backend/checkin-service
-      dockerfile: ../Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: checkin-service
     image: vito/checkin-service:local
     container_name: vito-checkin-service
     environment:
@@ -230,8 +238,10 @@ services:
   mosaic-service:
     <<: *java-service
     build:
-      context: ./backend/mosaic-service
-      dockerfile: ../Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: mosaic-service
     image: vito/mosaic-service:local
     container_name: vito-mosaic-service
     environment:
@@ -246,8 +256,10 @@ services:
   streaming-service:
     <<: *java-service
     build:
-      context: ./backend/streaming-service
-      dockerfile: ../Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: streaming-service
     image: vito/streaming-service:local
     container_name: vito-streaming-service
     environment:
@@ -264,8 +276,10 @@ services:
   archive-service:
     <<: *java-service
     build:
-      context: ./backend/archive-service
-      dockerfile: ../Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: archive-service
     image: vito/archive-service:local
     container_name: vito-archive-service
     environment:
@@ -279,8 +293,10 @@ services:
   chat-service:
     <<: *java-service
     build:
-      context: ./backend/chat-service
-      dockerfile: ../Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: chat-service
     image: vito/chat-service:local
     container_name: vito-chat-service
     environment:
@@ -294,8 +310,10 @@ services:
   media-service:
     <<: *java-service
     build:
-      context: ./backend/media-service
-      dockerfile: ../Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: media-service
     image: vito/media-service:local
     container_name: vito-media-service
     environment:
@@ -317,8 +335,10 @@ services:
   api-gateway:
     <<: *java-service
     build:
-      context: ./backend/api-gateway
-      dockerfile: ../Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: api-gateway
     image: vito/api-gateway:local
     container_name: vito-api-gateway
     environment:

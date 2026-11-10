@@ -9,7 +9,7 @@ import com.vito.event.domain.port.outbound.EventRepository;
 import com.vito.event.domain.port.outbound.InvitationRepository;
 import com.vito.event.domain.port.outbound.QRCodeGenerator;
 import com.vito.event.domain.port.outbound.RSVPRepository;
-import com.vito.event.infrastructure.security.AuthenticatedUser;
+import com.vito.shared.web.security.AuthenticatedUser;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

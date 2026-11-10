@@ -168,7 +168,7 @@ cd frontend/vito_app && flutter run \
   --dart-define=WS_BASE_URL=ws://localhost:4011
 
 # Backend (cada servicio es independiente, no hay wrapper Maven)
-cd backend/event-service && mvn clean test
+cd backend && ./mvnw -pl event-service -am clean test   # reactor con shared-web (T-B18)
 ```
 
 ---
