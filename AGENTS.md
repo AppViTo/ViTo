@@ -445,7 +445,8 @@ Reglas inquebrables:
 docker-compose up -d
 
 # Correr auth-service
-cd backend/auth-service && ./mvnw spring-boot:run
+# (backend/ es un reactor Maven con shared-web, T-B18: instalarlo una vez antes de arrancar)
+cd backend && ./mvnw -q -pl shared-web install -DskipTests && ./mvnw -pl auth-service spring-boot:run
 
 # Correr transcode-service
 cd ai-services/transcode-service && uvicorn app.main:app --reload
@@ -454,6 +455,6 @@ cd ai-services/transcode-service && uvicorn app.main:app --reload
 cd frontend/vito_app && flutter run
 
 # Ejecutar tests
-cd backend/auth-service && ./mvnw test
+cd backend && ./mvnw -pl auth-service -am test
 cd frontend/vito_app && flutter test
 ```

@@ -40,9 +40,10 @@ cd vito
 # Levantar servicios base
 docker-compose up -d
 
-# Correr auth-service
-cd backend/auth-service
-./mvnw spring-boot:run
+# Correr auth-service (backend/ es un reactor Maven: shared-web primero, T-B18)
+cd backend
+./mvnw -q -pl shared-web install -DskipTests
+./mvnw -pl auth-service spring-boot:run
 
 # Correr Flutter
 cd frontend/vito_app

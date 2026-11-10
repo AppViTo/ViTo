@@ -51,9 +51,10 @@ change() {
   [ "${lines[0]}" = "services=$JAVA" ]
 }
 
-@test "backend/Dockerfile.dockerignore, backend/pom.xml y backend/shared-*/** → los 10 Java" {
+@test "backend/Dockerfile.dockerignore, backend/pom.xml, backend/shared-*/** y el wrapper → los 10 Java" {
   local f
-  for f in backend/Dockerfile.dockerignore backend/pom.xml backend/shared-web/src/A.java; do
+  for f in backend/Dockerfile.dockerignore backend/pom.xml backend/shared-web/src/A.java \
+    backend/mvnw backend/.mvn/wrapper/maven-wrapper.properties; do
     change "$f"
     run "$SCRIPT" "$BASE" "$HEAD"
     [ "${lines[0]}" = "services=$JAVA" ]

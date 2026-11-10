@@ -15,6 +15,7 @@ version: 2
 updates:
   - package-ecosystem: maven
     directories:
+      - /backend/shared-web
       - /backend/api-gateway
       - /backend/auth-service
       - /backend/social-service

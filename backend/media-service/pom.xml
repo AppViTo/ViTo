@@ -22,6 +22,12 @@
         <twelvemonkeys.version>3.15.3</twelvemonkeys.version>
     </properties>
     <dependencies>
+        <!-- Envelope de error, handler base y filtro JWT comunes (T-B18, ADR-017) -->
+        <dependency>
+            <groupId>com.vito</groupId>
+            <artifactId>shared-web</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
         <!-- Spring Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

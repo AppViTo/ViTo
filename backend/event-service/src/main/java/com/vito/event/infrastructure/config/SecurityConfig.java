@@ -1,10 +1,11 @@
 package com.vito.event.infrastructure.config;
 
-import com.vito.event.infrastructure.security.JwtAuthenticationFilter;
+import com.vito.shared.web.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -12,6 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@Import(JwtAuthenticationFilter.class)
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
