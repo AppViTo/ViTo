@@ -40,7 +40,7 @@ descripción, según CODEOWNERS:
 
 **Purpose**: aprobaciones y preparación que no cambian comportamiento
 
-- [ ] T001 👤 [Bernardo] y [Alex] Aprobar D-08 de la Ola 2a con el alcance de la spec (parte social del inventario + `searchUsers` del RFC #277 en `auth-service` + `getUsersByIds`; check-in/QR fuera, Ola 2b). Se aprueba con el PR de esta spec; registrarlo en `docs/roadmap/decisions-pending.md` (fila D-08: "Olas 1, 2a y 3 aprobadas") y en el encabezado de `docs/roadmap/endpoint-inventory.md`
+- [X] T001 👤 [Bernardo] y [Alex] Aprobar D-08 de la Ola 2a con el alcance de la spec (parte social del inventario + `searchUsers` del RFC #277 en `auth-service` + `getUsersByIds`; check-in/QR fuera, Ola 2b). Se aprueba con el PR de esta spec; registrarlo en `docs/roadmap/decisions-pending.md` (fila D-08: "Olas 1, 2a y 3 aprobadas") y en el encabezado de `docs/roadmap/endpoint-inventory.md`
 - [ ] T002 [Alex] Comentar en el RFC #277 que entra en esta spec con las decisiones 1 (dueño `auth-service`) y 2 (privados fuera de la búsqueda) tomadas el 2026-11-09, y que se cierra con el merge del contrato. Abrir el issue `contract-change` de la Ola 2a enlazando la spec y crear la rama `contract/ola-2a` desde `develop`
 - [X] T003 [P] [Bernardo] Agregar Testcontainers MongoDB (`org.testcontainers:testcontainers-junit-jupiter` y `org.testcontainers:testcontainers-mongodb`, scope `test`, versión del BOM de Spring Boot) a `backend/social-service/pom.xml`, y la clase base `SS-test/support/MongoContainerTest.java` con `@ServiceConnection`, siguiendo `backend/event-service`
 - [X] T004 [P] [Bernardo] `AUTH_SERVICE_URI` para `social-service`: `auth-service.uri: ${AUTH_SERVICE_URI:http://localhost:8081}` en `backend/social-service/src/main/resources/application.yml`; la variable en `.env.example`, `docker-compose.yml` y `docker-compose.prod.yml` (`http://auth-service:8081` por el DNS de Compose) y en `infrastructure/deploy/tests/fixtures/` para el job Prod Startup
@@ -204,7 +204,7 @@ indicadores; en su propio perfil, los indicadores en `false` (quickstart §4).
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: T001 (D-08) bloquea el merge del contrato. T003 y T004 ✅ en #284 (2026-11-10). T004 no tocó `.env.example` ni los fixtures de Prod Startup: la variable tiene default y en Compose va fija por el DNS interno, como `EVENT_SERVICE_URI` de `mosaic-service`.
+- **Setup (Phase 1)**: T001 ✅ (D-08 aprobada con el merge de #283, 2026-11-10). T003 y T004 ✅ en #284 (2026-11-10). T004 no tocó `.env.example` ni los fixtures de Prod Startup: la variable tiene default y en Compose va fija por el DNS interno, como `EVENT_SERVICE_URI` de `mosaic-service`.
 - **Foundational (Phase 2)**: T005–T010 forman un solo PR de contrato y bloquean todo lo demás.
   T011–T012 (app) y T013–T020 (backend) empiezan cuando ese PR se mergea y avanzan en paralelo.
   T014 (migración) va antes de T015 (índice único) y se despliega con él.
