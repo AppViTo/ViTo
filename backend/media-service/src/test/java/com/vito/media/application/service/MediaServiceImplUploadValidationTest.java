@@ -4,6 +4,7 @@ import com.vito.media.domain.exception.MediaException;
 import com.vito.media.domain.model.Media;
 import com.vito.media.domain.port.outbound.ImageProcessingPort;
 import com.vito.media.domain.port.outbound.MediaEventPublisher;
+import com.vito.media.domain.port.outbound.EventAccessLookup;
 import com.vito.media.domain.port.outbound.MediaRepository;
 import com.vito.media.domain.port.outbound.StoragePort;
 import com.vito.media.infrastructure.adapter.outbound.ImageIoReencoder;
@@ -46,13 +47,17 @@ class MediaServiceImplUploadValidationTest {
     @Mock
     private ImageProcessingPort imageProcessingPort;
 
+    @Mock
+    private EventAccessLookup eventAccessLookup;
+
     private MediaServiceImpl mediaService;
 
     @BeforeEach
     void setUp() {
         mediaService = new MediaServiceImpl(mediaRepository, storagePort, eventPublisher, imageProcessingPort,
                 new TikaFileTypeDetector(), new ImageIoReencoder(
-                        ImageIoReencoder.DEFAULT_MAX_PIXELS, ImageIoReencoder.DEFAULT_MAX_CONCURRENT));
+                        ImageIoReencoder.DEFAULT_MAX_PIXELS, ImageIoReencoder.DEFAULT_MAX_CONCURRENT),
+                eventAccessLookup);
         ReflectionTestUtils.setField(mediaService, "maxFileSize", TEN_MB);
         ReflectionTestUtils.setField(mediaService, "allowedTypes", "image/jpeg,image/png,image/webp,video/mp4");
         ReflectionTestUtils.setField(mediaService, "bucketName", "vito-test");

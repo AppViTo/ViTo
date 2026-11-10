@@ -14,7 +14,7 @@ public class MediaException extends RuntimeException {
 
     public static class MediaNotFoundException extends MediaException {
         public MediaNotFoundException(String mediaId) {
-            super("Media not found: " + mediaId);
+            super("El archivo no existe");
         }
     }
 
@@ -33,6 +33,47 @@ public class MediaException extends RuntimeException {
     public static class UnauthorizedException extends MediaException {
         public UnauthorizedException(String message) {
             super(message);
+        }
+    }
+
+    /** T-B33: el evento no existe (404 de {@code listEventMedia}). */
+    public static class EventNotFoundException extends MediaException {
+        public EventNotFoundException() {
+            super("El evento no existe");
+        }
+    }
+
+    /** T-B33: event-service rechazó el token reenviado (401). */
+    public static class NotAuthenticatedException extends MediaException {
+        public NotAuthenticatedException() {
+            super("Debes iniciar sesión");
+        }
+    }
+
+    /** T-B33: event-service no respondió; sin saber quién organiza no se decide el acceso (503). */
+    public static class DependencyUnavailableException extends MediaException {
+        public DependencyUnavailableException(Throwable cause) {
+            super("No pudimos comprobar tu acceso al evento. Inténtalo de nuevo en unos segundos", cause);
+        }
+    }
+
+    /** Parámetro de consulta fuera de rango (400 VALIDATION_ERROR, {@code details.<parámetro>}). */
+    public static class InvalidParameterException extends MediaException {
+        private final String parameter;
+        private final String detail;
+
+        public InvalidParameterException(String parameter, String message, String detail) {
+            super(message);
+            this.parameter = parameter;
+            this.detail = detail;
+        }
+
+        public String getParameter() {
+            return parameter;
+        }
+
+        public String getDetail() {
+            return detail;
         }
     }
 

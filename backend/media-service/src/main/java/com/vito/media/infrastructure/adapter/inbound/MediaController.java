@@ -32,14 +32,17 @@ public class MediaController {
     public ResponseEntity<MediaResponse> getMedia(@PathVariable String mediaId) {
         return mediaService.getMediaById(mediaId)
                 .map(media -> ResponseEntity.ok(MediaResponse.from(media)))
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> new com.vito.media.domain.exception.MediaException.MediaNotFoundException(mediaId));
     }
 
+    /** listEventMedia (T-C09): array plano, por uploadedAt descendente, paginado. */
     @GetMapping("/event/{eventId}")
-    public ResponseEntity<List<MediaResponse>> getMediaByEvent(
+    public ResponseEntity<List<MediaResponse>> listEventMedia(
             @PathVariable String eventId,
-            @RequestParam(required = false) Media.MediaType type) {
-        List<MediaResponse> mediaList = mediaService.getMediaByEventId(eventId, type)
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestHeader("X-User-Id") String userId) {
+        List<MediaResponse> mediaList = mediaService.listEventMedia(eventId, userId, page, size)
                 .stream()
                 .map(MediaResponse::from)
                 .toList();
@@ -73,12 +76,14 @@ public class MediaController {
         return ResponseEntity.noContent().build();
     }
 
+    /** getMediaPresignedUrl (T-C09): {@code expiresIn} en segundos, 900 por defecto y 3600 como máximo. */
     @GetMapping("/{mediaId}/presigned-url")
     public ResponseEntity<PresignedUrlResponse> getPresignedUrl(
             @PathVariable String mediaId,
-            @RequestParam(defaultValue = "60") long expirationMinutes) {
-        String url = mediaService.generatePresignedUrl(mediaId, expirationMinutes);
-        return ResponseEntity.ok(new PresignedUrlResponse(url, expirationMinutes));
+            @RequestParam(required = false) Integer expiresIn,
+            @RequestHeader("X-User-Id") String userId) {
+        return ResponseEntity.ok(PresignedUrlResponse.from(
+                mediaService.generatePresignedUrl(mediaId, userId, expiresIn)));
     }
 
     @PostMapping("/{mediaId}/process")

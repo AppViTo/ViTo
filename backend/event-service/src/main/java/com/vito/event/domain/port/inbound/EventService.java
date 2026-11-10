@@ -2,6 +2,7 @@ package com.vito.event.domain.port.inbound;
 
 import com.vito.event.domain.exception.EventException;
 import com.vito.event.domain.model.Event;
+import com.vito.event.domain.model.EventAccess;
 import com.vito.event.domain.model.EventPatch;
 import com.vito.event.domain.model.Invitation;
 import com.vito.event.domain.model.RSVP;
@@ -24,6 +25,9 @@ public interface EventService {
     
     /** Aplica {@code hideAddressUntilAccepted} según quién consulta ({@code viewerId}). */
     Event getEvent(String eventId, String viewerId);
+
+    /** T-B33 (ruta INTERNO): organizador del evento y RSVP de {@code userId}; 404 si no existe. */
+    EventAccess getAccess(String eventId, String userId);
     
     /**
      * listEvents (ADR-014): {@code MINE} son los eventos que organiza {@code viewerId};

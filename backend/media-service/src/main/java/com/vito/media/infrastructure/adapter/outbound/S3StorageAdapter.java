@@ -121,7 +121,7 @@ public class S3StorageAdapter implements StoragePort {
     }
 
     @Override
-    public String generatePresignedUrl(String key, long expirationMinutes) {
+    public String generatePresignedUrl(String key, Duration ttl) {
         try {
             GetObjectRequest getRequest = GetObjectRequest.builder()
                     .bucket(bucketName)
@@ -129,7 +129,7 @@ public class S3StorageAdapter implements StoragePort {
                     .build();
 
             GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                    .signatureDuration(Duration.ofMinutes(expirationMinutes))
+                    .signatureDuration(ttl)
                     .getObjectRequest(getRequest)
                     .build();
 

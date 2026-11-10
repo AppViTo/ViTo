@@ -29,6 +29,7 @@ public class GlobalExceptionHandler {
     static final String FORBIDDEN = "FORBIDDEN";
     static final String NOT_FOUND = "NOT_FOUND";
     static final String INTERNAL_ERROR = "INTERNAL_ERROR";
+    static final String SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE";
 
     @Value("${media.max-file-size:10485760}")
     private long maxFileSize;
@@ -36,6 +37,33 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MediaException.MediaNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleMediaNotFound(MediaException.MediaNotFoundException ex) {
         return error(HttpStatus.NOT_FOUND, NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(MediaException.EventNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEventNotFound(MediaException.EventNotFoundException ex) {
+        return error(HttpStatus.NOT_FOUND, NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(MediaException.NotAuthenticatedException.class)
+    public ResponseEntity<ErrorResponse> handleNotAuthenticated(MediaException.NotAuthenticatedException ex) {
+        return error(HttpStatus.UNAUTHORIZED, UNAUTHORIZED, ex.getMessage());
+    }
+
+    /** T-B33: sin event-service no se puede decidir el acceso; el cliente reintenta. */
+    @ExceptionHandler(MediaException.DependencyUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleDependencyUnavailable(MediaException.DependencyUnavailableException ex) {
+        log.warn("event-service unavailable: {}", ex.getCause() != null ? ex.getCause().toString() : "-");
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .header("Retry-After", "5")
+                .body(ErrorResponse.of(HttpStatus.SERVICE_UNAVAILABLE, SERVICE_UNAVAILABLE, ex.getMessage(), null));
+    }
+
+    /** page, size o expiresIn fuera de rango (T-C09). */
+    @ExceptionHandler(MediaException.InvalidParameterException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidParameter(MediaException.InvalidParameterException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.of(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, ex.getMessage(),
+                        Map.of(ex.getParameter(), ex.getDetail())));
     }
 
     @ExceptionHandler(MediaException.UploadFailedException.class)

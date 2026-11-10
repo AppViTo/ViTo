@@ -3,6 +3,7 @@ package com.vito.media.infrastructure.adapter.outbound;
 import com.vito.media.domain.model.Media;
 import com.vito.media.domain.port.outbound.MediaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -29,16 +30,18 @@ public class MediaMongoAdapter implements MediaRepository {
     }
 
     @Override
-    public List<Media> findByEventId(String eventId) {
-        Query query = new Query(Criteria.where("eventId").is(eventId)
-                .and("deleted").is(false));
+    public List<Media> findByEventId(String eventId, int page, int size) {
+        Query query = new Query(Criteria.where("eventId").is(eventId).and("deleted").is(false))
+                .with(Sort.by(Sort.Direction.DESC, "uploadedAt").and(Sort.by(Sort.Direction.DESC, "_id")))
+                .skip((long) page * size)
+                .limit(size);
         return mongoTemplate.find(query, Media.class);
     }
 
     @Override
-    public List<Media> findByEventIdAndType(String eventId, Media.MediaType type) {
+    public List<Media> findByEventIdAndUrls(String eventId, List<String> urls) {
         Query query = new Query(Criteria.where("eventId").is(eventId)
-                .and("type").is(type)
+                .and("location.url").in(urls)
                 .and("deleted").is(false));
         return mongoTemplate.find(query, Media.class);
     }

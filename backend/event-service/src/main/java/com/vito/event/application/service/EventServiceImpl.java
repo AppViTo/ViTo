@@ -2,6 +2,7 @@ package com.vito.event.application.service;
 
 import com.vito.event.domain.exception.EventException;
 import com.vito.event.domain.model.Event;
+import com.vito.event.domain.model.EventAccess;
 import com.vito.event.domain.model.EventPatch;
 import com.vito.event.domain.model.Invitation;
 import com.vito.event.domain.model.RSVP;
@@ -246,6 +247,16 @@ public class EventServiceImpl implements EventService {
         return forViewer(event, viewerId);
     }
     
+    @Override
+    public EventAccess getAccess(String eventId, String userId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(EventException::eventNotFound);
+        RSVP.RSVPStatus status = rsvpRepository.findByEventIdAndUserId(eventId, userId)
+                .map(RSVP::getStatus)
+                .orElse(null);
+        return new EventAccess(eventId, event.getOrganizerId(), status);
+    }
+
     @Override
     public List<Event> listEvents(ListScope scope, String viewerId, int page, int size) {
         // A diferencia de /my-events y /upcoming, listEvents rechaza size > 100 (ADR-014)
