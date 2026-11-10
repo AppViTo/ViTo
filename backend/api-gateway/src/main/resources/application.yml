@@ -289,6 +289,14 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+      # T-B37 (punto 4): sin esto Lettuce espera 60 s por comando. El RequestRateLimiter no
+      # tiene timeout propio: con una respuesta perdida, la petición quedaba colgada hasta 60 s.
+      # Al vencer, el rate limiter deja pasar (igual que con Redis caído) y la revocación ya
+      # tiene su propio tope (vito.security.revocation.redis-timeout).
+      timeout: ${REDIS_COMMAND_TIMEOUT:2s}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:2s}
+      # Una sola conexión compartida y multiplexada (por defecto en Lettuce): un pool no acelera
+      # comandos no bloqueantes como EXISTS o el script del rate limiter. Ver RedisConnectionWarmUp.
 
 server:
   port: 8080
@@ -301,6 +309,12 @@ jwt:
 # responde en este tiempo, el gateway falla abierto: acepta el token con firma válida y
 # cuenta el fallo en vito.gateway.revocation.check.errors.
 vito:
+  # T-B37 (punto 4): tope para todo lo que el gateway hace antes de enviar la petición al
+  # servicio (seguridad, JWT y revocación, rate limiter). Después mandan el TimeLimiter (10 s)
+  # y httpclient.response-timeout. Mayor que spring.data.redis.timeout para que Redis degrade
+  # antes de que venza. Ver RoutingDeadlineFilter.
+  gateway:
+    routing-deadline: ${GATEWAY_ROUTING_DEADLINE:3s}
   # T-B23: saltos de proxy delante del gateway cuyo X-Forwarded-For se cree para el bucket por
   # IP de las rutas públicas. 0 = la dirección de la conexión; prod (detrás de Caddy) usa 1.
   rate-limit:

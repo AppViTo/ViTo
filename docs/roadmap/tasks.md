@@ -1108,6 +1108,20 @@ depende del contrato.
 - **Avance:** punto 1 en #281: bulkhead de 200 en `configs.default` y `BulkheadFullException`
   ignorada por el breaker, que ahora tiene una configuración común para todas las rutas. k6 sin
   `503` (antes ~120). El p95 sigue en ~4,5 s en local.
+- **Avance (2026-11-10, punto 4):** en el PR `fix/T-B37-gateway-timeouts`:
+  - `RoutingDeadlineFilter`: plazo de 3 s (`GATEWAY_ROUTING_DEADLINE`) desde que entra la
+    petición hasta que llega al enrutado. Si vence, responde `503 SERVICE_UNAVAILABLE` con el
+    envelope y cuenta en `vito.gateway.routing.deadline.exceeded`. No corta la llamada al servicio
+    (para eso están el TimeLimiter y `response-timeout`) ni los WebSocket.
+  - Redis: Lettuce esperaba **60 s por comando** (sin `spring.data.redis.timeout`), y el
+    `RequestRateLimiter` no tiene timeout propio. Ahora `timeout` y `connect-timeout` son de 2 s;
+    al vencer, el rate limiter deja pasar como con Redis caído.
+  - `RedisConnectionWarmUp`: abre la conexión compartida al arrancar. Antes la abría, de forma
+    bloqueante y en un hilo de Netty, la primera petición con token o con rate limit.
+  - Se mantiene la conexión compartida de Lettuce, sin pool: los comandos son no bloqueantes y
+    un pool no los acelera.
+  - Falta repetir `ola-1-rsvp.js` para confirmar que no queda ninguna petición colgada y si
+    bajan las consultas de revocación de más de 250 ms.
 - **Qué:** (1) configurar el bulkhead (`max-concurrent-calls` por ruta o desactivarlo, con
   justificación) y que su rechazo no abra el breaker; (2) medir el RSVP en un entorno con los
   recursos del VPS y, si sigue lento, reducir viajes a Mongo; (3) decidir con los dos leads si
