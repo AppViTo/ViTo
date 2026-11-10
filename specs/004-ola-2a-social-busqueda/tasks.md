@@ -274,8 +274,8 @@ Se registran en `docs/roadmap/tasks.md` con este PR, con su fila en la tabla res
 | T-C11 · Contrato de la Ola 2a | Agente de Alex | T002, T005–T010, T060 | 🟡 RFC (requiere T001) |
 | T-F13 · App de la Ola 2a | Agente de Alex | T011–T012, T034–T035, T042, T048, T053–T054 | 🔴 BLOQUEADA por T-C11 |
 | T-B38 · `auth-service` y gateway de la Ola 2a (búsqueda y datos por lotes) | Bernardo | T021–T033, T061–T062 | 🔴 BLOQUEADA por T-C11 |
-| T-B39 · `social-service` de la Ola 2a (grafo social) | Bernardo | T003, T013–T020, T036–T041, T043–T047, T049–T052, T055, T058 | 🔴 BLOQUEADA por T-C11 (T003 se puede adelantar) |
-| T-I30 · `AUTH_SERVICE_URI`, carga y tablero de la Ola 2a | Bernardo | T004, T056–T057 | 🟢 READY (T004); el resto tras T-B39 |
+| T-B39 · `social-service` de la Ola 2a (grafo social) | Bernardo | T003, T013–T020, T036–T041, T043–T047, T049–T052, T055, T058 | 🔴 BLOQUEADA por T-C11 (T003 ✅ #284; T013–T015 y T020 adelantadas en #286, borrador) |
+| T-I30 · `AUTH_SERVICE_URI`, carga y tablero de la Ola 2a | Bernardo | T004, T056–T057 | 🔴 BLOQUEADA por T-B39 (T004 ✅ #284) |
 
 T001 (D-08) y T059 son compartidas por los dos leads.
 
