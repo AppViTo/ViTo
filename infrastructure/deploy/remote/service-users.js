@@ -11,7 +11,7 @@
 // Las contraseñas van sin codificar en MONGODB_URI (docker-compose.prod.yml): deben ser
 // alfanuméricas (se generan con el openssl de docs/runbooks/aprovisionamiento.md).
 //
-// auth, chat y media comparten vito_db: deuda del Principio II registrada en T-I19.
+// auth, chat y media comparten vito_db: deuda del Principio II, se cierra en T-B40.
 const SERVICES = [
   { svc: 'auth', db: 'vito_db' },
   { svc: 'social', db: 'vito_social' },

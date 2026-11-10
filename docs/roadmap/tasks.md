@@ -1132,6 +1132,33 @@ depende del contrato.
   retirar `/social/is-following`.
 - **Cierre:** quickstart §3–§5 de la spec en verde; T-B13 sin la parte social.
 
+### T-B40 · `chat-service` y `media-service` fuera de `vito_db` — 🔴 BLOQUEADA por T-I19 · P2 · Principio II (deuda de T-I19)
+- **Hallazgo (T-I19, #302):** `auth-service`, `chat-service` y `media-service` comparten
+  `vito_db`. Con un usuario por servicio, `vito_chat` y `vito_media` igual tienen `readWrite`
+  sobre `users`, que es de auth. Ningún código de chat o media lee esa colección, pero tampoco
+  hay nada que lo impida.
+- **Qué:**
+  - `chat-service` pasa a `vito_chat` (`chat_messages`, `chat_rooms`) y `media-service` a
+    `vito_media` (`media`), en su `application.yml`.
+  - Migración de datos con root, idempotente y antes del `up`: `renameCollection` de
+    `vito_db.<col>` a la base nueva, que en el Mongo standalone de producción es instantáneo.
+    Si la colección ya está en la base nueva, no hace nada. Va como paso de operación junto a
+    `ensure-service-users.sh`, porque el usuario de cada servicio no tiene permisos sobre la
+    otra base.
+  - `service-users.js`, las URIs de `docker-compose.prod.yml` y `docker-compose.yml` apuntan
+    a las bases nuevas.
+  - `service-users-mongo.bats` comprueba que `vito_chat` y `vito_media` no pueden leer
+    `vito_db.users`.
+- **Ojo:**
+  - Un rollback a un SHA anterior deja a chat y media mirando `vito_db` vacía. El paso
+    inverso, o un rollback que lo bloquee, va en el mismo PR.
+  - Desplegar fuera de evento.
+  - Hacer un backup manual antes (`docs/runbooks/restore.md`, paso 2).
+- **Cierre:**
+  - Solo `auth-service` usa `vito_db`.
+  - El bats de T-I19 cubre a chat y media.
+  - Mensajes y archivos existentes siguen visibles después del despliegue.
+
 ---
 
 ## Pista I — Infra, CI/CD e higiene
@@ -1408,8 +1435,8 @@ depende del contrato.
   `mongodb`, porque cambian su entorno y sus montajes, así que hay que desplegar fuera de evento.
 - **Deuda del Principio II:** `chat-service` y `media-service` comparten `vito_db` con
   `auth-service`, así que `vito_chat` y `vito_media` pueden leer `users`. Para cerrarla hay que
-  mover cada uno a su propia base (`vito_chat`, `vito_media`) con una migración de datos.
-  Queda como tarea nueva por abrir.
+  mover cada uno a su propia base (`vito_chat`, `vito_media`) con una migración de datos:
+  T-B40.
 
 
 ### T-I20 · Kafka con TLS y ACL por tópico — ⚪ DIFERIDA (Fase Crecimiento) · P2 · Principio III, T051 (A7)
