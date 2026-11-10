@@ -5,6 +5,9 @@
 # Agrupado: como máximo un PR de menores y parches y uno de mayores por ecosistema. Sin
 # grupos, la primera corrida abrió 30 PR y cada uno corre los 30 checks de CI, lo que
 # llenó la cola de runners.
+# Las actualizaciones de seguridad ignoran esos grupos y el límite de PR abiertos: sin el
+# grupo "security" (applies-to: security-updates), un mismo arreglo llega como un PR por
+# directorio (snappy-java 1.1.10.12 abrió 9 el 2026-11-10, #292–#300).
 #
 # Límites del stack (constitución §stack, ADR-011): los `ignore` impiden que Dependabot proponga
 # versiones fuera de lo definido. Subir JDK, Spring Boot o Spring Cloud de línea es T-B10
@@ -38,6 +41,9 @@ updates:
     target-branch: develop
     open-pull-requests-limit: 2
     groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
       minor-and-patch:
         patterns: ["*"]
         update-types: [minor, patch]
@@ -57,6 +63,9 @@ updates:
     # FastAPI fija el rango de starlette y el instrumentator exige su propio rango: separados
     # en menores y mayores, ninguno de los dos PR instala (#140 y #142, unidos en #144).
     groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
       fastapi-stack:
         patterns: [fastapi, starlette, prometheus-fastapi-instrumentator]
       minor-and-patch:
@@ -73,6 +82,9 @@ updates:
     target-branch: develop
     open-pull-requests-limit: 2
     groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
       minor-and-patch:
         patterns: ["*"]
         update-types: [minor, patch]
@@ -87,6 +99,9 @@ updates:
     target-branch: develop
     open-pull-requests-limit: 2
     groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
       minor-and-patch:
         patterns: ["*"]
         update-types: [minor, patch]
@@ -113,6 +128,9 @@ updates:
     target-branch: develop
     open-pull-requests-limit: 2
     groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
       minor-and-patch:
         patterns: ["*"]
         update-types: [minor, patch]
