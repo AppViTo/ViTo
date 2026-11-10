@@ -216,7 +216,7 @@ release del viernes 2026-11-06.
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y #273) | — |
 | T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | ✅ HECHA (#262) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
-| T-B37 | Concurrencia del gateway y latencia del RSVP (hallazgos de k6) | B | P1 | 🟢 READY | — |
+| T-B37 | Concurrencia del gateway y latencia del RSVP (hallazgos de k6) | B | P1 | 🔵 EN CURSO (punto 1 en #281; puntos 2–4 abiertos) | — |
 | T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🔵 EN CURSO | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
@@ -1027,7 +1027,7 @@ depende del contrato.
 - **Qué:** sobre común, Transactional Outbox y declaración en AsyncAPI de los eventos de
   `event-service`, antes de que exista el primer consumidor (ticket QR de la Ola 2).
 
-### T-B37 · Concurrencia del gateway y latencia del RSVP — 🟢 READY · P1 · Principio VIII
+### T-B37 · Concurrencia del gateway y latencia del RSVP — 🔵 EN CURSO (punto 1 en #281) · P1 · Principio VIII
 - **Por qué:** hallazgos de los escenarios k6 de la Ola 1 (T061, 2026-11-07) en el stack local.
   1. El CircuitBreaker de Spring Cloud Gateway trae un **bulkhead por defecto de 25 llamadas
      concurrentes por ruta**. Con 150 RSVP a la vez, ~120 reciben `503 SERVICE_UNAVAILABLE` al
@@ -1039,12 +1039,23 @@ depende del contrato.
      El portátil (4 CPU compartidas) exagera la cifra; no se sabe cuánto.
   3. Bajo carga, la consulta de revocación del JWT en Redis supera sus 250 ms y el gateway
      **acepta el token sin comprobar la revocación** (fail-open, se registra como aviso).
+  4. Con el punto 1 resuelto (#281), en la corrida de k6 **1 de 150 RSVP quedó colgado 60 s**
+     hasta el timeout de k6: el gateway lo enrutó, pero nunca llegó a `event-service` ni al filtro
+     CircuitBreaker (los 154 conteos del breaker cuadran sin él). Se quedó en un filtro global
+     anterior, donde no aplica ningún timeout. Además, 121 consultas de revocación a Redis
+     superaron los 250 ms con Redis en reposo: apunta a congestión de la conexión del gateway a
+     Redis, y puede ser la misma causa del punto 3.
+- **Avance:** punto 1 en #281: bulkhead de 200 en `configs.default` y `BulkheadFullException`
+  ignorada por el breaker, que ahora tiene una configuración común para todas las rutas. k6 sin
+  `503` (antes ~120). El p95 sigue en ~4,5 s en local.
 - **Qué:** (1) configurar el bulkhead (`max-concurrent-calls` por ruta o desactivarlo, con
   justificación) y que su rechazo no abra el breaker; (2) medir el RSVP en un entorno con los
   recursos del VPS y, si sigue lento, reducir viajes a Mongo; (3) decidir con los dos leads si
-  el fail-open de la revocación es aceptable o necesita métrica y alerta.
+  el fail-open de la revocación es aceptable o necesita métrica y alerta; (4) timeout en los
+  filtros globales del gateway y revisar el pool de conexiones a Redis.
 - **Cierre:** `ola-1-rsvp.js` con 150 asistentes sin `503` y con p95 < 1 s en el entorno
-  representativo; la decisión del punto 3 registrada.
+  representativo, ninguna petición colgada más que el timeout del gateway y la decisión del punto 3
+  registrada.
 
 ---
 
