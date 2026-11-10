@@ -12,32 +12,39 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class KafkaEventPublisher implements EventPublisherPort {
-    
+
+    static final String TOPIC = "social-events";
+
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    
+
     @Override
     public void publishFollowEvent(String followerId, String followingId) {
-        Map<String, Object> event = Map.of(
-                "type", "USER_FOLLOWED",
-                "followerId", followerId,
-                "followingId", followingId,
-                "timestamp", System.currentTimeMillis()
-        );
-        
-        kafkaTemplate.send("social-events", followerId, event);
-        log.info("Published follow event: {} -> {}", followerId, followingId);
+        publish("USER_FOLLOWED", followerId, followingId);
     }
-    
+
     @Override
     public void publishUnfollowEvent(String followerId, String followingId) {
+        publish("USER_UNFOLLOWED", followerId, followingId);
+    }
+
+    /**
+     * T020 (Ola 2a, R10): {@code send} es asíncrono y antes nadie miraba su resultado, así que un
+     * envío fallido no dejaba rastro. Se registra el resultado con el tipo de evento, nunca con
+     * ids de personas. Sigue siendo "best effort": el outbox llega con T-C05 (Principio V).
+     */
+    private void publish(String type, String followerId, String followingId) {
         Map<String, Object> event = Map.of(
-                "type", "USER_UNFOLLOWED",
+                "type", type,
                 "followerId", followerId,
                 "followingId", followingId,
                 "timestamp", System.currentTimeMillis()
         );
-        
-        kafkaTemplate.send("social-events", followerId, event);
-        log.info("Published unfollow event: {} -> {}", followerId, followingId);
+        kafkaTemplate.send(TOPIC, followerId, event).whenComplete((result, error) -> {
+            if (error != null) {
+                log.error("No se publicó {} en {}: {}", type, TOPIC, error.toString());
+            } else {
+                log.debug("Publicado {} en {}", type, TOPIC);
+            }
+        });
     }
 }

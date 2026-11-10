@@ -19,7 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ExtendWith(OutputCaptureExtension.class)
 @SpringBootTest(properties = {
         "JWT_SECRET=test-secret-key-for-unit-tests-only-256-bits-long",
-        "MONGODB_URI=mongodb://localhost:27017/test_db"
+        "MONGODB_URI=mongodb://localhost:27017/test_db",
+        "vito.data-init.enabled=false"
 })
 @ActiveProfiles("prod")
 class ProdLoggingProfileTest {
