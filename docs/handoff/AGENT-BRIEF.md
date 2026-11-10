@@ -108,6 +108,18 @@ aún apunta a Vercel; pasa a Cloudflare Pages en T-I11 (ADR-011).
 
 ## 7. Ciclo de trabajo por tarea
 
+**Antes de elegir tarea** (T-I15): revisa los issues abiertos que bloquean a la otra pista
+por algo de la tuya — `blocked-by-backend` si eres la pista backend/infra (T-B, T-I),
+`blocked-by-frontend` si eres la pista contrato/frontend (T-C, T-F):
+
+```bash
+gh issue list --label blocked-by-backend --state open    # o blocked-by-frontend
+```
+
+Atenderlos tiene prioridad sobre las tareas P1/P2 de tu pista (no sobre una P0). Si la
+tarea que piden no está 🟢 READY o choca con otra P0, coméntalo en el issue y déjalo para
+el sync del miércoles; no cambies tú su prioridad.
+
 ```
 1. Elegir una tarea 🟢 READY de tasks.md (respeta "tras T-xx").
 2. git checkout develop && git pull
@@ -163,6 +175,25 @@ cd ai-services/transcode-service && pytest
 En esos casos: marca la tarea `⛔ BLOQUEADA (motivo)` en `tasks.md`, describe el
 problema en el PR o en un issue (`contract-change` si es de contrato) y **no** lo
 resuelvas en el código.
+
+### 9.1 Bloqueos entre pistas (T-I15)
+
+Si tu tarea depende de una tarea de la **otra pista** (backend/infra: T-B, T-I ·
+contrato/frontend: T-C, T-F):
+
+1. Abre un issue con la plantilla **Bloqueo entre pistas**
+   (`.github/ISSUE_TEMPLATE/blocked.md`) y la etiqueta de la pista que te bloquea:
+   `blocked-by-backend` o `blocked-by-frontend`. Título: `[blocked] T-xx ← T-yy: <qué falta>`.
+2. En el issue: tu tarea bloqueada, la tarea que propones adelantar (T-yy), el impacto y si
+   hay un rodeo temporal (p. ej. Prism con los fixtures del contrato).
+3. Marca tu tarea `🔴 BLOQUEADA por T-yy` en `tasks.md` con el enlace al issue y sigue con
+   otra tarea 🟢 READY de tu pista.
+4. **No implementes la otra pista**, ni un parche de ella en tu código. Un rodeo temporal
+   solo vale si no adelanta trabajo de la otra pista (un mock, un flag), y se retira al
+   cerrar el issue.
+5. La otra pista lo atiende según §7. Los leads repriorizan T-yy en `tasks.md` en el sync
+   del miércoles; el agente no cambia la prioridad de tareas ajenas.
+6. Al quedar T-yy ✅ HECHA, se cierra el issue y tu tarea vuelve a 🟢 READY.
 
 ## 10. Cómo reportar al terminar
 

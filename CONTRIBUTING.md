@@ -178,7 +178,9 @@ cd backend && ./mvnw -pl event-service -am clean test   # reactor con shared-web
 | Cuándo | Qué |
 |--------|-----|
 | **Lunes, 30 min** | Kickoff de la feature de la semana. Si toca contrato → RFC ese mismo día. |
-| **Miércoles** | Sync de blockers (issues con label `blocked-by-backend` / `blocked-by-frontend`). |
+| **Miércoles** | Sync de blockers (issues con label `blocked-by-backend` / `blocked-by-frontend`): los leads repriorizan en `docs/roadmap/tasks.md` las tareas que bloquean a la otra pista. |
 | **Viernes** | Review de integración: mocks actualizados, fixtures verificados, PRs de contrato mergeados, revisión de `docs/roadmap/tasks.md` y `decisions-pending.md`. |
+
+**Bloqueos entre pistas** (T-I15): la pista bloqueada abre un issue con la plantilla *Bloqueo entre pistas* (`.github/ISSUE_TEMPLATE/blocked.md`) y la etiqueta `blocked-by-backend` (necesita una T-B o T-I) o `blocked-by-frontend` (necesita una T-C o T-F); la otra pista los atiende antes que sus tareas P1/P2. Flujo completo en [AGENT-BRIEF §7 y §9.1](docs/handoff/AGENT-BRIEF.md#91-bloqueos-entre-pistas-t-i15).
 
 Labels disponibles: `contract`, `feat:auth`, `feat:events`, `feat:checkin`, `feat:social`, `feat:mosaic`, `feat:streaming`, `feat:chat`, `feat:archive`, `feat:media`, `blocked-by-backend`, `blocked-by-frontend`, `bug:contract`.
