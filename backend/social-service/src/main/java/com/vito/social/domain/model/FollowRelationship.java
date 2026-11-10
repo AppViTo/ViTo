@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
 @Builder
@@ -19,7 +19,7 @@ public class FollowRelationship {
     
     private String followingId;
     
-    private LocalDateTime createdAt;
+    private Instant createdAt;
     
     private boolean notificationsEnabled;
     
@@ -27,7 +27,7 @@ public class FollowRelationship {
         return FollowRelationship.builder()
                 .followerId(followerId)
                 .followingId(followingId)
-                .createdAt(LocalDateTime.now())
+                .createdAt(Instant.now())
                 .notificationsEnabled(true)
                 .build();
     }

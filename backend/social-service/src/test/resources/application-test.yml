@@ -19,3 +19,8 @@ logging:
   level:
     com.vito: DEBUG
     org.springframework.security: DEBUG
+
+# Sin MongoDB en estas pruebas: no se migra ni se crean índices al arrancar (SocialDataInitializer)
+vito:
+  data-init:
+    enabled: false
