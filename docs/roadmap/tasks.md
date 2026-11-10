@@ -142,7 +142,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 
 | ID | Tarea | Asignada a | Qué puede avanzar hoy |
 |----|-------|------------|------------------------|
-| T-C11 | Contrato de la Ola 2a (🟡 RFC) | Agente frontend (Alex) | D-08 ✅ con #283 (2026-11-10). Ahora: rama `contract/ola-2a` con `openapi.yaml`, fixtures, CONVENTIONS §9, inventario y nota en ADR-016 (T002, T005–T010). Absorbe el RFC #277. |
+| T-C11 | Contrato de la Ola 2a (🟢 READY) | Agente frontend (Alex) | D-08 ✅ con #283 (2026-11-10). Ahora: rama `contract/ola-2a` con `openapi.yaml`, fixtures, CONVENTIONS §9, inventario y nota en ADR-016 (T002, T005–T010). Absorbe el RFC #277. |
 | T-F13 | App de la Ola 2a | Agente frontend (Alex) | Nada hasta el merge de T-C11; después avanza contra el mock de Prism. Primero la búsqueda en "¿A quién invitamos?" (Bug-F08). |
 | T-B38 | `auth-service` y gateway: búsqueda y datos por lotes | Sesión de Bernardo | Bloqueada por T-C11. |
 | T-B39 | `social-service`: grafo social | Sesión de Bernardo | T003 ✅ #284; T013–T015 y T020 en #286; el resto, tras T-C11. |
@@ -177,7 +177,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-B08 | `hideAddressUntilAccepted` en event-service | B | P1 | ✅ HECHA (#26) | [VITO-33](https://bernardo-mira.atlassian.net/browse/VITO-33) |
 | T-B09 | Agregar servicios FastAPI a `docker-compose.yml` | B/I | P1 | ✅ HECHA (#43) | [VITO-34](https://bernardo-mira.atlassian.net/browse/VITO-34) |
 | T-B12 | event-service: `settings.isPublic` se serializa como `"public"` y se ignora al recibir | B | P0 | ✅ HECHA (#28) | [VITO-37](https://bernardo-mira.atlassian.net/browse/VITO-37) |
-| T-B13 | `boolean is*` serializado sin `is` en archive, mosaic, social y streaming | B | P1 | 🔴 BLOQUEADA (olas 2–5) | [VITO-38](https://bernardo-mira.atlassian.net/browse/VITO-38) |
+| T-B13 | `boolean is*` serializado sin `is` en archive, mosaic, social y streaming | B | P1 | 🔴 BLOQUEADA (olas 3–5; la parte social se absorbe en T-B39, Ola 2a) | [VITO-38](https://bernardo-mira.atlassian.net/browse/VITO-38) |
 | T-B11 | Gateway: rate limiter y circuit breaker inactivos en perfiles `dev`/`docker` | B | P0 | ✅ HECHA (#24) | [VITO-36](https://bernardo-mira.atlassian.net/browse/VITO-36) |
 | T-I01 | Higiene: `.gitignore` `backend/out/`, borrar `backend/java/` huérfano | I | P2 | 🟢 READY | [VITO-42](https://bernardo-mira.atlassian.net/browse/VITO-42) |
 | T-I02 | `integration-tests/`: darle `pom.xml` o retirarlo | I | P2 | 🟢 READY | [VITO-43](https://bernardo-mira.atlassian.net/browse/VITO-43) |
@@ -202,7 +202,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-B30 | JWT con firma asimétrica (RS256/ES256 + JWKS) | B | P1 | 🔴 BLOQUEADA (requiere spec) | — |
 | T-B31 | Spring Boot con soporte en los 10 servicios Java (excepción A9, vence el 2026-11-07) | B | P0 | ✅ HECHA (#224; A9 cerrada el 2026-11-01) | — |
 | T-B32 | Reacciones y mensajes del streaming no llegan en vivo a los espectadores (fan-out sin Redis Pub/Sub ni consumidor Kafka) | B | P1 | 🟡 RFC (contrato de reacciones; T-C05) | — |
-| T-B33 | media-service: las 3 operaciones de la Ola 3 según el contrato y retirar `/mosaic/photo` | B | P1 | 🟢 READY (contrato en #244) | — |
+| T-B33 | media-service: las 3 operaciones de la Ola 3 según el contrato y retirar `/mosaic/photo` | B | P1 | ✅ HECHA (#287) | — |
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
@@ -225,13 +225,13 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-I25 | Smoke E2E automático contra producción (post-deploy + cron) | I | P1 | ✅ HECHA (#211) | — |
 | T-I26 | CI: las 10 imágenes Java arrancan con el perfil `prod` antes del release | I | P0 | ✅ HECHA (#236) | — |
 | T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | ✅ HECHA (#278) | — |
-| T-I29 | Excepción de Trivy `CVE-2026-78661` de `mongo-backup` que vence el 2026-12-23 | I | P1 | 🟢 READY (antes del 2026-12-23; `exp:` la deja de ignorar sola al vencer) | — |
+| T-I29 | Excepción de Trivy `CVE-2026-78661` de `mongo-backup` que vence el 2026-12-23 | I | P1 | ✅ HECHA (#289; nueva fecha 2027-02-07) | — |
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | ✅ HECHA (#253) | — |
 | T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🟢 READY (contrato en #253; la app ya responde por `/rsvp` desde v0.2.0; falta retirar `respondToInvitation` y el resto de la ola) | — |
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y #273) | — |
 | T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | ✅ HECHA (#262) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
-| T-B37 | Concurrencia del gateway y latencia del RSVP (hallazgos de k6) | B | P1 | 🔵 EN CURSO (punto 1 en #281; puntos 2–4 abiertos) | — |
+| T-B37 | Concurrencia del gateway y latencia del RSVP (hallazgos de k6) | B | P1 | 🔵 EN CURSO (punto 1 ✅ #281; faltan los puntos 2–4) | — |
 | T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🔵 EN CURSO | — |
 | T-C11 | Contrato de la Ola 2a: grafo social y búsqueda de usuarios (spec 004) | C | P0 | 🟢 READY (D-08 ✅ #283) | — |
 | T-F13 | App de la Ola 2a: búsqueda para invitar, seguir, perfil social y "Mi Gente" | F | P0 | 🔴 BLOQUEADA por T-C11 | — |
@@ -779,12 +779,14 @@ depende del contrato.
 - **Cierre:** test que serializa y deserializa `{"settings":{"isPublic":true}}` y fixture
   `createEvent` de T-C01 aceptado tal cual.
 
-### T-B13 · Mismo defecto de `is*` en otros servicios — 🔴 BLOQUEADA por T-C07 (olas 2–5) · P1 · Principio I
+### T-B13 · Mismo defecto de `is*` en otros servicios — 🔴 BLOQUEADA por T-C07 (olas 3–5) · P1 · Principio I
 - **Hallazgo (T-B12):** los mismos `boolean is*` primitivos con Lombok salen sin el prefijo
   `is` en JSON y se ignoran al recibirlos. El frontend espera el nombre con `is`:
   `EventArchive.EventArchiveSettings.isPublic` (archive), `MosaicFeedItem.isLiked` (mosaic),
   `SocialProfile.isFollowing` / `isFollowedBy` (social), `ChatMessage.isDeleted` (streaming).
   Los `Boolean` envueltos (p. ej. `ArchiveService.*Command.isPublic`) no tienen el problema.
+- **Reparto:** la parte social (`SocialProfile.isFollowing` / `isFollowedBy`) se absorbe en
+  T-B39 dentro de la Ola 2a; el resto sigue en las olas 3–5.
 - **Qué:** al contractualizar cada servicio en su ola, aplicar el mismo patrón de T-B12
   (`@JsonMixin` en `infrastructure`) con el nombre que fije el contrato.
 - **Cierre:** test `@JsonTest` por servicio contra el fixture de su ola.
@@ -1100,7 +1102,7 @@ depende del contrato.
 - **Qué:** sobre común, Transactional Outbox y declaración en AsyncAPI de los eventos de
   `event-service`, antes de que exista el primer consumidor (ticket QR de la Ola 2).
 
-### T-B37 · Concurrencia del gateway y latencia del RSVP — 🔵 EN CURSO (punto 1 ✅ #281; faltan los puntos 2 y 3) · P1 · Principio VIII
+### T-B37 · Concurrencia del gateway y latencia del RSVP — 🔵 EN CURSO (punto 1 ✅ #281; faltan los puntos 2, 3 y 4) · P1 · Principio VIII
 - **Por qué:** hallazgos de los escenarios k6 de la Ola 1 (T061, 2026-11-07) en el stack local.
   1. El CircuitBreaker de Spring Cloud Gateway trae un **bulkhead por defecto de 25 llamadas
      concurrentes por ruta**. Con 150 RSVP a la vez, ~120 reciben `503 SERVICE_UNAVAILABLE` al

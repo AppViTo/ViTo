@@ -84,7 +84,7 @@ confunde a un agente nuevo. Si algo de aquí contradice a `tasks.md` o a `develo
 | Errores | Los 9 servicios Java heredan de `BaseExceptionHandler` en `backend/shared-web` (T-B18, ADR-017) |
 | Backend | Java 21, Spring Boot 4.0.9 (T-B31). `backend/` es un reactor Maven: `cd backend && ./mvnw -pl <svc> -am test`. Ya no hay `mvnw` por servicio |
 | Kafka | No hay outbox ni sobre versionado (T-B36): ningún consumidor nuevo hasta cerrarlo |
-| Mongo | Hasta T-I19 (#302), todos los servicios usan root. `auth`, `chat` y `media` comparten `vito_db` (deuda del Principio II, T-B40) |
+| Mongo | Mientras no se mergee T-I19 (#302), todos los servicios usan root. `auth`, `chat` y `media` comparten `vito_db` (deuda del Principio II; T-B40 llega con #302) |
 | Despliegue | ADR-011: VPS con Docker Compose (`docker-compose.prod.yml`), CD real con aprobación y rollback (T-I08) y web en Cloudflare Pages (T-I11). No trabajar en `infrastructure/kubernetes/` |
 | App de la Ola 1 | El backend está en producción desde v0.2.0. En la app faltan las tareas `[Alex]` abiertas de `specs/003` (editar, cancelar, enlaces, asistentes, `getCurrentUser`) y el cierre T065 |
 
