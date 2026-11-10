@@ -15,4 +15,9 @@
 # la red interna de Compose y nunca leen HTML. No hay tools publicadas con x/net >= 0.62.0. Se
 # quita al subir la imagen base cuando MongoDB las publique (T-I27).
 # Aprobó: @bamg359, @alexvilla01 (PR de T-I27) · Vence: 2026-12-23
-CVE-2026-78661 exp:2026-12-23
+# Renovación (T-I29, revisado el 2026-11-09): mongo:7.0 (digest 8bb44427…, 2026-10-26) sigue con
+# las tools 100.20.0; 100.20.1 y master de mongodb/mongo-tools siguen en x/net v0.61.0. Trivy
+# sobre la imagen sin excepciones: este es el único HIGH/CRITICAL con arreglo. Se revisa de nuevo
+# antes del vencimiento (T-I29).
+# Aprobó: @bamg359, @alexvilla01 (PR de T-I29) · Vence: 2027-02-07
+CVE-2026-78661 exp:2027-02-07
