@@ -5,7 +5,7 @@ import com.vito.event.domain.exception.EventException;
 import com.vito.event.domain.model.InviteLink;
 import com.vito.event.domain.model.InviteLinkPreview;
 import com.vito.event.infrastructure.config.InviteLinkSettings;
-import com.vito.event.infrastructure.security.AuthenticatedUser;
+import com.vito.shared.web.security.AuthenticatedUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

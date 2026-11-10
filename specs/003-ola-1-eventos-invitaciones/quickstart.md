@@ -46,7 +46,7 @@ Esperado: las 13 operaciones de [la tabla](./contracts/ola-1-operations.md#opera
    cupo 20 → exactamente 20 `ACCEPTED` y 30 `WAITLISTED`, en 10 ejecuciones seguidas.
 
 ```bash
-cd backend/event-service && ./mvnw test   # incluye la prueba de concurrencia
+cd backend && ./mvnw -pl event-service -am test   # incluye la prueba de concurrencia
 ```
 
 ## 4. Editar y cancelar (US2, US5, SC-007)

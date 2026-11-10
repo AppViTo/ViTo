@@ -5,7 +5,7 @@ import com.vito.event.domain.model.Invitation;
 import com.vito.event.domain.model.RSVP;
 import com.vito.event.domain.port.inbound.EventService;
 import com.vito.event.domain.exception.EventException;
-import com.vito.event.infrastructure.security.AuthenticatedUser;
+import com.vito.shared.web.security.AuthenticatedUser;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

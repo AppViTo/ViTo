@@ -133,6 +133,21 @@ release del viernes 2026-11-06.
 - **Si la app no llega al viernes:** avisar en #259. Ese release sale sin #259 y los dos pasan
   juntos al siguiente.
 
+### Asignación del 2026-11-09 (Ola 2a)
+
+Reparto de las tareas de la Ola 2a ([`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md)): grafo social y búsqueda de usuarios. La Ola 2 se
+divide (decisión de Bernardo, 2026-11-09): el check-in/QR va en una Ola 2b con su propia spec.
+Cada bloque es un PR a `develop`; el de contrato va primero y solo se mergea con D-08 de la
+Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
+
+| ID | Tarea | Asignada a | Qué puede avanzar hoy |
+|----|-------|------------|------------------------|
+| T-C11 | Contrato de la Ola 2a (🟡 RFC) | Agente frontend (Alex) | Revisar y aprobar el PR de la spec (D-08); después, rama `contract/ola-2a` con `openapi.yaml`, fixtures, CONVENTIONS §9, inventario y nota en ADR-016 (T002, T005–T010). Absorbe el RFC #277. |
+| T-F13 | App de la Ola 2a | Agente frontend (Alex) | Nada hasta el merge de T-C11; después avanza contra el mock de Prism. Primero la búsqueda en "¿A quién invitamos?" (Bug-F08). |
+| T-B38 | `auth-service` y gateway: búsqueda y datos por lotes | Sesión de Bernardo | Bloqueada por T-C11. |
+| T-B39 | `social-service`: grafo social | Sesión de Bernardo | T003 (Testcontainers) se puede adelantar; el resto, tras T-C11. |
+| T-I30 | `AUTH_SERVICE_URI`, carga y tablero de la Ola 2a | Sesión de Bernardo | T004 se puede adelantar. |
+
 ---
 
 ## Resumen: qué se puede hacer desde ya
@@ -172,7 +187,7 @@ release del viernes 2026-11-06.
 | T-B16 | `expiresIn` en segundos y forma de `AuthResponse` según ADR-004 | B | P0 | ✅ HECHA (#40) | [VITO-41](https://bernardo-mira.atlassian.net/browse/VITO-41) |
 | T-B17 | `/events/upcoming` lista eventos privados ajenos (filtro `settings.isPublic`) | B | P0 | ✅ HECHA (#153) | [VITO-56](https://bernardo-mira.atlassian.net/browse/VITO-56) |
 | T-B03 | Envelope ADR-003 en los 6 servicios sin handler (copia temporal, ADR-017) | B | P1 | ✅ HECHA (#164) | [VITO-28](https://bernardo-mira.atlassian.net/browse/VITO-28) |
-| T-B18 | Parent POM + `backend/shared-web`; borrar copias de filtro JWT y handler (ADR-017) | B/I | P1 | 🔴 BLOQUEADA (Ola 1) | — |
+| T-B18 | Parent POM + `backend/shared-web`; borrar copias de filtro JWT y handler (ADR-017) | B/I | P1 | 🔵 EN CURSO | — |
 | T-B19 | media-service: magic bytes, MIME de CONVENTIONS §8 y límite de 10 MB | B | P0 | ✅ HECHA (#155) | — |
 | T-B20 | chat-service: orígenes del WS desde configuración (hoy fijos en `localhost`) | B | P0 | ✅ HECHA (#163) | — |
 | T-B21 | Revocación inmediata de access tokens (lista negra por `jti` en el gateway) | B | P1 | ✅ HECHA (#168) | — |
@@ -216,14 +231,19 @@ release del viernes 2026-11-06.
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y #273) | — |
 | T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | ✅ HECHA (#262) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
-| T-B37 | Concurrencia del gateway y latencia del RSVP (hallazgos de k6) | B | P1 | 🟢 READY | — |
+| T-B37 | Concurrencia del gateway y latencia del RSVP (hallazgos de k6) | B | P1 | 🔵 EN CURSO (punto 1 en #281; puntos 2–4 abiertos) | — |
 | T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🔵 EN CURSO | — |
+| T-C11 | Contrato de la Ola 2a: grafo social y búsqueda de usuarios (spec 004) | C | P0 | 🟡 RFC (requiere D-08 de la Ola 2a) | — |
+| T-F13 | App de la Ola 2a: búsqueda para invitar, seguir, perfil social y "Mi Gente" | F | P0 | 🔴 BLOQUEADA por T-C11 | — |
+| T-B38 | `auth-service` y gateway de la Ola 2a: `searchUsers` y `getUsersByIds` | B | P0 | 🔴 BLOQUEADA por T-C11 | — |
+| T-B39 | `social-service` de la Ola 2a: follow idempotente, perfil, seguidores y seguidos | B | P1 | 🔴 BLOQUEADA por T-C11 (T003 se puede adelantar) | — |
+| T-I30 | `AUTH_SERVICE_URI`, escenarios k6 y tablero de la Ola 2a | I | P1 | 🟢 READY (T004); el resto tras T-B39 | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
 gitleaks, Dependabot). Las de P1 del triage bloquean la apertura a usuarios reales.
 
-Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-B06 (VITO-31), T-B13 (VITO-38), T-B18, T-B30.
+Bloqueadas (no tomar): T-C07 olas 1–2 y 4–6 (VITO-16), T-F02 (VITO-19), T-B06 (VITO-31), T-B13 (VITO-38), T-B30.
 Desbloqueadas el 2026-10-24: T-C07 Ola 3 (D-08), T-B07 y T-F08 (T-C06 hecha en #147), y T-I11
 (Pages, dominio, secretos y variables listos en T-I06).
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento). T-B10 quedó
@@ -507,6 +527,19 @@ depende del contrato.
 - **Cierre:** PR de `contract/ola-1` mergeado con `npm run contract` en verde; desbloquea
   T-F12, T-B34 y T-B35.
 
+### T-C11 · Contrato de la Ola 2a — 🟡 RFC (requiere D-08 de la Ola 2a) · P0 · Principio I, ADR-004, ADR-016
+- **Por qué:** Bug-F08 (los leads no pudieron encontrarse para invitarse en v0.2.0) y el hito 2
+  del MVP (seguir y dejar de seguir) necesitan operaciones que no están en el contrato.
+- **Qué:** T002 y T005–T010 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): 7 operaciones en `openapi.yaml` (`searchUsers` y
+  `getUsersByIds` en `auth-service`; `followUser`, `unfollowUser`, `getSocialProfile`,
+  `listFollowers` y `listFollowing` en `social-service`), fixtures, la excepción de límite en
+  CONVENTIONS §9, el inventario y una nota en ADR-016. Diseño en
+  `specs/004-ola-2a-social-busqueda/contracts/ola-2a-operations.md`.
+- **No hacer:** check-in/QR (Ola 2b); `/social/search` ni `/social/is-following`; mergear sin
+  D-08 de la Ola 2a y 1 CODEOWNER.
+- **Cierre:** PR de `contract/ola-2a` mergeado con `npm run contract` en verde; RFC #277
+  cerrado; desbloquea T-F13, T-B38 y T-B39.
+
 ---
 
 ## Pista F — Frontend Flutter
@@ -618,6 +651,13 @@ depende del contrato.
 - **Prioridad (2026-11-04):** primero el RSVP (T014 parcial, T032 y T033) y quitar
   `invitations/respond` de la app, para el release del viernes 2026-11-06 junto con #259.
   Detalle en la *Asignación del 2026-11-04*.
+
+### T-F13 · App de la Ola 2a — 🔴 BLOQUEADA por T-C11 · P0 · Principio IV
+- **Qué:** las tareas `[Alex]` de las fases 2 a 6 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): modelos y pruebas de contrato,
+  búsqueda en "¿A quién invitamos?" con invitación al crear el evento, botón de seguir, perfil
+  social con "te sigue", listas de seguidores y seguidos, y "Mi Gente" con datos reales.
+- **Cierre:** quickstart §2 y §6 de la spec en verde para la app; Bug-F08 cerrado y la parte social
+  de T-F02 sin `MockApiService`.
 
 ---
 
@@ -775,7 +815,7 @@ depende del contrato.
   futuro de otro organizador; test de `size` > 100.
 - **Bloquea el primer release** (T051, A8).
 
-### T-B18 · Librería `backend/shared-web` — 🔴 BLOQUEADA por la implementación de la Ola 1 · P1 · O-23, ADR-017
+### T-B18 · Librería `backend/shared-web` — 🔵 EN CURSO · P1 · O-23, ADR-017
 - **Qué:** parent POM Maven multi-módulo en `backend/` con el módulo `shared-web`
   (`JwtAuthenticationFilter`, `ErrorResponse`, handler base de ADR-003). Los servicios lo
   consumen como dependencia; `backend/Dockerfile` usa `backend/` como contexto; los jobs
@@ -786,6 +826,14 @@ depende del contrato.
   tercera clase compartida.
 - **Cierre:** ninguna clase duplicada entre servicios (`JwtAuthenticationFilter`,
   `ErrorResponse`, handler); CI y build de imágenes verdes para los 10 servicios.
+- **Avance (2026-11-08):** desbloqueada al salir el backend de la Ola 1 en v0.2.0. Rama
+  `backend/t-b18-shared-web`: agregador `backend/pom.xml` (los servicios conservan
+  `spring-boot-starter-parent`), `shared-web` con `ErrorResponse`, `BaseExceptionHandler`,
+  `AuthenticatedUser` y el filtro JWT de los 6 servicios de recursos; un solo `mvnw` en
+  `backend/`; Dockerfile con contexto `backend/` y `SERVICE`. api-gateway (filtro reactivo
+  con revocación) y auth-service (valida con su `TokenProvider`) conservan su filtro, que no
+  es una copia. Fuera de alcance: que el filtro común consulte la revocación (ver T-B30 y el
+  punto 3 de T-B37).
 
 ### T-B19 · Validación de subida en media-service — ✅ HECHA (#155) · P0 · Principio III, CONVENTIONS §8, T051 (A1, A2)
 - **Hallazgo:** `MediaServiceImpl.validateFile` confía en el `Content-Type` que manda el
@@ -906,7 +954,8 @@ depende del contrato.
 - **Qué (a especificar):** RS256 o ES256, JWKS publicado por auth, rotación de claves y
   convivencia con los tokens vigentes. Relacionado: el refresh no revoca el access token
   anterior (el request no lo trae; requiere RFC al contrato) y las copias de
-  `JwtAuthenticationFilter` no consultan la revocación (se resuelve con T-B18).
+  `JwtAuthenticationFilter` no consultan la revocación (con T-B18 el filtro es uno solo, en
+  `shared-web`: el cambio se hace ahí, después de decidir el fail-open de T-B37).
 
 ### T-B31 · Spring Boot con soporte en los 10 servicios Java — ✅ HECHA (#224; A9 cerrada el 2026-11-01) · P0 · Principio III, excepción A9
 - **Por qué:** el primer escaneo real de Trivy (release 0.1.0) encontró de 39 a 57 CVE
@@ -1027,7 +1076,7 @@ depende del contrato.
 - **Qué:** sobre común, Transactional Outbox y declaración en AsyncAPI de los eventos de
   `event-service`, antes de que exista el primer consumidor (ticket QR de la Ola 2).
 
-### T-B37 · Concurrencia del gateway y latencia del RSVP — 🟢 READY · P1 · Principio VIII
+### T-B37 · Concurrencia del gateway y latencia del RSVP — 🔵 EN CURSO (punto 1 en #281) · P1 · Principio VIII
 - **Por qué:** hallazgos de los escenarios k6 de la Ola 1 (T061, 2026-11-07) en el stack local.
   1. El CircuitBreaker de Spring Cloud Gateway trae un **bulkhead por defecto de 25 llamadas
      concurrentes por ruta**. Con 150 RSVP a la vez, ~120 reciben `503 SERVICE_UNAVAILABLE` al
@@ -1039,12 +1088,38 @@ depende del contrato.
      El portátil (4 CPU compartidas) exagera la cifra; no se sabe cuánto.
   3. Bajo carga, la consulta de revocación del JWT en Redis supera sus 250 ms y el gateway
      **acepta el token sin comprobar la revocación** (fail-open, se registra como aviso).
+  4. Con el punto 1 resuelto (#281), en la corrida de k6 **1 de 150 RSVP quedó colgado 60 s**
+     hasta el timeout de k6: el gateway lo enrutó, pero nunca llegó a `event-service` ni al filtro
+     CircuitBreaker (los 154 conteos del breaker cuadran sin él). Se quedó en un filtro global
+     anterior, donde no aplica ningún timeout. Además, 121 consultas de revocación a Redis
+     superaron los 250 ms con Redis en reposo: apunta a congestión de la conexión del gateway a
+     Redis, y puede ser la misma causa del punto 3.
+- **Avance:** punto 1 en #281: bulkhead de 200 en `configs.default` y `BulkheadFullException`
+  ignorada por el breaker, que ahora tiene una configuración común para todas las rutas. k6 sin
+  `503` (antes ~120). El p95 sigue en ~4,5 s en local.
 - **Qué:** (1) configurar el bulkhead (`max-concurrent-calls` por ruta o desactivarlo, con
   justificación) y que su rechazo no abra el breaker; (2) medir el RSVP en un entorno con los
   recursos del VPS y, si sigue lento, reducir viajes a Mongo; (3) decidir con los dos leads si
-  el fail-open de la revocación es aceptable o necesita métrica y alerta.
+  el fail-open de la revocación es aceptable o necesita métrica y alerta; (4) timeout en los
+  filtros globales del gateway y revisar el pool de conexiones a Redis.
 - **Cierre:** `ola-1-rsvp.js` con 150 asistentes sin `503` y con p95 < 1 s en el entorno
-  representativo; la decisión del punto 3 registrada.
+  representativo, ninguna petición colgada más que el timeout del gateway y la decisión del punto 3
+  registrada.
+
+### T-B38 · `auth-service` y gateway de la Ola 2a — 🔴 BLOQUEADA por T-C11 · P0 · Principios II, III y IX
+- **Qué:** T021–T033 y T061–T062 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): búsqueda por prefijo sin tildes con campos
+  normalizados, índices y migración de los usuarios existentes; sin correo, sin privados y sin
+  quien busca; `getUsersByIds` para `social-service`; rutas `users-search` (1/s, ráfaga 10) y
+  `users` en el gateway; retirar `/social/search`.
+- **Cierre:** quickstart §2 de la spec en verde; se puede liberar sola para cerrar Bug-F08.
+
+### T-B39 · `social-service` de la Ola 2a — 🔴 BLOQUEADA por T-C11 · P1 · Principios II, IV y VII
+- **Qué:** T003, T013–T020, T036–T041, T043–T047, T049–T052, T055 y T058 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): solo el
+  grafo (identidad por lotes desde `auth-service`, sin `user_profiles`), follow atómico e
+  idempotente con índice único, contadores calculados, paginación en la base, `503` si
+  `auth-service` no responde, `isFollowing`/`isFollowedBy` con su nombre (parte social de T-B13) y
+  retirar `/social/is-following`.
+- **Cierre:** quickstart §3–§5 de la spec en verde; T-B13 sin la parte social.
 
 ---
 
@@ -1454,3 +1529,10 @@ depende del contrato.
   correcto. El p95 del RSVP no se cumple en local y destapó T-B37. Falta medirlo en un entorno
   representativo después de T-B37.
 - **Cierre:** Prod Startup en verde con la variable; k6 sin cupos superados y dentro de los SLO.
+
+### T-I30 · `AUTH_SERVICE_URI`, carga y tablero de la Ola 2a — 🟢 READY (T004) · P1 · Principios VI, VII y VIII
+- **Qué:** T004, T056 y T057 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): `AUTH_SERVICE_URI` para `social-service` en
+  `application.yml`, `.env.example`, los dos Compose y los fixtures de Prod Startup; escenario k6
+  `ola-2a-social.js`; paneles de `429` de la búsqueda y de la llamada `social` → `auth` en Grafana.
+- **Cierre:** Prod Startup en verde con la variable; k6 dentro de los SLO en un entorno
+  representativo.

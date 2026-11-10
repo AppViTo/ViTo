@@ -19,6 +19,12 @@
         <jjwt.version>0.13.0</jjwt.version>
     </properties>
     <dependencies>
+        <!-- Envelope de error, handler base y filtro JWT comunes (T-B18, ADR-017) -->
+        <dependency>
+            <groupId>com.vito</groupId>
+            <artifactId>shared-web</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
         <!-- Spring Boot Starters -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
