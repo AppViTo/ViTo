@@ -1132,6 +1132,33 @@ depende del contrato.
   retirar `/social/is-following`.
 - **Cierre:** quickstart §3–§5 de la spec en verde; T-B13 sin la parte social.
 
+### T-B40 · `chat-service` y `media-service` fuera de `vito_db` — 🔴 BLOQUEADA por T-I19 · P2 · Principio II (deuda de T-I19)
+- **Hallazgo (T-I19, #302):** `auth-service`, `chat-service` y `media-service` comparten
+  `vito_db`. Con un usuario por servicio, `vito_chat` y `vito_media` igual tienen `readWrite`
+  sobre `users`, que es de auth. Ningún código de chat o media lee esa colección, pero tampoco
+  hay nada que lo impida.
+- **Qué:**
+  - `chat-service` pasa a `vito_chat` (`chat_messages`, `chat_rooms`) y `media-service` a
+    `vito_media` (`media`), en su `application.yml`.
+  - Migración de datos con root, idempotente y antes del `up`: `renameCollection` de
+    `vito_db.<col>` a la base nueva, que en el Mongo standalone de producción es instantáneo.
+    Si la colección ya está en la base nueva, no hace nada. Va como paso de operación junto a
+    `ensure-service-users.sh`, porque el usuario de cada servicio no tiene permisos sobre la
+    otra base.
+  - `service-users.js`, las URIs de `docker-compose.prod.yml` y `docker-compose.yml` apuntan
+    a las bases nuevas.
+  - `service-users-mongo.bats` comprueba que `vito_chat` y `vito_media` no pueden leer
+    `vito_db.users`.
+- **Ojo:**
+  - Un rollback a un SHA anterior deja a chat y media mirando `vito_db` vacía. El paso
+    inverso, o un rollback que lo bloquee, va en el mismo PR.
+  - Desplegar fuera de evento.
+  - Hacer un backup manual antes (`docs/runbooks/restore.md`, paso 2).
+- **Cierre:**
+  - Solo `auth-service` usa `vito_db`.
+  - El bats de T-I19 cubre a chat y media.
+  - Mensajes y archivos existentes siguen visibles después del despliegue.
+
 ---
 
 ## Pista I — Infra, CI/CD e higiene
@@ -1385,7 +1412,7 @@ depende del contrato.
   levanta el Caddyfile real con backends falsos y comprueba con `curl` las cabeceras en
   `api.` y `live.`, también en lo que llega por `reverse_proxy`.
 
-### T-I19 · Un usuario de Mongo por servicio — 🟢 READY · P1 · Principios II y III, T051 (M12)
+### T-I19 · Un usuario de Mongo por servicio — 🔵 EN CURSO (PR abierto) · P1 · Principios II y III, T051 (M12)
 - **Hallazgo:** los 10 servicios Java usan el usuario root (`MONGODB_URI` en
   `x-java-service` de `docker-compose.prod.yml`). Si se compromete uno, quedan expuestas
   todas las bases, y nada hace cumplir el Principio II.
@@ -1397,6 +1424,20 @@ depende del contrato.
 - **Cierre:** cada servicio arranca sano con su usuario; un test de integración comprueba
   que el usuario de event-service no puede leer la base de auth (`vito_db`). Si algún servicio lee la base de otro, se
   registra como deuda del Principio II.
+- **Hecho en el PR:** `service-users.js` (lista y lógica, una sola vez) +
+  `ensure-service-users.sh` en `cd.yml` y `rollback.yml`, junto a `ensure-ro-user.sh`. El
+  mismo `.js` corre en el initdb de `mongodb`, así un volumen vacío (VPS nuevo o
+  restauración en otra máquina) ya tiene los usuarios antes del primer `up`. El gateway
+  ya no recibe `MONGODB_URI`, y transcode y moderation lo reciben sin credenciales porque hoy
+  no usan Mongo. Prueba: `tests/service-users-mongo.bats` contra `mongo:7.0.14`.
+- **Antes de desplegar:** agregar las 9 `MONGO_<SVC>_PASSWORD` al secreto `DOTENV_PRODUCTION`.
+  Sin ellas, `config -q` falla con código 2 y no se toca nada. El primer despliegue recrea
+  `mongodb`, porque cambian su entorno y sus montajes, así que hay que desplegar fuera de evento.
+- **Deuda del Principio II:** `chat-service` y `media-service` comparten `vito_db` con
+  `auth-service`, así que `vito_chat` y `vito_media` pueden leer `users`. Para cerrarla hay que
+  mover cada uno a su propia base (`vito_chat`, `vito_media`) con una migración de datos:
+  T-B40.
+
 
 ### T-I20 · Kafka con TLS y ACL por tópico — ⚪ DIFERIDA (Fase Crecimiento) · P2 · Principio III, T051 (A7)
 - **Excepción A7:** Kafka usa `SASL_PLAINTEXT` con un solo usuario y sin ACL. Se acepta

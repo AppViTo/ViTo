@@ -114,7 +114,7 @@ jobs:
         run: |
           rc=0
           out=$(printf '%s\n' "$RO_PW" | ssh vps \
-            "read -r MONGO_DEPLOY_RO_PASSWORD && export MONGO_DEPLOY_RO_PASSWORD && $REMOTE/ensure-ro-user.sh && $REMOTE/live-check.sh") || rc=$?
+            "read -r MONGO_DEPLOY_RO_PASSWORD && export MONGO_DEPLOY_RO_PASSWORD && $REMOTE/ensure-ro-user.sh && $REMOTE/ensure-service-users.sh && $REMOTE/live-check.sh") || rc=$?
           json=$(tail -n1 <<<"$out")
           echo "$json"
           echo "rc=$rc" >> "$GITHUB_OUTPUT"
@@ -130,7 +130,7 @@ jobs:
                 exit "$rc"
               fi
               ;;
-            *) echo "::error::live-check o ensure-ro-user fallaron (código $rc)"; exit "$rc" ;;
+            *) echo "::error::live-check, ensure-ro-user o ensure-service-users fallaron (código $rc)"; exit "$rc" ;;
           esac
 
       - name: Rollback

@@ -86,8 +86,9 @@ backup. Es el último recurso; durante un evento en vivo, primero leer
    # termina con "OK restaurado vito-<UTC>.archive.gz"
    ```
 
-   `admin.*` no se restaura: los usuarios de Mongo los crea `MONGO_INITDB_*` y
-   `ensure-ro-user.sh` (en cada despliegue o rollback).
+   `admin.*` no se restaura: los usuarios de Mongo los crean `MONGO_INITDB_*` y el initdb
+   (`service-users.js`, en un volumen vacío), y luego `ensure-ro-user.sh` y
+   `ensure-service-users.sh` en cada despliegue o rollback.
 
 5. **Comprobar** que están las bases y devolver el tráfico:
 
