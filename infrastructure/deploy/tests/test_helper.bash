@@ -21,6 +21,14 @@ setup_vito() {
   export DOCKER_LOG="$FAKE_DIR/calls.log"
   : >"$DOCKER_LOG"
   : >"$FAKE_DIR/images"
+  # migrate-service-dbs.sh falso (T-B40): registra el layout y sale con $FAKE_MIGRATE_RC
+  export DEPLOY_MIGRATE_DBS="$FAKE_DIR/bin/migrate-service-dbs"
+  printf '#!/usr/bin/env bash
+echo "$1" >>"$FAKE_DIR/migrations"
+exit "${FAKE_MIGRATE_RC:-0}"
+'     >"$DEPLOY_MIGRATE_DBS"
+  chmod +x "$DEPLOY_MIGRATE_DBS"
+  : >"$FAKE_DIR/migrations"
 }
 
 # make_bundle <sha> [contenido del Caddyfile]: lo que cd.yml copia a releases/<sha>/
@@ -51,6 +59,16 @@ deploy_ok() {
   # shellcheck disable=SC2154 # status y output los define `run` de bats
   [ "$status" -eq 0 ] || { echo "$output"; return 1; }
 }
+
+# split_bundle <sha>: bundle de un release con T-B40 (trae service-dbs.js)
+split_bundle() {
+  make_bundle "$1"
+  mkdir -p "$VITO_ROOT/releases/$1/infrastructure/deploy/remote"
+  : >"$VITO_ROOT/releases/$1/infrastructure/deploy/remote/service-dbs.js"
+}
+
+migrations() { tr '
+' ' ' <"$FAKE_DIR/migrations" | sed 's/ $//'; }
 
 current_sha() { basename "$(readlink "$VITO_ROOT/current")"; }
 

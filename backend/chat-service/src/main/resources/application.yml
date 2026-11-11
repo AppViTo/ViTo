@@ -7,7 +7,7 @@ spring:
   
   mongodb:
     uri: ${MONGODB_URI}
-    database: vito_db
+    database: vito_chat
   data:
     redis:
       host: ${REDIS_HOST:localhost}

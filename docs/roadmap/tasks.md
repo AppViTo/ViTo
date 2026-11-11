@@ -238,7 +238,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-B38 | `auth-service` y gateway de la Ola 2a: `searchUsers` y `getUsersByIds` | B | P0 | 🔴 BLOQUEADA por T-C11 | — |
 | T-B39 | `social-service` de la Ola 2a: follow idempotente, perfil, seguidores y seguidos | B | P1 | 🔴 BLOQUEADA por T-C11 (T003 ✅ #284; T013–T015 y T020 en #286) | — |
 | T-I30 | `AUTH_SERVICE_URI`, escenarios k6 y tablero de la Ola 2a | I | P1 | 🔴 BLOQUEADA por T-B39 (T004 ✅ #284) | — |
-| T-B40 | `chat-service` y `media-service` fuera de `vito_db` (deuda de T-I19) | B/I | P2 | 🟢 READY (T-I19 ✅ #302) | — |
+| T-B40 | `chat-service` y `media-service` fuera de `vito_db` (deuda de T-I19) | B/I | P2 | 🔵 EN CURSO (PR abierto; liberar en el mismo release que T-I19) | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
@@ -1173,7 +1173,7 @@ depende del contrato.
   retirar `/social/is-following`.
 - **Cierre:** quickstart §3–§5 de la spec en verde; T-B13 sin la parte social.
 
-### T-B40 · `chat-service` y `media-service` fuera de `vito_db` — 🟢 READY (T-I19 en #302) · P2 · Principio II (deuda de T-I19)
+### T-B40 · `chat-service` y `media-service` fuera de `vito_db` — 🔵 EN CURSO (PR abierto) · P2 · Principio II (deuda de T-I19)
 - **Hallazgo (T-I19, #302):** `auth-service`, `chat-service` y `media-service` comparten
   `vito_db`. Con un usuario por servicio, `vito_chat` y `vito_media` igual tienen `readWrite`
   sobre `users`, que es de auth. Ningún código de chat o media lee esa colección, pero tampoco
@@ -1199,6 +1199,22 @@ depende del contrato.
   - Solo `auth-service` usa `vito_db`.
   - El bats de T-I19 cubre a chat y media.
   - Mensajes y archivos existentes siguen visibles después del despliegue.
+- **Avance (2026-11-11):** en el PR `feat/T-B40-chat-media-db`:
+  - `chat-service` usa `vito_chat` y `media-service` `vito_media` (`application.yml`,
+    `docker-compose.prod.yml` y `service-users.js`).
+  - `remote/service-dbs.js` + `migrate-service-dbs.sh split|shared`: planifica todo antes de
+    mover. Si las dos bases tienen documentos, falla sin tocar nada. Si hay algo que mover, para
+    chat y media y usa `renameCollection`, que conserva los índices.
+  - `deploy.sh` migra antes de cada `up` según el bundle que activa: `split` si trae
+    `service-dbs.js`, `shared` si no. Así un `rollback` a un release anterior, o la vuelta
+    automática tras una salud fallida, devuelve las colecciones a `vito_db`. Nuevo código de
+    salida 8 si la migración falla: no activa el release.
+  - `restore.md`: un backup anterior a T-B40 se mueve con `migrate-service-dbs.sh split`.
+  - Tests: 4 casos nuevos en `deploy.bats` (docker falso) y `service-dbs-mongo.bats` contra
+    `mongo:7.0.14` (mover, índices, idempotencia, vuelta, destino vacío, conflicto).
+  - **Liberar en el mismo release que T-I19.** Un release con T-I19 y sin T-B40 dejaría a
+    `vito_chat` y `vito_media` con permisos en `vito_db`, y un rollback a él, ya con los
+    roles nuevos, no podría leer sus colecciones. Ninguno de los dos está desplegado aún.
 
 ---
 

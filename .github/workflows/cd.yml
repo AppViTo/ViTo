@@ -400,6 +400,7 @@ jobs:
             4) echo "::error::Falta una imagen o el bundle (código 4): no se tocó nada" ;;
             5) echo "::error::La salud falló y se volvió al release anterior (código 5)" ;;
             6) echo "::error::La salud falló y no se pudo volver (código 6): requiere un lead (docs/runbooks/despliegue.md)" ;;
+            8) echo "::error::La migración de bases de chat y media falló (código 8): no se activó; requiere un lead (T-B40)" ;;
             *) echo "::error::deploy.sh salió con $rc" ;;
           esac
           exit "$rc"
