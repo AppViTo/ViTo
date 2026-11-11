@@ -117,8 +117,8 @@ activate() {
 # con service-dbs.js usa vito_chat/vito_media; uno anterior, vito_db. Así un rollback a un
 # release anterior a T-B40 devuelve las colecciones.
 migrate_dbs() {
-  local layout=shared
-  [[ -f "$1/infrastructure/deploy/remote/service-dbs.js" ]] && layout=split
+  local layout="shared"
+  [[ -f "$1/infrastructure/deploy/remote/service-dbs.js" ]] && layout="split"
   "$MIGRATE_DBS" "$layout"
 }
 
