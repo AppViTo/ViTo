@@ -193,7 +193,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-B21 | Revocación inmediata de access tokens (lista negra por `jti` en el gateway) | B | P1 | ✅ HECHA (#168) | — |
 | T-B22 | Throttling de login por cuenta | B | P1 | 🟡 RFC | — |
 | T-B23 | Rate limit por usuario en las rutas autenticadas | B | P1 | ✅ HECHA (#180) | — |
-| T-B24 | Audit log de eventos de seguridad | B | P1 | 🟢 READY | — |
+| T-B24 | Audit log de eventos de seguridad | B | P1 | 🔵 EN CURSO (#305; faltan cambio de contraseña y borrado de cuenta, que aún no existen) | — |
 | T-B25 | media-service: re-codificar imágenes y quitar metadatos (excepción A3) | B | P0 | ✅ HECHA (#174) | — |
 | T-B26 | Moderación del mosaico por el organizador (excepción A3) | B | P0 | ✅ HECHA (#189) | — |
 | T-B27 | Logs en INFO en `prod` en los 9 servicios Java restantes | B | P1 | ✅ HECHA (#175) | — |
@@ -206,17 +206,17 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-I07 | `docker-compose.prod.yml` + Caddy + límites de memoria (ADR-011) | I | P0 | ✅ HECHA (#36) | [VITO-46](https://bernardo-mira.atlassian.net/browse/VITO-46) |
 | T-I09 | Backup diario de Mongo a almacenamiento S3 (R2) + restauración | I | P0 | ✅ HECHA (#35) | [VITO-48](https://bernardo-mira.atlassian.net/browse/VITO-48) |
 | T-I10 | media-service con endpoint S3 configurable (R2 en prod, SeaweedFS en local) | B | P0 | ✅ HECHA (#34) | [VITO-49](https://bernardo-mira.atlassian.net/browse/VITO-49) |
-| T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🟢 READY | [VITO-51](https://bernardo-mira.atlassian.net/browse/VITO-51) |
+| T-I12 | CI solo construye y prueba lo que cambió (filtros `paths`) | I | P1 | 🔵 EN CURSO (#306; falta verlo en un PR solo de `frontend/`) | [VITO-51](https://bernardo-mira.atlassian.net/browse/VITO-51) |
 | T-I06 | Aprovisionar cuentas y VPS (tarea manual de leads) | I | P0 | ✅ HECHA (manual, 2026-10-24; pendientes menores en ADR-013) | [VITO-45](https://bernardo-mira.atlassian.net/browse/VITO-45) |
 | T-I08 | Pipeline de despliegue a producción por SSH | I | P0 | ✅ HECHA (rollback ensayado el 2026-11-01) | [VITO-47](https://bernardo-mira.atlassian.net/browse/VITO-47) |
 | T-I11 | Frontend web en Cloudflare Pages, con la CSP/HSTS de la web (antes en T-I18) | I/F | P1 | 🔵 EN CURSO (#179 · falta verificar en prod) | [VITO-50](https://bernardo-mira.atlassian.net/browse/VITO-50) |
 | T-I13 | Grafana Cloud: métricas, logs y uptime | I | P1 | 🔵 EN CURSO (T041 ✅ #254; faltan la alerta `backup-missing` y los paneles por contenedor) | [VITO-52](https://bernardo-mira.atlassian.net/browse/VITO-52) |
 | T-I14 | Runbook de restauración y de incidentes | I | P1 | 🔵 EN CURSO (#167 · falta el ensayo manual) | [VITO-53](https://bernardo-mira.atlassian.net/browse/VITO-53) |
-| T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🟢 READY | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
+| T-I15 | Protocolo de bloqueos entre agentes (frontend ↔ backend/infra) | I | P1 | 🔵 EN CURSO (#307; falta el issue de ejemplo) | [VITO-54](https://bernardo-mira.atlassian.net/browse/VITO-54) |
 | T-I16 | Protección de rama en `main` y `develop` (tarea manual de leads) | I | P0 | ✅ HECHA (#49, manual) | [VITO-55](https://bernardo-mira.atlassian.net/browse/VITO-55) |
 | T-I17 | Gateway en `prod`: rutas de subida cerradas hasta la ola del mosaico (excepción A3) | I/B | P0 | ✅ HECHA (#156) | — |
 | T-I18 | Cabeceras de seguridad en Caddy (`api.`, `live.`); la CSP/HSTS de la web pasó a T-I11 | I | P0 | ✅ HECHA (#157) | — |
-| T-I19 | Un usuario de Mongo por servicio (sin root) | I/B | P1 | 🟢 READY | — |
+| T-I19 | Un usuario de Mongo por servicio (sin root) | I/B | P1 | 🔵 EN CURSO (#302; falta desplegar con las 9 `MONGO_<SVC>_PASSWORD`) | — |
 | T-I20 | Kafka con TLS y ACL por tópico (excepción A7) | I | P2 | ⚪ DIFERIDA (Fase Crecimiento; revisión 2027-04-22) | — |
 | T-I21 | Subida al mosaico en `prod` detrás de una propiedad (excepción A3) | I/B | P0 | ✅ HECHA (#177, #183 · activar tras T-B26) | — |
 | T-I22 | `cd.yml`: opción para reconstruir todas las imágenes (VPS vacío) | I | P1 | ✅ HECHA (#230) | — |
@@ -238,6 +238,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-B38 | `auth-service` y gateway de la Ola 2a: `searchUsers` y `getUsersByIds` | B | P0 | 🔴 BLOQUEADA por T-C11 | — |
 | T-B39 | `social-service` de la Ola 2a: follow idempotente, perfil, seguidores y seguidos | B | P1 | 🔴 BLOQUEADA por T-C11 (T003 ✅ #284; T013–T015 y T020 en #286) | — |
 | T-I30 | `AUTH_SERVICE_URI`, escenarios k6 y tablero de la Ola 2a | I | P1 | 🔴 BLOQUEADA por T-B39 (T004 ✅ #284) | — |
+| T-B40 | `chat-service` y `media-service` fuera de `vito_db` (deuda de T-I19) | B/I | P2 | 🟢 READY (T-I19 ✅ #302) | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
@@ -915,7 +916,7 @@ depende del contrato.
   `prod`) toma la IP de `X-Forwarded-For`. Si `api.` deja de estar en *DNS only*, hay que revisarlo.
   Los handshakes `/ws/**` siguen sin rate limit.
 
-### T-B24 · Audit log de seguridad — 🔵 EN CURSO (PR abierto) · P1 · Principios VI y IX, T051 (M6)
+### T-B24 · Audit log de seguridad — 🔵 EN CURSO (#305 ✅; faltan cambio de contraseña y borrado de cuenta) · P1 · Principios VI y IX, T051 (M6)
 - **Qué:** auth-service registra en un logger `AUDIT` (JSON, T053 de la feature 001):
   login correcto y fallido, logout, refresh rechazado, cambio de contraseña y borrado de
   cuenta. Campos: `event`, `userId` (si existe), `ip` truncada a /24, `traceId`. Nunca el
@@ -1172,7 +1173,7 @@ depende del contrato.
   retirar `/social/is-following`.
 - **Cierre:** quickstart §3–§5 de la spec en verde; T-B13 sin la parte social.
 
-### T-B40 · `chat-service` y `media-service` fuera de `vito_db` — 🔴 BLOQUEADA por T-I19 · P2 · Principio II (deuda de T-I19)
+### T-B40 · `chat-service` y `media-service` fuera de `vito_db` — 🟢 READY (T-I19 en #302) · P2 · Principio II (deuda de T-I19)
 - **Hallazgo (T-I19, #302):** `auth-service`, `chat-service` y `media-service` comparten
   `vito_db`. Con un usuario por servicio, `vito_chat` y `vito_media` igual tienen `readWrite`
   sobre `users`, que es de auth. Ningún código de chat o media lee esa colección, pero tampoco
@@ -1346,7 +1347,7 @@ depende del contrato.
   producción; `curl -I` muestra HSTS y la CSP en la web, que carga sin violaciones de CSP en la
   consola del navegador (quickstart, paso 6).
 
-### T-I12 · CI incremental — 🔵 EN CURSO (PR abierto) · P1 · ADR-011
+### T-I12 · CI incremental — 🔵 EN CURSO (#306 ✅; falta verlo en un PR solo de `frontend/`) · P1 · ADR-011
 - **Qué:** que `ci.yml` construya y pruebe solo los servicios cuyos archivos cambiaron
   (filtros `paths` o `dorny/paths-filter`), más un job semanal completo. El repo es público y
   Actions no tiene cuota de minutos (ADR-011, actualización del 2026-10-22): el objetivo es
@@ -1414,7 +1415,7 @@ depende del contrato.
   - Ensayo completo C.2 en una máquina limpia (tarea manual de un lead, requiere SSH y
     secretos): pendiente, en un VPS por horas. Sus tiempos se anotan en el PR o issue que lo cierre.
 
-### T-I15 · Protocolo de bloqueos entre agentes — 🔵 EN CURSO (PR abierto) · P1 · CONTRIBUTING (cadencia)
+### T-I15 · Protocolo de bloqueos entre agentes — 🔵 EN CURSO (#307 ✅; falta el issue de ejemplo) · P1 · CONTRIBUTING (cadencia)
 - **Por qué:** el agente frontend y el backend/infra trabajan en paralelo. Ya existen las
   etiquetas `blocked-by-backend` / `blocked-by-frontend` y el sync de los miércoles, pero
   ningún documento le dice a un agente cuándo y cómo usarlas, ni cómo pedir que se adelante
@@ -1475,7 +1476,7 @@ depende del contrato.
   levanta el Caddyfile real con backends falsos y comprueba con `curl` las cabeceras en
   `api.` y `live.`, también en lo que llega por `reverse_proxy`.
 
-### T-I19 · Un usuario de Mongo por servicio — 🔵 EN CURSO (PR abierto) · P1 · Principios II y III, T051 (M12)
+### T-I19 · Un usuario de Mongo por servicio — 🔵 EN CURSO (#302 ✅; falta desplegar) · P1 · Principios II y III, T051 (M12)
 - **Hallazgo:** los 10 servicios Java usan el usuario root (`MONGODB_URI` en
   `x-java-service` de `docker-compose.prod.yml`). Si se compromete uno, quedan expuestas
   todas las bases, y nada hace cumplir el Principio II.
