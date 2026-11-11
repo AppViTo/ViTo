@@ -915,13 +915,24 @@ depende del contrato.
   `prod`) toma la IP de `X-Forwarded-For`. Si `api.` deja de estar en *DNS only*, hay que revisarlo.
   Los handshakes `/ws/**` siguen sin rate limit.
 
-### T-B24 · Audit log de seguridad — 🟢 READY · P1 · Principios VI y IX, T051 (M6)
+### T-B24 · Audit log de seguridad — 🔵 EN CURSO (PR abierto) · P1 · Principios VI y IX, T051 (M6)
 - **Qué:** auth-service registra en un logger `AUDIT` (JSON, T053 de la feature 001):
   login correcto y fallido, logout, refresh rechazado, cambio de contraseña y borrado de
   cuenta. Campos: `event`, `userId` (si existe), `ip` truncada a /24, `traceId`. Nunca el
   correo, la contraseña ni el token (Principio VI).
 - **Cierre:** test de que cada evento produce una línea con los campos y sin datos
   prohibidos; consulta de ejemplo en Loki en `infrastructure/observability/README.md`.
+- **Avance (2026-11-10):** en el PR `feat/T-B24-audit-log`:
+  - `SecurityAuditPort` (dominio) y `Slf4jSecurityAuditAdapter`: `register`, `login.success`,
+    `login.failure`, `logout` y `refresh.rejected` (token ilegible, usuario inexistente o
+    refresh ya rotado).
+  - IP desde `X-Forwarded-For`: la entrada que añadió el último proxy de confianza
+    (`vito.audit.trusted-proxies`: 1 por defecto, solo el gateway; 2 en prod, Caddy y el gateway).
+  - Se quitó el correo de los logs `INFO` de login y registro, en `AuthServiceImpl` y
+    `AuthController` (Principio VI).
+  - Consultas LogQL en el README de observabilidad.
+  - **Falta:** cambio de contraseña y borrado de cuenta no existen ni en el contrato ni en el
+    código. Se auditan cuando se implementen: basta con añadir el valor a `SecurityEvent`.
 
 ### T-B25 · Re-codificar las imágenes subidas — ✅ HECHA (#174) · P0 · Principio III, T051 (excepción A3)
 - **Por qué:** la excepción A3 (aprobada en #169) publica la subida al mosaico sin antimalware

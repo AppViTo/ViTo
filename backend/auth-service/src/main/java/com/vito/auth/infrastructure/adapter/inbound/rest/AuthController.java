@@ -25,7 +25,7 @@ public class AuthController {
     
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        log.info("Register request for email: {}", request.getEmail());
+        log.info("Register request");
         
         AuthResult result = authService.register(RegisterCommand.builder()
                 .username(request.getUsername())
@@ -45,7 +45,7 @@ public class AuthController {
     
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        log.info("Login request for email: {}", request.getEmail());
+        log.info("Login request");
         
         AuthResult result = authService.login(LoginCommand.builder()
                 .email(request.getEmail())

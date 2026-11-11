@@ -116,6 +116,28 @@ Importa en **Dashboards → New → Import**:
 Ambos usan la variable `datasource`; selecciona tu datasource de Prometheus después de
 importar. No se hardcodean UIDs de datasource.
 
+## Audit log de seguridad (T-B24)
+
+`auth-service` escribe una línea JSON por evento de cuenta en el logger `AUDIT`. Los campos son:
+
+- `event`: `register`, `login.success`, `login.failure`, `logout` o `refresh.rejected`.
+- `userId`: no aparece en un login con un correo inexistente ni en un refresh ilegible.
+- `ip`: truncada a /24 en IPv4 y a /48 en IPv6.
+- `traceId`.
+
+Nunca se registran el correo, la contraseña ni los tokens. En **Explore** (Loki):
+
+```logql
+# Todos los eventos de las últimas horas
+{service="auth-service"} | json | logger_name="AUDIT"
+
+# Logins fallidos por red /24 en ventanas de 5 min (fuerza bruta, relleno de credenciales)
+sum by (ip) (count_over_time({service="auth-service"} | json | logger_name="AUDIT" | event="login.failure" [5m]))
+
+# Historial de una cuenta
+{service="auth-service"} | json | logger_name="AUDIT" | userId="<id>"
+```
+
 ## cAdvisor: límites y fallback
 
 `prometheus.exporter.cadvisor` habla con `docker-socket-proxy` en solo lectura. Si los

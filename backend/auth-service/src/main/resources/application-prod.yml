@@ -15,3 +15,10 @@ management:
   otlp:
     tracing:
       endpoint: ${OTLP_TRACES_ENDPOINT:http://alloy:4318/v1/traces}
+
+# T-B24: proxies delante de auth-service que añaden su entrada a X-Forwarded-For (Caddy y el
+# gateway). La IP del audit log es la entrada número 2 desde la derecha; las anteriores las
+# controla el cliente. Fuera de prod solo está el gateway (valor por defecto 1).
+vito:
+  audit:
+    trusted-proxies: 2

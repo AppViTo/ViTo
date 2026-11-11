@@ -9,6 +9,8 @@ import com.vito.auth.domain.port.inbound.AuthService.RegisterCommand;
 import com.vito.auth.domain.port.inbound.AuthService.AuthResult;
 import com.vito.auth.domain.port.outbound.CachePort;
 import com.vito.auth.domain.port.outbound.EventPublisherPort;
+import com.vito.auth.domain.port.outbound.SecurityAuditPort;
+import com.vito.auth.domain.port.outbound.SecurityAuditPort.SecurityEvent;
 import com.vito.auth.domain.port.outbound.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,6 +47,9 @@ class AuthServiceImplTest {
 
     @Mock
     private TokenProvider tokenProvider;
+
+    @Mock
+    private SecurityAuditPort audit;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -279,5 +284,91 @@ class AuthServiceImplTest {
         assertThrows(AuthenticationException.class, () -> authService.logout("bad"));
 
         verifyNoInteractions(cachePort);
+    }
+
+    // ── T-B24: audit log ────────────────────────────────────────
+
+    @Test
+    void audit_LoginSuccess() {
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("Password123", testUser.getPasswordHash())).thenReturn(true);
+
+        authService.login(LoginCommand.builder().email("test@example.com").password("Password123").build());
+
+        verify(audit).record(SecurityEvent.LOGIN_SUCCESS, "user123");
+    }
+
+    @Test
+    void audit_LoginFailureWithUnknownEmailHasNoUserId() {
+        when(userRepository.findByEmail("nobody@example.com")).thenReturn(Optional.empty());
+
+        assertThrows(AuthenticationException.class, () -> authService.login(
+                LoginCommand.builder().email("nobody@example.com").password("x").build()));
+
+        verify(audit).record(SecurityEvent.LOGIN_FAILURE, null);
+        verifyNoMoreInteractions(audit);
+    }
+
+    @Test
+    void audit_LoginFailureWithWrongPassword() {
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.matches("WrongPassword", testUser.getPasswordHash())).thenReturn(false);
+
+        assertThrows(AuthenticationException.class, () -> authService.login(
+                LoginCommand.builder().email("test@example.com").password("WrongPassword").build()));
+
+        verify(audit).record(SecurityEvent.LOGIN_FAILURE, "user123");
+        verifyNoMoreInteractions(audit);
+    }
+
+    @Test
+    void audit_RegisterAndLogout() {
+        when(userRepository.existsByUsername(any())).thenReturn(false);
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(passwordEncoder.encode(any())).thenReturn("hash");
+        when(userRepository.save(any())).thenReturn(testUser);
+        when(tokenProvider.parseAccessToken("valid_token"))
+                .thenReturn(new TokenProvider.AccessTokenClaims("user123", "jti-1", Instant.now().plusSeconds(60)));
+
+        authService.register(RegisterCommand.builder()
+                .username("newuser").email("new@example.com").password("Password123").displayName("New").build());
+        authService.logout("valid_token");
+
+        verify(audit).record(SecurityEvent.REGISTER, "user123");
+        verify(audit).record(SecurityEvent.LOGOUT, "user123");
+    }
+
+    @Test
+    void audit_RefreshRejectedWhenTokenIsInvalid() {
+        when(tokenProvider.validateRefreshToken("garbage")).thenThrow(AuthenticationException.invalidRefreshToken());
+
+        assertThrows(AuthenticationException.class, () -> authService.refreshToken(
+                RefreshTokenCommand.builder().refreshToken("garbage").build()));
+
+        verify(audit).record(SecurityEvent.REFRESH_REJECTED, null);
+    }
+
+    @Test
+    void audit_RefreshRejectedWhenTokenWasAlreadyRotated() {
+        when(tokenProvider.validateRefreshToken("old_refresh")).thenReturn("user123");
+        when(userRepository.findById("user123")).thenReturn(Optional.of(testUser));
+        when(cachePort.isBlacklisted("old_refresh")).thenReturn(true);
+
+        assertThrows(AuthenticationException.class, () -> authService.refreshToken(
+                RefreshTokenCommand.builder().refreshToken("old_refresh").build()));
+
+        verify(audit).record(SecurityEvent.REFRESH_REJECTED, "user123");
+        verify(cachePort, never()).addToBlacklist(any(), any());
+    }
+
+    @Test
+    void audit_RefreshRejectedWhenUserNoLongerExists() {
+        when(tokenProvider.validateRefreshToken("orphan")).thenReturn("gone");
+        when(userRepository.findById("gone")).thenReturn(Optional.empty());
+
+        assertThrows(AuthenticationException.class, () -> authService.refreshToken(
+                RefreshTokenCommand.builder().refreshToken("orphan").build()));
+
+        verify(audit).record(SecurityEvent.REFRESH_REJECTED, "gone");
     }
 }
