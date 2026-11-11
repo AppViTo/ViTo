@@ -1414,7 +1414,7 @@ depende del contrato.
   - Ensayo completo C.2 en una máquina limpia (tarea manual de un lead, requiere SSH y
     secretos): pendiente, en un VPS por horas. Sus tiempos se anotan en el PR o issue que lo cierre.
 
-### T-I15 · Protocolo de bloqueos entre agentes — 🟢 READY · P1 · CONTRIBUTING (cadencia)
+### T-I15 · Protocolo de bloqueos entre agentes — 🔵 EN CURSO (PR abierto) · P1 · CONTRIBUTING (cadencia)
 - **Por qué:** el agente frontend y el backend/infra trabajan en paralelo. Ya existen las
   etiquetas `blocked-by-backend` / `blocked-by-frontend` y el sync de los miércoles, pero
   ningún documento le dice a un agente cuándo y cómo usarlas, ni cómo pedir que se adelante
@@ -1430,6 +1430,15 @@ depende del contrato.
     prioridad de tareas ajenas.
 - **Cierre:** la plantilla aparece al crear un issue en GitHub; AGENT-BRIEF y CONTRIBUTING
   enlazan el flujo; un issue de ejemplo (T-F01 ← T-B02/T-B15) creado con la plantilla.
+- **Avance (2026-11-10):** en el PR `docs/T-I15-bloqueos`:
+  - Plantilla `.github/ISSUE_TEMPLATE/blocked.md`.
+  - AGENT-BRIEF: §7 (revisar primero los `blocked-by-<mi pista>`) y §9.1 (flujo completo).
+  - CONTRIBUTING §7 enlaza el flujo.
+  - Las etiquetas quedan definidas por pista: `blocked-by-backend` cuando se necesita una T-B o
+    T-I, y `blocked-by-frontend` cuando se necesita una T-C o T-F.
+  - El ejemplo previsto (T-F01 ← T-B02/T-B15) ya no sirve: las tres están ✅. Se propone uno
+    real, **T-B38/T-B39 ← T-C11**, que se crea con la plantilla tras el merge (la plantilla solo
+    aparece en GitHub cuando llega a la rama por defecto).
 
 ### T-I16 · Protección de rama en `main` y `develop` — ✅ HECHA (#49, manual) · P0 · ADR-012, CONTRIBUTING §1
 - **Tarea manual de los leads** (requiere admin del repo; no la ejecuta un agente).
