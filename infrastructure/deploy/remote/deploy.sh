@@ -9,7 +9,8 @@
 #
 # Salida: 0 succeeded · 2 configuración, secreto o argumento inválido (no se tocó nada) ·
 # 4 imagen no cargada, bundle inexistente o rollback a un SHA no retenido (no se tocó nada) ·
-# 5 salud falló y se volvió al anterior · 6 salud falló sin anterior o la vuelta falló
+# 5 salud falló y se volvió al anterior · 6 salud falló sin anterior o la vuelta falló ·
+# 8 la migración de bases de chat y media falló (no se activó el release; T-B40)
 #
 # Nunca imprime valores del .env: compose solo recibe la ruta.
 set -euo pipefail
@@ -23,6 +24,8 @@ HISTORY=$VITO_ROOT/history
 LOG=$VITO_ROOT/deployments.log
 KEEP=3
 WAIT_TIMEOUT=${DEPLOY_WAIT_TIMEOUT:-300}
+HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+MIGRATE_DBS=${DEPLOY_MIGRATE_DBS:-$HERE/migrate-service-dbs.sh}
 
 # Servicios desplegables (data-model.md): uno por TAG_* del compose
 SERVICES=(api-gateway auth-service social-service event-service checkin-service
@@ -108,6 +111,23 @@ missing_images() {
 activate() {
   ln -sfn "releases/$1" "$VITO_ROOT/current.new"
   mv -Tf "$VITO_ROOT/current.new" "$CURRENT"
+}
+
+# migrate_dbs <bundle>: deja chat y media en la base que espera ese release (T-B40). Un bundle
+# con service-dbs.js usa vito_chat/vito_media; uno anterior, vito_db. Así un rollback a un
+# release anterior a T-B40 devuelve las colecciones.
+migrate_dbs() {
+  local layout="shared"
+  [[ -f "$1/infrastructure/deploy/remote/service-dbs.js" ]] && layout="split"
+  "$MIGRATE_DBS" "$layout"
+}
+
+# migration_failed: la migración no terminó; current no cambió. Se vuelve a levantar lo que
+# había (migrate-service-dbs.sh pudo parar chat y media) y sale con 8.
+migration_failed() {
+  log "la migración de bases falló: no se activa; requiere un lead"
+  [[ -n "$(current_sha)" ]] && { up || true; }
+  finish 8 failed
 }
 
 up() {
@@ -201,7 +221,7 @@ recover() {
   fi
   log "la salud falló: vuelvo a $prev"
   activate "$prev"
-  if up; then finish 5 rolled_back; fi
+  if migrate_dbs "$CURRENT/" && up; then finish 5 rolled_back; fi
   log "la vuelta a $prev también falló: requiere un lead"
   finish 6 failed
 }
@@ -230,6 +250,7 @@ cmd_apply() {
   log "validando la configuración de $sha"
   compose "$bundle" "$bundle/versions.env" config -q || finish 2 failed
   missing_images "$bundle/versions.env" || { log "faltan imágenes"; finish 4 failed; }
+  migrate_dbs "$bundle" || migration_failed
 
   log "activando $sha"
   activate "$sha"
@@ -252,6 +273,7 @@ cmd_rollback() {
   L_VERSIONS=$bundle/versions.env
   compose "$bundle" "$bundle/versions.env" config -q || finish 2 failed
   missing_images "$bundle/versions.env" || { log "faltan imágenes"; finish 4 failed; }
+  migrate_dbs "$bundle" || migration_failed
 
   log "volviendo a $sha"
   activate "$sha"

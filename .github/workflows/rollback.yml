@@ -157,6 +157,7 @@ jobs:
             4) echo "::error::$SHA no es uno de los últimos 3 releases con éxito, o faltan sus imágenes (código 4): no se tocó nada" ;;
             5) echo "::error::La salud falló y se volvió al release que estaba (código 5)" ;;
             6) echo "::error::La salud falló y no se pudo volver (código 6): requiere un lead" ;;
+            8) echo "::error::La migración de bases de chat y media falló (código 8): no se activó; requiere un lead (T-B40)" ;;
             *) echo "::error::deploy.sh salió con $rc" ;;
           esac
           exit "$rc"

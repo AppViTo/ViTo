@@ -37,6 +37,13 @@ de stdout para el *job summary*. `check` y `status` no escriben nada.
 | 4 | imagen de una versión no cargada, bundle inexistente o rollback a un SHA no retenido: no se tocó nada |
 | 5 | salud falló y se volvió al anterior (`rolled_back`) |
 | 6 | salud falló sin anterior o la vuelta también falló (`failed`): requiere un lead |
+| 8 | la migración de bases de chat y media falló (`failed`): no se activó el release, se volvió a levantar el activo; requiere un lead (T-B40) |
+
+Antes de cada `up` (`apply`, `rollback` y la vuelta automática), `deploy.sh` llama a
+`migrate-service-dbs.sh` con el layout del bundle que va a activar: `split` si el bundle trae
+`remote/service-dbs.js` (T-B40 en adelante: `vito_chat` y `vito_media`) y `shared` si no
+(todo en `vito_db`). Si hay algo que mover, para `chat-service` y `media-service` y mueve
+las colecciones con `renameCollection`; el `up` los vuelve a arrancar.
 
 ## `live-check.sh`
 

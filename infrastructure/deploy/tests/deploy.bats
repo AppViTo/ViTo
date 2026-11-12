@@ -249,3 +249,51 @@ PY
   [ "$status" -eq 0 ]
   grep -q -- "--env-file $VITO_ROOT/.env.preflight " "$DOCKER_LOG"
 }
+
+@test "(T-B40) apply de un release con service-dbs.js migra a split antes del up" {
+  deploy_ok "$A"
+  split_bundle "$B"
+  load_images "$B"
+  : >"$FAKE_DIR/migrations"
+  run "$DEPLOY" apply "$B" --changed "chat-service media-service"
+  [ "$status" -eq 0 ]
+  [ "$(migrations)" = split ]
+  [ "$(current_sha)" = "$B" ]
+}
+
+@test "(T-B40) rollback a un release anterior a T-B40 devuelve las colecciones (shared)" {
+  deploy_ok "$A"
+  split_bundle "$B"
+  load_images "$B"
+  run "$DEPLOY" apply "$B" --changed "chat-service"
+  [ "$status" -eq 0 ]
+  : >"$FAKE_DIR/migrations"
+  run "$DEPLOY" rollback "$A"
+  [ "$status" -eq 0 ]
+  [ "$(migrations)" = shared ]
+  [ "$(current_sha)" = "$A" ]
+}
+
+@test "(T-B40) migración fallida: sale con 8, no activa y levanta lo que había" {
+  deploy_ok "$A"
+  split_bundle "$B"
+  load_images "$B"
+  FAKE_MIGRATE_RC=1 run "$DEPLOY" apply "$B" --changed "chat-service"
+  [ "$status" -eq 8 ]
+  [ "$(current_sha)" = "$A" ]
+  # up del primer despliegue y el que vuelve a levantar A
+  [ "$(cat "$FAKE_DIR/up-count")" -eq 2 ]
+  [[ "$(tail -n1 "$VITO_ROOT/deployments.log")" == *'"exit_code":8'* ]]
+}
+
+@test "(T-B40) salud fallida tras migrar: la vuelta al anterior migra de nuevo a su layout" {
+  export FAKE_UP_RCS="0 1 0"
+  deploy_ok "$A"
+  split_bundle "$B"
+  load_images "$B"
+  : >"$FAKE_DIR/migrations"
+  run "$DEPLOY" apply "$B" --changed "chat-service"
+  [ "$status" -eq 5 ]
+  [ "$(migrations)" = "split shared" ]
+  [ "$(current_sha)" = "$A" ]
+}

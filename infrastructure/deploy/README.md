@@ -20,6 +20,7 @@ merge a main ─► cd.yml: changes ─► build ─► (aprobación del Environ
 | `remote/live-check.sh` + `live-check.js` | VPS | ¿evento o stream en vivo? (R6, FR-028), con el usuario de solo lectura |
 | `remote/ensure-ro-user.sh` | VPS | crea o actualiza `vito_deploy_ro` (rol `read` en `vito_events` y `vito_streaming`) |
 | `remote/ensure-service-users.sh` + `service-users.js` | VPS (y el initdb de `mongodb`) | crea o actualiza `vito_<svc>` con `readWrite` solo en la base de cada servicio (T-I19) |
+| `remote/migrate-service-dbs.sh` + `service-dbs.js` | VPS, desde `deploy.sh` | mueve las colecciones de chat y media entre `vito_db` y sus bases propias según el release que se activa (T-B40) |
 | `tests/` | CI (`Deploy Scripts`) | `bats` con un `docker` falso y fixtures sin secretos |
 
 ## En el VPS

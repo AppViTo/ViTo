@@ -11,7 +11,8 @@
 // Las contraseñas van sin codificar en MONGODB_URI (docker-compose.prod.yml): deben ser
 // alfanuméricas (se generan con el openssl de docs/runbooks/aprovisionamiento.md).
 //
-// auth, chat y media comparten vito_db: deuda del Principio II, se cierra en T-B40.
+// chat y media tienen base propia desde T-B40 (antes compartían vito_db con auth; las
+// colecciones las mueve migrate-service-dbs.sh).
 const SERVICES = [
   { svc: 'auth', db: 'vito_db' },
   { svc: 'social', db: 'vito_social' },
@@ -20,8 +21,8 @@ const SERVICES = [
   { svc: 'mosaic', db: 'vito_mosaic' },
   { svc: 'streaming', db: 'vito_streaming' },
   { svc: 'archive', db: 'vito_archive' },
-  { svc: 'chat', db: 'vito_db' },
-  { svc: 'media', db: 'vito_db' },
+  { svc: 'chat', db: 'vito_chat' },
+  { svc: 'media', db: 'vito_media' },
 ];
 
 const env = process.env;

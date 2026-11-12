@@ -90,6 +90,15 @@ backup. Es el último recurso; durante un evento en vivo, primero leer
    (`service-users.js`, en un volumen vacío), y luego `ensure-ro-user.sh` y
    `ensure-service-users.sh` en cada despliegue o rollback.
 
+   Un backup anterior a T-B40 trae los mensajes de chat y los archivos de media en `vito_db`.
+   Para que los vea el release activo, muévelos a sus bases (idempotente; si ya están, no hace
+   nada):
+
+   ```bash
+   /opt/vito/current/infrastructure/deploy/remote/migrate-service-dbs.sh split
+   dc up -d chat-service media-service
+   ```
+
 5. **Comprobar** que están las bases y devolver el tráfico:
 
    ```bash

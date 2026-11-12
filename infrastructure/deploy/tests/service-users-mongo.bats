@@ -60,8 +60,17 @@ as_user() {
   run as_user "$NAME" vito_event pwevent vito_events 'db.t.insertOne({a: 1}); print(db.t.countDocuments())'
   [ "$status" -eq 0 ]
   [[ "$output" == *1* ]]
-  run as_user "$NAME" vito_chat pwchat vito_db 'db.chat_rooms.insertOne({a: 1}); print("ok")'
+  run as_user "$NAME" vito_chat pwchat vito_chat 'db.chat_rooms.insertOne({a: 1}); print("ok")'
   [ "$status" -eq 0 ]
+}
+
+@test "chat y media ya no pueden leer la base de auth (T-B40)" {
+  run "$REMOTE/ensure-service-users.sh"
+  [ "$status" -eq 0 ]
+  run as_user "$NAME" vito_chat pwchat vito_chat 'db.getSiblingDB("vito_db").users.findOne()'
+  [ "$status" -ne 0 ]
+  run as_user "$NAME" vito_media pwmedia vito_media 'db.getSiblingDB("vito_db").users.findOne()'
+  [ "$status" -ne 0 ]
 }
 
 @test "el usuario de event-service no puede leer la base de auth (vito_db)" {
@@ -123,8 +132,8 @@ as_user() {
     sleep 2
   done
   wait_mongo "$INIT"
-  run as_user "$INIT" vito_media initmedia vito_db 'db.media.insertOne({a: 1}); print("ok")'
+  run as_user "$INIT" vito_media initmedia vito_media 'db.media.insertOne({a: 1}); print("ok")'
   [ "$status" -eq 0 ]
-  run as_user "$INIT" vito_media initmedia vito_db 'db.getSiblingDB("vito_events").events.findOne()'
+  run as_user "$INIT" vito_media initmedia vito_media 'db.getSiblingDB("vito_events").events.findOne()'
   [ "$status" -ne 0 ]
 }
