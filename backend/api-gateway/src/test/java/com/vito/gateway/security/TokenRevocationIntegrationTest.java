@@ -51,9 +51,14 @@ class TokenRevocationIntegrationTest {
             .route(routes -> routes
                     .get("/api/v1/auth/me", (request, response) ->
                             response.sendString(Mono.just(String.valueOf(request.requestHeaders().get("X-User-Id")))))
+                    // Envía y espera a que el cliente cierre: si el servicio cerraba enseguida, el cierre
+                    // podía llegar al cliente por el gateway antes que el mensaje (fallo intermitente,
+                    // igual que en WebSocketRoutingIntegrationTest)
                     .get("/ws/chat/{roomId}", (request, response) ->
                             response.sendWebsocket((in, out) -> out.sendString(Mono.just(
-                                    String.valueOf(request.requestHeaders().get("X-User-Id")))))))
+                                    String.valueOf(request.requestHeaders().get("X-User-Id"))))
+                                    .then()
+                                    .then(in.receive().then()))))
             .bindNow();
 
     @DynamicPropertySource
