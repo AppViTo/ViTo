@@ -17,7 +17,7 @@ docs/api/fixtures/<tag-en-kebab>/<operationId>[.<ejemplo>].<extensión>.json
 
 | Parte | Regla |
 |-------|-------|
-| `<tag-en-kebab>` | `tags[0]` de la operación, en minúsculas: `authentication`, `events`, `chat`, `media`, `recommendations`, `moderation`. |
+| `<tag-en-kebab>` | `tags[0]` de la operación, en minúsculas: `authentication`, `users`, `social`, `events`, `chat`, `media`, `mosaic`, `recommendations`, `moderation`. |
 | `<operationId>` | Tal cual figura en el YAML. Es el identificador único de la operación. |
 | `<ejemplo>` | Solo para respuestas con variantes: la clave de `content.<media>.examples`. Ver §Variantes de respuesta. |
 | `<extensión>` | `request` = cuerpo del request. Un código HTTP (`200`, `201`, `400`, `401`, `404`, `409`, `429`) = cuerpo de la respuesta de ese status. |
@@ -104,11 +104,12 @@ representar el `file` binario. El validador solo aplica schema a las respuestas
 de esa operación. El `eventId` que acompaña al multipart sí queda documentado en
 el `description` del YAML (CONVENTIONS §8).
 
-## Cobertura actual (Olas 0 y 1)
+## Cobertura actual (Olas 0, 1, 2a y 3)
 
-Las **38 operaciones** de `openapi.yaml` están cubiertas: 12 requests (incluye
-`updateEvent`, cuyo body es `application/merge-patch+json`) y 158 fixtures de
-respuesta (170 en total, contando variantes de `examples`). Verificación:
+Las **45 operaciones** de `openapi.yaml` están cubiertas: 12 requests (incluye
+`updateEvent`, cuyo body es `application/merge-patch+json`) y 191 fixtures de
+respuesta (203 en total, contando variantes de `examples`). La Ola 2a suma 33 en
+`users/` y `social/`. Verificación:
 
 ```bash
 npm ci

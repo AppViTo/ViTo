@@ -2,7 +2,7 @@
 
 > Generado del código el 2026-10-16 (rama `docs/constitution-v1`, commit `1e80ac4`).
 > **100 operaciones de negocio**: 87 Java + 13 FastAPI (sin contar `/health`, `/actuator/*`
-> ni `/fallback/*`). En `openapi.yaml`: **38** tras la Ola 1 (una de ellas, `GET /events`, no existe en el código). Total de filas: 106.
+> ni `/fallback/*`). En `openapi.yaml`: **45** tras la Ola 2a (una de ellas, `GET /events`, no existe en el código). Total de filas: 108.
 >
 > La columna **Decisión propuesta** NO es vinculante hasta que los leads la aprueben por
 > ola (D-08 en `decisions-pending.md`). Mientras tanto, según la constitución (Principio I),
@@ -18,7 +18,8 @@
 > `specs/004-ola-2a-social-busqueda`: la parte social (follow, unfollow, perfil con
 > `isFollowing`, seguidores y seguidos), `searchUsers` en `auth-service` (RFC #277) y
 > `getUsersByIds`. El check-in/QR queda para la Ola 2b. La rama `contract/ola-2a` (T-C11) aplica
-> estos cambios en la tabla.
+> estos cambios en la tabla: 7 operaciones `CONTRATO (Ola 2a)`, `/social/search` a `RETIRAR` y
+> `/social/is-following` fusionada en el perfil.
 
 ## Leyenda
 
@@ -42,6 +43,8 @@ Columna **Front**: ✔ = el código Flutter ya lo llama (`lib/**/datasources`, `
 | POST | `/api/v1/auth/logout` | ✔ | ✔ | `CONTRATO` | 0 |
 | GET | `/api/v1/auth/me` | ✔ | ✔ | `CONTRATO (Ola 1)` (auto-login) | 1 |
 | GET | `/api/v1/auth/validate` | | | `INTERNO` (el gateway valida el JWT localmente) | — |
+| GET | `/api/v1/users/search` | ✔ | | `CONTRATO (Ola 2a)` (`searchUsers`, RFC #277; reemplaza `/social/search`; sin correo ni privados; 1/s por usuario) | 2a |
+| GET | `/api/v1/users` | ✔ | | `CONTRATO (Ola 2a)` (`getUsersByIds`, `?ids=` de 1 a 50; lo usa `social-service`) | 2a |
 
 ## Events — `event-service` (:8083)
 
@@ -84,13 +87,13 @@ Columna **Front**: ✔ = el código Flutter ya lo llama (`lib/**/datasources`, `
 
 | Método | Ruta | Contrato | Front | Decisión propuesta | Ola |
 |--------|------|:-------:|:-----:|--------------------|:---:|
-| POST | `/api/v1/social/follow/{userId}` | | ✔ | `PUBLICAR` | 2 |
-| DELETE | `/api/v1/social/follow/{userId}` | | ✔ | `PUBLICAR` | 2 |
-| GET | `/api/v1/social/profile/{userId}` | | ✔ | `PUBLICAR` (incluir `isFollowing`) | 2 |
-| GET | `/api/v1/social/followers/{userId}` | | ✔ | `PUBLICAR` (paginado) | 2 |
-| GET | `/api/v1/social/following/{userId}` | | ✔ | `PUBLICAR` (paginado) | 2 |
-| GET | `/api/v1/social/search` | | ✔ | `PUBLICAR` (reemplaza `MockApiService` de people) | 2 |
-| GET | `/api/v1/social/is-following/{userId}` | | ✔ | `FUSIONAR→profile.isFollowing` | 2 |
+| POST | `/api/v1/social/follow/{userId}` | ✔ | ✔ | `CONTRATO (Ola 2a)` (`followUser`, idempotente, `204`) | 2a |
+| DELETE | `/api/v1/social/follow/{userId}` | ✔ | ✔ | `CONTRATO (Ola 2a)` (`unfollowUser`, idempotente, `204`) | 2a |
+| GET | `/api/v1/social/profile/{userId}` | ✔ | ✔ | `CONTRATO (Ola 2a)` (`getSocialProfile`, con `isFollowing` e `isFollowedBy`) | 2a |
+| GET | `/api/v1/social/followers/{userId}` | ✔ | ✔ | `CONTRATO (Ola 2a)` (`listFollowers`, paginado, `size` ≤ 50) | 2a |
+| GET | `/api/v1/social/following/{userId}` | ✔ | ✔ | `CONTRATO (Ola 2a)` (`listFollowing`, paginado, `size` ≤ 50) | 2a |
+| GET | `/api/v1/social/search` | | ✔ | `RETIRAR` (la reemplaza `searchUsers` de `auth-service`, ADR-016; T-B39) | 2a |
+| GET | `/api/v1/social/is-following/{userId}` | | ✔ | `FUSIONADA en profile.isFollowing` (se retira en T-B39) | 2a |
 
 ## Media — `media-service` (:8089)
 

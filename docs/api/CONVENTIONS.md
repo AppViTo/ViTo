@@ -261,8 +261,14 @@ Excepción (Ola 1, R5): la vista previa pública de un enlace de invitación
 peticiones por minuto con ráfaga de 20, porque no hay sesión con la que contar. Unirse por
 enlace (`acceptInviteLink`) exige sesión y usa el límite por usuario de `events`.
 
+Excepción (Ola 2a, spec 004): la búsqueda de usuarios (`GET /api/v1/users/search`,
+`searchUsers`) se limita **por usuario** a 1 petición por segundo con ráfaga de 10, más
+estricta que el resto de `auth`, para que no se pueda recorrer el directorio de usuarios.
+El resto de `/api/v1/users/**` (`getUsersByIds`) usa el límite de `auth`.
+
 Al superarlo: `429` con el envelope de error §3.3 y header `Retry-After: <segundos>`
-(el tiempo hasta que se repone el costo de una petición: 1 s en general, 6 s en la vista previa).
+(el tiempo hasta que se repone el costo de una petición: 1 s en general y en la búsqueda de
+usuarios, 6 s en la vista previa).
 
 ---
 

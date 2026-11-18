@@ -63,6 +63,21 @@ Hechos relevantes del código actual:
    necesita el dato o el efecto, lo pide por API interna o lo consume por Kafka; no
    reimplementa la regla ni expone una ruta pública paralela.
 
+## Actualizaciones
+
+- **2026-11-18, Ola 2a (T-C11, `specs/004-ola-2a-social-busqueda`):** identidad y grafo social
+  tienen dueños distintos.
+  - **Identidad → `auth-service`** (ADR-004). La búsqueda de usuarios (`searchUsers`,
+    `GET /users/search`, RFC #277) y los datos públicos por lotes (`getUsersByIds`,
+    `GET /users?ids=`) son suyos.
+  - **Grafo → `social-service`.** Es dueño solo de las relaciones de seguimiento: follow,
+    unfollow, perfil social, seguidores y seguidos. No replica perfiles: completa
+    `username`, `displayName` y `avatar` llamando a `getUsersByIds` y responde `503` si
+    `auth-service` no está disponible.
+  - Se retiran `GET /social/search` (la reemplaza `searchUsers`) y
+    `GET /social/is-following/{userId}` (la cubre `SocialProfile.isFollowing`). La colección
+    `user_profiles` de `social-service` deja de usarse.
+
 ## Consecuencias
 
 - **Contrato (T-C07):** las olas publican solo las rutas del dueño. En

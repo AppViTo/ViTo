@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "La búsqueda debe tener entre 2 y 50 caracteres",
+  "status": 400,
+  "timestamp": "2026-11-18T15:00:00Z",
+  "details": {
+    "query": "Entre 2 y 50 caracteres"
+  }
+}

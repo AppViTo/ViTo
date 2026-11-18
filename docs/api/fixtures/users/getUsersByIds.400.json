@@ -1,0 +1,9 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "Debes pedir entre 1 y 50 usuarios",
+  "status": 400,
+  "timestamp": "2026-11-18T15:00:00Z",
+  "details": {
+    "ids": "Entre 1 y 50 ids"
+  }
+}

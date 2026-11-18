@@ -828,6 +828,58 @@ components:
         isLiked:
           type: boolean
 
+    # Users y Social — Ola 2a (T-C11, specs/004-ola-2a-social-busqueda)
+    UserSummary:
+      type: object
+      required: [userId, username, displayName, avatar]
+      description: >
+        Datos públicos de un usuario. Nunca correo ni teléfono. La devuelven
+        `searchUsers`, `getUsersByIds`, `listFollowers` y `listFollowing`.
+      properties:
+        userId:
+          type: string
+          example: usr_01H8X2K4QV
+        username:
+          type: string
+          example: caro.mz
+        displayName:
+          type: [string, 'null']
+          example: Carolina Martínez
+        avatar:
+          type: [string, 'null']
+          format: uri
+          example: null
+
+    SocialProfile:
+      type: object
+      required: [userId, username, displayName, avatar, followersCount, followingCount, isFollowing, isFollowedBy]
+      description: >
+        Perfil social de un usuario visto por quien consulta. Los datos de
+        identidad vienen de `auth-service`; los contadores y los booleanos, del
+        grafo de `social-service` (ADR-016). Nunca correo ni teléfono.
+      properties:
+        userId:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: [string, 'null']
+        avatar:
+          type: [string, 'null']
+          format: uri
+        followersCount:
+          type: integer
+          minimum: 0
+        followingCount:
+          type: integer
+          minimum: 0
+        isFollowing:
+          type: boolean
+          description: Quien consulta sigue a este usuario. `false` en el propio perfil.
+        isFollowedBy:
+          type: boolean
+          description: Este usuario sigue a quien consulta. `false` en el propio perfil.
+
     # Error Response — ADR-003 (docs/decisions/adr-003-error-envelope.md)
     ErrorResponse:
       type: object
@@ -1008,6 +1060,158 @@ paths:
                 message: El token de acceso es inválido o ha expirado
                 status: 401
                 timestamp: '2026-10-28T02:10:00Z'
+
+  # Users Endpoints — Ola 2a (T-C11). Dueño: auth-service (ADR-004, ADR-016)
+  /api/v1/users/search:
+    get:
+      tags: [Users]
+      summary: Search users
+      description: |
+        Ola 2a (RFC #277). Busca usuarios registrados para invitarlos o
+        seguirlos. Responde un **array plano** de `UserSummary` (ADR-002),
+        vacío si no hay coincidencias.
+
+        - **Coincidencia:** por prefijo de `username` o de cualquier palabra de
+          `displayName`, sin distinguir mayúsculas ni tildes ("jose" encuentra
+          a "José Pérez"). `query` es texto literal: los caracteres especiales
+          no actúan como comodines.
+        - **Orden:** `username` exacto, luego prefijo de `username` y luego
+          prefijo de nombre; a igual rango, `username` ascendente. El orden es
+          estable entre páginas.
+        - **Privacidad:** nunca busca por correo ni lo devuelve; no incluye a
+          quien busca ni a los perfiles privados.
+        - **Límite:** 1 petición por segundo por usuario con ráfaga de 10
+          (excepción de CONVENTIONS §9); al superarlo, `429` con `Retry-After: 1`.
+      operationId: searchUsers
+      parameters:
+        - name: query
+          in: query
+          required: true
+          description: >
+            Texto a buscar, de 2 a 50 caracteres después de quitar una `@`
+            inicial (`@caro.mz` busca `caro.mz`).
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 51
+          example: and
+        - name: page
+          in: query
+          description: Base 0.
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Máximo 20, menor que el 100 de CONVENTIONS §5.
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 20
+      responses:
+        '200':
+          description: Array plano de `UserSummary`
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSummary'
+              examples:
+                matches:
+                  summary: Dos usuarios cuyo `username` empieza por "and"
+                  value:
+                    - userId: usr_01H9ZP5RKM
+                      username: andrea.gomez
+                      displayName: Andrea Gómez
+                      avatar: https://cdn.vito.com/usr_01H9ZP5RKM/avatar.jpg
+                    - userId: usr_01H8X2K4QW
+                      username: andres.r
+                      displayName: null
+                      avatar: null
+                empty:
+                  summary: Sin coincidencias
+                  value: []
+        '400':
+          description: '`query` ausente o fuera de 2–50 caracteres, `page` negativo o `size` fuera de 1–20'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: VALIDATION_ERROR
+                message: La búsqueda debe tener entre 2 y 50 caracteres
+                status: 400
+                timestamp: '2026-11-18T15:00:00Z'
+                details:
+                  query: Entre 2 y 50 caracteres
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Límite por usuario superado (1/s, ráfaga 10)
+          headers:
+            Retry-After:
+              description: Segundos hasta poder reintentar (1).
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/users:
+    get:
+      tags: [Users]
+      summary: Get users by ids
+      description: >
+        Ola 2a. Datos públicos de varios usuarios a la vez, en el **orden
+        pedido**. Los ids que no existen se omiten y los repetidos se
+        devuelven una sola vez. A diferencia de `searchUsers`, incluye los
+        perfiles privados: quien llama ya conoce el id (por ejemplo,
+        `social-service` al completar una lista de seguidores). Nunca correo
+        ni teléfono.
+      operationId: getUsersByIds
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          description: De 1 a 50 ids separados por coma.
+          style: form
+          explode: false
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 50
+            items:
+              type: string
+          example: [usr_01H8X2K4QV, usr_01H8X2K4QL]
+      responses:
+        '200':
+          description: Array plano de `UserSummary` en el orden de `ids`
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSummary'
+        '400':
+          description: '`ids` ausente, vacío o con más de 50 ids'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   # Event Endpoints — contrato ADR-001
   /api/v1/events:
@@ -2961,9 +3165,332 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  # Social Endpoints — Ola 2a (T-C11). Dueño del grafo: social-service (ADR-016).
+  # La identidad (username, displayName, avatar) la completa auth-service por
+  # lotes con getUsersByIds; si no responde, estas operaciones dan 503.
+  /api/v1/social/follow/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        description: Usuario al que se sigue o se deja de seguir.
+        schema:
+          type: string
+    post:
+      tags: [Social]
+      summary: Follow a user
+      description: >
+        Ola 2a. Quien llama (`X-User-Id`) empieza a seguir a `userId`. Es
+        idempotente: si ya lo seguía responde `204` igual y no publica otro
+        evento. Seguirse a uno mismo es `400`.
+      operationId: followUser
+      responses:
+        '204':
+          description: Lo sigue (también si ya lo seguía)
+        '400':
+          description: Intento de seguirse a uno mismo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                self:
+                  summary: Seguirse a uno mismo
+                  value:
+                    error: VALIDATION_ERROR
+                    message: No puedes seguirte a ti mismo
+                    status: 400
+                    timestamp: '2026-11-18T15:00:00Z'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El usuario no existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: '`auth-service` no responde y no se puede comprobar que el usuario existe'
+          headers:
+            Retry-After:
+              description: Segundos hasta poder reintentar.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Social]
+      summary: Unfollow a user
+      description: >
+        Ola 2a. Quien llama deja de seguir a `userId`. Es idempotente: si no
+        lo seguía responde `204` igual y no publica ningún evento.
+      operationId: unfollowUser
+      responses:
+        '204':
+          description: Ya no lo sigue (también si no lo seguía)
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El usuario no existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: '`auth-service` no responde'
+          headers:
+            Retry-After:
+              description: Segundos hasta poder reintentar.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/social/profile/{userId}:
+    get:
+      tags: [Social]
+      summary: Get a social profile
+      description: >
+        Ola 2a. Perfil social de `userId` visto por quien llama: datos
+        públicos, contadores de seguidores y seguidos, y si se siguen entre
+        sí. En el propio perfil `isFollowing` e `isFollowedBy` son `false`.
+        Reemplaza a `GET /social/is-following/{userId}`, que nunca entró al
+        contrato.
+      operationId: getSocialProfile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Perfil social
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialProfile'
+              examples:
+                other:
+                  summary: Perfil de otra persona a la que sigo
+                  value:
+                    userId: usr_01H8X2K4QV
+                    username: caro.mz
+                    displayName: Carolina Martínez
+                    avatar: https://cdn.vito.com/usr_01H8X2K4QV/avatar.jpg
+                    followersCount: 2
+                    followingCount: 1
+                    isFollowing: true
+                    isFollowedBy: true
+                own:
+                  summary: Mi propio perfil
+                  value:
+                    userId: usr_01H8X2K4QJ
+                    username: alex_villa
+                    displayName: Alex Villa
+                    avatar: https://cdn.vito.com/usr_01H8X2K4QJ/avatar.jpg
+                    followersCount: 1
+                    followingCount: 2
+                    isFollowing: false
+                    isFollowedBy: false
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El usuario no existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: '`auth-service` no responde'
+          headers:
+            Retry-After:
+              description: Segundos hasta poder reintentar.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/social/followers/{userId}:
+    get:
+      tags: [Social]
+      summary: List followers
+      description: >
+        Ola 2a. Quienes siguen a `userId`, como **array plano** de
+        `UserSummary`, del seguimiento más reciente al más antiguo. Un usuario
+        que `auth-service` ya no devuelve se omite. `size` máximo 50, menor
+        que el 100 de CONVENTIONS §5, porque cada página completa la identidad
+        con una llamada por lotes a `auth-service`.
+      operationId: listFollowers
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Base 0.
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Máximo 50.
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Array plano de `UserSummary`
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSummary'
+              examples:
+                page:
+                  summary: Una página de seguidores
+                  value:
+                    - userId: usr_01H8X2K4QJ
+                      username: alex_villa
+                      displayName: Alex Villa
+                      avatar: https://cdn.vito.com/usr_01H8X2K4QJ/avatar.jpg
+                    - userId: usr_01H8X2K4QL
+                      username: luis
+                      displayName: Luis
+                      avatar: null
+                empty:
+                  summary: Nadie lo sigue todavía
+                  value: []
+        '400':
+          description: '`page` negativo o `size` fuera de 1–50'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El usuario no existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: '`auth-service` no responde'
+          headers:
+            Retry-After:
+              description: Segundos hasta poder reintentar.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/social/following/{userId}:
+    get:
+      tags: [Social]
+      summary: List followed users
+      description: >
+        Ola 2a. A quiénes sigue `userId`, como **array plano** de
+        `UserSummary`, del seguimiento más reciente al más antiguo. Mismas
+        reglas de omisión y de `size` (máximo 50) que `listFollowers`.
+      operationId: listFollowing
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          description: Base 0.
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: Máximo 50.
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: Array plano de `UserSummary`
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserSummary'
+        '400':
+          description: '`page` negativo o `size` fuera de 1–50'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: El usuario no existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: '`auth-service` no responde'
+          headers:
+            Retry-After:
+              description: Segundos hasta poder reintentar.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 tags:
   - name: Authentication
     description: User registration and login
+  - name: Users
+    description: Búsqueda y datos públicos de usuarios (Ola 2a, auth-service)
+  - name: Social
+    description: Grafo social — seguir, perfil, seguidores y seguidos (Ola 2a)
   - name: Events
     description: Event lifecycle management (ADR-001)
   - name: Chat

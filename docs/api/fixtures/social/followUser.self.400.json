@@ -1,0 +1,6 @@
+{
+  "error": "VALIDATION_ERROR",
+  "message": "No puedes seguirte a ti mismo",
+  "status": 400,
+  "timestamp": "2026-11-18T15:00:00Z"
+}
