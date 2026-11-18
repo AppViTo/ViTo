@@ -233,7 +233,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
 | T-B37 | Concurrencia del gateway y latencia del RSVP (hallazgos de k6) | B | P1 | 🔵 EN CURSO (punto 1 ✅ #281; punto 4 en #304, falta repetir k6; faltan los puntos 2 y 3) | — |
 | T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🔵 EN CURSO | — |
-| T-C11 | Contrato de la Ola 2a: grafo social y búsqueda de usuarios (spec 004) | C | P0 | 🔵 EN CURSO (`contract/ola-2a`) | — |
+| T-C11 | Contrato de la Ola 2a: grafo social y búsqueda de usuarios (spec 004) | C | P0 | 🔵 EN CURSO (`contract/ola-2a`, PR #320, RFC #321) | — |
 | T-F13 | App de la Ola 2a: búsqueda para invitar, seguir, perfil social y "Mi Gente" | F | P0 | 🔴 BLOQUEADA por T-C11 | — |
 | T-B38 | `auth-service` y gateway de la Ola 2a: `searchUsers` y `getUsersByIds` | B | P0 | 🔴 BLOQUEADA por T-C11 | — |
 | T-B39 | `social-service` de la Ola 2a: follow idempotente, perfil, seguidores y seguidos | B | P1 | 🔴 BLOQUEADA por T-C11 (T003 ✅ #284; T013–T015 y T020 en #286) | — |
@@ -564,7 +564,7 @@ depende del contrato.
   - Nombres de fixtures: el validador no admite el fixture canónico junto a variantes de
     `examples` (README §Variantes), así que los 200 con variante son
     `searchUsers.matches|empty`, `getSocialProfile.other|own` y `listFollowers.page|empty`.
-  - Falta T002: comentar en el RFC #277 y abrir el issue `contract-change` de la ola.
+  - T002: issue `contract-change` #321 abierto y comentario en el RFC #277 (2026-11-18); PR #320.
 
 ---
 
