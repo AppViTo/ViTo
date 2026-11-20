@@ -34,6 +34,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
+                // Ola 2a: búsqueda y datos públicos por lotes, siempre con sesión (research R9)
+                .requestMatchers("/api/v1/users/**").authenticated()
                 .anyRequest().authenticated())
             .exceptionHandling(ex -> ex
                 .authenticationEntryPoint(securityErrorResponder)
