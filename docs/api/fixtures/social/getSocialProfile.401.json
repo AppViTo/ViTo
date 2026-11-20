@@ -1,0 +1,6 @@
+{
+  "error": "UNAUTHORIZED",
+  "message": "El token de acceso es inválido o ha expirado",
+  "status": 401,
+  "timestamp": "2026-11-18T15:00:00Z"
+}

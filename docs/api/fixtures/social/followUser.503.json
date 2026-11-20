@@ -1,0 +1,6 @@
+{
+  "error": "SERVICE_UNAVAILABLE",
+  "message": "No pudimos cargar los datos de los usuarios. Intenta de nuevo en unos segundos",
+  "status": 503,
+  "timestamp": "2026-11-18T15:00:00Z"
+}
