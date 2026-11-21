@@ -41,6 +41,23 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
+    /**
+     * {@code searchUsers}. Quien busca sale del token validado aquí, no del header
+     * {@code X-User-Id}: es la misma persona cuando la petición llega por el gateway, y no se
+     * puede suplantar si alguien llama directo al servicio.
+     */
+    @GetMapping("/search")
+    public ResponseEntity<List<UserSummaryResponse>> searchUsers(
+            @RequestParam(value = "query", required = false) String query,
+            @RequestParam(value = "page", required = false) Integer page,
+            @RequestParam(value = "size", required = false) Integer size) {
+        String requesterId = requireSession();
+        List<UserSummaryResponse> users = userDirectoryService.search(query, requesterId, page, size).stream()
+                .map(UserSummaryResponse::from)
+                .toList();
+        return ResponseEntity.ok(users);
+    }
+
     private static List<String> parseIds(String ids) {
         if (ids == null) {
             return List.of();
@@ -51,11 +68,13 @@ public class UserController {
                 .toList();
     }
 
-    private static void requireSession() {
+    /** @return el userId del token */
+    private static String requireSession() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()
                 || authentication instanceof AnonymousAuthenticationToken) {
             throw AuthenticationException.invalidAccessToken();
         }
+        return authentication.getName();
     }
 }

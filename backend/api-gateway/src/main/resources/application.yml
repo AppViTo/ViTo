@@ -48,7 +48,44 @@ spring:
                     deny-empty-key: false
                     redis-rate-limiter.replenishRate: 10
                     redis-rate-limiter.burstCapacity: 20
-        
+
+            # Ola 2a (research R9, CONVENTIONS §9): búsqueda de usuarios, 1/s por usuario con
+            # ráfaga de 10 para que no se pueda recorrer el directorio. Retry-After: 1 s. Va antes
+            # de `users`, que también coincide con /api/v1/users/search.
+            - id: users-search
+              uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+              predicates:
+                - Path=/api/v1/users/search
+                - Method=GET
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: authServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/auth
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 1
+                    redis-rate-limiter.burstCapacity: 10
+
+            # Ola 2a: el resto de /users (getUsersByIds), con el límite de auth.
+            - id: users
+              uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+              predicates:
+                - Path=/api/v1/users/**
+              filters:
+                - StripPrefix=0
+                - name: CircuitBreaker
+                  args:
+                    name: authServiceCircuitBreaker
+                    fallbackUri: forward:/fallback/auth
+                - name: RequestRateLimiter
+                  args:
+                    deny-empty-key: false
+                    redis-rate-limiter.replenishRate: 10
+                    redis-rate-limiter.burstCapacity: 20
+
             - id: social-service
               uri: ${SOCIAL_SERVICE_URI:http://localhost:8082}
               predicates:

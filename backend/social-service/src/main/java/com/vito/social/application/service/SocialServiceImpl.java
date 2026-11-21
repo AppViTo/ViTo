@@ -134,12 +134,4 @@ public class SocialServiceImpl implements SocialService {
                 .limit(size)
                 .collect(Collectors.toList());
     }
-    
-    @Override
-    public List<SocialProfile> searchUsers(String query, int page, int size) {
-        // This would typically use a search service or MongoDB text search
-        // For now, we'll return an empty list
-        log.info("Searching users with query: {}", query);
-        return List.of();
-    }
 }

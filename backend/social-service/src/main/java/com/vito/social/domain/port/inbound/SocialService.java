@@ -22,8 +22,6 @@ public interface SocialService {
     
     List<SocialProfile> getFollowing(String userId, int page, int size);
     
-    List<SocialProfile> searchUsers(String query, int page, int size);
-    
     @Data
     @Builder
     @NoArgsConstructor
