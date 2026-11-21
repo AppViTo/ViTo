@@ -14,6 +14,16 @@ public interface UserRepository {
     /** Los usuarios que existan entre {@code ids}, en cualquier orden; los demás se ignoran. */
     List<User> findAllByIds(Collection<String> ids);
 
+    /**
+     * {@code searchUsers}: prefijo de {@code search.username} o de alguna de {@code search.terms},
+     * sin perfiles privados ni {@code excludeUserId}. Orden: username exacto, prefijo de username,
+     * prefijo de nombre; a igual rango, username ascendente. Paginado en la base.
+     *
+     * @param normalizedQuery texto ya normalizado ({@code SearchNormalizer.query}), literal
+     * @param excludeUserId   quien busca; null si no hay que excluir a nadie
+     */
+    List<User> search(String normalizedQuery, String excludeUserId, int page, int size);
+
     Optional<User> findByUsername(String username);
     
     Optional<User> findByEmail(String email);

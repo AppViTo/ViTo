@@ -110,6 +110,25 @@ class AuthServiceImplTest {
         verify(eventPublisher).publish(eq("user-events"), eq("user123"), any());
     }
 
+    /** T027 (Ola 2a): el usuario nuevo queda buscable sin migración. */
+    @Test
+    void register_FillsSearchFields() {
+        RegisterCommand command = RegisterCommand.builder()
+                .username("JPerez").email("j@example.com").password("Password123").displayName("José  Pérez")
+                .build();
+        when(passwordEncoder.encode(any())).thenReturn("$2a$10$encodedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+        when(tokenProvider.generateAccessToken(any())).thenReturn("access_token");
+        when(tokenProvider.generateRefreshToken(any())).thenReturn("refresh_token");
+
+        authService.register(command);
+
+        ArgumentCaptor<User> saved = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(saved.capture());
+        assertEquals("jperez", saved.getValue().getSearch().getUsername());
+        assertEquals(java.util.List.of("jose", "perez"), saved.getValue().getSearch().getTerms());
+    }
+
     @Test
     void register_UsernameAlreadyExists_ThrowsException() {
         // Arrange
