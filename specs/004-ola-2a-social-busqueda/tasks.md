@@ -70,22 +70,22 @@ contrato (T005–T010) esté mergeado.
 
 ### Backend transversal (tras el merge del contrato, dueño Bernardo)
 
-- [ ] T013 [Bernardo] Prueba primero: `SS-test/infrastructure/migration/Ola2aSocialMigrationIntegrationTest.java` con Testcontainers: con relaciones duplicadas, una de alguien consigo mismo y `createdAt` como texto, la migración deja una relación por par (la más antigua), borra la propia, convierte la fecha a UTC, se registra en `migrations` y una segunda ejecución no cambia nada
-- [ ] T014 [Bernardo] `SS/infrastructure/migration/Ola2aSocialMigration.java` con el patrón de `Ola1DataMigration` de `event-service` (registro en `migrations`, pasos idempotentes, logs solo con conteos), ejecutada al arrancar antes de crear índices. T013 pasa
-- [ ] T015 [Bernardo] `SS/domain/model/FollowRelationship.java`: `createdAt` como `Instant`; índices declarados en `SS/infrastructure/adapter/outbound/persistence/FollowMongoAdapter.java` **después** de T014: único `{followerId: 1, followingId: 1}`, `{followingId: 1, createdAt: -1, _id: -1}` y `{followerId: 1, createdAt: -1, _id: -1}`
+- [X] T013 [Bernardo] Prueba primero: `SS-test/infrastructure/migration/Ola2aSocialMigrationIntegrationTest.java` con Testcontainers: con relaciones duplicadas, una de alguien consigo mismo y `createdAt` como texto, la migración deja una relación por par (la más antigua), borra la propia, convierte la fecha a UTC, se registra en `migrations` y una segunda ejecución no cambia nada
+- [X] T014 [Bernardo] `SS/infrastructure/migration/Ola2aSocialMigration.java` con el patrón de `Ola1DataMigration` de `event-service` (registro en `migrations`, pasos idempotentes, logs solo con conteos), ejecutada al arrancar antes de crear índices. T013 pasa
+- [X] T015 [Bernardo] `SS/domain/model/FollowRelationship.java`: `createdAt` como `Instant`; índices declarados en `SS/infrastructure/adapter/outbound/persistence/FollowMongoAdapter.java` **después** de T014: único `{followerId: 1, followingId: 1}`, `{followingId: 1, createdAt: -1, _id: -1}` y `{followerId: 1, createdAt: -1, _id: -1}`
 - [ ] T016 [Bernardo] Puerto `SS/domain/port/outbound/UserDirectory.java` (`List<UserSummary> findByIds(List<String> ids)`, en el orden pedido y sin los inexistentes) y el modelo de dominio `SS/domain/model/UserSummary.java`, sin dependencias de Spring (Principio II)
 - [ ] T017 [Bernardo] Prueba primero: `SS-test/infrastructure/adapter/outbound/directory/AuthUserDirectoryAdapterTest.java` con `MockRestServiceServer`: reenvía el `Authorization` de la petición en curso, arma `?ids=` y conserva el orden; respuesta vacía → lista vacía; timeout o 5xx → excepción de "servicio no disponible"; `401` → excepción de no autenticado
 - [ ] T018 [Bernardo] `SS/infrastructure/adapter/outbound/directory/AuthUserDirectoryAdapter.java` con `RestClient` (timeout de conexión de 1 s y de lectura de 2 s, research R2), siguiendo `EventServiceOrganizerAdapter` de `mosaic-service`. Sin llamada si la lista de ids está vacía. T017 pasa
 - [ ] T019 [Bernardo] `SS/infrastructure/adapter/inbound/rest/GlobalExceptionHandler.java`: "servicio no disponible" → `503 SERVICE_UNAVAILABLE` con envelope ADR-003 y `Retry-After: 5`; no autenticado → `401`. Prueba en `SS-test/infrastructure/adapter/inbound/rest/GlobalExceptionHandlerTest.java`
-- [ ] T020 [P] [Bernardo] `SS/infrastructure/adapter/outbound/messaging/KafkaEventPublisher.java`: registrar el resultado de cada `send` con `whenComplete` (error con el tipo de evento, sin ids de personas) (research R10)
+- [X] T020 [P] [Bernardo] `SS/infrastructure/adapter/outbound/messaging/KafkaEventPublisher.java`: registrar el resultado de cada `send` con `whenComplete` (error con el tipo de evento, sin ids de personas) (research R10)
 
 ### `getUsersByIds` en `auth-service` (requisito de US2–US4, dueño Bernardo)
 
 IDs fuera de secuencia: van después de T020 en el orden de ejecución. Comparten controlador,
 puerto y servicio con US1 (T030–T031); si US1 se hace primero, se agregan sobre lo suyo.
 
-- [ ] T061 [Bernardo] Prueba primero, en `AS-test/infrastructure/adapter/inbound/rest/UserControllerContractTest.java`: `getUsersByIds` con orden pedido, inexistentes omitidos, privados incluidos, repetidos ignorados, `400` con 0 o 51 ids (validación "`ids` de `getUsersByIds` de 1 a 50"), `401`, y ninguna respuesta con `email` ni `phone`
-- [ ] T062 [Bernardo] `UserRepository.findAllByIds(ids)` en `AS/infrastructure/adapter/outbound/persistence/UserMongoAdapter.java` y `GET /api/v1/users?ids=` en `AS/infrastructure/adapter/inbound/rest/UserController.java` y `AS/application/service/UserDirectoryServiceImpl.java`, devolviendo `UserSummary` en el orden pedido; `/api/v1/users/**` autenticado en `AS/infrastructure/config/SecurityConfig.java`. T061 pasa
+- [X] T061 [Bernardo] Prueba primero, en `AS-test/infrastructure/adapter/inbound/rest/UserControllerContractTest.java`: `getUsersByIds` con orden pedido, inexistentes omitidos, privados incluidos, repetidos ignorados, `400` con 0 o 51 ids (validación "`ids` de `getUsersByIds` de 1 a 50"), `401`, y ninguna respuesta con `email` ni `phone`
+- [X] T062 [Bernardo] `UserRepository.findAllByIds(ids)` en `AS/infrastructure/adapter/outbound/persistence/UserMongoAdapter.java` y `GET /api/v1/users?ids=` en `AS/infrastructure/adapter/inbound/rest/UserController.java` y `AS/application/service/UserDirectoryServiceImpl.java`, devolviendo `UserSummary` en el orden pedido; `/api/v1/users/**` autenticado en `AS/infrastructure/config/SecurityConfig.java`. T061 pasa
 
 **Checkpoint**: contrato mergeado, mock de Prism con las 7 operaciones, `social-service` con
 índices y `UserDirectory`.

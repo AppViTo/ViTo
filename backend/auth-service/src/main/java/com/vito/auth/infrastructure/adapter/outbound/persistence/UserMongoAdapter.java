@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,7 +24,17 @@ public class UserMongoAdapter implements UserRepository {
         User user = mongoTemplate.findById(id, User.class);
         return Optional.ofNullable(user);
     }
-    
+
+    /** Spring convierte a ObjectId los ids con ese formato; los demás no encuentran nada. */
+    @Override
+    public List<User> findAllByIds(Collection<String> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Query query = new Query(org.springframework.data.mongodb.core.query.Criteria.where("id").in(ids));
+        return mongoTemplate.find(query, User.class);
+    }
+
     @Override
     public Optional<User> findByUsername(String username) {
         Query query = new Query(org.springframework.data.mongodb.core.query.Criteria.where("username").is(username));

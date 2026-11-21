@@ -6,6 +6,7 @@ import static com.vito.shared.web.error.ErrorCodes.UNAUTHORIZED;
 
 import com.vito.auth.domain.exception.AuthenticationException;
 import com.vito.auth.domain.exception.AuthorizationException;
+import com.vito.auth.domain.exception.InvalidRequestException;
 import com.vito.auth.domain.exception.UserAlreadyExistsException;
 import com.vito.shared.web.error.BaseExceptionHandler;
 import com.vito.shared.web.error.ErrorResponse;
@@ -35,6 +36,12 @@ public class GlobalExceptionHandler extends BaseExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAuthorizationException(AuthorizationException ex) {
         log.warn("Authorization error: {}", ex.getMessage());
         return error(HttpStatus.FORBIDDEN, FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidRequestException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRequest(InvalidRequestException ex) {
+        log.info("Invalid request: {}", ex.getDetails());
+        return validationError(ex.getMessage(), ex.getDetails());
     }
 
     @ExceptionHandler(UserAlreadyExistsException.class)
