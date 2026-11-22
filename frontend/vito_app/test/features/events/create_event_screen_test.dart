@@ -67,10 +67,6 @@ class _FakeSocialRepository implements SocialRepository {
       const Left(ServerFailure());
 
   @override
-  Future<Either<Failure, bool>> isFollowing(String userId) async =>
-      const Right(false);
-
-  @override
   Future<Either<Failure, List<SocialProfile>>> getFollowers({
     required String userId,
     int page = 0,

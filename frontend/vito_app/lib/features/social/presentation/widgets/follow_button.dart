@@ -1,57 +1,51 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../bloc/social_bloc.dart';
+import '../../../../core/theme/app_colors.dart';
 
+/// Botón de seguir de un perfil ajeno (T042). El estado lo lleva
+/// `SocialProfileCubit`, que lo actualiza de forma optimista; mientras la
+/// petición está en curso el botón no acepta otro toque.
 class FollowButton extends StatelessWidget {
-  final String userId;
   final bool isFollowing;
-  
+  final bool busy;
+  final VoidCallback onPressed;
+
   const FollowButton({
     super.key,
-    required this.userId,
     required this.isFollowing,
+    required this.onPressed,
+    this.busy = false,
   });
-  
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<SocialBloc, SocialState>(
-      builder: (context, state) {
-        final isLoading = state is SocialLoading;
-        
-        return SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: isLoading
-                ? null
-                : () {
-                    if (isFollowing) {
-                      context.read<SocialBloc>().add(UnfollowUser(userId));
-                    } else {
-                      context.read<SocialBloc>().add(FollowUser(userId));
-                    }
-                  },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isFollowing ? Colors.grey : Colors.blue,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12),
+    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(12));
+    const padding = EdgeInsets.symmetric(vertical: 14);
+    return SizedBox(
+      width: double.infinity,
+      child: isFollowing
+          ? OutlinedButton.icon(
+              onPressed: busy ? null : onPressed,
+              icon: const Icon(Icons.check, size: 18),
+              label: const Text('Siguiendo'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.blancoHielo,
+                side: const BorderSide(color: AppColors.grey700),
+                padding: padding,
+                shape: shape,
+              ),
+            )
+          : ElevatedButton.icon(
+              onPressed: busy ? null : onPressed,
+              icon: const Icon(Icons.person_add_outlined, size: 18),
+              label: const Text('Seguir'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.coralNeon,
+                foregroundColor: AppColors.blancoHielo,
+                padding: padding,
+                shape: shape,
+              ),
             ),
-            child: isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : Text(
-                    isFollowing ? 'Unfollow' : 'Follow',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-          ),
-        );
-      },
     );
   }
 }
