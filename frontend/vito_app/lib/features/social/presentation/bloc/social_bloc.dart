@@ -94,7 +94,7 @@ class SocialLoaded extends SocialState {
 }
 
 class FollowersLoaded extends SocialState {
-  final List<SocialProfile> followers;
+  final List<UserSummary> followers;
   
   const FollowersLoaded(this.followers);
   
@@ -103,7 +103,7 @@ class FollowersLoaded extends SocialState {
 }
 
 class FollowingLoaded extends SocialState {
-  final List<SocialProfile> following;
+  final List<UserSummary> following;
   
   const FollowingLoaded(this.following);
   

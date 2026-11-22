@@ -234,7 +234,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-B37 | Concurrencia del gateway y latencia del RSVP (hallazgos de k6) | B | P1 | 🔵 EN CURSO (punto 1 ✅ #281; punto 4 en #304, falta repetir k6; faltan los puntos 2 y 3) | — |
 | T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🔵 EN CURSO | — |
 | T-C11 | Contrato de la Ola 2a: grafo social y búsqueda de usuarios (spec 004) | C | P0 | ✅ HECHA (#320, 2026-11-20; RFC #321) | — |
-| T-F13 | App de la Ola 2a: búsqueda para invitar, seguir, perfil social y "Mi Gente" | F | P0 | 🔵 EN CURSO (PR 1 `frontend/t-f13-search`: búsqueda para invitar; PR 2 `frontend/t-f13-profile`: seguir y perfil; faltan listas y "Mi Gente") | — |
+| T-F13 | App de la Ola 2a: búsqueda para invitar, seguir, perfil social y "Mi Gente" | F | P0 | 🔵 EN CURSO (PR 1 `frontend/t-f13-search`: búsqueda para invitar; PR 2 `frontend/t-f13-profile`: seguir y perfil; PR 3 `frontend/t-f13-people`: listas y "Mi Gente"; falta el quickstart, T059) | — |
 | T-B38 | `auth-service` y gateway de la Ola 2a: `searchUsers` y `getUsersByIds` | B | P0 | 🔵 EN CURSO (código en revisión: #323 y la búsqueda; falta quickstart §2 con T-F13) | — |
 | T-B39 | `social-service` de la Ola 2a: follow idempotente, perfil, seguidores y seguidos | B | P1 | 🔵 EN CURSO (T016–T019 y T036–T041 en revisión; T003 ✅ #284; T013–T015 y T020 ✅ #286) | — |
 | T-I30 | `AUTH_SERVICE_URI`, escenarios k6 y tablero de la Ola 2a | I | P1 | 🔴 BLOQUEADA por T-B39 (T004 ✅ #284) | — |
@@ -737,7 +737,7 @@ depende del contrato.
      de ahí quedó en la Ola 1 todo lo de invitaciones y enlaces; `searchUsers` pasó a la Ola
      2a (#320, T-F13).
 
-### T-F13 · App de la Ola 2a — 🔵 EN CURSO (PRs 1 y 2 de 3 abiertos) · P0 · Principio IV
+### T-F13 · App de la Ola 2a — 🔵 EN CURSO (los 3 PRs abiertos; falta T059) · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 6 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): modelos y pruebas de contrato,
   búsqueda en "¿A quién invitamos?" con invitación al crear el evento, botón de seguir, perfil
   social con "te sigue", listas de seguidores y seguidos, y "Mi Gente" con datos reales.
@@ -764,6 +764,21 @@ depende del contrato.
     `/social/is-following`. El `503` dice "No pudimos cargar el perfil, intenta de nuevo".
   - T042: "Seguir" / "Siguiendo" con actualización optimista del botón y del contador, que se
     revierte si el backend falla.
+- **Avance (2026-11-22, PR 3 en `frontend/t-f13-people`):**
+  - T053: los contadores del perfil abren las listas de seguidores y seguidos (`UserSummary`),
+    con paginación infinita que pide hasta recibir una página vacía; tocar a alguien abre su
+    perfil.
+  - T054: "Mi Gente" muestra a quién sigues y quién te sigue (sesión actual) y busca con
+    `searchUsers`; sin "Amigos" ni "Sugerencias" (no tienen contrato) y con estados vacíos en
+    español. Es la parte social de T-F02.
+- **Para cerrar T-F13** (y Bug-F08, T-C07 Ola 2a y la parte social de T-F02 y T-B13):
+  1. Mergear en orden #332 → #333 → este PR, cambiando la base a `develop` cuando se mergee el
+     anterior.
+  2. T059 con Bernardo, cuando T-B38 y T-B39 estén en `develop`: recorrer
+     `specs/004-ola-2a-social-busqueda/quickstart.md` contra el stack local y pegar la salida
+     en el PR de cierre.
+  3. T060: marcar T-F13 ✅, cerrar Bug-F08 (VITO-83) tras quickstart §2.9 en producción y las
+     partes sociales de T-F02 y T-B13.
 
 ---
 
