@@ -7,6 +7,7 @@ import '../datasources/event_remote_datasource.dart';
 import '../datasources/media_remote_datasource.dart';
 import '../models/event_model.dart';
 import '../../domain/entities/event.dart';
+import '../../domain/entities/attendee.dart';
 import '../../domain/entities/rsvp.dart';
 import '../../domain/entities/invitation.dart';
 import '../../domain/repositories/event_repository.dart';
@@ -132,14 +133,12 @@ class EventRepositoryImpl implements EventRepository {
     required String eventId,
     required RSVPStatus status,
     String? message,
-    int guestsCount = 0,
   }) async {
     try {
       final rsvp = await remoteDataSource.respondToRSVP(
         eventId: eventId,
-        status: status.name.toUpperCase(),
+        status: status,
         message: message,
-        guestsCount: guestsCount,
       );
       return Right(rsvp);
     } catch (e) {
@@ -148,7 +147,7 @@ class EventRepositoryImpl implements EventRepository {
   }
   
   @override
-  Future<Either<Failure, List<RSVP>>> getEventAttendees({
+  Future<Either<Failure, List<Attendee>>> getEventAttendees({
     required String eventId,
     int page = 0,
     int size = 20,
@@ -196,22 +195,6 @@ class EventRepositoryImpl implements EventRepository {
         size: size,
       );
       return Right(invitations);
-    } catch (e) {
-      return Left(_toFailure(e));
-    }
-  }
-  
-  @override
-  Future<Either<Failure, void>> respondToInvitation({
-    required String eventId,
-    required InvitationStatus status,
-  }) async {
-    try {
-      await remoteDataSource.respondToInvitation(
-        eventId: eventId,
-        status: status.name.toUpperCase(),
-      );
-      return const Right(null);
     } catch (e) {
       return Left(_toFailure(e));
     }
