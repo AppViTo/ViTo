@@ -227,7 +227,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | ✅ HECHA (#278) | — |
 | T-I29 | Excepción de Trivy `CVE-2026-78661` de `mongo-backup` que vence el 2026-12-23 | I | P1 | ✅ HECHA (#289; nueva fecha 2027-02-07) | — |
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | ✅ HECHA (#253) | — |
-| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🔵 EN CURSO (PR 1 `frontend/t-f12-rsvp`: modelos y RSVP; PR 2 `frontend/t-f12-invite-links`: enlaces e invitaciones en el home; PR 3 `frontend/t-f12-edit-event`: editar; faltan invitaciones del organizador, cancelar, asistentes y auto-login) | — |
+| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🔵 EN CURSO (PR 1 `frontend/t-f12-rsvp`: modelos y RSVP; PR 2 `frontend/t-f12-invite-links`: enlaces e invitaciones en el home; PR 3 `frontend/t-f12-edit-event`: editar; PR 4 `frontend/t-f12-organizer`: invitaciones, cancelar y asistentes; falta el auto-login) | — |
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y #273) | — |
 | T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | ✅ HECHA (#262) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
@@ -663,7 +663,7 @@ depende del contrato.
   mockeados) que compruebe splash → login sin excepciones.
 - **Cierre:** ningún archivo de test sin casos; el smoke test monta `ViToApp` y navega.
 
-### T-F12 · App de la Ola 1 — 🔵 EN CURSO (PRs 1 a 3 de 5 abiertos) · P0 · Principio IV
+### T-F12 · App de la Ola 1 — 🔵 EN CURSO (PRs 1 a 4 de 5 abiertos) · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 9 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): modelos y pruebas de contrato,
   RSVP con lista de espera, enlace (copiar, WhatsApp, ruta web `/i/<token>`), editar y
   cancelar evento, invitaciones, lista de asistentes del organizador y contador de confirmados
@@ -705,6 +705,14 @@ depende del contrato.
   - T049: "Editar evento" en el detalle (solo el organizador y con el evento vigente): nombre,
     descripción, fechas, portada, lugar, dirección, cupo, visibilidad y ocultar la dirección.
     Los 400 y 409 muestran el mensaje del backend.
+- **Avance (2026-11-22, PR 4 en `frontend/t-f12-organizer`):**
+  - T052: casos de uso `send_invitation` y `list_event_invitations`; pestaña "Invitaciones" en
+    "Ver invitados" con estado, origen (app o enlace) y fechas. Enviar invitaciones desde la app
+    espera a la búsqueda de usuarios (Ola 2a, T-F13).
+  - T055: "Cancelar evento" con confirmación (solo el organizador); el evento queda
+    "Cancelado" y los invitados ya no pueden responder.
+  - T058: pestaña "Asistentes" para el organizador; quien no organiza ve "N personas
+    confirmadas" (`stats.totalAccepted`) en lugar de las estadísticas completas.
 
 ### T-F13 · App de la Ola 2a — 🔴 BLOQUEADA por T-C11 · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 6 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): modelos y pruebas de contrato,

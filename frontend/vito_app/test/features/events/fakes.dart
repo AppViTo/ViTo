@@ -94,6 +94,14 @@ class FakeEventRepository implements EventRepository {
   final Failure? updateFailure;
   final List<(Event, Event)> updateCalls = [];
 
+  /// Organizador: asistentes, invitaciones y cancelar (T052–T058). Una lista
+  /// `null` responde con el fallo correspondiente o `ServerFailure`.
+  final List<Attendee>? attendees;
+  final Failure? attendeesFailure;
+  final List<Invitation>? invitations;
+  final Failure? cancelFailure;
+  final List<String> cancelledEventIds = [];
+
   FakeEventRepository({
     this.failCreate = false,
     this.failCoverUpload = false,
@@ -109,6 +117,10 @@ class FakeEventRepository implements EventRepository {
     this.previewFailure,
     this.acceptFailure,
     this.updateFailure,
+    this.attendees,
+    this.attendeesFailure,
+    this.invitations,
+    this.cancelFailure,
   });
 
   @override
@@ -227,8 +239,10 @@ class FakeEventRepository implements EventRepository {
   }
 
   @override
-  Future<Either<Failure, void>> cancelEvent(String eventId) async =>
-      const Left(ServerFailure());
+  Future<Either<Failure, void>> cancelEvent(String eventId) async {
+    cancelledEventIds.add(eventId);
+    return cancelFailure != null ? Left(cancelFailure!) : const Right(null);
+  }
 
   @override
   Future<Either<Failure, Event>> getEvent(String eventId) async {
@@ -278,7 +292,9 @@ class FakeEventRepository implements EventRepository {
     int page = 0,
     int size = 20,
   }) async =>
-      const Left(ServerFailure());
+      attendees != null
+          ? Right(attendees!)
+          : Left(attendeesFailure ?? const ServerFailure());
 
   @override
   Future<Either<Failure, Invitation>> sendInvitation({
@@ -294,7 +310,9 @@ class FakeEventRepository implements EventRepository {
     int page = 0,
     int size = 20,
   }) async =>
-      const Left(ServerFailure());
+      invitations != null
+          ? Right(invitations!)
+          : const Left(ServerFailure());
 
   @override
   Future<Either<Failure, RSVP>> checkIn({

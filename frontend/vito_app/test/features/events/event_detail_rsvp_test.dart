@@ -326,6 +326,19 @@ void main() {
       expect(find.text('Evento A'), findsOneWidget);
       expect(_button(tester, 'Voy').onPressed, isNotNull);
     });
+
+    testWidgets('cancelar otro evento con el mismo bloc no afecta este detalle',
+        (tester) async {
+      final repository = _ByIdRepository({'evt_A': named('evt_A', 'Evento A')});
+      final bloc = await pumpShared(tester, repository, 'evt_A');
+
+      bloc.add(const CancelEvent('evt_B'));
+      await tester.pumpAndSettle();
+
+      expect(repository.cancelledEventIds, ['evt_B']);
+      expect(find.text('Evento cancelado'), findsNothing);
+      expect(find.text('Evento A'), findsOneWidget);
+    });
   });
 }
 

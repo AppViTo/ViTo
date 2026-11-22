@@ -169,7 +169,7 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 - [X] T050 [P] [US4] [Bernardo] Pruebas en `ES-test/application/service/InvitationTest.java` y contra `FX/events/sendInvitation.*` y `listEventInvitations.*`: 403 a quien no es organizador en ambas (corrige el hallazgo del #204), 409 si ya está invitado, `EXPIRED` calculado al leer, `totalInvited` con `$inc`
 - [X] T051 [US4] [Bernardo] Verificar organizador en `getEventInvitations`, `message` ≤ 280, `expiresAt` = envío + 7 días y `incrementStat` en `EventServiceImpl.sendInvitation`/`getEventInvitations`; ajustar `EventController.java` a los códigos del contrato
-- [ ] T052 [P] [US4] [Alex] Casos de uso `send_invitation.dart` y `list_event_invitations.dart` en `APP/features/events/domain/usecases/` y lista de invitaciones del organizador (estado, origen app o enlace, fechas) en el detalle del evento. La búsqueda de invitados sigue con el aviso de Bug-F08 hasta la Ola 2
+- [X] T052 [P] [US4] [Alex] Casos de uso `send_invitation.dart` y `list_event_invitations.dart` en `APP/features/events/domain/usecases/` y lista de invitaciones del organizador (estado, origen app o enlace, fechas) en el detalle del evento. La búsqueda de invitados sigue con el aviso de Bug-F08 hasta la Ola 2
 
 ---
 
@@ -181,7 +181,7 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 - [X] T053 [P] [US5] [Bernardo] Pruebas en `ES-test/application/service/CancelEventTest.java` y contra `FX/events/cancelEvent.*`: `204` idempotente, `COMPLETED` → 409, otro usuario → 403; tras cancelar, RSVP, unión por enlace, invitar y `PATCH` → 409, y el evento sale de `upcoming` e `invited`
 - [X] T054 [US5] [Bernardo] `DELETE /api/v1/events/{eventId}` → `CANCELLED` sin tocar invitaciones, RSVP ni enlaces en `EventServiceImpl.cancelEvent` y `EventController.java`; publica `EVENT_CANCELLED`
-- [ ] T055 [P] [US5] [Alex] Caso de uso `cancel_event.dart` y acción "Cancelar evento" con confirmación en el detalle (solo organizador); los invitados ven el evento como "Cancelado"
+- [X] T055 [P] [US5] [Alex] Caso de uso `cancel_event.dart` y acción "Cancelar evento" con confirmación en el detalle (solo organizador); los invitados ven el evento como "Cancelado"
 
 ---
 
@@ -193,7 +193,7 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 - [X] T056 [P] [US6] [Bernardo] Pruebas contra `FX/events/listEventAttendees.*`: organizador → 200 paginado con `displayName` y sin correo ni teléfono; cualquier otro, aunque esté confirmado → 403; filtro `status` opcional
 - [X] T057 [US6] [Bernardo] Autorización de organizador y mapeo a `Attendee` en `EventServiceImpl.getEventAttendees` y `EventController.java`
-- [ ] T058 [P] [US6] [Alex] Lista de asistentes del organizador (`list_event_attendees.dart` y página o sección en el detalle) y contador "N personas confirmadas" para los invitados, desde `stats.totalAccepted`, en `APP/features/events/presentation/pages/event_detail_page.dart`
+- [X] T058 [P] [US6] [Alex] Lista de asistentes del organizador (`list_event_attendees.dart` y página o sección en el detalle) y contador "N personas confirmadas" para los invitados, desde `stats.totalAccepted`, en `APP/features/events/presentation/pages/event_detail_page.dart`
 
 ---
 
