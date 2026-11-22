@@ -5,6 +5,8 @@ import '../../domain/entities/social_profile.dart';
 import '../../domain/usecases/follow.dart';
 import '../../domain/usecases/unfollow.dart';
 import '../../domain/usecases/get_profile.dart';
+import '../../domain/usecases/search_users.dart';
+import '../../domain/entities/user_summary.dart';
 import '../../domain/repositories/social_repository.dart';
 
 // Events
@@ -109,7 +111,7 @@ class FollowingLoaded extends SocialState {
 }
 
 class SearchResultsLoaded extends SocialState {
-  final List<SocialProfile> users;
+  final List<UserSummary> users;
   
   const SearchResultsLoaded(this.users);
   
@@ -205,7 +207,9 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
   Future<void> _onSearchUsers(SearchUsers event, Emitter<SocialState> emit) async {
     emit(SocialLoading());
     
-    final result = await socialRepository.searchUsers(query: event.query);
+    // `searchUsers` de auth-service (Ola 2a): quita la `@` inicial y no
+    // busca con menos de 2 caracteres.
+    final result = await SearchUsersUseCase(socialRepository)(event.query);
     
     result.fold(
       (failure) => emit(SocialError(failure.message)),

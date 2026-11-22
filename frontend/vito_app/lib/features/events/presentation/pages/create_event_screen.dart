@@ -12,7 +12,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/app_button.dart';
 import '../../../../core/widgets/app_error.dart';
-import '../../../social/domain/entities/social_profile.dart';
+import '../../../social/domain/entities/user_summary.dart';
+import '../../../social/domain/usecases/search_users.dart';
 import '../../../social/presentation/bloc/social_bloc.dart';
 import '../../domain/entities/event.dart';
 import '../bloc/event_bloc.dart';
@@ -85,8 +86,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   String? _coverFileName;
   String? _coverMimeType;
 
-  final List<SocialProfile> _invitees = [];
-  List<SocialProfile> _searchResults = [];
+  final List<UserSummary> _invitees = [];
+  List<UserSummary> _searchResults = [];
+  String? _searchError;
+
+  /// Invitaciones que no se pudieron enviar al crear el evento.
+  int _failedInvitations = 0;
   Timer? _searchDebounce;
 
   @override
@@ -410,13 +415,24 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
               if (_searchResults.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.lg),
                 _buildSearchResults(),
+              ] else if (_searchError != null) ...[
+                const SizedBox(height: AppSpacing.lg),
+                SurfacePanel(
+                  child: Text(
+                    _searchError!,
+                    style: AppTypography.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ] else if (socialState is SearchResultsLoaded &&
                   socialState.users.isEmpty &&
-                  _searchController.text.trim().length >= 2) ...[
+                  normalizeSearchQuery(_searchController.text).length >=
+                      minSearchQueryLength) ...[
                 const SizedBox(height: AppSpacing.lg),
                 const SurfacePanel(
                   child: Text(
-                    'La búsqueda de usuarios aún no está disponible. Podrás invitar cuando se habilite.',
+                    'No encontramos a nadie con ese nombre o usuario. '
+                    'También puedes invitar con un enlace.',
                     style: AppTypography.bodySmall,
                     textAlign: TextAlign.center,
                   ),
@@ -644,18 +660,34 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
-  void _finishCreate({bool coverFailed = false}) {
+  Future<void> _finishCreate({bool coverFailed = false}) async {
     final event = _createdEvent;
     if (event == null) return;
 
+    // T035: una invitación (`sendInvitation`) por cada persona elegida. Una
+    // que falle no deshace el evento; se puede volver a invitar después.
+    final sent = await _sendInvitations(event.id);
+    if (!mounted) return;
+
     setState(() => _isSubmitting = false);
 
-    if (coverFailed) {
-      _showInfo('Evento creado. No se pudo subir la portada.');
+    final failed = _failedInvitations;
+    if (coverFailed || failed > 0) {
+      final problems = [
+        if (coverFailed) 'no se pudo subir la portada',
+        if (failed > 0)
+          failed == 1
+              ? 'no se pudo enviar 1 invitación'
+              : 'no se pudieron enviar $failed invitaciones',
+      ];
+      _showInfo('Evento creado, pero ${problems.join(' y ')}.');
     } else {
       AppSuccessSnackBar.show(
         context,
-        message: 'Evento “${event.title}” creado',
+        message: sent == 0
+            ? 'Evento “${event.title}” creado'
+            : 'Evento “${event.title}” creado y '
+                '${sent == 1 ? '1 invitación enviada' : '$sent invitaciones enviadas'}',
       );
     }
 
@@ -664,6 +696,21 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       AppRouter.eventDetail,
       arguments: {'eventId': event.id},
     );
+  }
+
+  /// Envía las invitaciones en paralelo; devuelve cuántas salieron bien y
+  /// deja en [_failedInvitations] cuántas fallaron.
+  Future<int> _sendInvitations(String eventId) async {
+    _failedInvitations = 0;
+    if (_invitees.isEmpty) return 0;
+    final repository = context.read<EventBloc>().eventRepository;
+    final results = await Future.wait([
+      for (final invitee in _invitees)
+        repository.sendInvitation(eventId: eventId, inviteeId: invitee.userId),
+    ]);
+    final failed = results.where((result) => result.isLeft()).length;
+    _failedInvitations = failed;
+    return results.length - failed;
   }
 
   // ── Fechas ──────────────────────────────────────────────────────────────
@@ -780,32 +827,42 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   // ── Invitados ───────────────────────────────────────────────────────────
 
+  /// `searchUsers` (Ola 2a, T035): desde 2 caracteres (sin contar una `@`
+  /// inicial) y con 300 ms de espera entre teclas.
   void _onSearchChanged(String query) {
     _searchDebounce?.cancel();
-    final trimmed = query.trim();
-    if (trimmed.isEmpty) {
-      setState(() => _searchResults = []);
+    final normalized = normalizeSearchQuery(query);
+    if (normalized.length < minSearchQueryLength) {
+      setState(() {
+        _searchResults = [];
+        _searchError = null;
+      });
       return;
     }
-    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
       if (!mounted) return;
-      context.read<SocialBloc>().add(SearchUsers(trimmed));
+      context.read<SocialBloc>().add(SearchUsers(normalized));
     });
   }
 
   void _onSocialState(BuildContext context, SocialState state) {
     if (state is SearchResultsLoaded) {
       setState(() {
+        _searchError = null;
         _searchResults = state.users
             .where((user) => !_invitees.any((i) => i.userId == user.userId))
             .toList();
       });
     } else if (state is SocialError) {
-      setState(() => _searchResults = []);
+      // P. ej. el 429 ("Espera un momento y vuelve a intentarlo").
+      setState(() {
+        _searchResults = [];
+        _searchError = state.message;
+      });
     }
   }
 
-  void _addInvitee(SocialProfile profile) {
+  void _addInvitee(UserSummary profile) {
     setState(() {
       if (!_invitees.any((i) => i.userId == profile.userId)) {
         _invitees.add(profile);
@@ -815,13 +872,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     });
   }
 
-  void _removeInvitee(SocialProfile profile) {
+  void _removeInvitee(UserSummary profile) {
     setState(() => _invitees.removeWhere((i) => i.userId == profile.userId));
   }
 
-  String _displayName(SocialProfile profile) => profile.displayName.isNotEmpty
-      ? profile.displayName
-      : profile.username;
+  String _displayName(UserSummary profile) => profile.label;
 
   // ── Feedback ────────────────────────────────────────────────────────────
 
@@ -1369,15 +1424,13 @@ class _MiniMapPainter extends CustomPainter {
 }
 
 class _Avatar extends StatelessWidget {
-  final SocialProfile profile;
+  final UserSummary profile;
 
   const _Avatar({required this.profile});
 
   @override
   Widget build(BuildContext context) {
-    final label = profile.displayName.isNotEmpty
-        ? profile.displayName.trim()
-        : profile.username.trim();
+    final label = profile.label.trim();
     final initials = label.isEmpty
         ? '?'
         : label

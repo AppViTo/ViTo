@@ -94,6 +94,10 @@ class FakeEventRepository implements EventRepository {
   /// Edición del evento (T048–T049).
   final Failure? updateFailure;
   final List<(Event, Event)> updateCalls = [];
+  /// Invitaciones enviadas (`eventId`, `inviteeId`); las de
+  /// [failInvitationTo] responden `409`.
+  final List<(String, String)> sentInvitations = [];
+  final Set<String> failInvitationTo;
 
   /// Organizador: asistentes, invitaciones y cancelar (T052–T058). Una lista
   /// `null` responde con el fallo correspondiente o `ServerFailure`. La lista
@@ -137,6 +141,7 @@ class FakeEventRepository implements EventRepository {
     this.invitationPages,
     this.guestsGate,
     this.cancelFailure,
+    this.failInvitationTo = const {},
   });
 
   @override
@@ -321,8 +326,20 @@ class FakeEventRepository implements EventRepository {
     required String eventId,
     required String inviteeId,
     String? message,
-  }) async =>
-      const Left(ServerFailure());
+  }) async {
+    sentInvitations.add((eventId, inviteeId));
+    if (failInvitationTo.contains(inviteeId)) {
+      return const Left(
+          ConflictFailure(message: 'El usuario ya está invitado a este evento'));
+    }
+    return Right(Invitation(
+      id: 'inv_$inviteeId',
+      eventId: eventId,
+      inviterId: 'usr_1',
+      inviteeId: inviteeId,
+      status: InvitationStatus.pending,
+    ));
+  }
 
   @override
   Future<Either<Failure, List<Invitation>>> getEventInvitations({

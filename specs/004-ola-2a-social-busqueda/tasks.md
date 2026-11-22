@@ -65,8 +65,8 @@ contrato (T005–T010) esté mergeado.
 
 ### App: modelos y pruebas de contrato (tras T008, dueño Alex)
 
-- [ ] T011 [P] [Alex] Modelos Dart: `APP/features/social/data/models/user_summary_model.dart` (nuevo; `displayName` y `avatar` nullable) y `APP/features/social/data/models/social_profile_model.dart` con `isFollowing` e `isFollowedBy` leídos con esos nombres, sin `bio` ni campos que no estén en el schema
-- [ ] T012 [Alex] Pruebas de serialización contra los fixtures nuevos en `APP-test/contract/social_contract_test.dart` y `APP-test/contract/users_contract_test.dart` (nuevos), usando `fixture_loader.dart`
+- [X] T011 [P] [Alex] Modelos Dart: `APP/features/social/data/models/user_summary_model.dart` (nuevo; `displayName` y `avatar` nullable) y `APP/features/social/data/models/social_profile_model.dart` con `isFollowing` e `isFollowedBy` leídos con esos nombres, sin `bio` ni campos que no estén en el schema
+- [X] T012 [Alex] Pruebas de serialización contra los fixtures nuevos en `APP-test/contract/social_contract_test.dart` y `APP-test/contract/users_contract_test.dart` (nuevos), usando `fixture_loader.dart`
 
 ### Backend transversal (tras el merge del contrato, dueño Bernardo)
 
@@ -118,8 +118,8 @@ puerto y servicio con US1 (T030–T031); si US1 se hace primero, se agregan sobr
 - [X] T031 [US1] [Bernardo] `AS/infrastructure/adapter/inbound/rest/UserController.java` (`GET /api/v1/users/search`, quien busca desde `X-User-Id`) y `/api/v1/users/**` autenticado en `AS/infrastructure/config/SecurityConfig.java`. T024 pasa
 - [X] T032 [US1] [Bernardo] Gateway en `GW/src/main/resources/application.yml`: ruta `users-search` (`Path=/api/v1/users/search`, `Method=GET`) → `auth-service` con `RequestRateLimiter` por usuario (`replenishRate: 1`, `burstCapacity: 10`) y ruta `users` (`Path=/api/v1/users/**`) con el límite de `auth` (10/20), las dos con el CircuitBreaker de `auth`. T025 pasa
 - [X] T033 [US1] [Bernardo] Retirar `GET /api/v1/social/search` de `SS/infrastructure/adapter/inbound/rest/SocialController.java` y `searchUsers` del puerto y el servicio de `social-service`, con sus pruebas
-- [ ] T034 [P] [US1] [Alex] Datasource y caso de uso de búsqueda: `GET /users/search` en un datasource de usuarios (`APP/features/social/data/datasources/user_remote_datasource.dart`) que devuelve `UserSummaryModel`; quitar `/social/search` de `social_remote_datasource.dart`, del repositorio y de `social_bloc.dart`. `429` se muestra como "Espera un momento y vuelve a intentarlo"
-- [ ] T035 [US1] [Alex] `APP/features/events/presentation/pages/create_event_screen.dart`: "¿A quién invitamos?" usa la búsqueda nueva desde 2 caracteres (con espera de 300 ms entre teclas), quita el aviso provisional de Bug-F08 y, al crear el evento, llama a `sendInvitation` por cada persona elegida. Prueba de widget en `APP-test/features/events/`
+- [X] T034 [P] [US1] [Alex] Datasource y caso de uso de búsqueda: `GET /users/search` en un datasource de usuarios (`APP/features/social/data/datasources/user_remote_datasource.dart`) que devuelve `UserSummaryModel`; quitar `/social/search` de `social_remote_datasource.dart`, del repositorio y de `social_bloc.dart`. `429` se muestra como "Espera un momento y vuelve a intentarlo"
+- [X] T035 [US1] [Alex] `APP/features/events/presentation/pages/create_event_screen.dart`: "¿A quién invitamos?" usa la búsqueda nueva desde 2 caracteres (con espera de 300 ms entre teclas), quita el aviso provisional de Bug-F08 y, al crear el evento, llama a `sendInvitation` por cada persona elegida. Prueba de widget en `APP-test/features/events/`
 
 **Checkpoint**: US1 se puede liberar sola (cierra Bug-F08).
 

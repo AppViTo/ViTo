@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
 import '../entities/social_profile.dart';
+import '../entities/user_summary.dart';
 
 abstract class SocialRepository {
   Future<Either<Failure, void>> follow(String userId);
@@ -24,7 +25,9 @@ abstract class SocialRepository {
     int size = 20,
   });
   
-  Future<Either<Failure, List<SocialProfile>>> searchUsers({
+  /// `searchUsers` de `auth-service` (Ola 2a). Un `429` responde
+  /// [ServerFailure] con "Espera un momento y vuelve a intentarlo".
+  Future<Either<Failure, List<UserSummary>>> searchUsers({
     required String query,
     int page = 0,
     int size = 20,

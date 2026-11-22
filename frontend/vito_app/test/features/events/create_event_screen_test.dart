@@ -9,7 +9,9 @@ import 'package:vito_app/core/error/failures.dart';
 import 'package:vito_app/features/events/domain/repositories/event_repository.dart';
 import 'package:vito_app/features/events/presentation/bloc/event_bloc.dart';
 import 'package:vito_app/features/events/presentation/pages/create_event_screen.dart';
+import 'package:vito_app/features/social/data/datasources/user_remote_datasource.dart';
 import 'package:vito_app/features/social/domain/entities/social_profile.dart';
+import 'package:vito_app/features/social/domain/entities/user_summary.dart';
 import 'package:vito_app/features/social/domain/repositories/social_repository.dart';
 import 'package:vito_app/features/social/domain/usecases/follow.dart';
 import 'package:vito_app/features/social/domain/usecases/get_profile.dart';
@@ -19,21 +21,28 @@ import 'package:vito_app/features/social/presentation/bloc/social_bloc.dart';
 import 'fakes.dart';
 
 class _FakeSocialRepository implements SocialRepository {
-  final List<SocialProfile> results;
+  final List<UserSummary> results;
 
-  _FakeSocialRepository({this.results = const []});
+  /// Búsquedas recibidas, ya normalizadas por el caso de uso.
+  final List<String> queries = [];
+  final Failure? searchFailure;
+
+  _FakeSocialRepository({this.results = const [], this.searchFailure});
 
   @override
   Future<Either<Failure, SocialProfile>> getProfile(String userId) async =>
       const Left(ServerFailure());
 
   @override
-  Future<Either<Failure, List<SocialProfile>>> searchUsers({
+  Future<Either<Failure, List<UserSummary>>> searchUsers({
     required String query,
     int page = 0,
     int size = 20,
-  }) async =>
-      Right(results);
+  }) async {
+    queries.add(query);
+    final failure = searchFailure;
+    return failure != null ? Left(failure) : Right(results);
+  }
 
   @override
   Future<Either<Failure, void>> follow(String userId) async =>
@@ -68,6 +77,7 @@ Future<void> _pumpWizard(
   WidgetTester tester, {
   required EventRepository eventRepository,
   SocialRepository? socialRepository,
+  bool withRoutes = false,
 }) async {
   final social = socialRepository ?? _FakeSocialRepository();
   await tester.pumpWidget(
@@ -95,6 +105,11 @@ Future<void> _pumpWizard(
         ],
         child: const CreateEventScreen(),
       ),
+      onGenerateRoute: withRoutes
+          ? (settings) => MaterialPageRoute(
+                builder: (_) => Scaffold(body: Text('ruta ${settings.name}')),
+              )
+          : null,
     ),
   );
   await tester.pumpAndSettle();
@@ -260,12 +275,12 @@ void main() {
         tester,
         eventRepository: FakeEventRepository(),
         socialRepository: _FakeSocialRepository(results: const [
-          SocialProfile(
+          UserSummary(
             userId: 'usr_1',
             username: 'beto',
             displayName: 'Beto Ramírez',
           ),
-          SocialProfile(
+          UserSummary(
             userId: 'usr_2',
             username: 'laura',
             displayName: 'Laura S.',
@@ -294,16 +309,16 @@ void main() {
         tester,
         eventRepository: FakeEventRepository(),
         socialRepository: _FakeSocialRepository(results: const [
-          SocialProfile(userId: 'u1', username: 'a', displayName: 'Ana'),
-          SocialProfile(userId: 'u2', username: 'b', displayName: 'Beto'),
-          SocialProfile(userId: 'u3', username: 'c', displayName: 'Caro'),
-          SocialProfile(userId: 'u4', username: 'd', displayName: 'Diego'),
-          SocialProfile(userId: 'u5', username: 'e', displayName: 'Eva'),
+          UserSummary(userId: 'u1', username: 'a', displayName: 'Ana'),
+          UserSummary(userId: 'u2', username: 'b', displayName: 'Beto'),
+          UserSummary(userId: 'u3', username: 'c', displayName: 'Caro'),
+          UserSummary(userId: 'u4', username: 'd', displayName: 'Diego'),
+          UserSummary(userId: 'u5', username: 'e', displayName: 'Eva'),
         ]),
       );
       await _goToStep2(tester);
 
-      await tester.enterText(find.byType(TextField), 'x');
+      await tester.enterText(find.byType(TextField), 'xy');
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
 
@@ -330,9 +345,126 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.textContaining('La búsqueda de usuarios aún no está disponible'),
+        find.textContaining('No encontramos a nadie con ese nombre o usuario'),
         findsOneWidget,
       );
+      expect(
+        find.textContaining('La búsqueda de usuarios aún no está disponible'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('no busca con menos de 2 caracteres y quita la @ inicial',
+        (tester) async {
+      final social = _FakeSocialRepository();
+      await _pumpWizard(
+        tester,
+        eventRepository: FakeEventRepository(),
+        socialRepository: social,
+      );
+      await _goToStep2(tester);
+
+      await tester.enterText(find.byType(TextField), 'c');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.enterText(find.byType(TextField), '@c');
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(social.queries, isEmpty);
+
+      await tester.enterText(find.byType(TextField), '@caro.mz');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(social.queries, ['caro.mz']);
+    });
+
+    testWidgets('espera 300 ms entre teclas y busca una sola vez',
+        (tester) async {
+      final social = _FakeSocialRepository();
+      await _pumpWizard(
+        tester,
+        eventRepository: FakeEventRepository(),
+        socialRepository: social,
+      );
+      await _goToStep2(tester);
+
+      for (final text in const ['ca', 'car', 'caro']) {
+        await tester.enterText(find.byType(TextField), text);
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(social.queries, ['caro']);
+    });
+
+    testWidgets('el 429 muestra "Espera un momento y vuelve a intentarlo"',
+        (tester) async {
+      await _pumpWizard(
+        tester,
+        eventRepository: FakeEventRepository(),
+        socialRepository: _FakeSocialRepository(
+          searchFailure: const ServerFailure(message: searchRateLimitedMessage),
+        ),
+      );
+      await _goToStep2(tester);
+
+      await tester.enterText(find.byType(TextField), 'caro');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Espera un momento y vuelve a intentarlo'),
+          findsOneWidget);
+      expect(find.textContaining('No encontramos'), findsNothing);
+    });
+  });
+
+  group('CreateEventScreen — invitaciones al crear (T035)', () {
+    Future<void> pickTwoAndCreate(
+      WidgetTester tester,
+      FakeEventRepository repo,
+    ) async {
+      await _pumpWizard(
+        tester,
+        eventRepository: repo,
+        socialRepository: _FakeSocialRepository(results: const [
+          UserSummary(userId: 'usr_2', username: 'caro.mz',
+              displayName: 'Carolina Martínez'),
+          UserSummary(userId: 'usr_3', username: 'andres.r'),
+        ]),
+        withRoutes: true,
+      );
+      await _goToStep2(tester);
+      await tester.enterText(find.byType(TextField), 'ca');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Carolina Martínez'));
+      await tester.pumpAndSettle();
+      // Sin displayName se muestra el usuario.
+      await tester.tap(find.text('andres.r'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Enviar 2 invitaciones'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('envía una invitación por persona y abre el evento',
+        (tester) async {
+      final repo = FakeEventRepository();
+      await pickTwoAndCreate(tester, repo);
+
+      expect(repo.created, hasLength(1));
+      expect(repo.sentInvitations, [('evt_1', 'usr_2'), ('evt_1', 'usr_3')]);
+      expect(find.text('ruta /event-detail'), findsOneWidget);
+    });
+
+    testWidgets('si una invitación falla, lo dice y abre el evento igual',
+        (tester) async {
+      final repo = FakeEventRepository(failInvitationTo: {'usr_3'});
+      await pickTwoAndCreate(tester, repo);
+
+      expect(repo.sentInvitations, hasLength(2));
+      expect(find.text('Evento creado, pero no se pudo enviar 1 invitación.'),
+          findsOneWidget);
+      expect(find.text('ruta /event-detail'), findsOneWidget);
     });
   });
 

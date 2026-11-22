@@ -41,11 +41,13 @@ import '../../features/streaming/domain/repositories/streaming_repository.dart';
 import '../../features/streaming/presentation/bloc/streaming_bloc.dart';
 
 import '../../features/social/data/datasources/social_remote_datasource.dart';
+import '../../features/social/data/datasources/user_remote_datasource.dart';
 import '../../features/social/data/repositories/social_repository_impl.dart';
 import '../../features/social/domain/repositories/social_repository.dart';
 import '../../features/social/domain/usecases/follow.dart';
 import '../../features/social/domain/usecases/unfollow.dart';
 import '../../features/social/domain/usecases/get_profile.dart';
+import '../../features/social/domain/usecases/search_users.dart';
 import '../../features/social/presentation/bloc/social_bloc.dart';
 
 import '../../features/checkin/data/datasources/checkin_remote_datasource.dart';
@@ -191,9 +193,17 @@ Future<void> init() async {
   sl.registerLazySingleton<SocialRemoteDataSource>(
     () => SocialRemoteDataSourceImpl(dio: sl()),
   );
-  sl.registerLazySingleton<SocialRepository>(
-    () => SocialRepositoryImpl(remoteDataSource: sl()),
+  // Búsqueda de usuarios de auth-service (Ola 2a, T034)
+  sl.registerLazySingleton<UserRemoteDataSource>(
+    () => UserRemoteDataSourceImpl(dio: sl()),
   );
+  sl.registerLazySingleton<SocialRepository>(
+    () => SocialRepositoryImpl(
+      remoteDataSource: sl(),
+      userRemoteDataSource: sl(),
+    ),
+  );
+  sl.registerLazySingleton(() => SearchUsersUseCase(sl()));
   sl.registerLazySingleton(() => FollowUseCase(sl()));
   sl.registerLazySingleton(() => UnfollowUseCase(sl()));
   sl.registerLazySingleton(() => GetProfileUseCase(sl()));
