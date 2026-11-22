@@ -424,7 +424,7 @@ depende del contrato.
   ola (no en v0). Fixtures de frames en `docs/api/fixtures/ws/`.
 - **Cierre:** `npx @asyncapi/cli validate docs/api/asyncapi.yaml` verde; PR aprobado por
   1 CODEOWNER; `mock:ws` de T-C02 sirve los frames.
-- **Avance (2026-11-22, RFC en `contract/t-c05-asyncapi`):**
+- **Avance (2026-11-22, RFC #335 y PR #336 en `contract/t-c05-asyncapi`):**
   - `asyncapi.yaml` con los 4 canales: chat, check-in, mosaico (sin cambios de forma) y
     streaming. El servidor envía `{type, data}` y el cliente frames planos sin identidad
     (ADR-015). El chat del stream queda fuera (ADR-016 §4).
@@ -434,7 +434,11 @@ depende del contrato.
     otra forma; nadie llama a los broadcasts de check-in; el streaming toma la identidad del
     frame del cliente; y la app espera `ROOM_UPDATE` y `CHAT` del stream, que no entran al
     contrato.
-  - Falta el servidor de `mock:ws` (tarea aparte).
+  - `npm run mock:ws` (puerto 4011, `scripts/mock-ws.mjs` con `ws`) sirve los frames de
+    `fixtures/ws/`. Pide `?token=`, responde a los frames del cliente según el canal y
+    rechaza los que no cumplen el contrato. Sus pruebas (`npm run test:mock-ws`) corren
+    en el job Contract.
+  - Para cerrar falta solo la aprobación del RFC (#335) y del PR (#336).
 
 ### T-C08 · Contrato de auth alineado con ADR-004 — ✅ HECHA (#45) · P0 · ADR-004, Principio I
 - **Hallazgo (T-B15/T-B16):** ADR-004 (aceptada) fija la respuesta de `register`/`login`/

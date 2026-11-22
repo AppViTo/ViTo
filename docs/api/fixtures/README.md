@@ -106,6 +106,19 @@ mismas reglas que los REST: un fixture por mensaje, sin huérfanos y con los obj
 cerrados. Así, un frame del cliente con `userId` u otro campo de identidad falla
 (ADR-015). `validate:fixtures` los ignora.
 
+Los mismos frames los sirve el mock WS:
+
+```bash
+npm run mock:ws                 # ws://localhost:4011/ws/... con el protocolo de asyncapi.yaml
+npm run mock:ws -- --demo 5     # repite los frames de bienvenida cada 5 s
+```
+
+Para usarlo desde la app, apunta `WS_BASE_URL` al mock
+(`--dart-define=WS_BASE_URL=ws://localhost:4011`). Pide `?token=` como el gateway y
+cierra con `4401` sin él; responde `ERROR` a un frame del cliente que no cumple el
+contrato. Las pruebas del mock son `npm run test:mock-ws` y corren en el job
+**Contract** de CI.
+
 ## Requests multipart
 
 `uploadMedia` (`POST /api/v1/media/upload`) declara `multipart/form-data` con un
