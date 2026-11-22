@@ -1,24 +1,123 @@
 asyncapi: 2.6.0
+defaultContentType: application/json
 info:
   title: ViTo Real-Time WebSocket API
   version: 1.0.0
-  description: Canales WebSocket para chat, check-in, mosaico y streaming (ADR-006).
+  description: |
+    Canales WebSocket crudos (ADR-006) para chat, check-in, mosaico y
+    streaming. v0 (T-C05): documenta las 4 rutas de CONVENTIONS §7. Los
+    mensajes Kafka entran por ola, no en v0.
+
+    **Reglas comunes a los 4 canales**
+
+    - Todo pasa por el gateway: `wss://api.vito.com/ws/...` (local
+      `ws://localhost:8080/ws/...`).
+    - Autenticación con `?token=<accessToken>` en el handshake. El gateway lo
+      valida y cierra con **4401** si es inválido o falta.
+    - **El cliente nunca envía su identidad** (`userId`, `username`,
+      `displayName`, `avatar`, `senderId`): el servicio la toma de `X-User-Id`
+      y `X-User-Name`, que inyecta el gateway (ADR-007, ADR-015). Un campo de
+      identidad enviado por el cliente se ignora.
+    - Frames del servidor: `{"type": "<SCREAMING_SNAKE_CASE>", "data": {...}}`.
+      El cliente hace `switch(type)` e ignora los `type` que no conoce.
+      Excepción: el mosaico (Ola 3, ya en producción) pone sus campos junto a
+      `type`, sin `data`.
+    - Frames del cliente: `{"type": "...", ...campos}` planos.
+    - Fechas ISO-8601 UTC con `Z` (CONVENTIONS §6).
+
+    En AsyncAPI 2.x, `subscribe` son los mensajes que el servidor envía y el
+    cliente recibe; `publish`, los que el cliente envía.
 
 servers:
   gateway:
-    url: wss://api.vito.com
+    url: api.vito.com
     protocol: wss
-    description: API Gateway WebSocket entrypoint
+    description: Gateway de producción (único punto de entrada).
+  local:
+    url: localhost:8080
+    protocol: ws
+    description: Gateway local.
 
 channels:
+  /ws/chat:
+    description: |
+      Chat de las salas de `chat-service` (ADR-015: `?token=` sin `userId`).
+      Solo recibe mensajes de una sala quien hizo `JOIN_ROOM` y es
+      participante. **Post-MVP (Ola 6)**: el contrato fija la forma, pero la
+      ola que lo publica la define D-08.
+    bindings:
+      ws:
+        query:
+          type: object
+          required: [token]
+          properties:
+            token:
+              type: string
+              description: Access token (Bearer) de la sesión.
+    subscribe:
+      summary: Lo que el servidor envía al cliente del chat.
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ChatMessageReceived'
+          - $ref: '#/components/messages/ChatTyping'
+          - $ref: '#/components/messages/ChatRoomJoined'
+          - $ref: '#/components/messages/ChatRoomLeft'
+          - $ref: '#/components/messages/ChatMessagesRead'
+          - $ref: '#/components/messages/WsError'
+    publish:
+      summary: Lo que el cliente envía al chat.
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ChatJoinRoom'
+          - $ref: '#/components/messages/ChatLeaveRoom'
+          - $ref: '#/components/messages/ChatSendMessage'
+          - $ref: '#/components/messages/ChatSendTyping'
+          - $ref: '#/components/messages/ChatMarkRead'
+
+  /ws/checkin/{eventId}:
+    parameters:
+      eventId:
+        description: ID del evento.
+        schema:
+          type: string
+    description: |
+      Check-ins en vivo de un evento (`checkin-service`, ADR-016). Solo el
+      servidor envía. **Ola 2b**: quién puede conectarse (organizador y
+      staff) y el origen de los datos los fija la spec de la ola; v0 fija la
+      forma de los frames.
+    bindings:
+      ws:
+        query:
+          type: object
+          required: [token]
+          properties:
+            token:
+              type: string
+    subscribe:
+      summary: Lo que el servidor envía al tablero de check-in.
+      message:
+        oneOf:
+          - $ref: '#/components/messages/CheckInRegistered'
+          - $ref: '#/components/messages/CheckInStatsUpdate'
+
   /ws/mosaic/{eventId}:
     parameters:
       eventId:
         schema:
           type: string
         description: ID del evento
-    description: Canal en tiempo real del mosaico en vivo para recibir actualizaciones de grilla y feed.
-    publish:
+    description: |
+      Canal en tiempo real del mosaico en vivo para recibir actualizaciones de
+      grilla y feed (Ola 3, ADR-016). Solo el servidor envía.
+    bindings:
+      ws:
+        query:
+          type: object
+          required: [token]
+          properties:
+            token:
+              type: string
+    subscribe:
       summary: Mensajes del servidor al cliente (eventos push)
       message:
         oneOf:
@@ -27,10 +126,413 @@ channels:
           - $ref: '#/components/messages/MosaicLikeUpdate'
           - $ref: '#/components/messages/MosaicItemRemoved'
 
+  /ws/streaming/{streamId}:
+    parameters:
+      streamId:
+        description: ID del stream.
+        schema:
+          type: string
+    description: |
+      Reacciones y audiencia de un stream (`streaming-service`, Ola 4). El
+      stream del MVP **no tiene chat**: el chat de un stream será una sala de
+      `chat-service` (ADR-016 §4, Ola 6), así que el `type: CHAT` de este
+      canal no entra al contrato. Las reacciones se difunden a todos los
+      espectadores conectados al stream (T-B32).
+    bindings:
+      ws:
+        query:
+          type: object
+          required: [token]
+          properties:
+            token:
+              type: string
+    subscribe:
+      summary: Lo que el servidor envía a host y espectadores.
+      message:
+        oneOf:
+          - $ref: '#/components/messages/StreamReactionReceived'
+          - $ref: '#/components/messages/StreamViewerCount'
+          - $ref: '#/components/messages/StreamStarted'
+          - $ref: '#/components/messages/StreamEnded'
+          - $ref: '#/components/messages/Pong'
+    publish:
+      summary: Lo que el cliente envía al stream.
+      message:
+        oneOf:
+          - $ref: '#/components/messages/StreamSendReaction'
+          - $ref: '#/components/messages/Ping'
+
 components:
   messages:
+    # ── Comunes ─────────────────────────────────────────────────────────
+    WsError:
+      name: WsError
+      messageId: WsError
+      title: Error de un frame del cliente
+      description: >
+        Respuesta a un frame inválido o no permitido. No cierra la conexión.
+        `message` en es-ES, como el envelope de ADR-003.
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            enum: [ERROR]
+          data:
+            type: object
+            required: [error, message]
+            properties:
+              error:
+                type: string
+                description: Código de máquina (CONVENTIONS §3.3).
+                example: VALIDATION_ERROR
+              message:
+                type: string
+                example: El mensaje no puede estar vacío
+    Ping:
+      name: Ping
+      messageId: Ping
+      title: Latido del cliente
+      payload:
+        type: object
+        required: [type]
+        properties:
+          type:
+            type: string
+            enum: [PING]
+    Pong:
+      name: Pong
+      messageId: Pong
+      title: Respuesta al latido
+      payload:
+        type: object
+        required: [type]
+        properties:
+          type:
+            type: string
+            enum: [PONG]
+
+    # ── Chat ────────────────────────────────────────────────────────────
+    ChatJoinRoom:
+      name: ChatJoinRoom
+      messageId: ChatJoinRoom
+      title: Entrar a una sala
+      payload:
+        type: object
+        required: [type, roomId]
+        properties:
+          type:
+            type: string
+            enum: [JOIN_ROOM]
+          roomId:
+            type: string
+    ChatLeaveRoom:
+      name: ChatLeaveRoom
+      messageId: ChatLeaveRoom
+      title: Salir de una sala
+      payload:
+        type: object
+        required: [type, roomId]
+        properties:
+          type:
+            type: string
+            enum: [LEAVE_ROOM]
+          roomId:
+            type: string
+    ChatSendMessage:
+      name: ChatSendMessage
+      messageId: ChatSendMessage
+      title: Enviar un mensaje
+      description: "Sin `senderId` ni `senderName`: los pone el servicio (ADR-015)."
+      payload:
+        type: object
+        required: [type, roomId, content]
+        properties:
+          type:
+            type: string
+            enum: [SEND_MESSAGE]
+          roomId:
+            type: string
+          content:
+            type: string
+            minLength: 1
+            maxLength: 2000
+          messageType:
+            type: string
+            enum: [TEXT, IMAGE, VIDEO, AUDIO, FILE]
+            default: TEXT
+          mediaUrl:
+            type: [string, 'null']
+            format: uri
+    ChatSendTyping:
+      name: ChatSendTyping
+      messageId: ChatSendTyping
+      title: Indicador de escritura
+      payload:
+        type: object
+        required: [type, roomId, isTyping]
+        properties:
+          type:
+            type: string
+            enum: [TYPING]
+          roomId:
+            type: string
+          isTyping:
+            type: boolean
+    ChatMarkRead:
+      name: ChatMarkRead
+      messageId: ChatMarkRead
+      title: Marcar la sala como leída
+      payload:
+        type: object
+        required: [type, roomId]
+        properties:
+          type:
+            type: string
+            enum: [MARK_READ]
+          roomId:
+            type: string
+    ChatMessageReceived:
+      name: ChatMessageReceived
+      messageId: ChatMessageReceived
+      title: Mensaje nuevo en una sala
+      description: >
+        Se envía a todos los participantes conectados a la sala, también a
+        quien lo escribió (que así recibe el `id` y el `timestamp` del servidor).
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            enum: [MESSAGE]
+          data:
+            $ref: '#/components/schemas/ChatMessage'
+    ChatTyping:
+      name: ChatTyping
+      messageId: ChatTyping
+      title: Alguien está escribiendo
+      description: No se envía a quien está escribiendo.
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            enum: [TYPING]
+          data:
+            type: object
+            required: [roomId, userId, isTyping]
+            properties:
+              roomId:
+                type: string
+              userId:
+                type: string
+              displayName:
+                type: [string, 'null']
+              isTyping:
+                type: boolean
+    ChatRoomJoined:
+      name: ChatRoomJoined
+      messageId: ChatRoomJoined
+      title: Confirmación de JOIN_ROOM
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            enum: [ROOM_JOINED]
+          data:
+            type: object
+            required: [roomId]
+            properties:
+              roomId:
+                type: string
+    ChatRoomLeft:
+      name: ChatRoomLeft
+      messageId: ChatRoomLeft
+      title: Confirmación de LEAVE_ROOM
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            enum: [ROOM_LEFT]
+          data:
+            type: object
+            required: [roomId]
+            properties:
+              roomId:
+                type: string
+    ChatMessagesRead:
+      name: ChatMessagesRead
+      messageId: ChatMessagesRead
+      title: Confirmación de MARK_READ
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            enum: [MESSAGES_READ]
+          data:
+            type: object
+            required: [roomId]
+            properties:
+              roomId:
+                type: string
+
+    # ── Check-in ────────────────────────────────────────────────────────
+    CheckInRegistered:
+      name: CheckInRegistered
+      messageId: CheckInRegistered
+      title: Un invitado hizo check-in
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            enum: [CHECK_IN]
+          data:
+            $ref: '#/components/schemas/CheckInEvent'
+    CheckInStatsUpdate:
+      name: CheckInStatsUpdate
+      messageId: CheckInStatsUpdate
+      title: Contadores del check-in
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            enum: [STATS_UPDATE]
+          data:
+            type: object
+            required: [eventId, totalCheckedIn, totalExpected, checkInRate]
+            properties:
+              eventId:
+                type: string
+              totalCheckedIn:
+                type: integer
+                minimum: 0
+              totalExpected:
+                type: integer
+                minimum: 0
+              checkInRate:
+                type: number
+                minimum: 0
+                maximum: 100
+                description: Porcentaje (0–100); 0 si `totalExpected` es 0.
+
+    # ── Streaming ───────────────────────────────────────────────────────
+    StreamSendReaction:
+      name: StreamSendReaction
+      messageId: StreamSendReaction
+      title: Enviar una reacción
+      description: >
+        Sin identidad: el servicio la toma de `X-User-Id` / `X-User-Name`
+        (ADR-015) y pone `id` y `timestamp`. `x`/`y` (0–1) sitúan la reacción
+        en la pantalla de quien la envía.
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            enum: [REACTION]
+          data:
+            type: object
+            required: [type]
+            properties:
+              type:
+                $ref: '#/components/schemas/ReactionType'
+              emoji:
+                type: [string, 'null']
+                maxLength: 16
+                description: Solo con `type` = `CUSTOM`.
+              x:
+                type: number
+                minimum: 0
+                maximum: 1
+              y:
+                type: number
+                minimum: 0
+                maximum: 1
+    StreamReactionReceived:
+      name: StreamReactionReceived
+      messageId: StreamReactionReceived
+      title: Reacción de alguien en el stream
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            enum: [REACTION]
+          data:
+            $ref: '#/components/schemas/Reaction'
+    StreamViewerCount:
+      name: StreamViewerCount
+      messageId: StreamViewerCount
+      title: Espectadores conectados
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            enum: [VIEWER_COUNT]
+          data:
+            type: object
+            required: [count]
+            properties:
+              count:
+                type: integer
+                minimum: 0
+    StreamStarted:
+      name: StreamStarted
+      messageId: StreamStarted
+      title: El stream empezó
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            enum: [STREAM_STARTED]
+          data:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+                description: Texto en es-ES para mostrar.
+    StreamEnded:
+      name: StreamEnded
+      messageId: StreamEnded
+      title: El stream terminó
+      payload:
+        type: object
+        required: [type, data]
+        properties:
+          type:
+            type: string
+            enum: [STREAM_ENDED]
+          data:
+            type: object
+            required: [message]
+            properties:
+              message:
+                type: string
+
+    # ── Mosaico (Ola 3) ─────────────────────────────────────────────────
     MosaicNewItem:
       name: MosaicNewItem
+      messageId: MosaicNewItem
       title: Nuevo ítem en el mosaico
       payload:
         type: object
@@ -43,6 +545,7 @@ components:
             $ref: '#/components/schemas/MosaicFeedItem'
     MosaicGridUpdate:
       name: MosaicGridUpdate
+      messageId: MosaicGridUpdate
       title: Actualización de celda en la grilla
       payload:
         type: object
@@ -64,6 +567,7 @@ components:
                   - type: 'null'
     MosaicLikeUpdate:
       name: MosaicLikeUpdate
+      messageId: MosaicLikeUpdate
       title: Actualización de likes de un ítem
       payload:
         type: object
@@ -78,6 +582,7 @@ components:
             type: integer
     MosaicItemRemoved:
       name: MosaicItemRemoved
+      messageId: MosaicItemRemoved
       title: El organizador retiró un ítem
       description: >
         Se emite tras `removeMosaicItem` (moderación del organizador, excepción
@@ -172,3 +677,85 @@ components:
           type: integer
         isLiked:
           type: boolean
+    ChatMessage:
+      type: object
+      required: [id, roomId, senderId, senderName, content, type, timestamp]
+      description: Igual que `ChatMessage` de openapi.yaml.
+      properties:
+        id:
+          type: string
+        roomId:
+          type: string
+        senderId:
+          type: string
+        senderName:
+          type: string
+        content:
+          type: string
+        type:
+          type: string
+          enum: [TEXT, IMAGE, VIDEO, AUDIO, FILE, SYSTEM, TYPING, READ_RECEIPT]
+        mediaUrl:
+          type: [string, 'null']
+        timestamp:
+          type: string
+          format: date-time
+        deleted:
+          type: boolean
+    CheckInEvent:
+      type: object
+      required: [eventId, userId, displayName, checkedInAt, totalCheckedIn]
+      description: Un check-in registrado. Nunca correo ni teléfono.
+      properties:
+        eventId:
+          type: string
+        userId:
+          type: string
+        username:
+          type: [string, 'null']
+        displayName:
+          type: [string, 'null']
+        avatar:
+          type: [string, 'null']
+        checkedInAt:
+          type: string
+          format: date-time
+        location:
+          type: [string, 'null']
+          description: Puerta o punto de acceso, si el staff lo indicó.
+        totalCheckedIn:
+          type: integer
+          minimum: 0
+    ReactionType:
+      type: string
+      description: Enum `Reaction.type` de CONVENTIONS §6.
+      enum: [LIKE, HEART, FIRE, CLAP, CELEBRATION, CUSTOM]
+    Reaction:
+      type: object
+      required: [id, streamId, userId, type, timestamp]
+      properties:
+        id:
+          type: string
+        streamId:
+          type: string
+        userId:
+          type: string
+        displayName:
+          type: [string, 'null']
+        avatar:
+          type: [string, 'null']
+        type:
+          $ref: '#/components/schemas/ReactionType'
+        emoji:
+          type: [string, 'null']
+        x:
+          type: number
+          minimum: 0
+          maximum: 1
+        y:
+          type: number
+          minimum: 0
+          maximum: 1
+        timestamp:
+          type: string
+          format: date-time

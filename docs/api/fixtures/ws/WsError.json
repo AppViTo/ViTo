@@ -1,0 +1,7 @@
+{
+  "type": "ERROR",
+  "data": {
+    "error": "VALIDATION_ERROR",
+    "message": "El mensaje no puede estar vacío"
+  }
+}

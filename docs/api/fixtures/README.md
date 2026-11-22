@@ -96,6 +96,16 @@ que ahí **no** hay schema que aplicar.
 authentication/logoutUser.204.json   → null
 ```
 
+## Frames WebSocket (`ws/`)
+
+Los frames de [`../asyncapi.yaml`](../asyncapi.yaml) (T-C05) van en `ws/`, uno por
+mensaje y con el nombre de su `messageId`: `ws/ChatMessageReceived.json`,
+`ws/StreamSendReaction.json`… Los valida `npm run lint:async`
+([`scripts/validate-asyncapi.mjs`](../../../scripts/validate-asyncapi.mjs)) con las
+mismas reglas que los REST: un fixture por mensaje, sin huérfanos y con los objetos
+cerrados. Así, un frame del cliente con `userId` u otro campo de identidad falla
+(ADR-015). `validate:fixtures` los ignora.
+
 ## Requests multipart
 
 `uploadMedia` (`POST /api/v1/media/upload`) declara `multipart/form-data` con un

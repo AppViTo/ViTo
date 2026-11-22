@@ -1,0 +1,13 @@
+{
+  "type": "CHECK_IN",
+  "data": {
+    "eventId": "evt_01H8X2K4QJ",
+    "userId": "usr_01H8X2K4QV",
+    "username": "caro.mz",
+    "displayName": "Carolina Martínez",
+    "avatar": "https://cdn.vito.com/usr_01H8X2K4QV/avatar.jpg",
+    "checkedInAt": "2026-12-12T23:01:00Z",
+    "location": "Puerta principal",
+    "totalCheckedIn": 81
+  }
+}
