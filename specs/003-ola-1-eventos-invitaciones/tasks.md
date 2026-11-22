@@ -154,8 +154,8 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 ### Implementation for User Story 2
 
 - [X] T047 [US2] [Bernardo] `@PutMapping` → `@PatchMapping(consumes = "application/merge-patch+json")` en `EventController.java` y merge parcial en `EventServiceImpl.updateEvent` (actualiza `organizerDisplayName`, publica `EVENT_UPDATED`)
-- [ ] T048 [P] [US2] [Alex] Caso de uso `APP/features/events/domain/usecases/update_event.dart` enviando solo los cambios, y su método en el datasource y el repositorio
-- [ ] T049 [US2] [Alex] Pantalla `APP/features/events/presentation/pages/edit_event_page.dart` (fecha, foto, descripción, lugar, cupo, visibilidad, ocultar dirección), accesible solo para el organizador desde el detalle; errores 409/400 con el mensaje del backend. Test de widget en `APP-test/features/events/`
+- [X] T048 [P] [US2] [Alex] Caso de uso `APP/features/events/domain/usecases/update_event.dart` enviando solo los cambios, y su método en el datasource y el repositorio
+- [X] T049 [US2] [Alex] Pantalla `APP/features/events/presentation/pages/edit_event_page.dart` (fecha, foto, descripción, lugar, cupo, visibilidad, ocultar dirección), accesible solo para el organizador desde el detalle; errores 409/400 con el mensaje del backend. Test de widget en `APP-test/features/events/`
 
 **Checkpoint**: Bug-F07 cerrado.
 

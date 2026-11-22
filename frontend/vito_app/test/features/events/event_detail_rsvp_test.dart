@@ -217,6 +217,7 @@ void main() {
 
     expect(find.text('¿Vas a ir?'), findsNothing);
     expect(find.text('No voy'), findsNothing);
+    expect(find.text('Editar evento'), findsOneWidget);
 
     await tester.tap(find.text('Invitar con un enlace'));
     await tester.pumpAndSettle();

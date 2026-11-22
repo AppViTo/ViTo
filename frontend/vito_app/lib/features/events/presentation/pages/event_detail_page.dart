@@ -237,6 +237,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
                         // RSVP (T033): el organizador no responde a su evento;
                         // en su lugar comparte enlaces de invitación (T042).
                         if (_isOrganizer(context, event)) ...[
+                          _buildEditButton(context, event),
+                          const SizedBox(height: 8),
                           _buildInviteLinkButton(context, event),
                           const SizedBox(height: 16),
                         ] else ...[
@@ -480,6 +482,33 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ),
         ],
       ],
+    );
+  }
+
+  /// Bug-F07 (T049): el organizador edita su evento mientras esté vigente;
+  /// al volver con cambios guardados, se recarga el detalle.
+  Widget _buildEditButton(BuildContext context, Event event) {
+    final active = event.status != EventStatus.cancelled &&
+        event.status != EventStatus.completed;
+    return OutlinedButton.icon(
+      onPressed: active
+          ? () async {
+              final bloc = context.read<EventBloc>();
+              final messenger = ScaffoldMessenger.of(context);
+              final saved = await Navigator.pushNamed(
+                context,
+                '/edit-event',
+                arguments: {'event': event},
+              );
+              if (saved == null || !mounted) return;
+              messenger.showSnackBar(
+                const SnackBar(content: Text('Cambios guardados')),
+              );
+              bloc.add(LoadEvent(widget.eventId));
+            }
+          : null,
+      icon: const Icon(Icons.edit),
+      label: const Text('Editar evento'),
     );
   }
 

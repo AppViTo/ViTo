@@ -90,6 +90,10 @@ class FakeEventRepository implements EventRepository {
   final List<String> acceptedTokens = [];
   int createInviteLinkCalls = 0;
 
+  /// Edición del evento (T048–T049).
+  final Failure? updateFailure;
+  final List<(Event, Event)> updateCalls = [];
+
   FakeEventRepository({
     this.failCreate = false,
     this.failCoverUpload = false,
@@ -104,6 +108,7 @@ class FakeEventRepository implements EventRepository {
     this.inviteLinkPreview,
     this.previewFailure,
     this.acceptFailure,
+    this.updateFailure,
   });
 
   @override
@@ -213,13 +218,13 @@ class FakeEventRepository implements EventRepository {
 
   @override
   Future<Either<Failure, Event>> updateEvent({
-    required String eventId,
-    String? title,
-    String? description,
-    EventDetails? details,
-    EventSettings? settings,
-  }) async =>
-      const Left(ServerFailure());
+    required Event original,
+    required Event edited,
+  }) async {
+    updateCalls.add((original, edited));
+    if (updateFailure != null) return Left(updateFailure!);
+    return Right(edited);
+  }
 
   @override
   Future<Either<Failure, void>> cancelEvent(String eventId) async =>
@@ -309,6 +314,9 @@ class FakeEventRemoteDataSource implements EventRemoteDataSource {
   Map<String, dynamic>? capturedSettings;
   String? capturedTitle;
 
+  /// Cuerpo enviado a `updateEvent`; `null` si no se llamó.
+  Map<String, dynamic>? capturedPatch;
+
   FakeEventRemoteDataSource({this.createError});
 
   @override
@@ -335,12 +343,15 @@ class FakeEventRemoteDataSource implements EventRemoteDataSource {
   @override
   Future<EventModel> updateEvent({
     required String eventId,
-    String? title,
-    String? description,
-    Map<String, dynamic>? details,
-    Map<String, dynamic>? settings,
-  }) =>
-      throw UnimplementedError();
+    required Map<String, dynamic> patch,
+  }) async {
+    capturedPatch = patch;
+    return EventModel.fromJson({
+      'id': eventId,
+      'organizerId': 'usr_1',
+      'title': patch['title'] ?? 'Evento',
+    });
+  }
 
   @override
   Future<void> cancelEvent(String eventId) => throw UnimplementedError();

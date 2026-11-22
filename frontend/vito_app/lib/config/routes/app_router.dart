@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/di/injection_container.dart';
 import '../../features/events/presentation/bloc/event_bloc.dart';
+import '../../features/events/domain/entities/event.dart';
+import '../../features/events/presentation/bloc/edit_event_cubit.dart';
 import '../../features/events/presentation/bloc/invite_link_cubit.dart';
+import '../../features/events/presentation/pages/edit_event_page.dart';
 import '../../features/events/presentation/bloc/invite_links_cubit.dart';
 import '../../features/events/presentation/pages/invite_link_page.dart';
 import '../../features/events/presentation/pages/invite_links_page.dart';
@@ -40,6 +43,7 @@ class AppRouter {
   static const String profile = '/profile';
   static const String archiveDetail = '/archive-detail';
   static const String inviteLinks = '/invite-links';
+  static const String editEvent = '/edit-event';
 
   /// Prefijo de los enlaces de invitación: `/i/<token>` (T043).
   static const String inviteLinkPrefix = '/i/';
@@ -82,6 +86,16 @@ class AppRouter {
     }
 
     switch (settings.name) {
+      case editEvent:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final event = args?['event'] as Event?;
+        if (event == null) break;
+        return MaterialPageRoute<Event>(
+          builder: (_) => BlocProvider(
+            create: (_) => EditEventCubit(repository: sl()),
+            child: EditEventPage(event: event),
+          ),
+        );
       case inviteLinks:
         final args = settings.arguments as Map<String, dynamic>?;
         final eventId = args?['eventId'] as String? ?? '';
@@ -161,13 +175,14 @@ class AppRouter {
           builder: (_) => ArchiveDetailPage(archiveId: args?['archiveId'] ?? ''),
         );
       default:
-        return MaterialPageRoute(
-          builder: (_) => Scaffold(
-            body: Center(
-              child: Text('No route defined for ${settings.name}'),
-            ),
-          ),
-        );
+        break;
     }
+    return MaterialPageRoute(
+      builder: (_) => Scaffold(
+        body: Center(
+          child: Text('No route defined for ${settings.name}'),
+        ),
+      ),
+    );
   }
 }
