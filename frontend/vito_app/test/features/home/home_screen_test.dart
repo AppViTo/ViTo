@@ -52,6 +52,11 @@ void main() {
   });
 
   Future<void> pumpHome(WidgetTester tester, FakeEventRepository repo) async {
+    // Pantalla alta: con "Invitaciones" (Ola 1), "Próximos eventos" quedaría
+    // fuera de la vista y la lista no lo construiría.
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       BlocProvider<AuthBloc>.value(
         value: authBloc,
@@ -161,5 +166,50 @@ void main() {
     await tester.tap(find.text('Seguidos'));
     await tester.pumpAndSettle();
     expect(find.text('Aún no sigues a nadie'), findsOneWidget);
+  });
+
+  testWidgets(
+      'muestra "Invitaciones" (scope=invited) sin repetirlas en próximos',
+      (tester) async {
+    final fiesta = _event('evt_3', 'Fiesta de Caro');
+    await pumpHome(
+      tester,
+      FakeEventRepository(
+        myEvents: [],
+        upcomingEvents: [fiesta, _event('evt_2', 'Concierto')],
+        invitedEvents: [fiesta],
+      ),
+    );
+
+    expect(find.text('Invitaciones'), findsOneWidget);
+    expect(find.text('Fiesta de Caro'), findsOneWidget);
+    expect(find.text('Concierto'), findsOneWidget);
+    expect(find.text('Aún no tienes invitaciones'), findsNothing);
+  });
+
+  testWidgets('sin invitaciones lo dice en español', (tester) async {
+    await pumpHome(
+      tester,
+      FakeEventRepository(myEvents: [], upcomingEvents: []),
+    );
+
+    expect(find.text('Aún no tienes invitaciones'), findsOneWidget);
+  });
+
+  testWidgets('si falla scope=invited lo dice en su sección', (tester) async {
+    await pumpHome(
+      tester,
+      FakeEventRepository(
+        myEvents: [],
+        upcomingEvents: [],
+        invitedEvents: null,
+      ),
+    );
+
+    expect(
+      find.text(
+          'No pudimos cargar tus invitaciones. Desliza hacia abajo para reintentar.'),
+      findsOneWidget,
+    );
   });
 }

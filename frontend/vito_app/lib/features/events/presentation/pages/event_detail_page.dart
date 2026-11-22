@@ -234,8 +234,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           const SizedBox(height: 16),
                         ],
 
-                        // RSVP (T033): el organizador no responde a su evento.
-                        if (!_isOrganizer(context, event)) ...[
+                        // RSVP (T033): el organizador no responde a su evento;
+                        // en su lugar comparte enlaces de invitación (T042).
+                        if (_isOrganizer(context, event)) ...[
+                          _buildInviteLinkButton(context, event),
+                          const SizedBox(height: 16),
+                        ] else ...[
                           _buildRsvpSection(context, event),
                           const SizedBox(height: 16),
                         ],
@@ -476,6 +480,22 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildInviteLinkButton(BuildContext context, Event event) {
+    final active = event.status != EventStatus.cancelled &&
+        event.status != EventStatus.completed;
+    return ElevatedButton.icon(
+      onPressed: active
+          ? () => Navigator.pushNamed(
+                context,
+                '/invite-links',
+                arguments: {'eventId': event.id, 'eventTitle': event.title},
+              )
+          : null,
+      icon: const Icon(Icons.link),
+      label: const Text('Invitar con un enlace'),
     );
   }
 

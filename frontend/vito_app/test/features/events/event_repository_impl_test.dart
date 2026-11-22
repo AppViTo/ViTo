@@ -180,4 +180,25 @@ void main() {
       expect(failure!.message, 'El archivo supera los 10 MB');
     });
   });
+
+  group('EventRepositoryImpl: estados HTTP de los enlaces (T041)', () {
+    Future<Failure?> failureFor(int statusCode) async {
+      final repo = EventRepositoryImpl(
+        remoteDataSource: FakeEventRemoteDataSource(
+          createError: ServerException(message: 'Mensaje', statusCode: statusCode),
+        ),
+        mediaDataSource: media,
+      );
+      return failureOf(await repo.createEvent(title: 'Fiesta'));
+    }
+
+    test('404 → NotFoundFailure, 409 → ConflictFailure, 403 → Authorization',
+        () async {
+      expect(await failureFor(404), isA<NotFoundFailure>());
+      expect(await failureFor(409), isA<ConflictFailure>());
+      expect(await failureFor(403), isA<AuthorizationFailure>());
+      expect(await failureFor(500), isA<ServerFailure>());
+      expect((await failureFor(409))!.message, 'Mensaje');
+    });
+  });
 }

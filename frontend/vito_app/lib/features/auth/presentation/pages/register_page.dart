@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/navigation/pending_invite_link.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../bloc/auth_bloc.dart';
 
@@ -55,7 +56,7 @@ class _RegisterPageState extends State<RegisterPage> with SingleTickerProviderSt
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthAuthenticated) {
-            Navigator.pushReplacementNamed(context, '/home');
+            goAfterAuth(context);
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message), backgroundColor: AppColors.coralNeon),
