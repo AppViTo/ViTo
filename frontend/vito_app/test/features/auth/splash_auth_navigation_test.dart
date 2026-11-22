@@ -33,7 +33,8 @@ class _RecordingNavigatorObserver extends NavigatorObserver {
 
 /// El splash decide la primera pantalla con el resultado del
 /// `AuthCheckRequested` que despacha `ViToApp`: sesión restaurada → home,
-/// sin sesión (o refresh rechazado/sin red) → login.
+/// sin sesión (o rechazada o sin red) → login. Con access token guardado se
+/// pregunta primero a `/auth/me` (T060) y solo si responde 401 se renueva.
 void main() {
   late ScriptedAdapter adapter;
   late InMemoryAuthLocalDataSource local;
@@ -43,6 +44,8 @@ void main() {
 
   final refresh200 = loadFixtureObject('authentication/refreshToken.200.json');
   final refresh401 = loadFixtureObject('authentication/refreshToken.401.json');
+  final me200 = loadFixtureObject('authentication/getCurrentUser.200.json');
+  final me401 = loadFixtureObject('authentication/getCurrentUser.401.json');
 
   AuthBloc buildBloc() {
     final repository = AuthRepositoryImpl(
@@ -99,11 +102,26 @@ void main() {
     await bloc.close();
   });
 
-  testWidgets('con sesión restaurada (refresh 200) entra a home',
+  testWidgets('con sesión vigente (/auth/me 200) entra a home',
       (tester) async {
     local.accessToken = 'access-vigente';
     local.refreshToken = 'refresh-vigente';
-    adapter.on('POST /auth/refresh', [StubResponse(200, refresh200)]);
+    adapter.on('GET /auth/me', [StubResponse(200, me200)]);
+    bloc = buildBloc();
+
+    await pumpSplash(tester);
+
+    expect(observer.pushed, contains('/home'));
+    expect(observer.pushed, isNot(contains('/login')));
+    expect(adapter.count('POST /auth/refresh'), 0);
+  });
+
+  testWidgets('con access vencido, refresh 200 entra a home', (tester) async {
+    local.accessToken = 'access-vencido';
+    local.refreshToken = 'refresh-vigente';
+    adapter
+      ..on('GET /auth/me', [StubResponse(401, me401)])
+      ..on('POST /auth/refresh', [StubResponse(200, refresh200)]);
     bloc = buildBloc();
 
     await pumpSplash(tester);
@@ -125,7 +143,9 @@ void main() {
       (tester) async {
     local.accessToken = 'access-viejo';
     local.refreshToken = 'refresh-viejo';
-    adapter.on('POST /auth/refresh', [StubResponse(401, refresh401)]);
+    adapter
+      ..on('GET /auth/me', [StubResponse(401, me401)])
+      ..on('POST /auth/refresh', [StubResponse(401, refresh401)]);
     bloc = buildBloc();
 
     await pumpSplash(tester);

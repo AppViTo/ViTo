@@ -227,7 +227,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | ✅ HECHA (#278) | — |
 | T-I29 | Excepción de Trivy `CVE-2026-78661` de `mongo-backup` que vence el 2026-12-23 | I | P1 | ✅ HECHA (#289; nueva fecha 2027-02-07) | — |
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | ✅ HECHA (#253) | — |
-| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🔵 EN CURSO (PR 1 `frontend/t-f12-rsvp`: modelos y RSVP; PR 2 `frontend/t-f12-invite-links`: enlaces e invitaciones en el home; PR 3 `frontend/t-f12-edit-event`: editar; PR 4 `frontend/t-f12-organizer`: invitaciones, cancelar y asistentes; falta el auto-login) | — |
+| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🔵 EN CURSO (PR 1 `frontend/t-f12-rsvp`: modelos y RSVP; PR 2 `frontend/t-f12-invite-links`: enlaces e invitaciones en el home; PR 3 `frontend/t-f12-edit-event`: editar; PR 4 `frontend/t-f12-organizer`: invitaciones, cancelar y asistentes; PR 5 `frontend/t-f12-auto-login`: auto-login; falta el quickstart, T064) | — |
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y #273) | — |
 | T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | ✅ HECHA (#262) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
@@ -287,11 +287,11 @@ depende del contrato.
 | ID | Bug | Prioridad | Estado | Jira |
 |----|-----|-----------|--------|------|
 | Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | ✅ HECHA (#203) | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
-| Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🔵 EN CURSO (pantalla de edición en `frontend/t-f12-edit-event`, T-F12 PR 3) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
+| Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🔵 EN REVISIÓN (app en #328, T-F12 PR 3; se cierra al mergear y desplegar) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
 | Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | ✅ HECHA (#227) | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
 | Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | ✅ aviso HECHO (#246); la búsqueda real, 🟡 RFC [AppViTo/ViTo#277](https://github.com/AppViTo/ViTo/issues/277), que entra en la Ola 2a (spec 004) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
 | Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | ✅ HECHA (#246) | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
-| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | ✅ aviso HECHO (#246); el enlace real: contrato (#253) y backend (#261) en producción desde v0.2.0, falta la app (T-F12) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
+| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | ✅ aviso HECHO (#246); el enlace real: contrato (#253) y backend (#261) en producción desde v0.2.0; app 🔵 EN REVISIÓN (#327, T-F12 PR 2) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
 
 - **Bug-B01, causa:** la app envía bien la hora. `create_event_screen.dart` toma las 20:00
   locales y `EventDetailsModel.toJson` las manda en UTC (`2026-12-10T01:00:00.000Z`), como pide
@@ -663,7 +663,7 @@ depende del contrato.
   mockeados) que compruebe splash → login sin excepciones.
 - **Cierre:** ningún archivo de test sin casos; el smoke test monta `ViToApp` y navega.
 
-### T-F12 · App de la Ola 1 — 🔵 EN CURSO (PRs 1 a 4 de 5 abiertos) · P0 · Principio IV
+### T-F12 · App de la Ola 1 — 🔵 EN CURSO (los 5 PRs abiertos; falta T064) · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 9 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): modelos y pruebas de contrato,
   RSVP con lista de espera, enlace (copiar, WhatsApp, ruta web `/i/<token>`), editar y
   cancelar evento, invitaciones, lista de asistentes del organizador y contador de confirmados
@@ -713,6 +713,21 @@ depende del contrato.
     "Cancelado" y los invitados ya no pueden responder.
   - T058: pestaña "Asistentes" para el organizador; quien no organiza ve "N personas
     confirmadas" (`stats.totalAccepted`) en lugar de las estadísticas completas.
+- **Avance (2026-11-22, PR 5 en `frontend/t-f12-auto-login`):**
+  - T060: al abrir la app con un access token guardado, `getCurrentUser` (`GET /auth/me`)
+    confirma la sesión sin rotar el refresh token. Si responde 401 se intenta renovar con el
+    refresh token, y si eso falla se borran los tokens y se va al inicio de sesión. Sin red se
+    conserva la sesión.
+  - T065 (parte de app): Bug-F07 y el enlace de Bug-F09 pasan a 🔵 EN REVISIÓN con sus PRs.
+- **Para cerrar T-F12** (y T-C07 Ola 1, Bug-F07 y Bug-F09):
+  1. Mergear en orden #325 → #327 → #328 → #330 → este PR, cambiando la base de cada uno a
+     `develop` cuando se mergee el anterior.
+  2. T064 con Bernardo: recorrer `specs/003-ola-1-eventos-invitaciones/quickstart.md` contra el
+     stack local y pegar la salida en el PR de cierre.
+  3. Desplegar y comprobar en la web que `https://<app>/i/<token>` abre la invitación.
+  4. Marcar T-F12, Bug-F07 y Bug-F09 como ✅ y comentar el cierre en el RFC #204 (ya cerrado):
+     de ahí quedó en la Ola 1 todo lo de invitaciones y enlaces; `searchUsers` pasó a la Ola
+     2a (#320, T-F13).
 
 ### T-F13 · App de la Ola 2a — 🔴 BLOQUEADA por T-C11 · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 6 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): modelos y pruebas de contrato,

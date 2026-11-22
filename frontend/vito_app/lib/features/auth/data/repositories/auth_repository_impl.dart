@@ -62,14 +62,32 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Either<Failure, User>> restoreSession() async {
+    final String? accessToken;
     final String? refreshToken;
     try {
+      accessToken = await localDataSource.getAccessToken();
       refreshToken = await localDataSource.getRefreshToken();
     } catch (e) {
       return Left(CacheFailure(message: e.toString()));
     }
+    final hasRefreshToken = refreshToken != null && refreshToken.isNotEmpty;
 
-    if (refreshToken == null || refreshToken.isEmpty) {
+    // T060 (Ola 1): con un access token guardado, `GET /auth/me` confirma la
+    // sesión sin rotar el refresh token en cada arranque. Si responde 401 (el
+    // access token venció o se revocó), se intenta renovar; sin red, la
+    // sesión se conserva para reintentar.
+    if (accessToken != null && accessToken.isNotEmpty) {
+      final me = await getCurrentUser();
+      final unauthorized =
+          me.fold((f) => f is AuthenticationFailure, (_) => false);
+      if (!unauthorized) return me;
+      if (!hasRefreshToken) {
+        await localDataSource.clearTokens();
+        return me;
+      }
+    }
+
+    if (!hasRefreshToken) {
       return const Left(AuthenticationFailure(message: 'No hay sesión guardada'));
     }
 
