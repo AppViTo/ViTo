@@ -244,7 +244,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
 gitleaks, Dependabot). Las de P1 del triage bloquean la apertura a usuarios reales.
 
-Bloqueadas (no tomar): T-C07 olas 2 y 4–6 (VITO-16; la 2a está en spec), T-F02 (VITO-19), T-B06 (VITO-31), T-B13 (VITO-38), T-B30.
+Bloqueadas (no tomar): T-C07 olas 2b y 4–6 (VITO-16), T-B06 (VITO-31), T-B13 (VITO-38), T-B30.
 Desbloqueadas el 2026-10-24: T-C07 Ola 3 (D-08), T-B07 y T-F08 (T-C06 hecha en #147), y T-I11
 (Pages, dominio, secretos y variables listos en T-I06).
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento). T-B10 quedó
@@ -289,7 +289,7 @@ depende del contrato.
 | Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | ✅ HECHA (#203) | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
 | Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟢 READY (contrato en #253 y backend en #264; falta la pantalla de edición, T-F12) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
 | Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | ✅ HECHA (#227) | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
-| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | ✅ aviso HECHO (#246); la búsqueda real, 🟡 RFC [AppViTo/ViTo#277](https://github.com/AppViTo/ViTo/issues/277), que entra en la Ola 2a (spec 004) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
+| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | ✅ aviso HECHO (#246); la búsqueda real: contrato ✅ (#320, RFC #277 cerrado), falta backend (T-B38) y app (T-F13) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
 | Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | ✅ HECHA (#246) | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
 | Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | ✅ aviso HECHO (#246); el enlace real: contrato (#253) y backend (#261) en producción desde v0.2.0, falta la app (T-F12) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
 
@@ -458,10 +458,10 @@ depende del contrato.
   type declara `examples` (validador y README actualizados). `listEvents.200.json` pasa a
   `listEvents.mine.200.json`.
 
-### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔵 EN CURSO (Olas 1 y 3 publicadas; 2a aprobada, contrato en T-C11; 2b sin spec) · D-08 aprobada 2026-10-24 (por ola) · O-02, O-30, ADR-016
+### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔵 EN CURSO (Olas 1, 2a y 3 publicadas; 2b sin spec) · D-08 aprobada 2026-10-24 (por ola) · O-02, O-30, ADR-016
 - **Estado (2026-11-10):**
   - La Ola 2a tiene D-08 aprobada (#283) y spec (`specs/004-ola-2a-social-busqueda`). Su
-    contrato es T-C11 (🟢 READY).
+    contrato es T-C11, ✅ HECHA en #320 (2026-11-20).
   - No necesita T-C05 ni T-B36: la identidad llega por lotes y por REST (`getUsersByIds`), sin
     consumidor nuevo de Kafka.
   - La Ola 2b (check-in/QR: `checkin-service`, `/ws/checkin` y retirar `POST /events/{id}/check-in`
@@ -584,10 +584,11 @@ depende del contrato.
   restaurada, `POST /auth/register` deja de enviar `displayName` (fuera de
   `RegisterRequest`; hallazgo para RFC) y los flujos se verifican contra el mock.
 
-### T-F02 · Retirar `MockApiService` (home, people) — 🔴 BLOQUEADA por T-C11 (people) · P1
+### T-F02 · Retirar `MockApiService` (home, people) — 🟢 READY (T-C11 ✅ #320; la parte de people va en T-F13) · P1
 - Home necesita eventos (`GET /events` → D-03), que ya están en el contrato de la Ola 1 (#253).
 - People necesita la Ola 2a: `searchUsers` en `GET /api/v1/users/search`, cuyo dueño es
-  `auth-service` según el RFC #277 (no `social/search`), y el grafo social. Su contrato es T-C11.
+  `auth-service` según el RFC #277 (no `social/search`), y el grafo social. Su contrato (T-C11)
+  se mergeó en #320; la parte de people la cierra T-F13.
 
 ### T-F03 · Wiring de blocs y rutas — ✅ HECHA (#63) · P1
 - **Qué:** proveer `CheckInBloc` donde se usan sus páginas (o en el `MultiBlocProvider`
