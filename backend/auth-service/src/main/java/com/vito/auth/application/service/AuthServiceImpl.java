@@ -62,6 +62,11 @@ public class AuthServiceImpl implements AuthService {
                         .notifications(User.NotificationSettings.builder().build())
                         .build())
                 .roles(List.of("USER"))
+                // Ola 2a: buscable desde el registro (research R3)
+                .search(User.Search.builder()
+                        .username(SearchNormalizer.username(command.getUsername()))
+                        .terms(SearchNormalizer.terms(command.getDisplayName()))
+                        .build())
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();

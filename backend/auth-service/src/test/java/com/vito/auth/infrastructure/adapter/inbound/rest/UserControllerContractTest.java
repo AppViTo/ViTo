@@ -35,6 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -43,9 +45,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * T061 (Ola 2a, spec 004): {@code getUsersByIds} comparado con docs/api/fixtures/users. Usa el
- * servicio real con el repositorio simulado, así que también prueba el orden, los omitidos y los
- * repetidos (research R1).
+ * T061 y T024 (Ola 2a, spec 004): {@code getUsersByIds} y {@code searchUsers} comparados con
+ * docs/api/fixtures/users. Usa el servicio real con el repositorio simulado, así que también
+ * prueba el orden, los omitidos, los repetidos (research R1) y las validaciones de la búsqueda.
  */
 class UserControllerContractTest {
 
@@ -204,6 +206,139 @@ class UserControllerContractTest {
                 "key", "anonymousUser", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS")));
 
         assertUnauthorized(getUsers("usr_01H8X2K4QV"));
+    }
+
+    // ── searchUsers (T024) ──────────────────────────────────────
+
+    private static final User ANDREA = User.builder()
+            .id("usr_01H9ZP5RKM").username("andrea.gomez").email("andrea@vito.com").passwordHash("$2a$secret")
+            .profile(User.Profile.builder().displayName("Andrea Gómez")
+                    .avatar("https://cdn.vito.com/usr_01H9ZP5RKM/avatar.jpg").build())
+            .build();
+    private static final User ANDRES_R = User.builder()
+            .id("usr_01H8X2K4QW").username("andres.r").email("andres@vito.com").build();
+
+    @Test
+    void searchUsers200IsTheFixture() throws Exception {
+        when(userRepository.search(eq("and"), any(), anyInt(), anyInt())).thenReturn(List.of(ANDREA, ANDRES_R));
+
+        assertEquals(fixtureJson("searchUsers.matches.200.json"), okBody(search("and")));
+    }
+
+    @Test
+    void searchUsers200EmptyIsAnEmptyArray() throws Exception {
+        when(userRepository.search(any(), any(), anyInt(), anyInt())).thenReturn(List.of());
+
+        assertEquals(fixtureJson("searchUsers.empty.200.json"), okBody(search("nadie")));
+    }
+
+    /** Texto normalizado, quien busca desde la sesión y página por defecto 0 de 20. */
+    @Test
+    void searchPassesNormalizedQueryRequesterAndDefaultPage() throws Exception {
+        when(userRepository.search(any(), any(), anyInt(), anyInt())).thenReturn(List.of());
+
+        okBody(search("@Caro.MZ"));
+
+        verify(userRepository).search("caro.mz", "usr_01H8X2K4QJ", 0, 20);
+    }
+
+    @Test
+    void searchPassesTheRequestedPage() throws Exception {
+        when(userRepository.search(any(), any(), anyInt(), anyInt())).thenReturn(List.of());
+
+        okBody(mvc.perform(get("/api/v1/users/search").param("query", "jose").param("page", "2").param("size", "5")));
+
+        verify(userRepository).search("jose", "usr_01H8X2K4QJ", 2, 5);
+    }
+
+    @Test
+    void searchResponsesNeverCarryEmailNorPhone() throws Exception {
+        when(userRepository.search(any(), any(), anyInt(), anyInt())).thenReturn(List.of(ANDREA, ANDRES_R));
+
+        String raw = search("and").andExpect(status().isOk()).andReturn()
+                .getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        assertFalse(raw.contains("email"), raw);
+        assertFalse(raw.contains("phone"), raw);
+        assertFalse(raw.contains("@vito.com"), raw);
+    }
+
+    @Test
+    void queryOfFiftyCharactersIsAccepted() throws Exception {
+        when(userRepository.search(any(), any(), anyInt(), anyInt())).thenReturn(List.of());
+
+        search("a".repeat(50)).andExpect(status().isOk());
+        search("@" + "a".repeat(50)).andExpect(status().isOk());
+    }
+
+    @Test
+    void searchUsers400WithOneCharacter() throws Exception {
+        assertSearchQueryError(search("a"));
+    }
+
+    /** El mínimo cuenta después de quitar la @: "@a" es una sola letra. */
+    @Test
+    void searchUsers400WithAtSignAndOneCharacter() throws Exception {
+        assertSearchQueryError(search("@a"));
+    }
+
+    @Test
+    void searchUsers400WithFiftyOneCharacters() throws Exception {
+        assertSearchQueryError(search("a".repeat(51)));
+    }
+
+    @Test
+    void searchUsers400WithoutQuery() throws Exception {
+        assertSearchQueryError(mvc.perform(get("/api/v1/users/search")));
+    }
+
+    @Test
+    void searchUsers400WithBlankQuery() throws Exception {
+        assertSearchQueryError(search("    "));
+    }
+
+    @Test
+    void searchUsers400WithSizeAboveTwenty() throws Exception {
+        JsonNode error = errorBody(mvc.perform(get("/api/v1/users/search").param("query", "jose").param("size", "21")), 400);
+
+        assertMatchesFixture(error, "searchUsers.400.json");
+        assertEquals(Set.of("size"), fieldNames(error.get("details")));
+        verify(userRepository, never()).search(any(), any(), anyInt(), anyInt());
+    }
+
+    @Test
+    void searchUsers400WithSizeZeroOrNegativePage() throws Exception {
+        JsonNode size = errorBody(mvc.perform(get("/api/v1/users/search").param("query", "jose").param("size", "0")), 400);
+        JsonNode page = errorBody(mvc.perform(get("/api/v1/users/search").param("query", "jose").param("page", "-1")), 400);
+
+        assertEquals(Set.of("size"), fieldNames(size.get("details")));
+        assertEquals(Set.of("page"), fieldNames(page.get("details")));
+        verify(userRepository, never()).search(any(), any(), anyInt(), anyInt());
+    }
+
+    @Test
+    void searchUsers401WithoutSession() throws Exception {
+        SecurityContextHolder.clearContext();
+
+        JsonNode error = errorBody(search("jose"), 401);
+
+        assertMatchesFixture(error, "searchUsers.401.json");
+        assertEquals(fixtureJson("searchUsers.401.json").get("message"), error.get("message"));
+        verify(userRepository, never()).search(any(), any(), anyInt(), anyInt());
+    }
+
+    private ResultActions search(String query) throws Exception {
+        return mvc.perform(get("/api/v1/users/search").param("query", query));
+    }
+
+    private void assertSearchQueryError(ResultActions result) throws Exception {
+        JsonNode error = errorBody(result, 400);
+        JsonNode expected = fixtureJson("searchUsers.400.json");
+
+        assertMatchesFixture(error, "searchUsers.400.json");
+        assertEquals(expected.get("message"), error.get("message"));
+        assertEquals(expected.get("details"), error.get("details"));
+        verify(userRepository, never()).search(any(), any(), anyInt(), anyInt());
     }
 
     // ── helpers ─────────────────────────────────────────────────

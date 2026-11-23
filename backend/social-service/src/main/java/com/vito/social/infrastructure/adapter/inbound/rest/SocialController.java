@@ -75,17 +75,8 @@ public class SocialController {
         return ResponseEntity.ok(following);
     }
     
-    @GetMapping("/search")
-    public ResponseEntity<List<SocialProfile>> searchUsers(
-            @RequestParam String query,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        
-        List<SocialProfile> users = socialService.searchUsers(query, page, size);
-        
-        return ResponseEntity.ok(users);
-    }
-    
+    // GET /search retirada (T033, Ola 2a): la búsqueda es searchUsers de auth-service (ADR-016)
+
     @GetMapping("/is-following/{userId}")
     public ResponseEntity<Boolean> isFollowing(@PathVariable String userId) {
         String currentUserId = getCurrentUserId();

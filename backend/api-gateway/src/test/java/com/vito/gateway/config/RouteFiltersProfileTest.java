@@ -47,13 +47,14 @@ class RouteFiltersProfileTest {
     /**
      * CONVENTIONS §9 (T-B23): auth 10/20, events 20/40 y el resto de las rutas REST 10/20. Ola 1
      * (T019): la vista previa de enlaces, 10/min por IP con ráfaga de 20; accept, como events.
+     * Ola 2a (T032): la búsqueda de usuarios, 1/s por usuario con ráfaga de 10.
      */
     static void assertRestRoutesRateLimited(GatewayProperties properties) {
         List<RouteDefinition> rest = properties.getRoutes().stream()
                 .filter(r -> r.getPredicates().stream()
                         .anyMatch(p -> p.getArgs().values().stream().anyMatch(v -> v.startsWith("/api/v1/"))))
                 .toList();
-        assertEquals(14, rest.size(), "rutas REST: " + rest.stream().map(RouteDefinition::getId).toList());
+        assertEquals(16, rest.size(), "rutas REST: " + rest.stream().map(RouteDefinition::getId).toList());
 
         for (RouteDefinition route : rest) {
             FilterDefinition limiter = route.getFilters().stream()
@@ -64,6 +65,11 @@ class RouteFiltersProfileTest {
                 assertEquals("1", limiter.getArgs().get("redis-rate-limiter.replenishRate"));
                 assertEquals("6", limiter.getArgs().get("redis-rate-limiter.requestedTokens"));
                 assertEquals("120", limiter.getArgs().get("redis-rate-limiter.burstCapacity"));
+                continue;
+            }
+            if (route.getId().equals("users-search")) {
+                assertEquals("1", limiter.getArgs().get("redis-rate-limiter.replenishRate"));
+                assertEquals("10", limiter.getArgs().get("redis-rate-limiter.burstCapacity"));
                 continue;
             }
             boolean events = route.getId().equals("event-service") || route.getId().equals("invite-links");

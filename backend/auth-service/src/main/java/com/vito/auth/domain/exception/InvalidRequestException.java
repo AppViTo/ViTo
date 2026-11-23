@@ -19,6 +19,17 @@ public class InvalidRequestException extends RuntimeException {
         return details;
     }
 
+    /** {@code searchUsers}: texto de 2 a 50 caracteres tras quitar la @ (fixture searchUsers.400). */
+    public static InvalidRequestException queryOutOfRange(int min, int max) {
+        return new InvalidRequestException("La búsqueda debe tener entre " + min + " y " + max + " caracteres",
+                Map.of("query", "Entre " + min + " y " + max + " caracteres"));
+    }
+
+    /** {@code page} negativa o {@code size} fuera de rango (mismo texto que listFollowers.400). */
+    public static InvalidRequestException invalidPagination(String field, String detail) {
+        return new InvalidRequestException("La paginación no es válida", Map.of(field, detail));
+    }
+
     /** {@code getUsersByIds}: entre 1 y 50 ids (fixture getUsersByIds.400). */
     public static InvalidRequestException idsOutOfRange(int max) {
         return new InvalidRequestException("Debes pedir entre 1 y " + max + " usuarios",
