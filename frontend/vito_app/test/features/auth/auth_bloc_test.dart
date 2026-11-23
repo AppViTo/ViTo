@@ -19,9 +19,29 @@ import 'fakes.dart';
 
 /// T-F01 — AuthBloc contra el stack real (datasource → repositorio → casos de
 /// uso) con respuestas HTTP tomadas de los fixtures del contrato.
-/// Margen para que la petición HTTP simulada (asíncrona) termine antes de
-/// que bloc_test cierre el bloc.
-const _io = Duration(milliseconds: 100);
+/// Límite de seguridad: si el bloc nunca llega a un estado final, la prueba
+/// falla con un mensaje claro en lugar de quedarse colgada.
+const _settleTimeout = Duration(seconds: 5);
+
+/// Espera a que el bloc emita su primer estado distinto de `AuthLoading`
+/// (y que cumpla [until], si se da). Sustituye a un `wait` fijo de 100 ms
+/// que, con la suite en paralelo, a veces no alcanzaba para que la petición
+/// HTTP simulada terminara y la prueba solo veía `[AuthLoading()]`.
+Future<void> _settled(
+  AuthBloc bloc, {
+  bool Function(AuthState state)? until,
+}) =>
+    bloc.stream
+        .firstWhere((s) => s is! AuthLoading && (until?.call(s) ?? true))
+        .timeout(_settleTimeout);
+
+/// Envía [event] y espera el estado final. La suscripción se abre antes de
+/// enviar el evento para no perder ninguna emisión.
+Future<void> _run(AuthBloc bloc, AuthEvent event) {
+  final done = _settled(bloc);
+  bloc.add(event);
+  return done;
+}
 
 void main() {
   late ScriptedAdapter adapter;
@@ -69,8 +89,7 @@ void main() {
       'éxito: autentica con el usuario del contrato y guarda los tokens',
       setUp: () => adapter.on('POST /auth/login', [StubResponse(200, login200)]),
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(login),
+      act: (bloc) => _run(bloc, login),
       expect: () => [
         const AuthLoading(),
         isA<AuthAuthenticated>()
@@ -92,8 +111,7 @@ void main() {
         StubResponse(401, loadFixtureObject('authentication/loginUser.401.json')),
       ]),
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(login),
+      act: (bloc) => _run(bloc, login),
       expect: () => [
         const AuthLoading(),
         const AuthError(message: 'Credenciales inválidas'),
@@ -110,8 +128,7 @@ void main() {
         StubResponse(400, loadFixtureObject('authentication/loginUser.400.json')),
       ]),
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(login),
+      act: (bloc) => _run(bloc, login),
       expect: () => [
         const AuthLoading(),
         const AuthError(message: 'El campo password es obligatorio'),
@@ -122,8 +139,7 @@ void main() {
       'sin red: error y sin tokens',
       setUp: () => adapter.on('POST /auth/login', []),
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(login),
+      act: (bloc) => _run(bloc, login),
       expect: () => [const AuthLoading(), isA<AuthError>()],
       verify: (_) => expect(local.accessToken, isNull),
     );
@@ -135,8 +151,7 @@ void main() {
       setUp: () =>
           adapter.on('POST /auth/register', [StubResponse(201, register201)]),
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const RegisterRequested(
+      act: (bloc) => _run(bloc, const RegisterRequested(
         username: 'alex_villa',
         email: 'alex@vito.com',
         password: 'vito-dev-2026',
@@ -154,8 +169,7 @@ void main() {
       setUp: () =>
           adapter.on('POST /auth/register', [StubResponse(201, register201)]),
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const RegisterRequested(
+      act: (bloc) => _run(bloc, const RegisterRequested(
         username: 'alex_villa',
         email: 'alex@vito.com',
         password: 'vito-dev-2026',
@@ -173,8 +187,7 @@ void main() {
         StubResponse(409, loadFixtureObject('authentication/registerUser.409.json')),
       ]),
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const RegisterRequested(
+      act: (bloc) => _run(bloc, const RegisterRequested(
         username: 'alex_villa',
         email: 'alex@vito.com',
         password: 'vito-dev-2026',
@@ -194,8 +207,7 @@ void main() {
         adapter.on('POST /auth/refresh', [StubResponse(200, refresh200)]);
       },
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      act: (bloc) => _run(bloc, const AuthCheckRequested()),
       expect: () => [
         isA<AuthAuthenticated>()
             .having((s) => s.user.username, 'username', 'alex_villa'),
@@ -211,8 +223,7 @@ void main() {
     blocTest<AuthBloc, AuthState>(
       'sin sesión guardada: no llama al backend',
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      act: (bloc) => _run(bloc, const AuthCheckRequested()),
       expect: () => [const AuthUnauthenticated()],
       verify: (_) => expect(adapter.requests, isEmpty),
     );
@@ -228,8 +239,7 @@ void main() {
         ]);
       },
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      act: (bloc) => _run(bloc, const AuthCheckRequested()),
       expect: () => [const AuthUnauthenticated()],
       verify: (_) {
         expect(local.accessToken, isNull);
@@ -244,8 +254,7 @@ void main() {
         adapter.on('POST /auth/refresh', []);
       },
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      act: (bloc) => _run(bloc, const AuthCheckRequested()),
       expect: () => [const AuthUnauthenticated()],
       verify: (_) => expect(local.refreshToken, 'guardado'),
     );
@@ -261,8 +270,7 @@ void main() {
         adapter.on('POST /auth/logout', [const StubResponse(204)]);
       },
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const LogoutRequested()),
+      act: (bloc) => _run(bloc, const LogoutRequested()),
       expect: () => [const AuthLoading(), const AuthUnauthenticated()],
       verify: (_) {
         expect(adapter.requests.single.headers['Authorization'], 'Bearer acceso');
@@ -282,8 +290,7 @@ void main() {
         ]);
       },
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const LogoutRequested()),
+      act: (bloc) => _run(bloc, const LogoutRequested()),
       expect: () => [const AuthLoading(), const AuthUnauthenticated()],
       verify: (_) => expect(local.accessToken, isNull),
     );
@@ -304,10 +311,11 @@ void main() {
         ]);
     },
     build: buildBloc,
-    wait: _io,
     seed: () => const AuthLoading(),
-    act: (_) async {
+    act: (bloc) async {
+      final done = _settled(bloc, until: (s) => s is AuthUnauthenticated);
       await expectLater(dio.get('/events'), throwsA(isA<DioException>()));
+      await done;
     },
     expect: () => [const AuthUnauthenticated()],
     verify: (_) => expect(local.refreshToken, isNull),
