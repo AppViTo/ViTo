@@ -36,12 +36,18 @@ class _EventDetailPageState extends State<EventDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: BlocConsumer<EventBloc, EventState>(
+        // El EventBloc puede ser compartido (raíz de la app, otras pantallas):
+        // solo cuentan los estados de este evento y las acciones de esta
+        // página. Un error ajeno (escáner, check-in) no se muestra aquí.
         listenWhen: (_, state) =>
-            state is RSVPSubmitted || (state is EventError && _event != null),
+            (state is RSVPSubmitted && state.rsvp.eventId == widget.eventId) ||
+            (state is EventError && _submittingRsvp),
         listener: _onActionResult,
-        buildWhen: (_, state) => _event == null || state is EventLoaded,
+        buildWhen: (_, state) =>
+            _isThisEvent(state) ||
+            (_event == null && (state is EventLoading || state is EventError)),
         builder: (context, state) {
-          if (state is EventLoaded) _event = state.event;
+          if (_isThisEvent(state)) _event = (state as EventLoaded).event;
 
           if (state is EventLoading) {
             return const Center(
@@ -331,6 +337,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
       ),
     );
   }
+
+  /// Un `EventLoaded` de otro evento (p. ej. el que se abrió antes con el
+  /// mismo bloc) nunca reemplaza este detalle: si no, "Voy" respondería a
+  /// ese otro evento.
+  bool _isThisEvent(EventState state) =>
+      state is EventLoaded && state.event.id == widget.eventId;
 
   void _onActionResult(BuildContext context, EventState state) {
     final messenger = ScaffoldMessenger.of(context);

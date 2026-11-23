@@ -1,3 +1,4 @@
+import 'package:dartz/dartz.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -176,4 +177,119 @@ void main() {
       findsOneWidget,
     );
   });
+
+  group('EventBloc compartido con otras pantallas', () {
+    Event named(String id, String title) => Event(
+          id: id,
+          organizerId: 'usr_1',
+          title: title,
+          status: EventStatus.published,
+          details: EventDetails(
+            startDate: DateTime.now().add(const Duration(days: 30)),
+          ),
+          stats: const EventStats(totalAccepted: 1),
+        );
+
+    Future<EventBloc> pumpShared(
+      WidgetTester tester,
+      _ByIdRepository repository,
+      String eventId,
+    ) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final bloc = EventBloc(eventRepository: repository);
+      addTearDown(bloc.close);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('es')],
+          locale: const Locale('es'),
+          home: BlocProvider<EventBloc>.value(
+            value: bloc,
+            child: EventDetailPage(eventId: eventId),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      return bloc;
+    }
+
+    testWidgets('si la carga de B falla, no muestra el evento A cargado antes',
+        (tester) async {
+      final repository = _ByIdRepository({'evt_A': named('evt_A', 'Evento A')});
+      final bloc = EventBloc(eventRepository: repository);
+      addTearDown(bloc.close);
+      bloc.add(const LoadEvent('evt_A'));
+      await bloc.stream.firstWhere((s) => s is EventLoaded);
+
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: BlocProvider<EventBloc>.value(
+            value: bloc,
+            child: const EventDetailPage(eventId: 'evt_B'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Evento A'), findsNothing);
+      expect(find.text('Voy'), findsNothing);
+      expect(find.text('Reintentar'), findsOneWidget);
+    });
+
+    testWidgets('un EventLoaded de otro evento no cambia el detalle ni el RSVP',
+        (tester) async {
+      final repository = _ByIdRepository({
+        'evt_A': named('evt_A', 'Evento A'),
+        'evt_B': named('evt_B', 'Evento B'),
+      });
+      final bloc = await pumpShared(tester, repository, 'evt_A');
+
+      // Otra pantalla carga B con el mismo bloc.
+      bloc.add(const LoadEvent('evt_B'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Evento A'), findsOneWidget);
+      expect(find.text('Evento B'), findsNothing);
+
+      await _tapButton(tester, 'Voy');
+      expect(repository.rsvpCalls.single.$1, 'evt_A');
+    });
+
+    testWidgets('un error de otra pantalla no se muestra en el detalle',
+        (tester) async {
+      final repository = _ByIdRepository({'evt_A': named('evt_A', 'Evento A')});
+      final bloc = await pumpShared(tester, repository, 'evt_A');
+
+      // P. ej. el escáner: su check-in falla con el mismo bloc.
+      bloc.add(const CheckIn(eventId: 'evt_A', qrCode: 'qr'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.text('Evento A'), findsOneWidget);
+      expect(_button(tester, 'Voy').onPressed, isNotNull);
+    });
+  });
+}
+
+/// Repositorio con un detalle por id; un id desconocido responde
+/// `ServerFailure`.
+class _ByIdRepository extends FakeEventRepository {
+  final Map<String, Event> events;
+
+  _ByIdRepository(this.events);
+
+  @override
+  Future<Either<Failure, Event>> getEvent(String eventId) async {
+    final event = events[eventId];
+    return event != null ? Right(event) : const Left(ServerFailure());
+  }
 }
