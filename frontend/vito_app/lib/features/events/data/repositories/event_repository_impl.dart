@@ -6,6 +6,7 @@ import '../../../../core/error/failures.dart';
 import '../datasources/event_remote_datasource.dart';
 import '../datasources/media_remote_datasource.dart';
 import '../models/event_model.dart';
+import '../models/event_patch.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/entities/attendee.dart';
 import '../../domain/entities/rsvp.dart';
@@ -73,21 +74,15 @@ class EventRepositoryImpl implements EventRepository {
   
   @override
   Future<Either<Failure, Event>> updateEvent({
-    required String eventId,
-    String? title,
-    String? description,
-    EventDetails? details,
-    EventSettings? settings,
+    required Event original,
+    required Event edited,
   }) async {
+    final patch = eventPatchJson(original, edited);
+    if (patch.isEmpty) return Right(original);
     try {
       final event = await remoteDataSource.updateEvent(
-        eventId: eventId,
-        title: title,
-        description: description,
-        details:
-            details != null ? EventDetailsModel.fromEntity(details).toJson() : null,
-        settings:
-            settings != null ? EventSettingsModel.fromEntity(settings).toJson() : null,
+        eventId: original.id,
+        patch: patch,
       );
       return Right(event);
     } catch (e) {

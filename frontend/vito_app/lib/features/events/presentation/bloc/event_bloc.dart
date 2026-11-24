@@ -34,23 +34,15 @@ class CreateEvent extends EventEvent {
   List<Object?> get props => [title, description, details, settings];
 }
 
+/// Edita un evento enviando solo lo que cambió de [original] a [edited].
 class UpdateEvent extends EventEvent {
-  final String eventId;
-  final String? title;
-  final String? description;
-  final EventDetails? details;
-  final EventSettings? settings;
-  
-  const UpdateEvent({
-    required this.eventId,
-    this.title,
-    this.description,
-    this.details,
-    this.settings,
-  });
-  
+  final Event original;
+  final Event edited;
+
+  const UpdateEvent({required this.original, required this.edited});
+
   @override
-  List<Object?> get props => [eventId, title, description, details, settings];
+  List<Object?> get props => [original, edited];
 }
 
 class CancelEvent extends EventEvent {
@@ -344,11 +336,8 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     emit(EventLoading());
     
     final result = await eventRepository.updateEvent(
-      eventId: event.eventId,
-      title: event.title,
-      description: event.description,
-      details: event.details,
-      settings: event.settings,
+      original: event.original,
+      edited: event.edited,
     );
     
     result.fold(

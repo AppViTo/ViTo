@@ -17,12 +17,12 @@ abstract class EventRepository {
     EventSettings? settings,
   });
   
+  /// Envía solo lo que cambió de [original] a [edited]. Si nada cambió,
+  /// devuelve [original] sin llamar al backend. Un cupo menor que los
+  /// confirmados o un evento no vigente responden [ConflictFailure].
   Future<Either<Failure, Event>> updateEvent({
-    required String eventId,
-    String? title,
-    String? description,
-    EventDetails? details,
-    EventSettings? settings,
+    required Event original,
+    required Event edited,
   });
   
   Future<Either<Failure, void>> cancelEvent(String eventId);

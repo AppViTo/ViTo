@@ -16,14 +16,13 @@ abstract class EventRemoteDataSource {
     Map<String, dynamic>? settings,
   });
   
+  /// `updateEvent` (`PATCH /events/{eventId}`, Ola 1): [patch] lleva solo
+  /// lo que cambia (`application/merge-patch+json`, ver `eventPatchJson`).
   Future<EventModel> updateEvent({
     required String eventId,
-    String? title,
-    String? description,
-    Map<String, dynamic>? details,
-    Map<String, dynamic>? settings,
+    required Map<String, dynamic> patch,
   });
-  
+
   Future<void> cancelEvent(String eventId);
   
   Future<EventModel> getEvent(String eventId);
@@ -129,22 +128,15 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   @override
   Future<EventModel> updateEvent({
     required String eventId,
-    String? title,
-    String? description,
-    Map<String, dynamic>? details,
-    Map<String, dynamic>? settings,
+    required Map<String, dynamic> patch,
   }) async {
     try {
-      final response = await dio.put(
+      final response = await dio.patch(
         '/events/$eventId',
-        data: {
-          'title': title,
-          'description': description,
-          'details': details,
-          'settings': settings,
-        },
+        data: patch,
+        options: Options(contentType: 'application/merge-patch+json'),
       );
-      
+
       return EventModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
