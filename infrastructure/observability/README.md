@@ -108,8 +108,11 @@ El endpoint `/healthz` es infraestructura: Caddy lo reescribe a
 Importa en **Dashboards → New → Import**:
 
 - [`dashboards/vito-api-red.json`](dashboards/vito-api-red.json): peticiones/min, % 4xx/5xx,
-  p95/p99 por URI del gateway, `up` y memoria JVM por servicio, y 429 por ruta de los enlaces
-  de invitación (Ola 1, T062).
+  p95/p99 por URI del gateway, `up` y memoria JVM por servicio, 429 por ruta de los enlaces
+  de invitación (Ola 1, T062) y, de la Ola 2a (T057), 429 de la búsqueda de usuarios y las
+  llamadas de `social-service` a `auth-service` (resultado, latencia media y máxima). Estas
+  métricas (`spring_cloud_gateway_requests_seconds_*` y `http_client_requests_seconds_*`)
+  están en la lista blanca de `config.alloy`; sin ellas, esos paneles salen vacíos.
 - [`dashboards/vito-services-red.json`](dashboards/vito-services-red.json): `up`, memoria,
   CPU y reinicios de contenedor por servicio.
 

@@ -43,12 +43,15 @@ prometheus.scrape "python" {
 
 // Lista blanca del contrato. Se descartan etiquetas de alta cardinalidad que no
 // hacen falta para el tablero RED ni para las alertas.
+// T057 (Ola 2a): spring_cloud_gateway_requests_* da los 429 por ruta del gateway y
+// http_client_requests_* las llamadas entre servicios (social → auth). Sin buckets: se
+// muestran media y máximo, no p95.
 prometheus.relabel "services" {
 	forward_to = [prometheus.remote_write.grafana.receiver]
 
 	rule {
 		source_labels = ["__name__"]
-		regex         = "http_server_requests_seconds_.*|jvm_memory_used_bytes|jvm_gc_pause_seconds_.*|process_cpu_usage|hikaricp_.*|mongodb_driver_.*|vito_gateway_.*|http_request_duration_seconds_.*|http_requests_total|process_cpu_seconds_total|process_resident_memory_bytes|python_gc_.*|up"
+		regex         = "http_server_requests_seconds_.*|http_client_requests_seconds_(count|sum|max)|spring_cloud_gateway_requests_seconds_(count|sum|max)|jvm_memory_used_bytes|jvm_gc_pause_seconds_.*|process_cpu_usage|hikaricp_.*|mongodb_driver_.*|vito_gateway_.*|http_request_duration_seconds_.*|http_requests_total|process_cpu_seconds_total|process_resident_memory_bytes|python_gc_.*|up"
 		action        = "keep"
 	}
 

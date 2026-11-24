@@ -146,7 +146,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-F13 | App de la Ola 2a | Agente frontend (Alex) | T-C11 ✅ #320: avanza contra el mock de Prism. Primero la búsqueda en "¿A quién invitamos?" (Bug-F08). |
 | T-B38 | `auth-service` y gateway: búsqueda y datos por lotes | Sesión de Bernardo | T-C11 ✅ #320. Código completo en revisión: `getUsersByIds` (#323) y búsqueda, gateway y retiro de `/social/search` (T021–T033). Falta quickstart §2 con la app (T-F13). |
 | T-B39 | `social-service`: grafo social | Sesión de Bernardo | T003 ✅ #284; T013–T015 y T020 ✅ #286; T-C11 ✅ #320. Base T016–T019 y US2 ✅ #338. En revisión: US3 perfil (T043–T047), US4 listas (T049–T052), T055 y T058. Falta quickstart (T059) con la app. |
-| T-I30 | `AUTH_SERVICE_URI`, carga y tablero de la Ola 2a | Sesión de Bernardo | T004 ✅ #284; T056–T057 tras T-B39. |
+| T-I30 | `AUTH_SERVICE_URI`, carga y tablero de la Ola 2a | Sesión de Bernardo | T004 ✅ #284; T056–T057 en revisión (en local, corrección verde; falta el p95 en un entorno representativo). |
 
 ---
 

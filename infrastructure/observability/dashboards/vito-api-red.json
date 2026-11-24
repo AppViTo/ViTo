@@ -9,7 +9,7 @@
   ],
   "timezone": "utc",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "refresh": "30s",
   "time": {
     "from": "now-6h",
@@ -345,6 +345,114 @@
       "fieldConfig": {
         "defaults": {
           "unit": "reqpm",
+          "min": 0
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "429 de la búsqueda de usuarios",
+      "description": "T057 (Ola 2a): búsquedas cortadas por el límite de users-search (1/s por usuario, ráfaga de 10). Un pico sostenido de pocos usuarios sugiere que alguien intenta recorrer el directorio.",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 32
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (routeId) (rate(spring_cloud_gateway_requests_seconds_count{job=\"vito\",service=\"api-gateway\",httpStatusCode=\"429\",routeId=\"users-search\"}[5m])) * 60",
+          "legendFormat": "{{routeId}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqpm",
+          "min": 0
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "social → auth: llamadas/min por resultado",
+      "description": "T057 (Ola 2a): getUsersByIds desde social-service. status CLIENT_ERROR es timeout o conexión rechazada: social responde 503 con Retry-After (FR-012a).",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 32
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (status) (rate(http_client_requests_seconds_count{job=\"vito\",service=\"social-service\",client_name=\"auth-service\"}[5m])) * 60",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqpm",
+          "min": 0
+        }
+      }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "social → auth: latencia media y máxima",
+      "description": "T057 (Ola 2a): sin buckets de histograma, media (sum/count) y máximo de la ventana. La meta del perfil y las listas es p95 < 300 ms extremo a extremo.",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 32
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(http_client_requests_seconds_sum{job=\"vito\",service=\"social-service\",client_name=\"auth-service\"}[5m])) / clamp_min(sum(rate(http_client_requests_seconds_count{job=\"vito\",service=\"social-service\",client_name=\"auth-service\"}[5m])), 1e-9)",
+          "legendFormat": "media",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "max(http_client_requests_seconds_max{job=\"vito\",service=\"social-service\",client_name=\"auth-service\"})",
+          "legendFormat": "máximo",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
           "min": 0
         }
       }
