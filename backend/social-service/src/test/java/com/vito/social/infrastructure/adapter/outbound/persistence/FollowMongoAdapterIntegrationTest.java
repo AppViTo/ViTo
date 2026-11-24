@@ -48,7 +48,7 @@ class FollowMongoAdapterIntegrationTest extends MongoContainerTest {
         assertEquals(2, adapter.countByFollowingId("jose"));
         assertEquals(1, adapter.countByFollowerId("ana"));
         assertEquals(List.of("ana", "caro"),
-                adapter.findFollowerIdsByFollowingId("jose").stream().sorted().toList());
+                adapter.findFollowerIds("jose", 0, 20).stream().sorted().toList());
     }
 
     @Test

@@ -8,13 +8,11 @@ import com.vito.social.domain.port.inbound.SocialService;
 import com.vito.social.domain.port.outbound.EventPublisherPort;
 import com.vito.social.domain.port.outbound.FollowRepository;
 import com.vito.social.domain.port.outbound.UserDirectory;
-import com.vito.social.domain.port.outbound.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -22,7 +20,6 @@ import java.util.stream.Collectors;
 public class SocialServiceImpl implements SocialService {
     
     private final FollowRepository followRepository;
-    private final UserProfileRepository userProfileRepository;
     private final EventPublisherPort eventPublisher;
     private final UserDirectory userDirectory;
     
@@ -93,35 +90,25 @@ public class SocialServiceImpl implements SocialService {
                 .build();
     }
     
+    /**
+     * T052 (research R7): comprueba el usuario ({@code 404}), lee una página de ids en la base y
+     * pide su identidad en una sola llamada. Un id que auth-service ya no devuelve se omite
+     * (FR-012a), así que la página puede traer menos filas que {@code size}.
+     */
     @Override
-    public List<SocialProfile> getFollowers(String userId, int page, int size) {
-        List<String> followerIds = followRepository.findFollowerIdsByFollowingId(userId);
-        
-        if (followerIds.isEmpty()) {
-            return List.of();
-        }
-        
-        List<SocialProfile> profiles = userProfileRepository.findByUserIds(followerIds);
-        
-        return profiles.stream()
-                .skip((long) page * size)
-                .limit(size)
-                .collect(Collectors.toList());
+    public List<UserSummary> getFollowers(String userId, int page, int size) {
+        requireExistingUser(userId);
+        return identitiesOf(followRepository.findFollowerIds(userId, page, size));
     }
-    
+
+    /** T052: igual que {@link #getFollowers}, desde el otro extremo de la relación. */
     @Override
-    public List<SocialProfile> getFollowing(String userId, int page, int size) {
-        List<String> followingIds = followRepository.findFollowingIdsByFollowerId(userId);
-        
-        if (followingIds.isEmpty()) {
-            return List.of();
-        }
-        
-        List<SocialProfile> profiles = userProfileRepository.findByUserIds(followingIds);
-        
-        return profiles.stream()
-                .skip((long) page * size)
-                .limit(size)
-                .collect(Collectors.toList());
+    public List<UserSummary> getFollowing(String userId, int page, int size) {
+        requireExistingUser(userId);
+        return identitiesOf(followRepository.findFollowingIds(userId, page, size));
+    }
+
+    private List<UserSummary> identitiesOf(List<String> ids) {
+        return ids.isEmpty() ? List.of() : userDirectory.findByIds(ids);
     }
 }

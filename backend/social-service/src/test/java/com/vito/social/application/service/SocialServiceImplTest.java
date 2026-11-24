@@ -10,7 +10,6 @@ import com.vito.social.domain.port.inbound.SocialService.UnfollowCommand;
 import com.vito.social.domain.port.outbound.EventPublisherPort;
 import com.vito.social.domain.port.outbound.FollowRepository;
 import com.vito.social.domain.port.outbound.UserDirectory;
-import com.vito.social.domain.port.outbound.UserProfileRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -30,9 +29,6 @@ class SocialServiceImplTest {
 
     @Mock
     private FollowRepository followRepository;
-
-    @Mock
-    private UserProfileRepository userProfileRepository;
 
     @Mock
     private EventPublisherPort eventPublisher;
@@ -68,7 +64,6 @@ class SocialServiceImplTest {
         assertEquals("following123", saved.getValue().getFollowingId());
         assertNotNull(saved.getValue().getCreatedAt());
         verify(eventPublisher).publishFollowEvent("follower123", "following123");
-        verifyNoInteractions(userProfileRepository);
     }
 
     @Test
@@ -78,7 +73,7 @@ class SocialServiceImplTest {
 
         assertDoesNotThrow(() -> socialService.follow(follow("follower123", "following123")));
 
-        verifyNoInteractions(eventPublisher, userProfileRepository);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -120,7 +115,6 @@ class SocialServiceImplTest {
         socialService.unfollow(unfollow("follower123", "following123"));
 
         verify(eventPublisher).publishUnfollowEvent("follower123", "following123");
-        verifyNoInteractions(userProfileRepository);
     }
 
     @Test
@@ -130,7 +124,7 @@ class SocialServiceImplTest {
 
         assertDoesNotThrow(() -> socialService.unfollow(unfollow("follower123", "following123")));
 
-        verifyNoInteractions(eventPublisher, userProfileRepository);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -168,7 +162,6 @@ class SocialServiceImplTest {
         assertEquals(1, profile.getFollowingCount());
         assertTrue(profile.isFollowing());
         assertFalse(profile.isFollowedBy());
-        verifyNoInteractions(userProfileRepository);
     }
 
     @Test
@@ -213,5 +206,38 @@ class SocialServiceImplTest {
 
         assertThrows(UserDirectoryUnavailableException.class,
                 () -> socialService.getSocialProfile("usr_caro", "usr_ana"));
+    }
+
+    // ── T052 (research R7): listas paginadas con identidad por lotes ─────────────
+
+    @Test
+    void followersAreOnePageOfIdsResolvedInOneBatchKeepingTheirOrder() {
+        UserSummary luis = new UserSummary("usr_luis", "luis", "Luis", null);
+        when(userDirectory.findByIds(List.of("usr_caro"))).thenReturn(List.of(CARO));
+        when(followRepository.findFollowerIds("usr_caro", 1, 2)).thenReturn(List.of("usr_luis", "usr_jose"));
+        when(userDirectory.findByIds(List.of("usr_luis", "usr_jose"))).thenReturn(List.of(luis, JOSE));
+
+        assertEquals(List.of(luis, JOSE), socialService.getFollowers("usr_caro", 1, 2));
+        verify(userDirectory, times(2)).findByIds(any());
+    }
+
+    @Test
+    void anEmptyPageDoesNotAskAuthServiceForIdentities() {
+        when(userDirectory.findByIds(List.of("usr_caro"))).thenReturn(List.of(CARO));
+        when(followRepository.findFollowingIds("usr_caro", 5, 20)).thenReturn(List.of());
+
+        assertTrue(socialService.getFollowing("usr_caro", 5, 20).isEmpty());
+        verify(userDirectory, times(1)).findByIds(any());
+    }
+
+    @Test
+    void listsOfAUserThatAuthServiceDoesNotReturnAre404() {
+        when(userDirectory.findByIds(List.of("ghost"))).thenReturn(List.of());
+
+        assertEquals(SocialException.Reason.NOT_FOUND,
+                assertThrows(SocialException.class, () -> socialService.getFollowers("ghost", 0, 20)).getReason());
+        assertEquals(SocialException.Reason.NOT_FOUND,
+                assertThrows(SocialException.class, () -> socialService.getFollowing("ghost", 0, 20)).getReason());
+        verifyNoInteractions(followRepository);
     }
 }

@@ -23,15 +23,16 @@ public interface FollowRepository {
     
     boolean existsByFollowerIdAndFollowingId(String followerId, String followingId);
     
-    List<FollowRelationship> findByFollowerId(String followerId, int page, int size);
-    
-    List<FollowRelationship> findByFollowingId(String followingId, int page, int size);
-    
     long countByFollowerId(String followerId);
     
     long countByFollowingId(String followingId);
     
-    List<String> findFollowerIdsByFollowingId(String followingId);
-    
-    List<String> findFollowingIdsByFollowerId(String followerId);
+    /**
+     * T051 (research R7): ids de quienes siguen a {@code userId}, del más reciente al más antiguo
+     * ({@code createdAt} y {@code _id} descendentes), paginados en la base. {@code page} base 0.
+     */
+    List<String> findFollowerIds(String userId, int page, int size);
+
+    /** T051 (research R7): ids de a quienes sigue {@code userId}, mismo orden y paginación. */
+    List<String> findFollowingIds(String userId, int page, int size);
 }

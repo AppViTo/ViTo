@@ -6,7 +6,6 @@ import com.vito.social.domain.model.UserSummary;
 import com.vito.social.domain.port.outbound.EventPublisherPort;
 import com.vito.social.domain.port.outbound.FollowRepository;
 import com.vito.social.domain.port.outbound.UserDirectory;
-import com.vito.social.domain.port.outbound.UserProfileRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +37,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * T038 y T044 (Ola 2a): {@code followUser}, {@code unfollowUser} y {@code getSocialProfile} contra sus fixtures de
+ * T038, T044 y T050 (Ola 2a): {@code followUser}, {@code unfollowUser}, {@code getSocialProfile}, {@code listFollowers} y {@code listFollowing} contra sus fixtures de
  * {@code docs/api/fixtures/social/}. Controlador, servicio y handler reales; solo el grafo,
  * auth-service y Kafka son dobles.
  */
@@ -54,8 +53,7 @@ class SocialControllerContractTest {
 
     @BeforeEach
     void setUp() {
-        SocialServiceImpl service = new SocialServiceImpl(
-                follows, mock(UserProfileRepository.class), mock(EventPublisherPort.class), directory);
+        SocialServiceImpl service = new SocialServiceImpl(follows, mock(EventPublisherPort.class), directory);
         mvc = MockMvcBuilders.standaloneSetup(new SocialController(service))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
@@ -213,6 +211,82 @@ class SocialControllerContractTest {
                 .andExpect(status().isNotFound());
     }
 
+    // ── listFollowers y listFollowing (T050) ───────────────────────────────────
+
+    private static final UserSummary ALEX = new UserSummary("usr_01H8X2K4QJ", "alex_villa", "Alex Villa",
+            "https://cdn.vito.com/usr_01H8X2K4QJ/avatar.jpg");
+    private static final UserSummary LUIS = new UserSummary("usr_01H8X2K4QL", "luis", "Luis", null);
+
+    @Test
+    void followersPageMatchesFixture200() throws Exception {
+        when(directory.findByIds(List.of(JOSE))).thenReturn(List.of(JOSE_SUMMARY));
+        when(follows.findFollowerIds(JOSE, 0, 20)).thenReturn(List.of(ALEX.userId(), LUIS.userId()));
+        when(directory.findByIds(List.of(ALEX.userId(), LUIS.userId()))).thenReturn(List.of(ALEX, LUIS));
+
+        assertBodyMatchesFixture(mvc.perform(get("/api/v1/social/followers/" + JOSE)), "listFollowers.page.200.json");
+    }
+
+    @Test
+    void followingMatchesFixture200() throws Exception {
+        when(directory.findByIds(List.of(JOSE))).thenReturn(List.of(JOSE_SUMMARY));
+        when(follows.findFollowingIds(JOSE, 0, 20)).thenReturn(List.of(ALEX.userId()));
+        when(directory.findByIds(List.of(ALEX.userId()))).thenReturn(List.of(ALEX));
+
+        assertBodyMatchesFixture(mvc.perform(get("/api/v1/social/following/" + JOSE)), "listFollowing.200.json");
+    }
+
+    @Test
+    void noFollowersIsAnEmptyArray() throws Exception {
+        when(directory.findByIds(List.of(JOSE))).thenReturn(List.of(JOSE_SUMMARY));
+        when(follows.findFollowerIds(JOSE, 3, 20)).thenReturn(List.of());
+
+        assertBodyMatchesFixture(mvc.perform(get("/api/v1/social/followers/" + JOSE).param("page", "3")),
+                "listFollowers.empty.200.json");
+    }
+
+    /** FR-012a: un id que auth-service ya no devuelve se omite; la página trae menos que size. */
+    @Test
+    void aFollowerThatAuthServiceNoLongerReturnsIsOmitted() throws Exception {
+        when(directory.findByIds(List.of(JOSE))).thenReturn(List.of(JOSE_SUMMARY));
+        when(follows.findFollowerIds(JOSE, 0, 20)).thenReturn(List.of(ALEX.userId(), "usr_borrado", LUIS.userId()));
+        when(directory.findByIds(List.of(ALEX.userId(), "usr_borrado", LUIS.userId()))).thenReturn(List.of(ALEX, LUIS));
+
+        assertBodyMatchesFixture(mvc.perform(get("/api/v1/social/followers/" + JOSE)), "listFollowers.page.200.json");
+    }
+
+    @Test
+    void sizeOf51MatchesFixture400() throws Exception {
+        assertMatchesFixture(mvc.perform(get("/api/v1/social/followers/" + JOSE).param("size", "51")),
+                "listFollowers.400.json")
+                .andExpect(jsonPath("$.details.size").value(fixture("listFollowers.400.json").get("details").get("size").asText()));
+        assertMatchesFixture(mvc.perform(get("/api/v1/social/following/" + JOSE).param("size", "0")),
+                "listFollowing.400.json");
+    }
+
+    @Test
+    void negativePageIs400WithPageDetail() throws Exception {
+        assertMatchesFixture(mvc.perform(get("/api/v1/social/following/" + JOSE).param("page", "-1")),
+                "listFollowing.400.json")
+                .andExpect(jsonPath("$.details.page").isNotEmpty());
+    }
+
+    @Test
+    void listsOfAMissingUserMatchFixture404() throws Exception {
+        when(directory.findByIds(List.of("usr_ghost"))).thenReturn(List.of());
+
+        assertMatchesFixture(mvc.perform(get("/api/v1/social/followers/usr_ghost")), "listFollowers.404.json");
+        assertMatchesFixture(mvc.perform(get("/api/v1/social/following/usr_ghost")), "listFollowing.404.json");
+    }
+
+    @Test
+    void listsWithAuthServiceDownMatchFixture503() throws Exception {
+        when(directory.findByIds(List.of(JOSE))).thenThrow(new UserDirectoryUnavailableException());
+
+        assertMatchesFixture(mvc.perform(get("/api/v1/social/followers/" + JOSE)), "listFollowers.503.json")
+                .andExpect(header().string("Retry-After", "5"));
+        assertMatchesFixture(mvc.perform(get("/api/v1/social/following/" + JOSE)), "listFollowing.503.json");
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────────
 
     /** Mismo {@code status}, {@code error} y {@code message} que el fixture; el timestamp es el real. */
@@ -223,6 +297,12 @@ class SocialControllerContractTest {
                 .andExpect(jsonPath("$.error").value(expected.get("error").asText()))
                 .andExpect(jsonPath("$.message").value(expected.get("message").asText()))
                 .andExpect(jsonPath("$.timestamp", endsWith("Z")));
+    }
+
+    /** El cuerpo es el del fixture campo por campo (los null incluidos). */
+    private static void assertBodyMatchesFixture(ResultActions result, String fixtureName) throws Exception {
+        String body = result.andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertEquals(fixture(fixtureName), new ObjectMapper().readTree(body));
     }
 
     private static JsonNode fixture(String name) throws Exception {

@@ -66,22 +66,6 @@ public class FollowMongoAdapter implements FollowRepository {
     }
     
     @Override
-    public List<FollowRelationship> findByFollowerId(String followerId, int page, int size) {
-        Query query = new Query(Criteria.where("followerId").is(followerId))
-                .skip((long) page * size)
-                .limit(size);
-        return mongoTemplate.find(query, FollowRelationship.class, COLLECTION);
-    }
-    
-    @Override
-    public List<FollowRelationship> findByFollowingId(String followingId, int page, int size) {
-        Query query = new Query(Criteria.where("followingId").is(followingId))
-                .skip((long) page * size)
-                .limit(size);
-        return mongoTemplate.find(query, FollowRelationship.class, COLLECTION);
-    }
-    
-    @Override
     public long countByFollowerId(String followerId) {
         Query query = new Query(Criteria.where("followerId").is(followerId));
         return mongoTemplate.count(query, FollowRelationship.class, COLLECTION);
@@ -94,20 +78,29 @@ public class FollowMongoAdapter implements FollowRepository {
     }
     
     @Override
-    public List<String> findFollowerIdsByFollowingId(String followingId) {
-        Query query = new Query(Criteria.where("followingId").is(followingId));
-        List<FollowRelationship> relationships = mongoTemplate.find(query, FollowRelationship.class, COLLECTION);
-        return relationships.stream()
+    public List<String> findFollowerIds(String userId, int page, int size) {
+        return page("followingId", userId, page, size).stream()
                 .map(FollowRelationship::getFollowerId)
-                .collect(Collectors.toList());
+                .toList();
     }
-    
+
     @Override
-    public List<String> findFollowingIdsByFollowerId(String followerId) {
-        Query query = new Query(Criteria.where("followerId").is(followerId));
-        List<FollowRelationship> relationships = mongoTemplate.find(query, FollowRelationship.class, COLLECTION);
-        return relationships.stream()
+    public List<String> findFollowingIds(String userId, int page, int size) {
+        return page("followerId", userId, page, size).stream()
                 .map(FollowRelationship::getFollowingId)
-                .collect(Collectors.toList());
+                .toList();
+    }
+
+    /**
+     * Una página de las relaciones en las que {@code userId} está en {@code side}, con el orden de
+     * los índices {@code *_createdAt_id} (R7): {@code _id} desempata las fechas iguales, así que
+     * ninguna fila sale en dos páginas.
+     */
+    private List<FollowRelationship> page(String side, String userId, int page, int size) {
+        Query query = new Query(Criteria.where(side).is(userId))
+                .with(Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("_id")))
+                .skip((long) page * size)
+                .limit(size);
+        return mongoTemplate.find(query, FollowRelationship.class, COLLECTION);
     }
 }
