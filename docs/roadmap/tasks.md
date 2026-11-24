@@ -158,7 +158,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-C02 | `package.json` + mock REST con Prism | C | P0 | ✅ HECHA (#27) | [VITO-11](https://bernardo-mira.atlassian.net/browse/VITO-11) |
 | T-C03 | Job de CI "contract": Spectral + validación de fixtures | C | P0 | ✅ HECHA (#44) | [VITO-12](https://bernardo-mira.atlassian.net/browse/VITO-12) |
 | T-C04 | Tests Dart de serialización contra fixtures | C/F | P0 | ✅ HECHA (#31) | [VITO-13](https://bernardo-mira.atlassian.net/browse/VITO-13) |
-| T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🟡 RFC | [VITO-14](https://bernardo-mira.atlassian.net/browse/VITO-14) |
+| T-C05 | `asyncapi.yaml` v0 con las 4 rutas WS de CONVENTIONS §7 | C | P0 | 🔵 EN CURSO (RFC en `contract/t-c05-asyncapi`, espera 1 CODEOWNER) | [VITO-14](https://bernardo-mira.atlassian.net/browse/VITO-14) |
 | T-C06 | `listEvents` con `scope=mine\|upcoming` según ADR-014 | C | P0 | ✅ HECHA (#147) | [VITO-15](https://bernardo-mira.atlassian.net/browse/VITO-15) |
 | T-C08 | Alinear `AuthResponse`, `User` de auth y `logoutUser` de openapi/fixtures/tests Dart con ADR-004 | C/F | P0 | ✅ HECHA (#45) | [VITO-17](https://bernardo-mira.atlassian.net/browse/VITO-17) |
 | T-C09 | Contrato de las 3 operaciones de media de la Ola 3 (`listEventMedia`, `deleteMedia`, `getMediaPresignedUrl`) | C | P1 | ✅ HECHA (#244) | — |
@@ -416,7 +416,7 @@ depende del contrato.
   Modelos: `AuthResponse`/`User`, `EventModel`, chat (`ChatRoom`, `ChatMessage`), `Media`.
 - **Cierre:** `flutter test test/contract` verde; un cambio de fixture rompe el test.
 
-### T-C05 · `asyncapi.yaml` v0 — 🟡 RFC · P0 · O-01, ADR-006
+### T-C05 · `asyncapi.yaml` v0 — 🔵 EN CURSO (RFC en `contract/t-c05-asyncapi`) · P0 · O-01, ADR-006
 - **Qué:** documentar las rutas WS que **ya** fija `CONVENTIONS.md` §7 (checkin, mosaic,
   streaming, chat) con el formato de frame `{type, data}`. Los `type` se toman de los
   handlers existentes (`*WebSocketHandler.java`) y de los repositorios Flutter que los
@@ -424,6 +424,24 @@ depende del contrato.
   ola (no en v0). Fixtures de frames en `docs/api/fixtures/ws/`.
 - **Cierre:** `npx @asyncapi/cli validate docs/api/asyncapi.yaml` verde; PR aprobado por
   1 CODEOWNER; `mock:ws` de T-C02 sirve los frames.
+- **Avance (2026-11-22, RFC #335 y PR #336 en `contract/t-c05-asyncapi`):**
+  - `asyncapi.yaml` con los 4 canales: chat, check-in, mosaico (sin cambios de forma) y
+    streaming. El servidor envía `{type, data}` y el cliente frames planos sin identidad
+    (ADR-015). El chat del stream queda fuera (ADR-016 §4).
+  - 25 fixtures en `docs/api/fixtures/ws/`, validados por `npm run lint:async`, que ahora
+    también corre `npm run contract`. Los frames del cliente son objetos cerrados: uno con
+    identidad se rechaza con `ERROR` (`WsError` en el chat, `StreamError` en streaming).
+  - Diferencias con el código (detalle en el RFC): el chat responde solo a quien envía y con
+    otra forma; nadie llama a los broadcasts de check-in; el streaming toma la identidad del
+    frame del cliente; y la app espera `ROOM_UPDATE` y `CHAT` del stream, que no entran al
+    contrato.
+  - `npm run mock:ws` (puerto 4011, `scripts/mock-ws.mjs` con `ws`) sirve los frames de
+    `fixtures/ws/`. Pide `?token=`, responde a los frames del cliente según el canal y
+    rechaza los que no cumplen el contrato (`VALIDATION_ERROR`) o son de una sala a la que
+    no se entró (`FORBIDDEN`). `PING`/`PONG` solo en streaming. Sus pruebas
+    (`npm run test:mock-ws`) corren en el job Contract.
+  - Pendiente de decidir: ¿latido `PING`/`PONG` también en `/ws/chat`? (revisión de #336).
+  - Para cerrar falta solo la aprobación del RFC (#335) y del PR (#336).
 
 ### T-C08 · Contrato de auth alineado con ADR-004 — ✅ HECHA (#45) · P0 · ADR-004, Principio I
 - **Hallazgo (T-B15/T-B16):** ADR-004 (aceptada) fija la respuesta de `register`/`login`/

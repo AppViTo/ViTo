@@ -1,0 +1,6 @@
+{
+  "type": "STREAM_ENDED",
+  "data": {
+    "message": "La transmisión terminó"
+  }
+}

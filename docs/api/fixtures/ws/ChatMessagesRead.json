@@ -1,0 +1,6 @@
+{
+  "type": "MESSAGES_READ",
+  "data": {
+    "roomId": "room_01H8X2K4QJ"
+  }
+}

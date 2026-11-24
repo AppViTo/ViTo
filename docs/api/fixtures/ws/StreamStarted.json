@@ -1,0 +1,6 @@
+{
+  "type": "STREAM_STARTED",
+  "data": {
+    "message": "¡La transmisión empezó!"
+  }
+}
