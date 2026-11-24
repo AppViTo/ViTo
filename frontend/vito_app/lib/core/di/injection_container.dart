@@ -23,6 +23,10 @@ import '../../features/events/data/datasources/media_remote_datasource.dart';
 import '../../features/events/data/repositories/event_repository_impl.dart';
 import '../../features/events/domain/repositories/event_repository.dart';
 import '../../features/events/domain/usecases/accept_invite_link.dart';
+import '../../features/events/domain/usecases/cancel_event.dart';
+import '../../features/events/domain/usecases/list_event_attendees.dart';
+import '../../features/events/domain/usecases/list_event_invitations.dart';
+import '../../features/events/domain/usecases/send_invitation.dart';
 import '../../features/events/domain/usecases/create_event.dart';
 import '../../features/events/domain/usecases/create_invite_link.dart';
 import '../../features/events/domain/usecases/get_invite_link_preview.dart';
@@ -159,6 +163,11 @@ Future<void> init() async {
   sl.registerLazySingleton(() => RevokeInviteLinkUseCase(sl()));
   sl.registerLazySingleton(() => GetInviteLinkPreviewUseCase(sl()));
   sl.registerLazySingleton(() => AcceptInviteLinkUseCase(sl()));
+  // Organizador: invitaciones, asistentes y cancelar (Ola 1, T052–T058)
+  sl.registerLazySingleton(() => SendInvitationUseCase(sl()));
+  sl.registerLazySingleton(() => ListEventInvitationsUseCase(sl()));
+  sl.registerLazySingleton(() => ListEventAttendeesUseCase(sl()));
+  sl.registerLazySingleton(() => CancelEventUseCase(sl()));
   sl.registerFactory(
     () => EventBloc(
       eventRepository: sl(),

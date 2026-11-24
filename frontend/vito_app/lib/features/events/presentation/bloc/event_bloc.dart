@@ -287,6 +287,17 @@ class EventCoverUploadFailed extends EventState {
   List<Object?> get props => [message];
 }
 
+/// El evento pasó a `CANCELLED` (T055). No se borra: el detalle lo recarga
+/// y lo muestra como "Cancelado".
+class EventCancelled extends EventState {
+  final String eventId;
+
+  const EventCancelled(this.eventId);
+
+  @override
+  List<Object?> get props => [eventId];
+}
+
 class EventError extends EventState {
   final String message;
   
@@ -353,10 +364,10 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     
     result.fold(
       (failure) => emit(EventError(failure.message)),
-      (_) => emit(EventInitial()),
+      (_) => emit(EventCancelled(event.eventId)),
     );
   }
-  
+
   Future<void> _onLoadEvent(LoadEvent event, Emitter<EventState> emit) async {
     emit(EventLoading());
     

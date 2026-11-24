@@ -62,14 +62,14 @@ void main() {
     expect(find.text('Ubicación'), findsOneWidget);
     expect(find.text('Dirección'), findsOneWidget);
     expect(find.text('Categoría'), findsOneWidget);
-    expect(find.text('Estadísticas'), findsOneWidget);
+    // Quien no organiza solo ve el contador de confirmados (T058); las
+    // estadísticas completas se prueban en event_organizer_test.dart.
+    expect(find.text('Estadísticas'), findsNothing);
     expect(find.text('Publicado'), findsOneWidget);
     expect(find.text('Privado'), findsOneWidget);
-    expect(find.text('Invitados'), findsOneWidget);
+    expect(find.text('6 personas confirmadas'), findsOneWidget);
     expect(find.text('Confirmados'), findsOneWidget);
-    expect(find.text('Rechazados'), findsOneWidget);
-    // "Tal vez" aparece en las estadísticas y en los botones de RSVP (T033).
-    expect(find.text('Tal vez'), findsNWidgets(2));
+    expect(find.text('Tal vez'), findsOneWidget);
     expect(find.text('¿Vas a ir?'), findsOneWidget);
     expect(find.text('Voy'), findsOneWidget);
     expect(find.text('No voy'), findsOneWidget);

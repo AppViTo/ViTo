@@ -26,6 +26,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
   RSVP? _myRsvp;
   bool _submittingRsvp = false;
 
+  /// Hay una cancelación de esta página en curso (T055): solo entonces un
+  /// `EventError` del bloc es de esta página.
+  bool _cancelling = false;
+
   @override
   void initState() {
     super.initState();
@@ -41,7 +45,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
         // página. Un error ajeno (escáner, check-in) no se muestra aquí.
         listenWhen: (_, state) =>
             (state is RSVPSubmitted && state.rsvp.eventId == widget.eventId) ||
-            (state is EventError && _submittingRsvp),
+            (state is EventCancelled && state.eventId == widget.eventId) ||
+            (state is EventError && (_submittingRsvp || _cancelling)),
         listener: _onActionResult,
         buildWhen: (_, state) =>
             _isThisEvent(state) ||
@@ -219,8 +224,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           const SizedBox(height: 12),
                         ],
 
-                        // Stats
-                        if (event.stats != null) ...[
+                        // Stats: el organizador ve todos los contadores; quien
+                        // no lo es solo recibe `totalAccepted` (T058).
+                        if (event.stats != null &&
+                            _isOrganizer(context, event)) ...[
                           const SizedBox(height: 8),
                           const Text(
                             'Estadísticas',
@@ -232,14 +239,25 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           const SizedBox(height: 12),
                           _buildStatsGrid(event.stats!),
                           const SizedBox(height: 16),
+                        ] else if (event.stats != null) ...[
+                          _buildInfoRow(
+                            Icons.people,
+                            'Confirmados',
+                            _confirmedLabel(event.stats!.totalAccepted),
+                          ),
+                          const SizedBox(height: 16),
                         ],
 
                         // RSVP (T033): el organizador no responde a su evento;
-                        // en su lugar comparte enlaces de invitación (T042).
+                        // en su lugar lo edita, invita y lo gestiona.
                         if (_isOrganizer(context, event)) ...[
                           _buildEditButton(context, event),
                           const SizedBox(height: 8),
                           _buildInviteLinkButton(context, event),
+                          const SizedBox(height: 8),
+                          _buildGuestsButton(context, event),
+                          const SizedBox(height: 8),
+                          _buildCancelButton(context, event),
                           const SizedBox(height: 16),
                         ] else ...[
                           _buildRsvpSection(context, event),
@@ -362,8 +380,18 @@ class _EventDetailPageState extends State<EventDetailPage> {
       );
       // Recarga el detalle para ver el contador de confirmados actualizado.
       context.read<EventBloc>().add(LoadEvent(widget.eventId));
+    } else if (state is EventCancelled) {
+      setState(() => _cancelling = false);
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Evento cancelado')),
+      );
+      // El evento no se borra: se recarga y aparece como "Cancelado".
+      context.read<EventBloc>().add(LoadEvent(widget.eventId));
     } else if (state is EventError) {
-      setState(() => _submittingRsvp = false);
+      setState(() {
+        _submittingRsvp = false;
+        _cancelling = false;
+      });
       messenger.showSnackBar(SnackBar(content: Text(state.message)));
     }
   }
@@ -510,6 +538,64 @@ class _EventDetailPageState extends State<EventDetailPage> {
       icon: const Icon(Icons.edit),
       label: const Text('Editar evento'),
     );
+  }
+
+  static String _confirmedLabel(int count) =>
+      count == 1 ? '1 persona confirmada' : '$count personas confirmadas';
+
+  /// T052 y T058: asistentes e invitaciones, solo para el organizador.
+  Widget _buildGuestsButton(BuildContext context, Event event) {
+    return OutlinedButton.icon(
+      onPressed: () => Navigator.pushNamed(
+        context,
+        '/event-guests',
+        arguments: {'eventId': event.id, 'eventTitle': event.title},
+      ),
+      icon: const Icon(Icons.groups),
+      label: const Text('Ver invitados'),
+    );
+  }
+
+  /// T055: cancelar pasa el evento a `CANCELLED` sin borrarlo; los invitados
+  /// lo ven como "Cancelado" y ya no pueden responder.
+  Widget _buildCancelButton(BuildContext context, Event event) {
+    final cancellable = event.status != EventStatus.cancelled &&
+        event.status != EventStatus.completed;
+    return TextButton.icon(
+      style: TextButton.styleFrom(foregroundColor: AppColors.error),
+      onPressed: cancellable && !_cancelling
+          ? () => _confirmCancel(context, event)
+          : null,
+      icon: const Icon(Icons.event_busy),
+      label: const Text('Cancelar evento'),
+    );
+  }
+
+  Future<void> _confirmCancel(BuildContext context, Event event) async {
+    final bloc = context.read<EventBloc>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('¿Cancelar el evento?'),
+        content: Text(
+          '«${event.title}» quedará como cancelado: los invitados lo verán así '
+          'y ya no podrán responder. No se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Volver'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Sí, cancelar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _cancelling = true);
+    bloc.add(CancelEvent(event.id));
   }
 
   Widget _buildInviteLinkButton(BuildContext context, Event event) {

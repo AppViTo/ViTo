@@ -4,6 +4,8 @@ import '../../core/di/injection_container.dart';
 import '../../features/events/presentation/bloc/event_bloc.dart';
 import '../../features/events/domain/entities/event.dart';
 import '../../features/events/presentation/bloc/edit_event_cubit.dart';
+import '../../features/events/presentation/bloc/event_guests_cubit.dart';
+import '../../features/events/presentation/pages/event_guests_page.dart';
 import '../../features/events/presentation/bloc/invite_link_cubit.dart';
 import '../../features/events/presentation/pages/edit_event_page.dart';
 import '../../features/events/presentation/bloc/invite_links_cubit.dart';
@@ -44,6 +46,7 @@ class AppRouter {
   static const String archiveDetail = '/archive-detail';
   static const String inviteLinks = '/invite-links';
   static const String editEvent = '/edit-event';
+  static const String eventGuests = '/event-guests';
 
   /// Prefijo de los enlaces de invitación: `/i/<token>` (T043).
   static const String inviteLinkPrefix = '/i/';
@@ -94,6 +97,20 @@ class AppRouter {
           builder: (_) => BlocProvider(
             create: (_) => EditEventCubit(repository: sl()),
             child: EditEventPage(event: event),
+          ),
+        );
+      case eventGuests:
+        final args = settings.arguments as Map<String, dynamic>?;
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (_) => EventGuestsCubit(
+              eventId: args?['eventId'] as String? ?? '',
+              listAttendees: sl(),
+              listInvitations: sl(),
+            ),
+            child: EventGuestsPage(
+              eventTitle: args?['eventTitle'] as String? ?? '',
+            ),
           ),
         );
       case inviteLinks:
