@@ -10,7 +10,10 @@ import 'event_model.dart';
 /// - `title` y `description` van en la raíz; un `description` vaciado se
 ///   envía como `null` para borrarlo (RFC 7396).
 /// - En `details` y `settings` solo van las claves que cambiaron, dentro de su
-///   objeto; el backend mezcla el resto.
+///   objeto; el backend mezcla el resto. Ahí nunca va `null`: el contrato
+///   define esas claves sin `nullable` (p. ej. `location` y `address` son
+///   `string`), así que una clave que quedó sin valor se omite. Para vaciar
+///   el lugar o la dirección, el formulario envía `""`.
 /// - `id`, `organizerId`, `status`, `stats` y `createdAt` nunca se envían
 ///   (responden `400`).
 ///
@@ -49,6 +52,7 @@ Map<String, dynamic> _changedKeys(
 ) {
   final changed = <String, dynamic>{};
   for (final key in after.keys) {
+    if (after[key] == null) continue;
     if (jsonEncode(before[key]) != jsonEncode(after[key])) {
       changed[key] = after[key];
     }

@@ -11,6 +11,25 @@ import '../bloc/edit_event_cubit.dart';
 const _allowedCoverMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
 const _maxCoverBytes = 10 * 1024 * 1024;
 
+/// [date] llevada al rango `[first, last]`. `showDatePicker` falla si su
+/// `initialDate` cae fuera de `firstDate`/`lastDate`, como pasa al editar un
+/// evento que ya empezó o que está a más de dos años.
+DateTime clampDate(DateTime date, DateTime first, DateTime last) {
+  if (date.isBefore(first)) return first;
+  if (date.isAfter(last)) return last;
+  return date;
+}
+
+/// `details.location` y `details.address` limpios: sin espacios sobrantes.
+/// El contrato los define como `string` sin `null`, así que vaciar uno que
+/// tenía valor lo envía como `""`; si el original no lo tenía, sigue sin
+/// valor (y no se envía).
+String? _cleanOptionalText(String text, {required String? original}) {
+  final trimmed = text.trim();
+  if (trimmed.isNotEmpty) return trimmed;
+  return original == null ? null : '';
+}
+
 /// Edición del evento por su organizador (T049, Bug-F07): título, fecha,
 /// portada, descripción, lugar, dirección, cupo, visibilidad y ocultar la
 /// dirección. Solo se envía lo que cambió; los errores 400 y 409 muestran el
@@ -194,13 +213,16 @@ class _EditEventPageState extends State<EditEventPage> {
       title: Text(label),
       subtitle: Text(text),
       onTap: () async {
-        final initial = value ?? DateTime.now().add(const Duration(days: 1));
+        final now = DateTime.now();
+        final initial = value ?? now.add(const Duration(days: 1));
+        final firstDate = now.subtract(const Duration(days: 1));
+        final lastDate = now.add(const Duration(days: 730));
         final date = await showDatePicker(
           context: context,
           locale: const Locale('es'),
-          initialDate: initial,
-          firstDate: DateTime.now().subtract(const Duration(days: 1)),
-          lastDate: DateTime.now().add(const Duration(days: 730)),
+          initialDate: clampDate(initial, firstDate, lastDate),
+          firstDate: firstDate,
+          lastDate: lastDate,
         );
         if (date == null || !mounted) return;
         final time = await showTimePicker(
@@ -301,41 +323,87 @@ class _EditEventPageState extends State<EditEventPage> {
     final cubit = context.read<EditEventCubit>();
     final details = _original.details ?? const EventDetails();
     final settings = _original.settings ?? const EventSettings();
-    final description = _description.text.trim();
-    final location = _location.text.trim();
-    final address = _address.text.trim();
+    final covers = details.coverImages ?? const <String>[];
     final coverUrl = cubit.state.coverUrl;
 
-    final edited = Event(
+    // El original pasa por la misma limpieza que el formulario: así un valor
+    // con espacios sobrantes que nadie tocó no cuenta como cambio.
+    final baseline = _formEvent(
+      title: _original.title,
+      description: _original.description ?? '',
+      startDate: details.startDate,
+      endDate: details.endDate,
+      location: details.location ?? '',
+      address: details.address ?? '',
+      coverImages: details.coverImages,
+      isPublic: settings.isPublic,
+      maxAttendees: settings.maxAttendees,
+      hideAddress: settings.hideAddressUntilAccepted,
+    );
+    final edited = _formEvent(
+      title: _title.text,
+      description: _description.text,
+      startDate: start,
+      endDate: end,
+      location: _location.text,
+      address: _address.text,
+      // La nueva portada reemplaza solo la primera imagen.
+      coverImages:
+          coverUrl != null ? [coverUrl, ...covers.skip(1)] : details.coverImages,
+      isPublic: _isPublic,
+      maxAttendees: int.parse(_capacity.text),
+      hideAddress: _hideAddress,
+    );
+    cubit.save(original: baseline, edited: edited);
+  }
+
+  /// El evento con los valores del formulario ya limpios (trim, descripción
+  /// vacía → `null`, la regla de [_cleanOptionalText]); lo que no se edita
+  /// aquí se copia del original.
+  Event _formEvent({
+    required String title,
+    required String description,
+    required DateTime? startDate,
+    required DateTime? endDate,
+    required String location,
+    required String address,
+    required List<String>? coverImages,
+    required bool isPublic,
+    required int maxAttendees,
+    required bool hideAddress,
+  }) {
+    final details = _original.details ?? const EventDetails();
+    final settings = _original.settings ?? const EventSettings();
+    final cleanDescription = description.trim();
+    return Event(
       id: _original.id,
       organizerId: _original.organizerId,
-      title: _title.text.trim(),
-      description: description.isEmpty ? null : description,
+      title: title.trim(),
+      description: cleanDescription.isEmpty ? null : cleanDescription,
       details: EventDetails(
-        startDate: start,
-        endDate: end,
-        location: location.isEmpty ? null : location,
-        address: address.isEmpty ? null : address,
+        startDate: startDate,
+        endDate: endDate,
+        location: _cleanOptionalText(location, original: details.location),
+        address: _cleanOptionalText(address, original: details.address),
         latitude: details.latitude,
         longitude: details.longitude,
-        coverImages: coverUrl != null ? [coverUrl] : details.coverImages,
+        coverImages: coverImages,
         tags: details.tags,
         category: details.category,
       ),
       settings: EventSettings(
-        isPublic: _isPublic,
+        isPublic: isPublic,
         requiresApproval: settings.requiresApproval,
-        maxAttendees: int.parse(_capacity.text),
+        maxAttendees: maxAttendees,
         allowGuestInvites: settings.allowGuestInvites,
         enableLiveStreaming: settings.enableLiveStreaming,
         enableMosaic: settings.enableMosaic,
-        hideAddressUntilAccepted: _hideAddress,
+        hideAddressUntilAccepted: hideAddress,
       ),
       stats: _original.stats,
       status: _original.status,
       createdAt: _original.createdAt,
       updatedAt: _original.updatedAt,
     );
-    cubit.save(original: _original, edited: edited);
   }
 }

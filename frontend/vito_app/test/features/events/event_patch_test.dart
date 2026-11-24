@@ -88,7 +88,7 @@ void main() {
     });
   });
 
-  test('vaciar la descripción o la dirección envía null para borrarlas', () {
+  test('vaciar la descripción envía null; la dirección vaciada va como ""', () {
     final original = _base();
     final edited = _with(
       original,
@@ -97,6 +97,7 @@ void main() {
         startDate: original.details!.startDate,
         endDate: original.details!.endDate,
         location: original.details!.location,
+        address: '',
         coverImages: original.details!.coverImages,
         category: 'WEDDING',
       ),
@@ -104,8 +105,27 @@ void main() {
 
     expect(eventPatchJson(original, edited), {
       'description': null,
-      'details': {'address': null},
+      'details': {'address': ''},
     });
+  });
+
+  test('nunca pone null dentro de details ni de settings', () {
+    final original = _base();
+    // Lugar, dirección, portada y categoría quedan sin valor: el contrato no
+    // admite null en esas claves, así que se omiten.
+    final edited = _with(
+      original,
+      details: EventDetails(
+        startDate: DateTime.utc(2026, 12, 13, 0),
+        endDate: original.details!.endDate,
+      ),
+    );
+
+    final patch = eventPatchJson(original, edited);
+    expect(patch, {
+      'details': {'startDate': '2026-12-13T00:00:00.000Z'},
+    });
+    expect(patch.containsKey('settings'), isFalse);
   });
 
   test('nunca envía campos no editables', () {
