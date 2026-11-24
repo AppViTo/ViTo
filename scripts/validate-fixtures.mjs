@@ -139,7 +139,12 @@ function listJson(dir) {
   });
 }
 
-const present = new Set(listJson(FIXTURES_DIR).map((f) => relative(FIXTURES_DIR, f).replaceAll('\\', '/')));
+// Los frames WebSocket (`ws/`) los valida scripts/validate-asyncapi.mjs contra asyncapi.yaml.
+const present = new Set(
+  listJson(FIXTURES_DIR)
+    .map((f) => relative(FIXTURES_DIR, f).replaceAll('\\', '/'))
+    .filter((f) => !f.startsWith('ws/')),
+);
 
 for (const file of present) {
   if (!expected.has(file)) fail(file, 'huérfano: el YAML no declara esa operación o ese status');
