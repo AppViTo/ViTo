@@ -12,6 +12,10 @@ class InMemoryAuthLocalDataSource implements AuthLocalDataSource {
   String? userId;
   int clearCount = 0;
 
+  /// Si es `true`, [clearTokens] lanza (p. ej. el almacenamiento seguro
+  /// falla) sin borrar nada.
+  bool failClear = false;
+
   InMemoryAuthLocalDataSource({this.accessToken, this.refreshToken});
 
   @override
@@ -32,6 +36,7 @@ class InMemoryAuthLocalDataSource implements AuthLocalDataSource {
   @override
   Future<void> clearTokens() async {
     clearCount++;
+    if (failClear) throw Exception('No se pudo borrar el almacenamiento');
     accessToken = null;
     refreshToken = null;
     userId = null;

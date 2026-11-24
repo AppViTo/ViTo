@@ -34,7 +34,8 @@ class _RecordingNavigatorObserver extends NavigatorObserver {
 /// El splash decide la primera pantalla con el resultado del
 /// `AuthCheckRequested` que despacha `ViToApp`: sesión restaurada → home,
 /// sin sesión (o rechazada o sin red) → login. Con access token guardado se
-/// pregunta primero a `/auth/me` (T060) y solo si responde 401 se renueva.
+/// pregunta primero a `/auth/me` (T060) y, si falla por algo que no sea de
+/// red, se renueva.
 void main() {
   late ScriptedAdapter adapter;
   late InMemoryAuthLocalDataSource local;
@@ -128,6 +129,43 @@ void main() {
 
     expect(observer.pushed, contains('/home'));
     expect(observer.pushed, isNot(contains('/login')));
+  });
+
+  testWidgets('/auth/me 500 con refresh 200 entra a home', (tester) async {
+    local.accessToken = 'access-vigente';
+    local.refreshToken = 'refresh-vigente';
+    adapter
+      ..on('GET /auth/me', [
+        const StubResponse(500, {
+          'error': 'INTERNAL_ERROR',
+          'message': 'Error interno',
+          'status': 500,
+          'timestamp': '2026-11-24T12:00:00Z',
+        }),
+      ])
+      ..on('POST /auth/refresh', [StubResponse(200, refresh200)]);
+    bloc = buildBloc();
+
+    await pumpSplash(tester);
+
+    expect(observer.pushed, contains('/home'));
+    expect(observer.pushed, isNot(contains('/login')));
+    expect(adapter.count('POST /auth/refresh'), 1);
+  });
+
+  testWidgets('si clearTokens lanza, igual entra a login', (tester) async {
+    local.accessToken = 'access-viejo';
+    local.refreshToken = 'refresh-viejo';
+    local.failClear = true;
+    adapter
+      ..on('GET /auth/me', [StubResponse(401, me401)])
+      ..on('POST /auth/refresh', [StubResponse(401, refresh401)]);
+    bloc = buildBloc();
+
+    await pumpSplash(tester);
+
+    expect(observer.pushed, contains('/login'));
+    expect(local.clearCount, 1);
   });
 
   testWidgets('sin sesión guardada entra a login', (tester) async {

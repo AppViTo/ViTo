@@ -73,16 +73,17 @@ class AuthRepositoryImpl implements AuthRepository {
     final hasRefreshToken = refreshToken != null && refreshToken.isNotEmpty;
 
     // T060 (Ola 1): con un access token guardado, `GET /auth/me` confirma la
-    // sesión sin rotar el refresh token en cada arranque. Si responde 401 (el
-    // access token venció o se revocó), se intenta renovar; sin red, la
-    // sesión se conserva para reintentar.
+    // sesión sin rotar el refresh token en cada arranque. Si falla por
+    // cualquier motivo que no sea de red (401, pero también 403, 404 o 5xx),
+    // se intenta renovar con el refresh token. Sin red, la sesión se conserva
+    // para reintentar.
     if (accessToken != null && accessToken.isNotEmpty) {
       final me = await getCurrentUser();
-      final unauthorized =
-          me.fold((f) => f is AuthenticationFailure, (_) => false);
-      if (!unauthorized) return me;
+      if (me.isRight()) return me;
+      final failure = me.fold((f) => f, (_) => null);
+      if (failure is NetworkFailure) return me;
       if (!hasRefreshToken) {
-        await localDataSource.clearTokens();
+        if (failure is AuthenticationFailure) await _clearTokensSafely();
         return me;
       }
     }
@@ -100,9 +101,20 @@ class AuthRepositoryImpl implements AuthRepository {
     // para reintentar en el próximo arranque.
     if (result.isLeft() &&
         result.fold((f) => f is AuthenticationFailure, (_) => false)) {
-      await localDataSource.clearTokens();
+      await _clearTokensSafely();
     }
     return result;
+  }
+
+  /// Borra la sesión guardada sin dejar que un fallo del almacenamiento
+  /// interrumpa [restoreSession]: el `Left` tiene que llegar al splash, que si
+  /// no se queda esperando.
+  Future<void> _clearTokensSafely() async {
+    try {
+      await localDataSource.clearTokens();
+    } catch (_) {
+      // El almacenamiento falló; la sesión igual se trata como cerrada.
+    }
   }
 
   @override
