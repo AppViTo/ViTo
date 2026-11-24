@@ -428,16 +428,19 @@ depende del contrato.
   - `asyncapi.yaml` con los 4 canales: chat, check-in, mosaico (sin cambios de forma) y
     streaming. El servidor envía `{type, data}` y el cliente frames planos sin identidad
     (ADR-015). El chat del stream queda fuera (ADR-016 §4).
-  - 24 fixtures en `docs/api/fixtures/ws/`, validados por `npm run lint:async`, que ahora
-    también corre `npm run contract`.
+  - 25 fixtures en `docs/api/fixtures/ws/`, validados por `npm run lint:async`, que ahora
+    también corre `npm run contract`. Los frames del cliente son objetos cerrados: uno con
+    identidad se rechaza con `ERROR` (`WsError` en el chat, `StreamError` en streaming).
   - Diferencias con el código (detalle en el RFC): el chat responde solo a quien envía y con
     otra forma; nadie llama a los broadcasts de check-in; el streaming toma la identidad del
     frame del cliente; y la app espera `ROOM_UPDATE` y `CHAT` del stream, que no entran al
     contrato.
   - `npm run mock:ws` (puerto 4011, `scripts/mock-ws.mjs` con `ws`) sirve los frames de
     `fixtures/ws/`. Pide `?token=`, responde a los frames del cliente según el canal y
-    rechaza los que no cumplen el contrato. Sus pruebas (`npm run test:mock-ws`) corren
-    en el job Contract.
+    rechaza los que no cumplen el contrato (`VALIDATION_ERROR`) o son de una sala a la que
+    no se entró (`FORBIDDEN`). `PING`/`PONG` solo en streaming. Sus pruebas
+    (`npm run test:mock-ws`) corren en el job Contract.
+  - Pendiente de decidir: ¿latido `PING`/`PONG` también en `/ws/chat`? (revisión de #336).
   - Para cerrar falta solo la aprobación del RFC (#335) y del PR (#336).
 
 ### T-C08 · Contrato de auth alineado con ADR-004 — ✅ HECHA (#45) · P0 · ADR-004, Principio I

@@ -5,15 +5,20 @@
 // mensaje del contrato), así que el mock no puede contradecir al contrato.
 //
 // Comportamiento por canal:
-//   - Todos: sin `?token=` cierra con 4401 (como el gateway). PING → PONG. Un frame
-//     del cliente que no valida contra `publish` responde ERROR sin cerrar.
+//   - Todos: sin `?token=` cierra con 4401 (como el gateway).
+//   - Chat y streaming: un frame del cliente que no valida contra `publish` (con los
+//     objetos cerrados, así que la identidad del cliente no valida) responde
+//     ERROR `VALIDATION_ERROR` sin cerrar.
 //   - /ws/chat: JOIN_ROOM → ROOM_JOINED; LEAVE_ROOM → ROOM_LEFT; MARK_READ →
 //     MESSAGES_READ; SEND_MESSAGE → MESSAGE a todos los que entraron a la sala;
-//     TYPING → TYPING a los demás de la sala.
+//     TYPING → TYPING a los demás de la sala. SEND_MESSAGE, TYPING y MARK_READ sin
+//     haber entrado a la sala responden ERROR `FORBIDDEN`.
 //   - /ws/checkin/{eventId}: al conectar, STATS_UPDATE y CHECK_IN del evento.
 //   - /ws/mosaic/{eventId}: al conectar, NEW_ITEM del evento.
+//     Check-in y mosaico no tienen `publish`: los frames del cliente se ignoran.
 //   - /ws/streaming/{streamId}: VIEWER_COUNT al entrar y salir; REACTION → REACTION
-//     a todos los conectados al stream, con la identidad del mock.
+//     a todos los conectados al stream, con la identidad del mock; PING → PONG
+//     (el latido solo existe en este canal).
 //   - Con --demo <segundos> repite los frames de bienvenida en ese intervalo.
 //
 // Uso: npm run mock:ws  [-- --port 4011 --demo 5]
@@ -25,6 +30,7 @@ import { parse as parseYaml } from 'yaml';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { WebSocketServer } from 'ws';
+import { closed } from './asyncapi-schema.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SPEC = join(ROOT, 'docs/api/asyncapi.yaml');
@@ -50,9 +56,9 @@ export function loadFrames(dir = FIXTURES) {
 /** Valida frames del cliente contra los mensajes `publish` de cada canal. */
 function buildClientValidators(specPath = SPEC) {
   const doc = parseYaml(readFileSync(specPath, 'utf8'));
-  const defs = JSON.parse(
-    JSON.stringify(doc.components?.schemas ?? {}).replaceAll('#/components/schemas/', '#/$defs/'),
-  );
+  // Objetos cerrados, como en validate-asyncapi.mjs: un campo que el contrato no
+  // declara (la identidad del cliente, ADR-015) hace fallar el frame.
+  const defs = closed(doc.components?.schemas ?? {});
   const ajv = new Ajv2020({ strict: false, allErrors: true });
   addFormats(ajv);
   const validators = {};
@@ -60,12 +66,7 @@ function buildClientValidators(specPath = SPEC) {
     const refs = item.publish?.message?.oneOf ?? (item.publish?.message ? [item.publish.message] : []);
     validators[channel] = refs.map((ref) => {
       const name = ref.$ref.split('/').pop();
-      const payload = JSON.parse(
-        JSON.stringify(doc.components.messages[name].payload).replaceAll(
-          '#/components/schemas/',
-          '#/$defs/',
-        ),
-      );
+      const payload = closed(doc.components.messages[name].payload);
       return { name, validate: ajv.compile({ ...payload, $defs: defs }) };
     });
   }
@@ -102,11 +103,20 @@ export async function startMockWs({
   const rooms = new Map(); // roomId -> Set<socket>
   const streams = new Map(); // streamId -> Set<socket>
   const timers = new Set();
+  let sequence = 0;
+  /** Id único del mock (`msg_mock_1`, `rct_mock_2`…). */
+  const nextId = (prefix) => `${prefix}_mock_${++sequence}`;
 
-  const errorFrame = (message) => ({
-    type: 'ERROR',
-    data: { error: 'VALIDATION_ERROR', message },
-  });
+  const errorFrame = (error, message) => ({ type: 'ERROR', data: { error, message } });
+  const notInRoom = () => errorFrame('FORBIDDEN', 'Primero entra a la sala con JOIN_ROOM');
+
+  /** Quita [socket] de [groups] y borra los grupos que quedan vacíos. */
+  const leave = (groups, key, socket) => {
+    const members = groups.get(key);
+    if (!members) return;
+    members.delete(socket);
+    if (members.size === 0) groups.delete(key);
+  };
 
   const welcome = {
     '/ws/checkin/{eventId}': (id) => [
@@ -132,21 +142,30 @@ export async function startMockWs({
 
   const handleChat = (socket, frame) => {
     const roomId = frame.roomId;
+    if (frame.type === 'JOIN_ROOM') {
+      if (!rooms.has(roomId)) rooms.set(roomId, new Set());
+      rooms.get(roomId).add(socket);
+      send(socket, { type: 'ROOM_JOINED', data: { roomId } });
+      return;
+    }
+    if (frame.type === 'LEAVE_ROOM') {
+      // Idempotente: salir de una sala en la que no se estaba también responde.
+      leave(rooms, roomId, socket);
+      send(socket, { type: 'ROOM_LEFT', data: { roomId } });
+      return;
+    }
+    // El resto exige haber entrado a la sala.
+    const members = rooms.get(roomId);
+    if (!members?.has(socket)) {
+      send(socket, notInRoom());
+      return;
+    }
     switch (frame.type) {
-      case 'JOIN_ROOM':
-        if (!rooms.has(roomId)) rooms.set(roomId, new Set());
-        rooms.get(roomId).add(socket);
-        send(socket, { type: 'ROOM_JOINED', data: { roomId } });
-        return;
-      case 'LEAVE_ROOM':
-        rooms.get(roomId)?.delete(socket);
-        send(socket, { type: 'ROOM_LEFT', data: { roomId } });
-        return;
       case 'MARK_READ':
         send(socket, { type: 'MESSAGES_READ', data: { roomId } });
         return;
       case 'TYPING':
-        for (const other of rooms.get(roomId) ?? []) {
+        for (const other of members) {
           if (other !== socket) {
             send(other, {
               type: 'TYPING',
@@ -156,14 +175,8 @@ export async function startMockWs({
         }
         return;
       case 'SEND_MESSAGE': {
-        const members = rooms.get(roomId);
-        if (!members?.has(socket)) {
-          send(socket, errorFrame('Primero entra a la sala con JOIN_ROOM'));
-          return;
-        }
         const message = {
-          ...frames.ChatMessageReceived.data,
-          id: `msg_mock_${Date.now()}`,
+          id: nextId('msg'),
           roomId,
           senderId: MOCK_USER.userId,
           senderName: MOCK_USER.displayName,
@@ -171,6 +184,7 @@ export async function startMockWs({
           type: frame.messageType ?? 'TEXT',
           mediaUrl: frame.mediaUrl ?? null,
           timestamp: now(),
+          deleted: false,
         };
         for (const member of members) send(member, { type: 'MESSAGE', data: message });
         return;
@@ -180,16 +194,23 @@ export async function startMockWs({
   };
 
   const handleStreaming = (socket, streamId, frame) => {
+    if (frame.type === 'PING') {
+      send(socket, { type: 'PONG' });
+      return;
+    }
     if (frame.type !== 'REACTION') return;
+    // Solo lo que mandó el cliente más lo que pone el servicio: nada del fixture.
+    const { type, emoji, x, y } = frame.data;
     const reaction = {
-      ...frames.StreamReactionReceived.data,
-      ...frame.data,
-      id: `rct_mock_${Date.now()}`,
+      id: nextId('rct'),
       streamId,
       userId: MOCK_USER.userId,
       displayName: MOCK_USER.displayName,
       avatar: null,
-      emoji: frame.data.emoji ?? null,
+      type,
+      emoji: emoji ?? null,
+      ...(x !== undefined ? { x } : {}),
+      ...(y !== undefined ? { y } : {}),
       timestamp: now(),
     };
     for (const viewer of streams.get(streamId) ?? []) {
@@ -239,16 +260,20 @@ export async function startMockWs({
       try {
         frame = JSON.parse(raw.toString());
       } catch {
-        send(socket, errorFrame('El frame no es JSON válido'));
+        if (validators[channel]?.length) {
+          send(socket, errorFrame('VALIDATION_ERROR', 'El frame no es JSON válido'));
+        }
         return;
       }
-      if (frame?.type === 'PING') {
-        send(socket, { type: 'PONG' });
-        return;
-      }
-      const accepted = (validators[channel] ?? []).some(({ validate }) => validate(frame));
+      const channelValidators = validators[channel] ?? [];
+      // Check-in y mosaico no tienen `publish` (ni `WsError`): solo envía el servidor.
+      if (channelValidators.length === 0) return;
+      const accepted = channelValidators.some(({ validate }) => validate(frame));
       if (!accepted) {
-        send(socket, errorFrame(`Frame no válido para ${channel} según asyncapi.yaml`));
+        send(
+          socket,
+          errorFrame('VALIDATION_ERROR', `Frame no válido para ${channel} según asyncapi.yaml`),
+        );
         return;
       }
       if (channel === '/ws/chat') handleChat(socket, frame);
@@ -256,9 +281,9 @@ export async function startMockWs({
     });
 
     socket.on('close', () => {
-      for (const members of rooms.values()) members.delete(socket);
+      for (const roomId of [...rooms.keys()]) leave(rooms, roomId, socket);
       if (channel === '/ws/streaming/{streamId}') {
-        streams.get(id)?.delete(socket);
+        leave(streams, id, socket);
         viewerCount(id);
       }
     });
@@ -266,6 +291,8 @@ export async function startMockWs({
 
   return {
     port: server.address().port,
+    /** Salas y streams con alguien conectado (para las pruebas). */
+    stats: () => ({ rooms: rooms.size, streams: streams.size }),
     close: () =>
       new Promise((resolve) => {
         for (const timer of timers) clearInterval(timer);

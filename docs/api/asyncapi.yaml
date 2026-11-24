@@ -16,8 +16,10 @@ info:
       valida y cierra con **4401** si es inválido o falta.
     - **El cliente nunca envía su identidad** (`userId`, `username`,
       `displayName`, `avatar`, `senderId`): el servicio la toma de `X-User-Id`
-      y `X-User-Name`, que inyecta el gateway (ADR-007, ADR-015). Un campo de
-      identidad enviado por el cliente se ignora.
+      y `X-User-Name`, que inyecta el gateway (ADR-007, ADR-015). Los frames
+      del cliente son objetos cerrados: uno con un campo que el contrato no
+      declara, como la identidad, se rechaza con `ERROR` (`VALIDATION_ERROR`)
+      y la conexión sigue abierta.
     - Frames del servidor: `{"type": "<SCREAMING_SNAKE_CASE>", "data": {...}}`.
       El cliente hace `switch(type)` e ignora los `type` que no conoce.
       Excepción: el mosaico (Ola 3, ya en producción) pone sus campos junto a
@@ -155,6 +157,7 @@ channels:
           - $ref: '#/components/messages/StreamStarted'
           - $ref: '#/components/messages/StreamEnded'
           - $ref: '#/components/messages/Pong'
+          - $ref: '#/components/messages/StreamError'
     publish:
       summary: Lo que el cliente envía al stream.
       message:
@@ -168,28 +171,25 @@ components:
     WsError:
       name: WsError
       messageId: WsError
-      title: Error de un frame del cliente
+      title: Error de un frame del cliente del chat
       description: >
         Respuesta a un frame inválido o no permitido. No cierra la conexión.
-        `message` en es-ES, como el envelope de ADR-003.
+        `message` en es-ES, como el envelope de ADR-003. `VALIDATION_ERROR`:
+        el frame no cumple su mensaje de `publish` (p. ej. lleva identidad).
+        `FORBIDDEN`: un frame para una sala a la que no se entró con
+        `JOIN_ROOM`.
       payload:
-        type: object
-        required: [type, data]
-        properties:
-          type:
-            type: string
-            enum: [ERROR]
-          data:
-            type: object
-            required: [error, message]
-            properties:
-              error:
-                type: string
-                description: Código de máquina (CONVENTIONS §3.3).
-                example: VALIDATION_ERROR
-              message:
-                type: string
-                example: El mensaje no puede estar vacío
+        $ref: '#/components/schemas/WsErrorFrame'
+    StreamError:
+      name: StreamError
+      messageId: StreamError
+      title: Error de un frame del cliente del stream
+      description: >
+        Igual que `WsError`, en el canal de streaming (un `messageId` no se
+        repite entre canales). `VALIDATION_ERROR`: el frame no cumple su
+        mensaje de `publish` (p. ej. lleva identidad).
+      payload:
+        $ref: '#/components/schemas/WsErrorFrame'
     Ping:
       name: Ping
       messageId: Ping
@@ -726,6 +726,25 @@ components:
         totalCheckedIn:
           type: integer
           minimum: 0
+    WsErrorFrame:
+      type: object
+      description: Frame `ERROR` del servidor (`WsError`, `StreamError`).
+      required: [type, data]
+      properties:
+        type:
+          type: string
+          enum: [ERROR]
+        data:
+          type: object
+          required: [error, message]
+          properties:
+            error:
+              type: string
+              description: Código de máquina (CONVENTIONS §3.3).
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: El mensaje no puede estar vacío
     ReactionType:
       type: string
       description: Enum `Reaction.type` de CONVENTIONS §6.

@@ -38,28 +38,10 @@ import { readdirSync, existsSync } from 'node:fs';
 import { parse as parseYaml } from 'yaml';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
+import { closed } from './asyncapi-schema.mjs';
 
 const doc = parseYaml(readFileSync(file, 'utf8'));
 const wsDir = join(root, 'docs/api/fixtures/ws');
-
-function closed(node) {
-  if (Array.isArray(node)) return node.map(closed);
-  if (node === null || typeof node !== 'object') return node;
-  const out = {};
-  for (const [key, value] of Object.entries(node)) {
-    if (key === '$ref' && typeof value === 'string') {
-      out.$ref = value.replace('#/components/schemas/', '#/$defs/');
-    } else if (key === 'properties') {
-      out.properties = Object.fromEntries(
-        Object.entries(value).map(([name, schema]) => [name, closed(schema)]),
-      );
-    } else {
-      out[key] = closed(value);
-    }
-  }
-  if (out.properties && out.additionalProperties === undefined) out.unevaluatedProperties = false;
-  return out;
-}
 
 const ajv = new Ajv2020({ strict: false, allErrors: true });
 addFormats(ajv);

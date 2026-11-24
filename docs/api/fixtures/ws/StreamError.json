@@ -1,0 +1,7 @@
+{
+  "type": "ERROR",
+  "data": {
+    "error": "VALIDATION_ERROR",
+    "message": "Frame no válido para /ws/streaming/{streamId} según asyncapi.yaml"
+  }
+}
