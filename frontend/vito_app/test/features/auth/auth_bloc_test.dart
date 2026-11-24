@@ -211,8 +211,7 @@ void main() {
         adapter.on('GET /auth/me', [StubResponse(200, me200)]);
       },
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      act: (bloc) => _run(bloc, const AuthCheckRequested()),
       expect: () => [
         isA<AuthAuthenticated>()
             .having((s) => s.user.id, 'id', 'usr_01H8X2K4QJ')
@@ -238,8 +237,7 @@ void main() {
           ..on('POST /auth/refresh', [StubResponse(200, refresh200)]);
       },
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      act: (bloc) => _run(bloc, const AuthCheckRequested()),
       expect: () => [isA<AuthAuthenticated>()],
       verify: (_) {
         expect(adapter.count('POST /auth/refresh'), 1);
@@ -254,8 +252,7 @@ void main() {
         adapter.on('GET /auth/me', [StubResponse(401, me401)]);
       },
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      act: (bloc) => _run(bloc, const AuthCheckRequested()),
       expect: () => [const AuthUnauthenticated()],
       verify: (_) {
         expect(local.accessToken, isNull);
@@ -287,8 +284,7 @@ void main() {
             ..on('POST /auth/refresh', [StubResponse(200, refresh200)]);
         },
         build: buildBloc,
-        wait: _io,
-        act: (bloc) => bloc.add(const AuthCheckRequested()),
+        act: (bloc) => _run(bloc, const AuthCheckRequested()),
         expect: () => [isA<AuthAuthenticated>()],
         verify: (_) {
           expect(adapter.count('POST /auth/refresh'), 1);
@@ -306,8 +302,7 @@ void main() {
         adapter.on('GET /auth/me', [StubResponse(401, me401)]);
       },
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      act: (bloc) => _run(bloc, const AuthCheckRequested()),
       expect: () => [const AuthUnauthenticated()],
       verify: (_) => expect(local.clearCount, 1),
     );
@@ -327,8 +322,7 @@ void main() {
           ]);
       },
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      act: (bloc) => _run(bloc, const AuthCheckRequested()),
       expect: () => [const AuthUnauthenticated()],
       verify: (_) => expect(local.clearCount, 1),
     );
@@ -342,8 +336,7 @@ void main() {
         adapter.on('GET /auth/me', []);
       },
       build: buildBloc,
-      wait: _io,
-      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      act: (bloc) => _run(bloc, const AuthCheckRequested()),
       expect: () => [const AuthUnauthenticated()],
       verify: (_) {
         expect(local.accessToken, 'access-vigente');
