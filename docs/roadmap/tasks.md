@@ -234,7 +234,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-B37 | Concurrencia del gateway y latencia del RSVP (hallazgos de k6) | B | P1 | 🔵 EN CURSO (punto 1 ✅ #281; punto 4 en #304, falta repetir k6; faltan los puntos 2 y 3) | — |
 | T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🔵 EN CURSO | — |
 | T-C11 | Contrato de la Ola 2a: grafo social y búsqueda de usuarios (spec 004) | C | P0 | ✅ HECHA (#320, 2026-11-20; RFC #321) | — |
-| T-F13 | App de la Ola 2a: búsqueda para invitar, seguir, perfil social y "Mi Gente" | F | P0 | 🟢 READY (T-C11 ✅ #320) | — |
+| T-F13 | App de la Ola 2a: búsqueda para invitar, seguir, perfil social y "Mi Gente" | F | P0 | 🔵 EN CURSO (PR 1 `frontend/t-f13-search`: búsqueda para invitar; faltan seguir, perfil, listas y "Mi Gente") | — |
 | T-B38 | `auth-service` y gateway de la Ola 2a: `searchUsers` y `getUsersByIds` | B | P0 | 🔵 EN CURSO (código en revisión: #323 y la búsqueda; falta quickstart §2 con T-F13) | — |
 | T-B39 | `social-service` de la Ola 2a: follow idempotente, perfil, seguidores y seguidos | B | P1 | 🔵 EN CURSO (T016–T019 y T036–T041 en revisión; T003 ✅ #284; T013–T015 y T020 ✅ #286) | — |
 | T-I30 | `AUTH_SERVICE_URI`, escenarios k6 y tablero de la Ola 2a | I | P1 | 🔴 BLOQUEADA por T-B39 (T004 ✅ #284) | — |
@@ -755,12 +755,26 @@ depende del contrato.
      de ahí quedó en la Ola 1 todo lo de invitaciones y enlaces; `searchUsers` pasó a la Ola
      2a (#320, T-F13).
 
-### T-F13 · App de la Ola 2a — 🟢 READY (T-C11 ✅ #320) · P0 · Principio IV
+### T-F13 · App de la Ola 2a — 🔵 EN CURSO (PR 1 de 3, `frontend/t-f13-search`) · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 6 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): modelos y pruebas de contrato,
   búsqueda en "¿A quién invitamos?" con invitación al crear el evento, botón de seguir, perfil
   social con "te sigue", listas de seguidores y seguidos, y "Mi Gente" con datos reales.
 - **Cierre:** quickstart §2 y §6 de la spec en verde para la app; Bug-F08 cerrado y la parte social
   de T-F02 sin `MockApiService`.
+- **Plan (2026-11-22):** 3 PRs a `develop`. (1) T011, T012, T034 y T035: modelos, pruebas de
+  contrato y búsqueda para invitar (cierra Bug-F08 en la app); (2) T042 y T048: seguir y perfil
+  social; (3) T053 y T054: listas de seguidores y seguidos, "Mi Gente" y el cierre de la ola.
+- **Avance (2026-11-22, PR 1 en `frontend/t-f13-search`):**
+  - T011: modelos `UserSummary` (nuevo) y `SocialProfile` según el contrato, sin `bio`.
+  - T034: `searchUsers` contra `GET /users/search` de `auth-service` (`user_remote_datasource`,
+    caso de uso `search_users`). Se retira `/social/search`. El `429` dice "Espera un momento y
+    vuelve a intentarlo".
+  - T035: "¿A quién invitamos?" busca desde 2 caracteres (sin contar una `@` inicial) con 300 ms
+    de espera entre teclas, sin el aviso provisional de Bug-F08, y al crear el evento envía
+    una invitación por persona elegida.
+  - T012: `test/contract/users_contract_test.dart` y `social_contract_test.dart`.
+  - Funciona contra el mock de Prism; en el backend real la búsqueda llega con T-B38
+    (T021–T033).
 
 ---
 

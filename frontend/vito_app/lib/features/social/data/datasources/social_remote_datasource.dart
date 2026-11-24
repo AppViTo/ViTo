@@ -23,12 +23,6 @@ abstract class SocialRemoteDataSource {
     int page = 0,
     int size = 20,
   });
-  
-  Future<List<SocialProfileModel>> searchUsers({
-    required String query,
-    int page = 0,
-    int size = 20,
-  });
 }
 
 class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
@@ -104,26 +98,6 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       final response = await dio.get(
         '/social/following/$userId',
         queryParameters: {'page': page, 'size': size},
-      );
-      
-      return (response.data as List)
-          .map((json) => SocialProfileModel.fromJson(json))
-          .toList();
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-  
-  @override
-  Future<List<SocialProfileModel>> searchUsers({
-    required String query,
-    int page = 0,
-    int size = 20,
-  }) async {
-    try {
-      final response = await dio.get(
-        '/social/search',
-        queryParameters: {'query': query, 'page': page, 'size': size},
       );
       
       return (response.data as List)
