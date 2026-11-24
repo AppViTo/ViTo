@@ -11,6 +11,9 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  # URLs de ruta en web (/i/<token>) en lugar de #/ (T043)
+  flutter_web_plugins:
+    sdk: flutter
 
   # State Management
   flutter_bloc: ^9.1.1

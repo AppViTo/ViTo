@@ -26,9 +26,11 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   bool _myEventsFailed = false;
   bool _upcomingEventsFailed = false;
+  bool _invitedEventsFailed = false;
   String _searchQuery = '';
 
   List<HomeEvent> _myEvents = [];
+  List<HomeEvent> _invitedEvents = [];
   List<HomeEvent> _upcomingEvents = [];
 
   @override
@@ -37,9 +39,10 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadData();
   }
 
-  /// Eventos que organiza el usuario (`scope=mine`) y próximos eventos
-  /// visibles (`scope=upcoming`, ADR-014), en secciones separadas.
-  /// Los propios no se repiten en "Próximos eventos".
+  /// Eventos que organiza el usuario (`scope=mine`), eventos a los que lo
+  /// invitaron (`scope=invited`, Ola 1) y próximos eventos visibles
+  /// (`scope=upcoming`, ADR-014), en secciones separadas. Un evento sale en
+  /// una sola sección, en ese orden de prioridad.
   /// Amigos, historias y transmisiones aún no tienen contrato (Olas 1–2):
   /// se muestran vacíos en vez de datos de ejemplo.
   Future<void> _loadData() async {
@@ -47,13 +50,16 @@ class _HomeScreenState extends State<HomeScreen> {
     final results = await Future.wait([
       _eventRepository.getMyEvents(),
       _eventRepository.getUpcomingEvents(),
+      _eventRepository.getInvitedEvents(),
     ]);
     if (!mounted) return;
 
     final myById = <String, Event>{};
     final upcomingById = <String, Event>{};
+    final invitedById = <String, Event>{};
     var myFailed = false;
     var upcomingFailed = false;
+    var invitedFailed = false;
 
     results[0].fold(
       (_) => myFailed = true,
@@ -72,16 +78,31 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
 
+    results[2].fold(
+      (_) => invitedFailed = true,
+      (events) {
+        for (final event in events) {
+          invitedById[event.id] = event;
+        }
+      },
+    );
+
     final myEvents = _visibleEvents(myById);
-    final myIds = myEvents.map((event) => event.id).toSet();
+    final shownIds = myEvents.map((event) => event.id).toSet();
+    final invitedEvents = _visibleEvents(invitedById)
+        .where((event) => !shownIds.contains(event.id))
+        .toList();
+    shownIds.addAll(invitedEvents.map((event) => event.id));
     final upcomingEvents = _visibleEvents(upcomingById)
-        .where((event) => !myIds.contains(event.id))
+        .where((event) => !shownIds.contains(event.id))
         .toList();
 
     setState(() {
       _myEvents = myEvents;
+      _invitedEvents = invitedEvents;
       _upcomingEvents = upcomingEvents;
       _myEventsFailed = myFailed;
+      _invitedEventsFailed = invitedFailed;
       _upcomingEventsFailed = upcomingFailed;
       _isLoading = false;
     });
@@ -186,6 +207,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   : 'No hay eventos que coincidan con tu búsqueda',
               failureMessage:
                   'No pudimos cargar tus eventos. Desliza hacia abajo para reintentar.',
+            ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 8)),
+          SliverToBoxAdapter(
+            child: _buildSectionTitle('Invitaciones'),
+          ),
+          SliverToBoxAdapter(
+            child: _buildEventsCarousel(
+              events: _filtered(_invitedEvents),
+              failed: _invitedEventsFailed,
+              emptyMessage: _invitedEvents.isEmpty
+                  ? 'Aún no tienes invitaciones'
+                  : 'No hay eventos que coincidan con tu búsqueda',
+              failureMessage:
+                  'No pudimos cargar tus invitaciones. Desliza hacia abajo para reintentar.',
             ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 8)),

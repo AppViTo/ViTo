@@ -22,7 +22,12 @@ import '../../features/events/data/datasources/event_remote_datasource.dart';
 import '../../features/events/data/datasources/media_remote_datasource.dart';
 import '../../features/events/data/repositories/event_repository_impl.dart';
 import '../../features/events/domain/repositories/event_repository.dart';
+import '../../features/events/domain/usecases/accept_invite_link.dart';
 import '../../features/events/domain/usecases/create_event.dart';
+import '../../features/events/domain/usecases/create_invite_link.dart';
+import '../../features/events/domain/usecases/get_invite_link_preview.dart';
+import '../../features/events/domain/usecases/list_invite_links.dart';
+import '../../features/events/domain/usecases/revoke_invite_link.dart';
 import '../../features/events/domain/usecases/respond_rsvp.dart';
 import '../../features/events/presentation/bloc/event_bloc.dart';
 
@@ -148,6 +153,12 @@ Future<void> init() async {
   );
   sl.registerLazySingleton(() => CreateEventUseCase(sl()));
   sl.registerLazySingleton(() => RespondRSVPUseCase(sl()));
+  // Enlaces de invitación (Ola 1, T041)
+  sl.registerLazySingleton(() => CreateInviteLinkUseCase(sl()));
+  sl.registerLazySingleton(() => ListInviteLinksUseCase(sl()));
+  sl.registerLazySingleton(() => RevokeInviteLinkUseCase(sl()));
+  sl.registerLazySingleton(() => GetInviteLinkPreviewUseCase(sl()));
+  sl.registerLazySingleton(() => AcceptInviteLinkUseCase(sl()));
   sl.registerFactory(
     () => EventBloc(
       eventRepository: sl(),

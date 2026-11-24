@@ -227,7 +227,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | ✅ HECHA (#278) | — |
 | T-I29 | Excepción de Trivy `CVE-2026-78661` de `mongo-backup` que vence el 2026-12-23 | I | P1 | ✅ HECHA (#289; nueva fecha 2027-02-07) | — |
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | ✅ HECHA (#253) | — |
-| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🔵 EN CURSO (`frontend/t-f12-rsvp`: modelos, RSVP y sin `respondToInvitation`; faltan enlace, editar, invitaciones, cancelar, asistentes y auto-login) | — |
+| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🔵 EN CURSO (PR 1 `frontend/t-f12-rsvp`: modelos y RSVP; PR 2 `frontend/t-f12-invite-links`: enlaces e invitaciones en el home; faltan editar, invitaciones del organizador, cancelar, asistentes y auto-login) | — |
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y #273) | — |
 | T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | ✅ HECHA (#262) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
@@ -671,7 +671,7 @@ depende del contrato.
   mockeados) que compruebe splash → login sin excepciones.
 - **Cierre:** ningún archivo de test sin casos; el smoke test monta `ViToApp` y navega.
 
-### T-F12 · App de la Ola 1 — 🔵 EN CURSO (`frontend/t-f12-rsvp`, 1 de 5 PRs) · P0 · Principio IV
+### T-F12 · App de la Ola 1 — 🔵 EN CURSO (PRs 1 y 2 de 5 abiertos) · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 9 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): modelos y pruebas de contrato,
   RSVP con lista de espera, enlace (copiar, WhatsApp, ruta web `/i/<token>`), editar y
   cancelar evento, invitaciones, lista de asistentes del organizador y contador de confirmados
@@ -694,6 +694,18 @@ depende del contrato.
     organizador no ve los botones.
   - Límite del contrato: `getEvent` no trae el RSVP de quien consulta, así que la app solo
     conoce la respuesta después de enviarla en esa visita.
+- **Avance (2026-11-22, PR 2 en `frontend/t-f12-invite-links`, cierra el enlace de Bug-F09):**
+  - T041: las 5 operaciones de enlaces y `scope=invited` en datasource, repositorio y casos de
+    uso, registrados en `get_it`. El repositorio distingue `403`, `404` y `409`.
+  - T042: desde el detalle, el organizador abre "Invitar con un enlace": crea, copia, comparte
+    por WhatsApp y revoca enlaces, con usos, vencimiento y estado. El asistente de creación ya no
+    muestra los botones de enlace provisionales.
+  - T043: ruta `/i/<token>` con vista previa sin sesión, "Inicia sesión o regístrate para
+    unirte", vuelta a la invitación tras el login o el registro, `acceptInviteLink` y mensaje
+    único en `404`. La web pasa a URLs de ruta (`usePathUrlStrategy`); `web/_redirects` ya
+    sirve `index.html` en cualquier ruta.
+  - T044: sección "Invitaciones" en el home con `scope=invited`, sin repetir eventos en
+    "Próximos eventos".
 
 ### T-F13 · App de la Ola 2a — 🟢 READY (T-C11 ✅ #320) · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 6 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): modelos y pruebas de contrato,

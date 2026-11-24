@@ -10,6 +10,7 @@ import '../../domain/entities/event.dart';
 import '../../domain/entities/attendee.dart';
 import '../../domain/entities/rsvp.dart';
 import '../../domain/entities/invitation.dart';
+import '../../domain/entities/invite_link.dart';
 import '../../domain/repositories/event_repository.dart';
 
 class EventRepositoryImpl implements EventRepository {
@@ -22,7 +23,19 @@ class EventRepositoryImpl implements EventRepository {
   });
 
   Failure _toFailure(Object error) {
-    if (error is ServerException) return ServerFailure(message: error.message);
+    if (error is ServerException) {
+      // Los enlaces de invitación distinguen 404 (no existe o ya no está
+      // disponible) y 409 (sin usos o evento inactivo).
+      switch (error.statusCode) {
+        case 403:
+          return AuthorizationFailure(message: error.message);
+        case 404:
+          return NotFoundFailure(message: error.message);
+        case 409:
+          return ConflictFailure(message: error.message);
+      }
+      return ServerFailure(message: error.message);
+    }
     if (error is ValidationException) {
       return ValidationFailure(message: error.message);
     }
@@ -241,6 +254,65 @@ class EventRepositoryImpl implements EventRepository {
         mimeType: mimeType,
       );
       return Right(url);
+    } catch (e) {
+      return Left(_toFailure(e));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<Event>>> getInvitedEvents({
+    int page = 0,
+    int size = 20,
+  }) =>
+      _guard(() => remoteDataSource.getInvitedEvents(page: page, size: size));
+
+  @override
+  Future<Either<Failure, InviteLink>> createInviteLink({
+    required String eventId,
+    int? expiresInDays,
+    int? maxUses,
+  }) =>
+      _guard(() => remoteDataSource.createInviteLink(
+            eventId: eventId,
+            expiresInDays: expiresInDays,
+            maxUses: maxUses,
+          ));
+
+  @override
+  Future<Either<Failure, List<InviteLink>>> listInviteLinks({
+    required String eventId,
+    int page = 0,
+    int size = 20,
+  }) =>
+      _guard(() => remoteDataSource.listInviteLinks(
+            eventId: eventId,
+            page: page,
+            size: size,
+          ));
+
+  @override
+  Future<Either<Failure, void>> revokeInviteLink({
+    required String eventId,
+    required String linkId,
+  }) =>
+      _guard(() => remoteDataSource.revokeInviteLink(
+            eventId: eventId,
+            linkId: linkId,
+          ));
+
+  @override
+  Future<Either<Failure, InviteLinkPreview>> getInviteLinkPreview(
+    String token,
+  ) =>
+      _guard(() => remoteDataSource.getInviteLinkPreview(token));
+
+  @override
+  Future<Either<Failure, Invitation>> acceptInviteLink(String token) =>
+      _guard(() => remoteDataSource.acceptInviteLink(token));
+
+  Future<Either<Failure, T>> _guard<T>(Future<T> Function() call) async {
+    try {
+      return Right(await call());
     } catch (e) {
       return Left(_toFailure(e));
     }

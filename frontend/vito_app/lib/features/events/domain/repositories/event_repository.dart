@@ -7,6 +7,7 @@ import '../entities/event.dart';
 import '../entities/attendee.dart';
 import '../entities/rsvp.dart';
 import '../entities/invitation.dart';
+import '../entities/invite_link.dart';
 
 abstract class EventRepository {
   Future<Either<Failure, Event>> createEvent({
@@ -70,6 +71,35 @@ abstract class EventRepository {
   });
   
   Future<Either<Failure, String>> generateCheckInQR(String eventId);
+
+  /// `scope=invited`: eventos a los que invitaron a quien consulta.
+  Future<Either<Failure, List<Event>>> getInvitedEvents({
+    int page = 0,
+    int size = 20,
+  });
+
+  Future<Either<Failure, InviteLink>> createInviteLink({
+    required String eventId,
+    int? expiresInDays,
+    int? maxUses,
+  });
+
+  Future<Either<Failure, List<InviteLink>>> listInviteLinks({
+    required String eventId,
+    int page = 0,
+    int size = 20,
+  });
+
+  Future<Either<Failure, void>> revokeInviteLink({
+    required String eventId,
+    required String linkId,
+  });
+
+  /// Un token inexistente, vencido o revocado responde [NotFoundFailure].
+  Future<Either<Failure, InviteLinkPreview>> getInviteLinkPreview(String token);
+
+  /// `409` (sin usos o evento inactivo) responde [ConflictFailure].
+  Future<Either<Failure, Invitation>> acceptInviteLink(String token);
 
   Future<Either<Failure, String>> uploadEventCover({
     required String eventId,

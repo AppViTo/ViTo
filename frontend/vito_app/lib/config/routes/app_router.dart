@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/di/injection_container.dart';
 import '../../features/events/presentation/bloc/event_bloc.dart';
+import '../../features/events/presentation/bloc/invite_link_cubit.dart';
+import '../../features/events/presentation/bloc/invite_links_cubit.dart';
+import '../../features/events/presentation/pages/invite_link_page.dart';
+import '../../features/events/presentation/pages/invite_links_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
@@ -35,11 +39,70 @@ class AppRouter {
   static const String chat = '/chat';
   static const String profile = '/profile';
   static const String archiveDetail = '/archive-detail';
-  
+  static const String inviteLinks = '/invite-links';
+
+  /// Prefijo de los enlaces de invitación: `/i/<token>` (T043).
+  static const String inviteLinkPrefix = '/i/';
+
+  /// Token de una ruta `/i/<token>`, o `null` si la ruta es otra.
+  static String? inviteTokenOf(String? routeName) {
+    if (routeName == null || !routeName.startsWith(inviteLinkPrefix)) {
+      return null;
+    }
+    final token = Uri.parse(routeName).pathSegments.skip(1).firstOrNull;
+    return token == null || token.isEmpty ? null : token;
+  }
+
+  /// Rutas al abrir la app (o al recargar la web). Siempre empieza en el
+  /// splash, que restaura la sesión y decide entre inicio y login: abrir
+  /// `/home` o `/event-detail` directo se saltaría la sesión. La única
+  /// excepción es `/i/<token>`, que muestra la invitación sin sesión (T043).
+  ///
+  /// En web, Flutter pasa aquí la ruta de la URL aunque `initialRoute` diga
+  /// otra cosa, así que la decisión tiene que estar en esta función.
+  static List<Route<dynamic>> generateInitialRoutes(String initialRoute) {
+    final inviteRoute = inviteTokenOf(initialRoute) != null ? initialRoute : null;
+    return [generateRoute(RouteSettings(name: inviteRoute ?? AppRouter.initialRoute))];
+  }
+
   static Route<dynamic> generateRoute(RouteSettings settings) {
+    final inviteToken = inviteTokenOf(settings.name);
+    if (inviteToken != null) {
+      return MaterialPageRoute(
+        settings: settings,
+        builder: (_) => BlocProvider(
+          create: (_) => InviteLinkCubit(
+            token: inviteToken,
+            getPreview: sl(),
+            acceptInviteLink: sl(),
+          ),
+          child: InviteLinkPage(token: inviteToken),
+        ),
+      );
+    }
+
     switch (settings.name) {
+      case inviteLinks:
+        final args = settings.arguments as Map<String, dynamic>?;
+        final eventId = args?['eventId'] as String? ?? '';
+        return MaterialPageRoute(
+          builder: (_) => BlocProvider(
+            create: (_) => InviteLinksCubit(
+              eventId: eventId,
+              listInviteLinks: sl(),
+              createInviteLink: sl(),
+              revokeInviteLink: sl(),
+            ),
+            child: InviteLinksPage(
+              eventTitle: args?['eventTitle'] as String? ?? '',
+            ),
+          ),
+        );
       case initialRoute:
-        return MaterialPageRoute(builder: (_) => const SplashPage());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const SplashPage(),
+        );
       case login:
         return MaterialPageRoute(builder: (_) => const LoginPage());
       case register:

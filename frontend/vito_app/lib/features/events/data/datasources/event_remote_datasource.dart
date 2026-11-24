@@ -5,6 +5,7 @@ import '../../domain/entities/rsvp.dart';
 import '../models/attendee_model.dart';
 import '../models/event_model.dart';
 import '../models/invitation_model.dart';
+import '../models/invite_link_model.dart';
 import '../models/rsvp_model.dart';
 
 abstract class EventRemoteDataSource {
@@ -62,8 +63,38 @@ abstract class EventRemoteDataSource {
     required String eventId,
     required String qrCode,
   });
-  
+
   Future<String> generateCheckInQR(String eventId);
+
+  /// `listEvents?scope=invited` (Ola 1): eventos a los que invitaron a quien
+  /// consulta, por fecha de inicio ascendente.
+  Future<List<EventModel>> getInvitedEvents({int page = 0, int size = 20});
+
+  /// `createInviteLink`: solo el organizador.
+  Future<InviteLinkModel> createInviteLink({
+    required String eventId,
+    int? expiresInDays,
+    int? maxUses,
+  });
+
+  /// `listInviteLinks`: solo el organizador.
+  Future<List<InviteLinkModel>> listInviteLinks({
+    required String eventId,
+    int page = 0,
+    int size = 20,
+  });
+
+  /// `revokeInviteLink`: idempotente.
+  Future<void> revokeInviteLink({
+    required String eventId,
+    required String linkId,
+  });
+
+  /// `getInviteLinkPreview`: público, sin sesión.
+  Future<InviteLinkPreviewModel> getInviteLinkPreview(String token);
+
+  /// `acceptInviteLink`: idempotente; devuelve la invitación aceptada.
+  Future<InvitationModel> acceptInviteLink(String token);
 }
 
 class EventRemoteDataSourceImpl implements EventRemoteDataSource {
@@ -146,6 +177,82 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   @override
   Future<List<EventModel>> getUpcomingEvents({int page = 0, int size = 20}) =>
       _listEvents(scope: 'upcoming', page: page, size: size);
+
+  @override
+  Future<List<EventModel>> getInvitedEvents({int page = 0, int size = 20}) =>
+      _listEvents(scope: 'invited', page: page, size: size);
+
+  @override
+  Future<InviteLinkModel> createInviteLink({
+    required String eventId,
+    int? expiresInDays,
+    int? maxUses,
+  }) async {
+    try {
+      final response = await dio.post(
+        '/events/$eventId/invite-links',
+        data: createInviteLinkRequestJson(
+          expiresInDays: expiresInDays,
+          maxUses: maxUses,
+        ),
+      );
+      return InviteLinkModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<List<InviteLinkModel>> listInviteLinks({
+    required String eventId,
+    int page = 0,
+    int size = 20,
+  }) async {
+    try {
+      final response = await dio.get(
+        '/events/$eventId/invite-links',
+        queryParameters: {'page': page, 'size': size},
+      );
+      return (response.data as List)
+          .map((json) => InviteLinkModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<void> revokeInviteLink({
+    required String eventId,
+    required String linkId,
+  }) async {
+    try {
+      await dio.delete('/events/$eventId/invite-links/$linkId');
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<InviteLinkPreviewModel> getInviteLinkPreview(String token) async {
+    try {
+      final response = await dio.get('/invite-links/$token');
+      return InviteLinkPreviewModel.fromJson(
+          response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<InvitationModel> acceptInviteLink(String token) async {
+    try {
+      final response = await dio.post('/invite-links/$token/accept');
+      return InvitationModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
 
   /// `listEvents` del contrato: `GET /events?scope=mine|upcoming` (ADR-014).
   /// La respuesta es un array plano de `Event` (ADR-002).

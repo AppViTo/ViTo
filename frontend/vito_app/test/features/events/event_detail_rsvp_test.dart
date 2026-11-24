@@ -6,11 +6,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'package:vito_app/core/error/failures.dart';
+import 'package:vito_app/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:vito_app/features/events/domain/entities/event.dart';
 import 'package:vito_app/features/events/domain/entities/rsvp.dart';
 import 'package:vito_app/features/events/presentation/bloc/event_bloc.dart';
 import 'package:vito_app/features/events/presentation/pages/event_detail_page.dart';
 
+import 'auth_stub.dart';
 import 'fakes.dart';
 
 Event _event({
@@ -176,6 +178,52 @@ void main() {
       find.text('El evento ya empezó o terminó: ya no se puede responder.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+      'el organizador no ve el RSVP y abre sus enlaces de invitación (T042)',
+      (tester) async {
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final opened = <RouteSettings>[];
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthBloc>(create: (_) => StubAuthBloc('usr_1')),
+          BlocProvider<EventBloc>(
+            create: (_) => EventBloc(
+              eventRepository: FakeEventRepository(eventDetail: _event()),
+            ),
+          ),
+        ],
+        child: MaterialApp(
+          locale: const Locale('es'),
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('es')],
+          home: const EventDetailPage(eventId: 'evt_1'),
+          onGenerateRoute: (settings) {
+            opened.add(settings);
+            return MaterialPageRoute(builder: (_) => const SizedBox());
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('¿Vas a ir?'), findsNothing);
+    expect(find.text('No voy'), findsNothing);
+
+    await tester.tap(find.text('Invitar con un enlace'));
+    await tester.pumpAndSettle();
+
+    expect(opened.single.name, '/invite-links');
+    expect(opened.single.arguments,
+        {'eventId': 'evt_1', 'eventTitle': 'Los 30 de Marta'});
   });
 
   group('EventBloc compartido con otras pantallas', () {
