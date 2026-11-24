@@ -16,7 +16,13 @@ class MainWrapperScreen extends StatefulWidget {
 }
 
 class _MainWrapperScreenState extends State<MainWrapperScreen> {
+  static const _profileTab = 4;
+
   int _currentIndex = 0;
+
+  /// Sube cada vez que se vuelve a la pestaña Perfil, para recargarla: el
+  /// `IndexedStack` la mantiene viva con los datos de la primera carga.
+  final _profileShown = ValueNotifier<int>(0);
 
   late final List<Widget> _pages;
 
@@ -28,8 +34,19 @@ class _MainWrapperScreenState extends State<MainWrapperScreen> {
       const MapScreen(),
       const SizedBox.shrink(),
       const PeopleScreen(),
-      const ProfilePage(),
+      ProfilePage(reloadSignal: _profileShown),
     ];
+  }
+
+  @override
+  void dispose() {
+    _profileShown.dispose();
+    super.dispose();
+  }
+
+  void _onTabChanged(int index) {
+    if (index == _profileTab && index != _currentIndex) _profileShown.value++;
+    setState(() => _currentIndex = index);
   }
 
   void _onFabPressed() {
@@ -52,7 +69,7 @@ class _MainWrapperScreenState extends State<MainWrapperScreen> {
         ),
         bottomNavigationBar: CustomBottomNavBar(
           currentIndex: _currentIndex,
-          onTabChanged: (index) => setState(() => _currentIndex = index),
+          onTabChanged: _onTabChanged,
           onFabPressed: _onFabPressed,
         ),
       ),

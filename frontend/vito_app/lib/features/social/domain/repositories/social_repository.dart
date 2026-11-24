@@ -9,8 +9,6 @@ abstract class SocialRepository {
   
   Future<Either<Failure, void>> unfollow(String userId);
   
-  Future<Either<Failure, bool>> isFollowing(String userId);
-  
   Future<Either<Failure, SocialProfile>> getProfile(String userId);
   
   Future<Either<Failure, List<SocialProfile>>> getFollowers({

@@ -7,7 +7,7 @@ class SocialProfileModel extends SocialProfile {
   const SocialProfileModel({
     required super.userId,
     required super.username,
-    required super.displayName,
+    super.displayName,
     super.avatar,
     super.followersCount,
     super.followingCount,
@@ -19,9 +19,7 @@ class SocialProfileModel extends SocialProfile {
     return SocialProfileModel(
       userId: json['userId'] as String,
       username: json['username'] as String,
-      // La entidad aún guarda `displayName` como texto; el perfil (T048) lo
-      // pasará a nullable. Mientras tanto, sin nombre se muestra el usuario.
-      displayName: (json['displayName'] as String?) ?? '',
+      displayName: json['displayName'] as String?,
       avatar: json['avatar'] as String?,
       followersCount: (json['followersCount'] as int?) ?? 0,
       followingCount: (json['followingCount'] as int?) ?? 0,
@@ -34,7 +32,7 @@ class SocialProfileModel extends SocialProfile {
     return {
       'userId': userId,
       'username': username,
-      'displayName': displayName.isEmpty ? null : displayName,
+      'displayName': displayName,
       'avatar': avatar,
       'followersCount': followersCount,
       'followingCount': followingCount,

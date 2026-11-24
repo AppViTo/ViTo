@@ -143,7 +143,7 @@ a 0 (quickstart §3).
 - [X] T039 [US2] [Bernardo] `FollowRepository` en `SS/domain/port/outbound/FollowRepository.java` y `FollowMongoAdapter.java`: `boolean insertIfAbsent(relación)` (insert; `DuplicateKeyException` → `false`) y `boolean deleteIfPresent(followerId, followingId)`; retirar `existsByFollowerIdAndFollowingId` + `save` del flujo. T036 pasa
 - [X] T040 [US2] [Bernardo] `follow` y `unfollow` en `SS/application/service/SocialServiceImpl.java` según research R5 (validar uno mismo → `400 VALIDATION_ERROR`; destino con `UserDirectory.findByIds([id])` → `404 NOT_FOUND` si no vuelve; publicar solo si la relación cambió), sin `$inc` sobre `user_profiles`. T037 pasa
 - [X] T041 [US2] [Bernardo] `SocialController.java`: follow y unfollow responden `204` sin cuerpo. T038 pasa
-- [ ] T042 [P] [US2] [Alex] `APP/features/social/data/datasources/social_remote_datasource.dart` y `APP/features/social/presentation/widgets/follow_button.dart`: `204` como éxito, actualización optimista del botón y del contador con reversión si falla
+- [X] T042 [P] [US2] [Alex] `APP/features/social/data/datasources/social_remote_datasource.dart` y `APP/features/social/presentation/widgets/follow_button.dart`: `204` como éxito, actualización optimista del botón y del contador con reversión si falla
 
 ---
 
@@ -164,7 +164,7 @@ indicadores; en su propio perfil, los indicadores en `false` (quickstart §4).
 - [ ] T045 [US3] [Bernardo] `getSocialProfile` en `SocialServiceImpl.java`: identidad con `UserDirectory` (un id), `followersCount = count({followingId})`, `followingCount = count({followerId})`, `isFollowing`/`isFollowedBy` con dos consultas de existencia y `false` en el propio perfil (research R6 y `data-model.md`); `SS/domain/model/SocialProfile.java` sin métodos `increment*`/`decrement*`
 - [ ] T046 [US3] [Bernardo] DTO `SS/infrastructure/adapter/inbound/rest/dto/SocialProfileResponse.java` (`record` o `@JsonProperty("isFollowing")`/`@JsonProperty("isFollowedBy")`) y `SocialController.java` responde el DTO, no el modelo de dominio. T043 y T044 pasan
 - [ ] T047 [US3] [Bernardo] Retirar `GET /api/v1/social/is-following/{userId}` del controlador y del puerto `SocialService`, y el puerto `UserProfileRepository` con `UserProfileMongoAdapter.java`. La colección `user_profiles` no se borra (Principio IX)
-- [ ] T048 [P] [US3] [Alex] `APP/features/social/presentation/pages/profile_page.dart` y `stats_card.dart` con `getSocialProfile`: nombre, usuario, avatar, contadores, "te sigue", sin botón de seguir en el propio perfil; quitar la llamada a `/social/is-following` del datasource, el repositorio y el bloc; `503` con "No pudimos cargar el perfil, intenta de nuevo"
+- [X] T048 [P] [US3] [Alex] `APP/features/social/presentation/pages/profile_page.dart` y `stats_card.dart` con `getSocialProfile`: nombre, usuario, avatar, contadores, "te sigue", sin botón de seguir en el propio perfil; quitar la llamada a `/social/is-following` del datasource, el repositorio y el bloc; `503` con "No pudimos cargar el perfil, intenta de nuevo"
 
 ---
 

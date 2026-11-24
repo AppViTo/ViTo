@@ -31,12 +31,21 @@ void main() {
       expect(profile.isFollowedBy, isFalse);
     });
 
-    test('no lee campos que el contrato no tiene (bio)', () {
+    test('no conserva campos que el contrato no tiene (bio)', () {
       final profile = SocialProfileModel.fromJson({
         ...loadFixtureObject('social/getSocialProfile.other.200.json'),
         'bio': 'no debería leerse',
       });
-      expect(profile.bio, isNull);
+      expect(profile.toJson().containsKey('bio'), isFalse);
+    });
+
+    test('sin displayName el nombre visible es el usuario', () {
+      final profile = SocialProfileModel.fromJson({
+        ...loadFixtureObject('social/getSocialProfile.other.200.json'),
+        'displayName': null,
+      });
+      expect(profile.displayName, isNull);
+      expect(profile.label, 'caro.mz');
     });
   });
 

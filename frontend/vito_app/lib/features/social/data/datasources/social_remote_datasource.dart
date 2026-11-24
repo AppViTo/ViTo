@@ -8,8 +8,6 @@ abstract class SocialRemoteDataSource {
   
   Future<void> unfollow(String userId);
   
-  Future<bool> isFollowing(String userId);
-  
   Future<SocialProfileModel> getProfile(String userId);
   
   Future<List<SocialProfileModel>> getFollowers({
@@ -43,16 +41,6 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   Future<void> unfollow(String userId) async {
     try {
       await dio.delete('/social/follow/$userId');
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-  
-  @override
-  Future<bool> isFollowing(String userId) async {
-    try {
-      final response = await dio.get('/social/is-following/$userId');
-      return response.data;
     } on DioException catch (e) {
       throw _handleError(e);
     }
