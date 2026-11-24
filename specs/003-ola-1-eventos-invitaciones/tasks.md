@@ -204,7 +204,7 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 **Independent Test**: quickstart §6.
 
 - [X] T059 [P] [US7] [Bernardo] Alinear `AuthController.getCurrentUser` en `backend/auth-service/src/main/java/com/vito/auth/infrastructure/adapter/inbound/rest/AuthController.java` a `AuthUser` (ADR-004) y `401` con envelope; prueba contra `FX/authentication/getCurrentUser.*`
-- [ ] T060 [P] [US7] [Alex] En el arranque de la app (`AuthBloc`, `APP/features/auth/`), llamar a `getCurrentUser` con la sesión guardada; si responde 401, ir al inicio de sesión
+- [X] T060 [P] [US7] [Alex] En el arranque de la app (`AuthBloc`, `APP/features/auth/`), llamar a `getCurrentUser` con la sesión guardada; si responde 401, ir al inicio de sesión
 
 ---
 

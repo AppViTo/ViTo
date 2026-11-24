@@ -52,6 +52,8 @@ void main() {
   final login200 = loadFixtureObject('authentication/loginUser.200.json');
   final register201 = loadFixtureObject('authentication/registerUser.201.json');
   final refresh200 = loadFixtureObject('authentication/refreshToken.200.json');
+  final me200 = loadFixtureObject('authentication/getCurrentUser.200.json');
+  final me401 = loadFixtureObject('authentication/getCurrentUser.401.json');
 
   setUp(() {
     adapter = ScriptedAdapter();
@@ -199,6 +201,158 @@ void main() {
     );
   });
 
+  group('auto-login con /auth/me (T060)', () {
+    blocTest<AuthBloc, AuthState>(
+      'access vigente: autentica con /auth/me sin rotar el refresh token',
+      setUp: () {
+        local
+          ..accessToken = 'access-vigente'
+          ..refreshToken = 'refresh-vigente';
+        adapter.on('GET /auth/me', [StubResponse(200, me200)]);
+      },
+      build: buildBloc,
+      wait: _io,
+      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      expect: () => [
+        isA<AuthAuthenticated>()
+            .having((s) => s.user.id, 'id', 'usr_01H8X2K4QJ')
+            .having((s) => s.user.profile?.displayName, 'displayName',
+                'Alex Villa'),
+      ],
+      verify: (_) {
+        expect(adapter.requests.single.headers['Authorization'],
+            'Bearer access-vigente');
+        expect(adapter.count('POST /auth/refresh'), 0);
+        expect(local.refreshToken, 'refresh-vigente');
+      },
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'access vencido (/auth/me 401): renueva con el refresh token',
+      setUp: () {
+        local
+          ..accessToken = 'access-vencido'
+          ..refreshToken = 'refresh-vigente';
+        adapter
+          ..on('GET /auth/me', [StubResponse(401, me401)])
+          ..on('POST /auth/refresh', [StubResponse(200, refresh200)]);
+      },
+      build: buildBloc,
+      wait: _io,
+      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      expect: () => [isA<AuthAuthenticated>()],
+      verify: (_) {
+        expect(adapter.count('POST /auth/refresh'), 1);
+        expect(local.accessToken, refresh200['accessToken']);
+      },
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      '/auth/me 401 sin refresh token: limpia la sesión y no autentica',
+      setUp: () {
+        local.accessToken = 'access-vencido';
+        adapter.on('GET /auth/me', [StubResponse(401, me401)]);
+      },
+      build: buildBloc,
+      wait: _io,
+      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      expect: () => [const AuthUnauthenticated()],
+      verify: (_) {
+        expect(local.accessToken, isNull);
+        expect(adapter.count('POST /auth/refresh'), 0);
+      },
+    );
+
+    const errorCodes = {
+      500: 'INTERNAL_ERROR',
+      403: 'FORBIDDEN',
+      404: 'NOT_FOUND',
+    };
+    for (final MapEntry(key: status, value: code) in errorCodes.entries) {
+      blocTest<AuthBloc, AuthState>(
+        '/auth/me $status con refresh 200: renueva y autentica',
+        setUp: () {
+          local
+            ..accessToken = 'access-vigente'
+            ..refreshToken = 'refresh-vigente';
+          adapter
+            ..on('GET /auth/me', [
+              StubResponse(status, {
+                'error': code,
+                'message': 'Error del servidor',
+                'status': status,
+                'timestamp': '2026-11-24T12:00:00Z',
+              }),
+            ])
+            ..on('POST /auth/refresh', [StubResponse(200, refresh200)]);
+        },
+        build: buildBloc,
+        wait: _io,
+        act: (bloc) => bloc.add(const AuthCheckRequested()),
+        expect: () => [isA<AuthAuthenticated>()],
+        verify: (_) {
+          expect(adapter.count('POST /auth/refresh'), 1);
+          expect(local.accessToken, refresh200['accessToken']);
+        },
+      );
+    }
+
+    blocTest<AuthBloc, AuthState>(
+      '/auth/me 401 sin refresh y clearTokens que lanza: no autentica igual',
+      setUp: () {
+        local
+          ..accessToken = 'access-vencido'
+          ..failClear = true;
+        adapter.on('GET /auth/me', [StubResponse(401, me401)]);
+      },
+      build: buildBloc,
+      wait: _io,
+      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      expect: () => [const AuthUnauthenticated()],
+      verify: (_) => expect(local.clearCount, 1),
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      'refresh 401 y clearTokens que lanza: no autentica igual',
+      setUp: () {
+        local
+          ..accessToken = 'access-vencido'
+          ..refreshToken = 'revocado'
+          ..failClear = true;
+        adapter
+          ..on('GET /auth/me', [StubResponse(401, me401)])
+          ..on('POST /auth/refresh', [
+            StubResponse(
+                401, loadFixtureObject('authentication/refreshToken.401.json')),
+          ]);
+      },
+      build: buildBloc,
+      wait: _io,
+      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      expect: () => [const AuthUnauthenticated()],
+      verify: (_) => expect(local.clearCount, 1),
+    );
+
+    blocTest<AuthBloc, AuthState>(
+      '/auth/me sin red: no autentica pero conserva la sesión',
+      setUp: () {
+        local
+          ..accessToken = 'access-vigente'
+          ..refreshToken = 'refresh-vigente';
+        adapter.on('GET /auth/me', []);
+      },
+      build: buildBloc,
+      wait: _io,
+      act: (bloc) => bloc.add(const AuthCheckRequested()),
+      expect: () => [const AuthUnauthenticated()],
+      verify: (_) {
+        expect(local.accessToken, 'access-vigente');
+        expect(local.refreshToken, 'refresh-vigente');
+        expect(adapter.count('POST /auth/refresh'), 0);
+      },
+    );
+  });
+
   group('auto-login (AuthCheckRequested)', () {
     blocTest<AuthBloc, AuthState>(
       'con refresh token guardado: renueva y autentica',
@@ -229,14 +383,16 @@ void main() {
     );
 
     blocTest<AuthBloc, AuthState>(
-      'refresh 401: limpia la sesión guardada',
+      'access vencido y refresh 401: limpia la sesión guardada',
       setUp: () {
         local
           ..accessToken = 'viejo'
           ..refreshToken = 'revocado';
-        adapter.on('POST /auth/refresh', [
-          StubResponse(401, loadFixtureObject('authentication/refreshToken.401.json')),
-        ]);
+        adapter
+          ..on('GET /auth/me', [StubResponse(401, me401)])
+          ..on('POST /auth/refresh', [
+            StubResponse(401, loadFixtureObject('authentication/refreshToken.401.json')),
+          ]);
       },
       build: buildBloc,
       act: (bloc) => _run(bloc, const AuthCheckRequested()),

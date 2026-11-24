@@ -24,7 +24,8 @@ abstract class AuthRemoteDataSource {
     required String refreshToken,
   });
 
-  /// `GET /auth/me` — fuera del contrato hasta la Ola 1; no se usa.
+  /// `getCurrentUser` (`GET /auth/me`, Ola 1): el usuario de la sesión con la
+  /// forma de `AuthResponse.user` (ADR-004). Lo usa el auto-login (T060).
   Future<UserModel> getCurrentUser();
 }
 
@@ -107,7 +108,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final response = await dio.get('/auth/me');
 
-      return UserModel.fromJson(response.data);
+      // `AuthUser` es plano (`displayName` y `avatar` en la raíz), como en
+      // login y register.
+      return UserModel.fromAuthJson(response.data as Map<String, dynamic>);
     } on DioException catch (e) {
       throw _handleError(e);
     }
