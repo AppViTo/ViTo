@@ -1,0 +1,14 @@
+{
+  "type": "MESSAGE",
+  "data": {
+    "id": "msg_01HB2C3D4E",
+    "roomId": "room_01H8X2K4QJ",
+    "senderId": "usr_01H8X2K4QV",
+    "senderName": "Carolina Martínez",
+    "content": "¡Ya llegamos a la hacienda!",
+    "type": "TEXT",
+    "mediaUrl": null,
+    "timestamp": "2026-12-12T23:05:00Z",
+    "deleted": false
+  }
+}

@@ -96,6 +96,32 @@ que ahí **no** hay schema que aplicar.
 authentication/logoutUser.204.json   → null
 ```
 
+## Frames WebSocket (`ws/`)
+
+Los frames de [`../asyncapi.yaml`](../asyncapi.yaml) (T-C05) van en `ws/`, uno por
+mensaje y con el nombre de su `messageId`: `ws/ChatMessageReceived.json`,
+`ws/StreamSendReaction.json`… Los valida `npm run lint:async`
+([`scripts/validate-asyncapi.mjs`](../../../scripts/validate-asyncapi.mjs)) con las
+mismas reglas que los REST: un fixture por mensaje, sin huérfanos y con los objetos
+cerrados. Así, un frame del cliente con `userId` u otro campo de identidad falla
+(ADR-015). `validate:fixtures` los ignora.
+
+Los mismos frames los sirve el mock WS:
+
+```bash
+npm run mock:ws                 # ws://localhost:4011/ws/... con el protocolo de asyncapi.yaml
+npm run mock:ws -- --demo 5     # repite los frames de bienvenida cada 5 s
+```
+
+Para usarlo desde la app, apunta `WS_BASE_URL` al mock
+(`--dart-define=WS_BASE_URL=ws://localhost:4011`). Pide `?token=` como el gateway y
+cierra con `4401` sin él. En chat y streaming responde `ERROR` (`VALIDATION_ERROR`) a
+un frame del cliente que no cumple el contrato, con los objetos cerrados igual que
+`lint:async`, y en el chat `FORBIDDEN` a un frame para una sala a la que no se entró.
+`PING` → `PONG` solo en streaming. Check-in y mosaico ignoran los frames del
+cliente. Las pruebas del mock son `npm run test:mock-ws` y corren en el job
+**Contract** de CI.
+
 ## Requests multipart
 
 `uploadMedia` (`POST /api/v1/media/upload`) declara `multipart/form-data` con un

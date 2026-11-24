@@ -1,0 +1,9 @@
+{
+  "type": "STATS_UPDATE",
+  "data": {
+    "eventId": "evt_01H8X2K4QJ",
+    "totalCheckedIn": 81,
+    "totalExpected": 96,
+    "checkInRate": 84.375
+  }
+}

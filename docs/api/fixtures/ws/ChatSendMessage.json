@@ -1,0 +1,7 @@
+{
+  "type": "SEND_MESSAGE",
+  "roomId": "room_01H8X2K4QJ",
+  "content": "¡Ya llegamos a la hacienda!",
+  "messageType": "TEXT",
+  "mediaUrl": null
+}

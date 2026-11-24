@@ -86,10 +86,13 @@ jobs:
       - name: Tests del smoke E2E
         run: npm run test:smoke
 
-      # Se activa sola cuando T-C05 cree el archivo
+      # Contrato realtime (T-C05): asyncapi.yaml y los frames de fixtures/ws/
       - name: Validate asyncapi.yaml
         if: hashFiles('docs/api/asyncapi.yaml') != ''
         run: npm run lint:async
+
+      - name: Tests del mock WS
+        run: npm run test:mock-ws
 
   # Scripts de despliegue (feature 001): shellcheck, tests bats con un docker falso, el
   # compose de producción validado con fixtures sin secretos (T011) y bootstrap.sh (T022).

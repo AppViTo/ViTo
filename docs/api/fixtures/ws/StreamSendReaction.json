@@ -1,0 +1,9 @@
+{
+  "type": "REACTION",
+  "data": {
+    "type": "HEART",
+    "emoji": null,
+    "x": 0.42,
+    "y": 0.8
+  }
+}
