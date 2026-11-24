@@ -74,6 +74,8 @@ class EditEventCubit extends Cubit<EditEventState> {
       fileName: fileName,
       mimeType: mimeType,
     );
+    // La página puede cerrarse con la petición en curso.
+    if (isClosed) return;
     result.fold(
       (failure) =>
           emit(state.copyWith(uploadingCover: false, error: failure.message)),
@@ -87,6 +89,7 @@ class EditEventCubit extends Cubit<EditEventState> {
     final result = await updateEvent(
       UpdateEventParams(original: original, edited: edited),
     );
+    if (isClosed) return;
     result.fold(
       (failure) => emit(state.copyWith(
         status: EditEventStatus.editing,

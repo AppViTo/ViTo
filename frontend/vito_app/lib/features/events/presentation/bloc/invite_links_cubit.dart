@@ -68,6 +68,8 @@ class InviteLinksCubit extends Cubit<InviteLinksState> {
   Future<void> load() async {
     emit(state.copyWith(status: InviteLinksStatus.loading));
     final result = await listInviteLinks(eventId);
+    // La página puede cerrarse con la petición en curso.
+    if (isClosed) return;
     result.fold(
       (failure) => emit(state.copyWith(
         status: InviteLinksStatus.failure,
@@ -88,6 +90,7 @@ class InviteLinksCubit extends Cubit<InviteLinksState> {
       expiresInDays: expiresInDays,
       maxUses: maxUses,
     ));
+    if (isClosed) return;
     result.fold(
       (failure) => emit(state.copyWith(busy: false, error: failure.message)),
       (link) => emit(state.copyWith(
@@ -105,6 +108,7 @@ class InviteLinksCubit extends Cubit<InviteLinksState> {
     final result = await revokeInviteLink(
       RevokeInviteLinkParams(eventId: eventId, linkId: linkId),
     );
+    if (isClosed) return;
     result.fold(
       (failure) => emit(state.copyWith(busy: false, error: failure.message)),
       (_) => emit(state.copyWith(

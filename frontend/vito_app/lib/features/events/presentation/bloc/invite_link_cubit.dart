@@ -50,6 +50,8 @@ class InviteLinkCubit extends Cubit<InviteLinkState> {
   Future<void> load() async {
     emit(const InviteLinkState());
     final result = await getPreview(token);
+    // La página puede cerrarse con la petición en curso.
+    if (isClosed) return;
     result.fold(
       (failure) => emit(InviteLinkState(
         status: failure is NotFoundFailure
@@ -74,6 +76,7 @@ class InviteLinkCubit extends Cubit<InviteLinkState> {
       joining: true,
     ));
     final result = await acceptInviteLink(token);
+    if (isClosed) return;
     result.fold(
       (failure) => emit(InviteLinkState(
         status: failure is NotFoundFailure
