@@ -52,12 +52,8 @@ class ViToApp extends StatelessWidget {
         locale: const Locale('es'),
         // Un enlace `/i/<token>` abre la invitación (T043); cualquier otra
         // ruta inicial pasa por la pantalla de inicio.
-        initialRoute: AppRouter.inviteTokenOf(
-                  WidgetsBinding.instance.platformDispatcher.defaultRouteName,
-                ) !=
-                null
-            ? WidgetsBinding.instance.platformDispatcher.defaultRouteName
-            : AppRouter.initialRoute,
+        initialRoute: AppRouter.initialRoute,
+        // Siempre el splash, salvo `/i/<token>` (ver generateInitialRoutes).
         onGenerateInitialRoutes: AppRouter.generateInitialRoutes,
         onGenerateRoute: AppRouter.generateRoute,
       ),

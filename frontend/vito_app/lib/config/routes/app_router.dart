@@ -53,11 +53,17 @@ class AppRouter {
     return token == null || token.isEmpty ? null : token;
   }
 
-  /// Rutas al abrir la app. Un enlace `/i/<token>` abre directo la
-  /// invitación, sin pasar por la pantalla de inicio; el resto empieza en la
-  /// ruta pedida, sin apilar los segmentos intermedios.
-  static List<Route<dynamic>> generateInitialRoutes(String initialRoute) =>
-      [generateRoute(RouteSettings(name: initialRoute))];
+  /// Rutas al abrir la app (o al recargar la web). Siempre empieza en el
+  /// splash, que restaura la sesión y decide entre inicio y login: abrir
+  /// `/home` o `/event-detail` directo se saltaría la sesión. La única
+  /// excepción es `/i/<token>`, que muestra la invitación sin sesión (T043).
+  ///
+  /// En web, Flutter pasa aquí la ruta de la URL aunque `initialRoute` diga
+  /// otra cosa, así que la decisión tiene que estar en esta función.
+  static List<Route<dynamic>> generateInitialRoutes(String initialRoute) {
+    final inviteRoute = inviteTokenOf(initialRoute) != null ? initialRoute : null;
+    return [generateRoute(RouteSettings(name: inviteRoute ?? AppRouter.initialRoute))];
+  }
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     final inviteToken = inviteTokenOf(settings.name);
@@ -93,7 +99,10 @@ class AppRouter {
           ),
         );
       case initialRoute:
-        return MaterialPageRoute(builder: (_) => const SplashPage());
+        return MaterialPageRoute(
+          settings: settings,
+          builder: (_) => const SplashPage(),
+        );
       case login:
         return MaterialPageRoute(builder: (_) => const LoginPage());
       case register:

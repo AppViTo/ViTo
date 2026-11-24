@@ -118,11 +118,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repository.acceptedTokens, [_token]);
-    expect(_opened.single.name, AppRouter.eventDetail);
+    // El inicio queda debajo del evento (el enlace pudo abrir la app aquí).
     expect(
-      (_opened.single.arguments as Map)['eventId'],
+      _opened.map((s) => s.name),
+      [AppRouter.home, AppRouter.eventDetail],
+    );
+    expect(
+      (_opened.last.arguments as Map)['eventId'],
       'evt_01H8X2K4QJ',
     );
+
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
+    await tester.pumpAndSettle();
+
+    expect(find.text('ruta /home'), findsOneWidget);
   });
 
   testWidgets('un 409 al unirse muestra el mensaje y deja la invitación',
@@ -175,6 +184,32 @@ void main() {
       expect(AppRouter.inviteTokenOf('/i/'), isNull);
       expect(AppRouter.inviteTokenOf('/invite-links'), isNull);
       expect(AppRouter.inviteTokenOf(null), isNull);
+    });
+  });
+
+  // Al abrir o recargar la app (en web llega la ruta de la URL) se pasa
+  // siempre por el splash, que restaura la sesión; solo `/i/<token>` va
+  // directo a la invitación.
+  group('AppRouter.generateInitialRoutes', () {
+    for (final route in [
+      '/',
+      AppRouter.home,
+      AppRouter.eventDetail,
+      AppRouter.profile,
+    ]) {
+      test('$route empieza en el splash', () {
+        expect(
+          AppRouter.generateInitialRoutes(route).single.settings.name,
+          AppRouter.initialRoute,
+        );
+      });
+    }
+
+    test('/i/<token> abre la invitación directo', () {
+      expect(
+        AppRouter.generateInitialRoutes('/i/$_token').single.settings.name,
+        '/i/$_token',
+      );
     });
   });
 }

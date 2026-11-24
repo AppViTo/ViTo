@@ -82,8 +82,11 @@ class _InviteLinkPageState extends State<InviteLinkPage> {
       messenger.showSnackBar(SnackBar(
         content: Text(title != null ? 'Te uniste a «$title»' : 'Te uniste'),
       ));
-      Navigator.pushReplacementNamed(
-        context,
+      // El enlace pudo abrir la app directo en esta página: se deja el inicio
+      // debajo del evento para que "atrás" no deje la pantalla vacía.
+      final navigator = Navigator.of(context);
+      navigator.pushNamedAndRemoveUntil(AppRouter.home, (_) => false);
+      navigator.pushNamed(
         AppRouter.eventDetail,
         arguments: {
           'eventId': state.invitation?.eventId ?? state.preview?.eventId,
