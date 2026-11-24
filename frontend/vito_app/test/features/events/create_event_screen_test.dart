@@ -27,7 +27,17 @@ class _FakeSocialRepository implements SocialRepository {
   final List<String> queries = [];
   final Failure? searchFailure;
 
-  _FakeSocialRepository({this.results = const [], this.searchFailure});
+  /// Resultados y demora por búsqueda (normalizada); si no hay, [results]
+  /// sin demora.
+  final Map<String, List<UserSummary>> resultsByQuery;
+  final Map<String, Duration> delayByQuery;
+
+  _FakeSocialRepository({
+    this.results = const [],
+    this.searchFailure,
+    this.resultsByQuery = const {},
+    this.delayByQuery = const {},
+  });
 
   @override
   Future<Either<Failure, SocialProfile>> getProfile(String userId) async =>
@@ -40,8 +50,12 @@ class _FakeSocialRepository implements SocialRepository {
     int size = 20,
   }) async {
     queries.add(query);
+    final delay = delayByQuery[query];
+    if (delay != null) await Future<void>.delayed(delay);
     final failure = searchFailure;
-    return failure != null ? Left(failure) : Right(results);
+    return failure != null
+        ? Left(failure)
+        : Right(resultsByQuery[query] ?? results);
   }
 
   @override
@@ -374,6 +388,62 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       expect(social.queries, ['caro.mz']);
+    });
+
+    testWidgets('al borrar hasta 1 carácter no vuelven resultados viejos',
+        (tester) async {
+      final social = _FakeSocialRepository(
+        resultsByQuery: const {
+          'caro': [UserSummary(userId: 'usr_7', username: 'caro', displayName: 'Carolina')],
+        },
+        delayByQuery: const {'caro': Duration(seconds: 1)},
+      );
+      await _pumpWizard(
+        tester,
+        eventRepository: FakeEventRepository(),
+        socialRepository: social,
+      );
+      await _goToStep2(tester);
+
+      await tester.enterText(find.byType(TextField), 'caro');
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(social.queries, ['caro']);
+
+      // La respuesta de "caro" llega después de borrar hasta "c".
+      await tester.enterText(find.byType(TextField), 'c');
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Carolina'), findsNothing);
+      expect(find.textContaining('No encontramos a nadie'), findsNothing);
+    });
+
+    testWidgets('una búsqueda nueva reemplaza a la que sigue en curso',
+        (tester) async {
+      final social = _FakeSocialRepository(
+        resultsByQuery: const {
+          'caro': [UserSummary(userId: 'usr_7', username: 'caro', displayName: 'Carolina')],
+          'cam': [UserSummary(userId: 'usr_8', username: 'cami', displayName: 'Camila')],
+        },
+        delayByQuery: const {'caro': Duration(seconds: 1)},
+      );
+      await _pumpWizard(
+        tester,
+        eventRepository: FakeEventRepository(),
+        socialRepository: social,
+      );
+      await _goToStep2(tester);
+
+      await tester.enterText(find.byType(TextField), 'caro');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.enterText(find.byType(TextField), 'cam');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pumpAndSettle();
+
+      expect(social.queries, ['caro', 'cam']);
+      expect(find.text('Camila'), findsOneWidget);
+      expect(find.text('Carolina'), findsNothing);
     });
 
     testWidgets('espera 300 ms entre teclas y busca una sola vez',

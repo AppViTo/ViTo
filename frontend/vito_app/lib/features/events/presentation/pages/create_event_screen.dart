@@ -426,8 +426,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 ),
               ] else if (socialState is SearchResultsLoaded &&
                   socialState.users.isEmpty &&
-                  normalizeSearchQuery(_searchController.text).length >=
-                      minSearchQueryLength) ...[
+                  _isCurrentSearch(socialState.query)) ...[
                 const SizedBox(height: AppSpacing.lg),
                 const SurfacePanel(
                   child: Text(
@@ -845,15 +844,25 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     });
   }
 
+  /// [query] es lo que está escrito ahora (y llega al mínimo). `SocialBloc`
+  /// es de toda la app: una respuesta de una búsqueda anterior, o de otra
+  /// visita a esta pantalla, no debe pisar lo que se ve.
+  bool _isCurrentSearch(String query) {
+    final current = normalizeSearchQuery(_searchController.text);
+    return current.length >= minSearchQueryLength && current == query;
+  }
+
   void _onSocialState(BuildContext context, SocialState state) {
     if (state is SearchResultsLoaded) {
+      if (!_isCurrentSearch(state.query)) return;
       setState(() {
         _searchError = null;
         _searchResults = state.users
             .where((user) => !_invitees.any((i) => i.userId == user.userId))
             .toList();
       });
-    } else if (state is SocialError) {
+    } else if (state is SearchFailed) {
+      if (!_isCurrentSearch(state.query)) return;
       // P. ej. el 429 ("Espera un momento y vuelve a intentarlo").
       setState(() {
         _searchResults = [];

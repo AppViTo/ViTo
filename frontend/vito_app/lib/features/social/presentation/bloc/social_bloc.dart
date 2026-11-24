@@ -1,3 +1,4 @@
+import 'package:bloc_concurrency/bloc_concurrency.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 
@@ -110,13 +111,27 @@ class FollowingLoaded extends SocialState {
   List<Object?> get props => [following];
 }
 
+/// Resultados de `searchUsers` para [query] (ya normalizada). La pantalla
+/// descarta los que no correspondan al texto que tiene escrito.
 class SearchResultsLoaded extends SocialState {
+  final String query;
   final List<UserSummary> users;
-  
-  const SearchResultsLoaded(this.users);
-  
+
+  const SearchResultsLoaded(this.query, this.users);
+
   @override
-  List<Object?> get props => [users];
+  List<Object?> get props => [query, users];
+}
+
+/// Una búsqueda de [query] falló (p. ej. el `429`).
+class SearchFailed extends SocialState {
+  final String query;
+  final String message;
+
+  const SearchFailed(this.query, this.message);
+
+  @override
+  List<Object?> get props => [query, message];
 }
 
 class SocialError extends SocialState {
@@ -146,7 +161,8 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
     on<LoadProfile>(_onLoadProfile);
     on<LoadFollowers>(_onLoadFollowers);
     on<LoadFollowing>(_onLoadFollowing);
-    on<SearchUsers>(_onSearchUsers);
+    // Una búsqueda nueva cancela la anterior: su respuesta ya no se emite.
+    on<SearchUsers>(_onSearchUsers, transformer: restartable());
   }
   
   Future<void> _onFollowUser(FollowUser event, Emitter<SocialState> emit) async {
@@ -209,11 +225,12 @@ class SocialBloc extends Bloc<SocialEvent, SocialState> {
     
     // `searchUsers` de auth-service (Ola 2a): quita la `@` inicial y no
     // busca con menos de 2 caracteres.
-    final result = await SearchUsersUseCase(socialRepository)(event.query);
-    
+    final query = normalizeSearchQuery(event.query);
+    final result = await SearchUsersUseCase(socialRepository)(query);
+
     result.fold(
-      (failure) => emit(SocialError(failure.message)),
-      (users) => emit(SearchResultsLoaded(users)),
+      (failure) => emit(SearchFailed(query, failure.message)),
+      (users) => emit(SearchResultsLoaded(query, users)),
     );
   }
 }
