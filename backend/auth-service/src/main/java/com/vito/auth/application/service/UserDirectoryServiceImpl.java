@@ -23,6 +23,27 @@ public class UserDirectoryServiceImpl implements UserDirectoryService {
     private final UserRepository userRepository;
 
     @Override
+    public List<UserSummary> search(String query, String requesterId, Integer page, Integer size) {
+        String normalized = SearchNormalizer.query(query);
+        int length = SearchNormalizer.length(normalized);
+        if (length < MIN_QUERY_LENGTH || length > MAX_QUERY_LENGTH) {
+            throw InvalidRequestException.queryOutOfRange(MIN_QUERY_LENGTH, MAX_QUERY_LENGTH);
+        }
+        int pageNumber = page != null ? page : 0;
+        int pageSize = size != null ? size : DEFAULT_SEARCH_SIZE;
+        if (pageNumber < 0) {
+            throw InvalidRequestException.invalidPagination("page", "Debe ser 0 o mayor");
+        }
+        if (pageSize < 1 || pageSize > MAX_SEARCH_SIZE) {
+            throw InvalidRequestException.invalidPagination("size", "Entre 1 y " + MAX_SEARCH_SIZE);
+        }
+
+        return userRepository.search(normalized, requesterId, pageNumber, pageSize).stream()
+                .map(UserSummary::from)
+                .toList();
+    }
+
+    @Override
     public List<UserSummary> findByIds(List<String> ids) {
         if (ids == null || ids.isEmpty() || ids.size() > MAX_IDS) {
             throw InvalidRequestException.idsOutOfRange(MAX_IDS);

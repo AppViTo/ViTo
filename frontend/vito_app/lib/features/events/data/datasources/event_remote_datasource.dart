@@ -1,9 +1,12 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/error/dio_error_handler.dart';
+import '../../domain/entities/rsvp.dart';
+import '../models/attendee_model.dart';
 import '../models/event_model.dart';
-import '../models/rsvp_model.dart';
 import '../models/invitation_model.dart';
+import '../models/invite_link_model.dart';
+import '../models/rsvp_model.dart';
 
 abstract class EventRemoteDataSource {
   Future<EventModel> createEvent({
@@ -13,14 +16,13 @@ abstract class EventRemoteDataSource {
     Map<String, dynamic>? settings,
   });
   
+  /// `updateEvent` (`PATCH /events/{eventId}`, Ola 1): [patch] lleva solo
+  /// lo que cambia (`application/merge-patch+json`, ver `eventPatchJson`).
   Future<EventModel> updateEvent({
     required String eventId,
-    String? title,
-    String? description,
-    Map<String, dynamic>? details,
-    Map<String, dynamic>? settings,
+    required Map<String, dynamic> patch,
   });
-  
+
   Future<void> cancelEvent(String eventId);
   
   Future<EventModel> getEvent(String eventId);
@@ -29,14 +31,16 @@ abstract class EventRemoteDataSource {
   
   Future<List<EventModel>> getUpcomingEvents({int page = 0, int size = 20});
   
+  /// `respondRsvp` (`POST /events/{eventId}/rsvp`): la única forma de
+  /// responder una invitación desde la Ola 1 (D-01).
   Future<RSVPModel> respondToRSVP({
     required String eventId,
-    required String status,
+    required RSVPStatus status,
     String? message,
-    int guestsCount = 0,
   });
-  
-  Future<List<RSVPModel>> getEventAttendees({
+
+  /// `listEventAttendees`: solo el organizador.
+  Future<List<AttendeeModel>> getEventAttendees({
     required String eventId,
     int page = 0,
     int size = 20,
@@ -54,17 +58,42 @@ abstract class EventRemoteDataSource {
     int size = 20,
   });
   
-  Future<void> respondToInvitation({
-    required String eventId,
-    required String status,
-  });
-  
   Future<RSVPModel> checkIn({
     required String eventId,
     required String qrCode,
   });
-  
+
   Future<String> generateCheckInQR(String eventId);
+
+  /// `listEvents?scope=invited` (Ola 1): eventos a los que invitaron a quien
+  /// consulta, por fecha de inicio ascendente.
+  Future<List<EventModel>> getInvitedEvents({int page = 0, int size = 20});
+
+  /// `createInviteLink`: solo el organizador.
+  Future<InviteLinkModel> createInviteLink({
+    required String eventId,
+    int? expiresInDays,
+    int? maxUses,
+  });
+
+  /// `listInviteLinks`: solo el organizador.
+  Future<List<InviteLinkModel>> listInviteLinks({
+    required String eventId,
+    int page = 0,
+    int size = 20,
+  });
+
+  /// `revokeInviteLink`: idempotente.
+  Future<void> revokeInviteLink({
+    required String eventId,
+    required String linkId,
+  });
+
+  /// `getInviteLinkPreview`: público, sin sesión.
+  Future<InviteLinkPreviewModel> getInviteLinkPreview(String token);
+
+  /// `acceptInviteLink`: idempotente; devuelve la invitación aceptada.
+  Future<InvitationModel> acceptInviteLink(String token);
 }
 
 class EventRemoteDataSourceImpl implements EventRemoteDataSource {
@@ -99,22 +128,15 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   @override
   Future<EventModel> updateEvent({
     required String eventId,
-    String? title,
-    String? description,
-    Map<String, dynamic>? details,
-    Map<String, dynamic>? settings,
+    required Map<String, dynamic> patch,
   }) async {
     try {
-      final response = await dio.put(
+      final response = await dio.patch(
         '/events/$eventId',
-        data: {
-          'title': title,
-          'description': description,
-          'details': details,
-          'settings': settings,
-        },
+        data: patch,
+        options: Options(contentType: 'application/merge-patch+json'),
       );
-      
+
       return EventModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
@@ -148,6 +170,82 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   Future<List<EventModel>> getUpcomingEvents({int page = 0, int size = 20}) =>
       _listEvents(scope: 'upcoming', page: page, size: size);
 
+  @override
+  Future<List<EventModel>> getInvitedEvents({int page = 0, int size = 20}) =>
+      _listEvents(scope: 'invited', page: page, size: size);
+
+  @override
+  Future<InviteLinkModel> createInviteLink({
+    required String eventId,
+    int? expiresInDays,
+    int? maxUses,
+  }) async {
+    try {
+      final response = await dio.post(
+        '/events/$eventId/invite-links',
+        data: createInviteLinkRequestJson(
+          expiresInDays: expiresInDays,
+          maxUses: maxUses,
+        ),
+      );
+      return InviteLinkModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<List<InviteLinkModel>> listInviteLinks({
+    required String eventId,
+    int page = 0,
+    int size = 20,
+  }) async {
+    try {
+      final response = await dio.get(
+        '/events/$eventId/invite-links',
+        queryParameters: {'page': page, 'size': size},
+      );
+      return (response.data as List)
+          .map((json) => InviteLinkModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<void> revokeInviteLink({
+    required String eventId,
+    required String linkId,
+  }) async {
+    try {
+      await dio.delete('/events/$eventId/invite-links/$linkId');
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<InviteLinkPreviewModel> getInviteLinkPreview(String token) async {
+    try {
+      final response = await dio.get('/invite-links/$token');
+      return InviteLinkPreviewModel.fromJson(
+          response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  @override
+  Future<InvitationModel> acceptInviteLink(String token) async {
+    try {
+      final response = await dio.post('/invite-links/$token/accept');
+      return InvitationModel.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   /// `listEvents` del contrato: `GET /events?scope=mine|upcoming` (ADR-014).
   /// La respuesta es un array plano de `Event` (ADR-002).
   Future<List<EventModel>> _listEvents({
@@ -172,18 +270,13 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   @override
   Future<RSVPModel> respondToRSVP({
     required String eventId,
-    required String status,
+    required RSVPStatus status,
     String? message,
-    int guestsCount = 0,
   }) async {
     try {
       final response = await dio.post(
         '/events/$eventId/rsvp',
-        data: {
-          'status': status,
-          'message': message,
-          'guestsCount': guestsCount,
-        },
+        data: respondRsvpRequestJson(status: status, message: message),
       );
       
       return RSVPModel.fromJson(response.data);
@@ -193,7 +286,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   }
   
   @override
-  Future<List<RSVPModel>> getEventAttendees({
+  Future<List<AttendeeModel>> getEventAttendees({
     required String eventId,
     int page = 0,
     int size = 20,
@@ -203,9 +296,9 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
         '/events/$eventId/attendees',
         queryParameters: {'page': page, 'size': size},
       );
-      
+
       return (response.data as List)
-          .map((json) => RSVPModel.fromJson(json))
+          .map((json) => AttendeeModel.fromJson(json as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       throw _handleError(e);
@@ -248,21 +341,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       return (response.data as List)
           .map((json) => InvitationModel.fromJson(json))
           .toList();
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-  
-  @override
-  Future<void> respondToInvitation({
-    required String eventId,
-    required String status,
-  }) async {
-    try {
-      await dio.post(
-        '/events/$eventId/invitations/respond',
-        data: {'status': status},
-      );
     } on DioException catch (e) {
       throw _handleError(e);
     }

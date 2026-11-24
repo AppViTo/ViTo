@@ -1,11 +1,10 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../../config/routes/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -85,7 +84,6 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Uint8List? _coverBytes;
   String? _coverFileName;
   String? _coverMimeType;
-  String? _inviteLink;
 
   final List<SocialProfile> _invitees = [];
   List<SocialProfile> _searchResults = [];
@@ -425,7 +423,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 ),
               ],
               const SizedBox(height: AppSpacing.xxl),
-              if (_inviteLink != null) _buildLinkSection(),
+              const SurfacePanel(
+                child: Text(
+                  'Cuando crees el evento, podrás compartir un enlace de invitación desde su detalle.',
+                  style: AppTypography.bodySmall,
+                  textAlign: TextAlign.center,
+                ),
+              ),
               const SizedBox(height: AppSpacing.lg),
               SwitchPanel(
                 title: 'Permitir que traigan acompañante',
@@ -510,39 +514,6 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildLinkSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'COMPARTE EL ENLACE',
-          style: AppTypography.overline.copyWith(
-            color: AppColors.textMuted,
-            letterSpacing: 1.5,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        LinkActionCard(
-          icon: Icons.link,
-          title: 'Copiar enlace de invitación',
-          subtitle: _inviteLink != null
-              ? 'Caduca en 7 días'
-              : 'Se crea con el evento y caduca en 7 días',
-          actionLabel: 'Copiar',
-          onTap: _copyInviteLink,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        LinkActionCard(
-          icon: Icons.chat_bubble_outline,
-          title: 'Enviar por WhatsApp',
-          subtitle: 'Comparte el enlace con quien quieras',
-          actionLabel: 'Abrir',
-          onTap: _shareInviteLink,
-        ),
-      ],
     );
   }
 
@@ -852,31 +823,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       ? profile.displayName
       : profile.username;
 
-  // ── Enlace ──────────────────────────────────────────────────────────────
-
-  void _copyInviteLink() {
-    if (_inviteLink == null) {
-      _showInfo('El enlace se genera al crear el evento');
-      return;
-    }
-    Clipboard.setData(ClipboardData(text: _inviteLink!));
-    _showSuccess('Enlace copiado');
-  }
-
-  void _shareInviteLink() {
-    if (_inviteLink == null) {
-      _showInfo('El enlace se genera al crear el evento');
-      return;
-    }
-    SharePlus.instance.share(ShareParams(text: 'Te invito a mi evento en ViTo: $_inviteLink'));
-  }
-
   // ── Feedback ────────────────────────────────────────────────────────────
-
-  void _showSuccess(String message) {
-    if (!mounted) return;
-    AppSuccessSnackBar.show(context, message: message);
-  }
 
   void _showInfo(String message) {
     if (!mounted) return;
@@ -1197,79 +1144,6 @@ class SwitchPanel extends StatelessWidget {
             activeTrackColor: AppColors.coralNeon.withValues(alpha: 0.35),
             inactiveTrackColor: AppColors.stepTrack,
             trackOutlineColor: const WidgetStatePropertyAll(Colors.transparent),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class LinkActionCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final String actionLabel;
-  final VoidCallback onTap;
-
-  const LinkActionCard({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.actionLabel,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SurfacePanel(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.coralNeon.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            ),
-            child: Icon(icon, color: AppColors.coralNeon, size: AppSpacing.iconMd),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xxxs),
-                Text(
-                  subtitle,
-                  style: AppTypography.bodySmall
-                      .copyWith(color: AppColors.textMuted),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          TextButton(
-            onPressed: onTap,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.coralNeon,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              minimumSize: Size.zero,
-              textStyle: AppTypography.labelMedium
-                  .copyWith(fontWeight: FontWeight.w700),
-            ),
-            child: Text(actionLabel),
           ),
         ],
       ),

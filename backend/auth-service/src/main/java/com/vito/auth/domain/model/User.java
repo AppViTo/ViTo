@@ -36,7 +36,10 @@ public class User {
     private Settings settings;
     
     private List<String> roles;
-    
+
+    /** Ola 2a: campos normalizados para {@code searchUsers}. Null en usuarios sin migrar. */
+    private Search search;
+
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;
@@ -53,6 +56,20 @@ public class User {
         private Location location;
     }
     
+    /**
+     * {@code search.username}: el username en minúsculas y sin tildes. {@code search.terms}: las
+     * palabras de {@code displayName} igual de normalizadas (research R3). Se escriben al
+     * registrar y en cualquier cambio de username o nombre visible.
+     */
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Search {
+        private String username;
+        private List<String> terms;
+    }
+
     @Data
     @Builder
     @NoArgsConstructor

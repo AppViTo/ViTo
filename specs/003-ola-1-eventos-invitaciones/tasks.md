@@ -66,8 +66,8 @@ contrato (T006–T013) esté mergeado.
 
 ### App: modelos y pruebas de contrato (tras T011, dueño Alex)
 
-- [ ] T014 [P] [Alex] Modelos Dart en `APP/features/events/data/models/`: `rsvp_model.dart` (sin `guestsCount`), `invitation_model.dart` (+ `inviteLinkId`), `invite_link_model.dart`, `invite_link_preview_model.dart`, `attendee_model.dart`; `event_model.dart` tolera `stats` reducido. Fechas con `.toLocal()` (Bug-B01)
-- [ ] T015 [Alex] Pruebas de serialización contra los fixtures nuevos en `APP-test/contract/event_contract_test.dart` y `APP-test/contract/auth_contract_test.dart`
+- [X] T014 [P] [Alex] Modelos Dart en `APP/features/events/data/models/`: `rsvp_model.dart` (sin `guestsCount`), `invitation_model.dart` (+ `inviteLinkId`), `invite_link_model.dart`, `invite_link_preview_model.dart`, `attendee_model.dart`; `event_model.dart` tolera `stats` reducido. Fechas con `.toLocal()` (Bug-B01)
+- [X] T015 [Alex] Pruebas de serialización contra los fixtures nuevos en `APP-test/contract/event_contract_test.dart` y `APP-test/contract/auth_contract_test.dart`
 
 ### Backend transversal (tras el merge del contrato, dueño Bernardo)
 
@@ -106,8 +106,8 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 - [X] T030 [US3] [Bernardo] Reescribir `respondToRSVP` como upsert sobre `AttendanceService` (T024) en `ES/application/service/EventServiceImpl.java`: entrada `ACCEPTED | DECLINED | MAYBE`, `message` ≤ 280, guarda `displayName`, actualiza la invitación en la misma operación, publica `RSVP_CHANGED`; deja de generar el QR (pasa a `checkin-service` en la Ola 2)
 - [X] T031 [US3] [Bernardo] `POST /api/v1/events/{eventId}/rsvp` en `ES/infrastructure/adapter/inbound/rest/EventController.java`: `200 Rsvp`; borrar `POST /{eventId}/invitations/respond` del controlador, del puerto `EventService` y de `respondToInvitation` (D-01, FR-030)
-- [ ] T032 [P] [US3] [Alex] Caso de uso y repositorio: ajustar `APP/features/events/domain/usecases/respond_rsvp.dart` y `event_repository_impl.dart` a `RespondRsvpRequest`/`Rsvp` (sin `guestsCount`)
-- [ ] T033 [US3] [Alex] UI de RSVP en `APP/features/events/presentation/pages/event_detail_page.dart`: "Voy", "No voy", "Tal vez", estado actual, aviso "Estás en lista de espera" cuando la respuesta es `WAITLISTED`, y botones deshabilitados en eventos cancelados o pasados; textos en español (Bug-F10). Test de bloc en `APP-test/features/events/`
+- [X] T032 [P] [US3] [Alex] Caso de uso y repositorio: ajustar `APP/features/events/domain/usecases/respond_rsvp.dart` y `event_repository_impl.dart` a `RespondRsvpRequest`/`Rsvp` (sin `guestsCount`)
+- [X] T033 [US3] [Alex] UI de RSVP en `APP/features/events/presentation/pages/event_detail_page.dart`: "Voy", "No voy", "Tal vez", estado actual, aviso "Estás en lista de espera" cuando la respuesta es `WAITLISTED`, y botones deshabilitados en eventos cancelados o pasados; textos en español (Bug-F10). Test de bloc en `APP-test/features/events/`
 
 **Checkpoint**: US3 funciona sola contra el backend real y el mock.
 
@@ -131,10 +131,10 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 - [X] T038 [US1] [Bernardo] `ES/application/service/InviteLinkService.java`: crear (128 bits de `SecureRandom`, base64url), listar, revocar (idempotente), vista previa (sin dirección ni coordenadas; `organizerDisplayName` o "El organizador") y unir (crea la invitación con `inviteLinkId` y llama a `AttendanceService.confirm`; publica `RSVP_CHANGED`). Arma `url` con `vito.invite-links.base-url` + `/i/` + token. El token nunca va a los logs, solo el `linkId`
 - [X] T039 [US1] [Bernardo] `ES/infrastructure/adapter/inbound/rest/InviteLinkController.java` con las 5 operaciones, solo el organizador en las 3 de gestión (403 si no); `ES/infrastructure/config/SecurityConfig.java` permite sin autenticación solo `GET /api/v1/invite-links/*`
 - [X] T040 [US1] [Bernardo] `scope=invited` (R10) en `ES/domain/port/inbound/EventService.java` (`ListScope`), `EventServiceImpl.listEvents` y `EventMongoAdapter`: invitaciones `PENDING` no vencidas o `ACCEPTED` de quien llama, o RSVP suyo distinto de `DECLINED` → eventos `PUBLISHED` con `endDate` futura por `details.startDate` ascendente, paginado, con `hideAddressUntilAccepted` y `stats` reducido
-- [ ] T041 [P] [US1] [Alex] Datasource, repositorio y casos de uso `create_invite_link.dart`, `list_invite_links.dart`, `revoke_invite_link.dart`, `get_invite_link_preview.dart` y `accept_invite_link.dart` en `APP/features/events/` (`data/` y `domain/usecases/`), registrados en `get_it`
-- [ ] T042 [US1] [Alex] En `APP/features/events/presentation/pages/create_event_screen.dart` y en el detalle del evento: al crear (o desde el detalle), generar el enlace y conectar "Copiar enlace de invitación" y "Enviar por WhatsApp" (`SharePlus.instance.share`) a la `url` real; pantalla de gestión de enlaces del organizador (usos, vencimiento, revocar). Quita el estado provisional de Bug-F09
-- [ ] T043 [US1] [Alex] Ruta `/i/<token>` en `APP/config/routes/app_router.dart` y página `APP/features/events/presentation/pages/invite_link_page.dart`: vista previa sin sesión, "Inicia sesión o regístrate para unirte", vuelta a la invitación tras el login o el registro y llamada a `acceptInviteLink`; mensaje único "El enlace no existe o ya no está disponible" en 404
-- [ ] T044 [US1] [Alex] Sección "Invitaciones" (o integración en "Próximos eventos") con `scope=invited` en el home (`APP/features/home/`), con estado vacío en español
+- [X] T041 [P] [US1] [Alex] Datasource, repositorio y casos de uso `create_invite_link.dart`, `list_invite_links.dart`, `revoke_invite_link.dart`, `get_invite_link_preview.dart` y `accept_invite_link.dart` en `APP/features/events/` (`data/` y `domain/usecases/`), registrados en `get_it`
+- [X] T042 [US1] [Alex] En `APP/features/events/presentation/pages/create_event_screen.dart` y en el detalle del evento: al crear (o desde el detalle), generar el enlace y conectar "Copiar enlace de invitación" y "Enviar por WhatsApp" (`SharePlus.instance.share`) a la `url` real; pantalla de gestión de enlaces del organizador (usos, vencimiento, revocar). Quita el estado provisional de Bug-F09
+- [X] T043 [US1] [Alex] Ruta `/i/<token>` en `APP/config/routes/app_router.dart` y página `APP/features/events/presentation/pages/invite_link_page.dart`: vista previa sin sesión, "Inicia sesión o regístrate para unirte", vuelta a la invitación tras el login o el registro y llamada a `acceptInviteLink`; mensaje único "El enlace no existe o ya no está disponible" en 404
+- [X] T044 [US1] [Alex] Sección "Invitaciones" (o integración en "Próximos eventos") con `scope=invited` en el home (`APP/features/home/`), con estado vacío en español
 
 **Checkpoint**: US1 y US3 funcionan solas; el enlace se comparte, se abre en la web y confirma.
 
@@ -154,8 +154,8 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 ### Implementation for User Story 2
 
 - [X] T047 [US2] [Bernardo] `@PutMapping` → `@PatchMapping(consumes = "application/merge-patch+json")` en `EventController.java` y merge parcial en `EventServiceImpl.updateEvent` (actualiza `organizerDisplayName`, publica `EVENT_UPDATED`)
-- [ ] T048 [P] [US2] [Alex] Caso de uso `APP/features/events/domain/usecases/update_event.dart` enviando solo los cambios, y su método en el datasource y el repositorio
-- [ ] T049 [US2] [Alex] Pantalla `APP/features/events/presentation/pages/edit_event_page.dart` (fecha, foto, descripción, lugar, cupo, visibilidad, ocultar dirección), accesible solo para el organizador desde el detalle; errores 409/400 con el mensaje del backend. Test de widget en `APP-test/features/events/`
+- [X] T048 [P] [US2] [Alex] Caso de uso `APP/features/events/domain/usecases/update_event.dart` enviando solo los cambios, y su método en el datasource y el repositorio
+- [X] T049 [US2] [Alex] Pantalla `APP/features/events/presentation/pages/edit_event_page.dart` (fecha, foto, descripción, lugar, cupo, visibilidad, ocultar dirección), accesible solo para el organizador desde el detalle; errores 409/400 con el mensaje del backend. Test de widget en `APP-test/features/events/`
 
 **Checkpoint**: Bug-F07 cerrado.
 
@@ -169,7 +169,7 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 - [X] T050 [P] [US4] [Bernardo] Pruebas en `ES-test/application/service/InvitationTest.java` y contra `FX/events/sendInvitation.*` y `listEventInvitations.*`: 403 a quien no es organizador en ambas (corrige el hallazgo del #204), 409 si ya está invitado, `EXPIRED` calculado al leer, `totalInvited` con `$inc`
 - [X] T051 [US4] [Bernardo] Verificar organizador en `getEventInvitations`, `message` ≤ 280, `expiresAt` = envío + 7 días y `incrementStat` en `EventServiceImpl.sendInvitation`/`getEventInvitations`; ajustar `EventController.java` a los códigos del contrato
-- [ ] T052 [P] [US4] [Alex] Casos de uso `send_invitation.dart` y `list_event_invitations.dart` en `APP/features/events/domain/usecases/` y lista de invitaciones del organizador (estado, origen app o enlace, fechas) en el detalle del evento. La búsqueda de invitados sigue con el aviso de Bug-F08 hasta la Ola 2
+- [X] T052 [P] [US4] [Alex] Casos de uso `send_invitation.dart` y `list_event_invitations.dart` en `APP/features/events/domain/usecases/` y lista de invitaciones del organizador (estado, origen app o enlace, fechas) en el detalle del evento. La búsqueda de invitados sigue con el aviso de Bug-F08 hasta la Ola 2
 
 ---
 
@@ -181,7 +181,7 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 - [X] T053 [P] [US5] [Bernardo] Pruebas en `ES-test/application/service/CancelEventTest.java` y contra `FX/events/cancelEvent.*`: `204` idempotente, `COMPLETED` → 409, otro usuario → 403; tras cancelar, RSVP, unión por enlace, invitar y `PATCH` → 409, y el evento sale de `upcoming` e `invited`
 - [X] T054 [US5] [Bernardo] `DELETE /api/v1/events/{eventId}` → `CANCELLED` sin tocar invitaciones, RSVP ni enlaces en `EventServiceImpl.cancelEvent` y `EventController.java`; publica `EVENT_CANCELLED`
-- [ ] T055 [P] [US5] [Alex] Caso de uso `cancel_event.dart` y acción "Cancelar evento" con confirmación en el detalle (solo organizador); los invitados ven el evento como "Cancelado"
+- [X] T055 [P] [US5] [Alex] Caso de uso `cancel_event.dart` y acción "Cancelar evento" con confirmación en el detalle (solo organizador); los invitados ven el evento como "Cancelado"
 
 ---
 
@@ -193,7 +193,7 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 - [X] T056 [P] [US6] [Bernardo] Pruebas contra `FX/events/listEventAttendees.*`: organizador → 200 paginado con `displayName` y sin correo ni teléfono; cualquier otro, aunque esté confirmado → 403; filtro `status` opcional
 - [X] T057 [US6] [Bernardo] Autorización de organizador y mapeo a `Attendee` en `EventServiceImpl.getEventAttendees` y `EventController.java`
-- [ ] T058 [P] [US6] [Alex] Lista de asistentes del organizador (`list_event_attendees.dart` y página o sección en el detalle) y contador "N personas confirmadas" para los invitados, desde `stats.totalAccepted`, en `APP/features/events/presentation/pages/event_detail_page.dart`
+- [X] T058 [P] [US6] [Alex] Lista de asistentes del organizador (`list_event_attendees.dart` y página o sección en el detalle) y contador "N personas confirmadas" para los invitados, desde `stats.totalAccepted`, en `APP/features/events/presentation/pages/event_detail_page.dart`
 
 ---
 
@@ -204,7 +204,7 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 **Independent Test**: quickstart §6.
 
 - [X] T059 [P] [US7] [Bernardo] Alinear `AuthController.getCurrentUser` en `backend/auth-service/src/main/java/com/vito/auth/infrastructure/adapter/inbound/rest/AuthController.java` a `AuthUser` (ADR-004) y `401` con envelope; prueba contra `FX/authentication/getCurrentUser.*`
-- [ ] T060 [P] [US7] [Alex] En el arranque de la app (`AuthBloc`, `APP/features/auth/`), llamar a `getCurrentUser` con la sesión guardada; si responde 401, ir al inicio de sesión
+- [X] T060 [P] [US7] [Alex] En el arranque de la app (`AuthBloc`, `APP/features/auth/`), llamar a `getCurrentUser` con la sesión guardada; si responde 401, ir al inicio de sesión
 
 ---
 

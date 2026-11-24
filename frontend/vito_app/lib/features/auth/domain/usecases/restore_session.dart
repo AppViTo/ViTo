@@ -5,7 +5,7 @@ import '../../../../core/usecase/usecase.dart';
 import '../entities/user.dart';
 import '../repositories/auth_repository.dart';
 
-/// Auto-login al abrir la app con el refresh token guardado (ADR-004).
+/// Auto-login al abrir la app con la sesión guardada (ADR-004, T060).
 class RestoreSessionUseCase extends UseCase<User, NoParams> {
   final AuthRepository repository;
 

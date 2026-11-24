@@ -103,4 +103,19 @@ void main() {
       expect(user['displayName'], 'Alex Villa');
     });
   });
+
+  group('getCurrentUser (Ola 1, T015)', () {
+    test('getCurrentUser.200.json tiene la forma de AuthResponse.user', () {
+      final json = loadFixtureObject('authentication/getCurrentUser.200.json');
+      final fromLogin = loadFixtureObject('authentication/loginUser.200.json')
+          ['user'] as Map<String, dynamic>;
+
+      expect(json.keys.toSet(), fromLogin.keys.toSet());
+
+      final user = UserModel.fromAuthJson(json);
+      expect(user.id, 'usr_01H8X2K4QJ');
+      expect(user.username, 'alex_villa');
+      expect(user.profile?.displayName, 'Alex Villa');
+    });
+  });
 }

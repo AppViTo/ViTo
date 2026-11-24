@@ -46,7 +46,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(OutputCaptureExtension.class)
 @SpringBootTest(properties = {
         "JWT_SECRET=test-secret-key-for-unit-tests-only-256-bits-long",
-        "MONGODB_URI=mongodb://localhost:27017/test_db"
+        "MONGODB_URI=mongodb://localhost:27017/test_db",
+        // Sin MongoDB: no se migra ni se crean índices al arrancar (AuthDataInitializer)
+        "vito.data-init.enabled=false"
 })
 class SecurityAuditLogTest {
 

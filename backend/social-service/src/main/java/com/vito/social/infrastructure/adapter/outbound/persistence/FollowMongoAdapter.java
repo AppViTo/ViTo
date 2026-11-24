@@ -4,6 +4,7 @@ import com.vito.social.domain.model.FollowRelationship;
 import com.vito.social.domain.port.outbound.FollowRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
@@ -40,15 +41,21 @@ public class FollowMongoAdapter implements FollowRepository {
     }
     
     @Override
-    public FollowRelationship save(FollowRelationship relationship) {
-        return mongoTemplate.save(relationship, COLLECTION);
+    public boolean insertIfAbsent(FollowRelationship relationship) {
+        try {
+            mongoTemplate.insert(relationship, COLLECTION);
+            return true;
+        } catch (DuplicateKeyException alreadyFollowing) {
+            // El índice único del par rechazó el segundo insert: ya lo seguía (research R5)
+            return false;
+        }
     }
     
     @Override
-    public void delete(FollowRelationship relationship) {
-        Query query = new Query(Criteria.where("followerId").is(relationship.getFollowerId())
-                .and("followingId").is(relationship.getFollowingId()));
-        mongoTemplate.remove(query, FollowRelationship.class, COLLECTION);
+    public boolean deleteIfPresent(String followerId, String followingId) {
+        Query query = new Query(Criteria.where("followerId").is(followerId)
+                .and("followingId").is(followingId));
+        return mongoTemplate.remove(query, FollowRelationship.class, COLLECTION).getDeletedCount() > 0;
     }
     
     @Override

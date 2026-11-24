@@ -13,3 +13,9 @@ acb60eb0e713fb9afb6b59b3e77b1a1eae547ea4:backend/api-gateway/src/test/java/com/v
 49fa64f337790c479b1aa219b3e68484bdb75e11:backend/event-service/src/test/java/com/vito/event/application/service/InviteLinkServiceTest.java:generic-api-key:49
 49fa64f337790c479b1aa219b3e68484bdb75e11:backend/event-service/src/test/java/com/vito/event/infrastructure/adapter/inbound/rest/InviteLinkContractTest.java:generic-api-key:69
 49fa64f337790c479b1aa219b3e68484bdb75e11:backend/event-service/src/test/java/com/vito/event/infrastructure/config/InviteLinkTokenRedactionTest.java:generic-api-key:20
+
+# Tokens de ejemplo de los tests de la app (T-F12, #327): los mismos de los
+# fixtures de contrato de enlaces de invitación; no son secretos.
+cb776c96403eb16f9b4b74ef7a49e96470bc2346:frontend/vito_app/test/features/events/fakes.dart:generic-api-key:24
+cb776c96403eb16f9b4b74ef7a49e96470bc2346:frontend/vito_app/test/features/events/invite_link_page_test.dart:generic-api-key:20
+cb776c96403eb16f9b4b74ef7a49e96470bc2346:frontend/vito_app/test/features/events/invite_links_page_test.dart:generic-api-key:92

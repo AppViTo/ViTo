@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:dartz/dartz.dart';
@@ -5,13 +6,40 @@ import 'package:dartz/dartz.dart';
 import 'package:vito_app/core/error/failures.dart';
 import 'package:vito_app/features/events/data/datasources/event_remote_datasource.dart';
 import 'package:vito_app/features/events/data/datasources/media_remote_datasource.dart';
+import 'package:vito_app/features/events/data/models/attendee_model.dart';
 import 'package:vito_app/features/events/data/models/event_model.dart';
 import 'package:vito_app/features/events/data/models/invitation_model.dart';
+import 'package:vito_app/features/events/data/models/invite_link_model.dart';
 import 'package:vito_app/features/events/data/models/rsvp_model.dart';
+import 'package:vito_app/features/events/domain/entities/attendee.dart';
 import 'package:vito_app/features/events/domain/entities/event.dart';
 import 'package:vito_app/features/events/domain/entities/invitation.dart';
+import 'package:vito_app/features/events/domain/entities/invite_link.dart';
 import 'package:vito_app/features/events/domain/entities/rsvp.dart';
 import 'package:vito_app/features/events/domain/repositories/event_repository.dart';
+
+/// Enlace de invitación de prueba, vigente salvo que se diga lo contrario.
+InviteLink fakeInviteLink({
+  String id = 'inl_1',
+  String eventId = 'evt_1',
+  String token = 'k3J9xQ2mV7pL1sT8wY4zBc',
+  int uses = 0,
+  int? maxUses,
+  bool revoked = false,
+  DateTime? expiresAt,
+  DateTime? createdAt,
+}) =>
+    InviteLink(
+      id: id,
+      eventId: eventId,
+      token: token,
+      url: 'https://app.vitoevents.app/i/$token',
+      expiresAt: expiresAt ?? DateTime.now().add(const Duration(days: 7)),
+      maxUses: maxUses,
+      uses: uses,
+      revoked: revoked,
+      createdAt: createdAt ?? DateTime.utc(2026, 11, 20, 12),
+    );
 
 class CreatedEventCall {
   final String title;
@@ -40,13 +68,141 @@ class FakeEventRepository implements EventRepository {
   /// `null` responde `ServerFailure`; un evento, `Right` con ese detalle.
   final Event? eventDetail;
 
+  /// Respuesta de `respondToRSVP`. Si es `null`, se usa [rsvpFailure] o, en
+  /// su defecto, un `Rsvp` con el mismo `status` enviado.
+  final RSVP? rsvpResponse;
+  final Failure? rsvpFailure;
+  final List<(String, RSVPStatus, String?)> rsvpCalls = [];
+
+  /// Cuántas veces se pidió el detalle (para ver la recarga tras responder).
+  int getEventCalls = 0;
+
+  /// `scope=invited`. Por defecto vacío, para no cambiar las pruebas del
+  /// home anteriores a la Ola 1; `null` responde `ServerFailure`.
+  final List<Event>? invitedEvents;
+
+  /// Enlaces de invitación (T041–T043).
+  final List<InviteLink> inviteLinks;
+  final Failure? inviteLinkFailure;
+  final InviteLinkPreview? inviteLinkPreview;
+  final Failure? previewFailure;
+  final Failure? acceptFailure;
+  final List<String> revokedLinkIds = [];
+  final List<String> acceptedTokens = [];
+  int createInviteLinkCalls = 0;
+
+  /// Edición del evento (T048–T049).
+  final Failure? updateFailure;
+  final List<(Event, Event)> updateCalls = [];
+
+  /// Organizador: asistentes, invitaciones y cancelar (T052–T058). Una lista
+  /// `null` responde con el fallo correspondiente o `ServerFailure`. La lista
+  /// es la página 0; las siguientes llegan vacías, salvo que se pasen
+  /// [attendeePages] o [invitationPages] (una lista por página).
+  final List<Attendee>? attendees;
+  final Failure? attendeesFailure;
+  final List<Invitation>? invitations;
+  final List<List<Attendee>>? attendeePages;
+  final List<List<Invitation>>? invitationPages;
+
+  /// Páginas pedidas de cada lista, en orden.
+  final List<int> attendeePageCalls = [];
+  final List<int> invitationPageCalls = [];
+
+  /// Si no es `null`, las dos listas esperan a que se complete antes de
+  /// responder (para cerrar la página con la carga en curso).
+  Completer<void>? guestsGate;
+  final Failure? cancelFailure;
+  final List<String> cancelledEventIds = [];
+
   FakeEventRepository({
     this.failCreate = false,
     this.failCoverUpload = false,
     this.myEvents,
     this.upcomingEvents,
     this.eventDetail,
+    this.rsvpResponse,
+    this.rsvpFailure,
+    this.invitedEvents = const [],
+    this.inviteLinks = const [],
+    this.inviteLinkFailure,
+    this.inviteLinkPreview,
+    this.previewFailure,
+    this.acceptFailure,
+    this.updateFailure,
+    this.attendees,
+    this.attendeesFailure,
+    this.invitations,
+    this.attendeePages,
+    this.invitationPages,
+    this.guestsGate,
+    this.cancelFailure,
   });
+
+  @override
+  Future<Either<Failure, List<Event>>> getInvitedEvents({
+    int page = 0,
+    int size = 20,
+  }) async =>
+      invitedEvents != null ? Right(invitedEvents!) : const Left(ServerFailure());
+
+  @override
+  Future<Either<Failure, InviteLink>> createInviteLink({
+    required String eventId,
+    int? expiresInDays,
+    int? maxUses,
+  }) async {
+    createInviteLinkCalls++;
+    if (inviteLinkFailure != null) return Left(inviteLinkFailure!);
+    return Right(fakeInviteLink(
+      id: 'inl_new$createInviteLinkCalls',
+      eventId: eventId,
+      createdAt: DateTime.utc(2026, 11, 22, 12),
+    ));
+  }
+
+  @override
+  Future<Either<Failure, List<InviteLink>>> listInviteLinks({
+    required String eventId,
+    int page = 0,
+    int size = 20,
+  }) async =>
+      inviteLinkFailure != null ? Left(inviteLinkFailure!) : Right(inviteLinks);
+
+  @override
+  Future<Either<Failure, void>> revokeInviteLink({
+    required String eventId,
+    required String linkId,
+  }) async {
+    revokedLinkIds.add(linkId);
+    return const Right(null);
+  }
+
+  @override
+  Future<Either<Failure, InviteLinkPreview>> getInviteLinkPreview(
+    String token,
+  ) async {
+    if (previewFailure != null) return Left(previewFailure!);
+    final preview = inviteLinkPreview;
+    return preview != null
+        ? Right(preview)
+        : const Left(NotFoundFailure(
+            message: 'El enlace no existe o ya no está disponible'));
+  }
+
+  @override
+  Future<Either<Failure, Invitation>> acceptInviteLink(String token) async {
+    acceptedTokens.add(token);
+    if (acceptFailure != null) return Left(acceptFailure!);
+    return Right(Invitation(
+      id: 'inv_1',
+      eventId: inviteLinkPreview?.eventId ?? 'evt_1',
+      inviterId: 'usr_1',
+      inviteeId: 'usr_2',
+      status: InvitationStatus.accepted,
+      inviteLinkId: 'inl_1',
+    ));
+  }
 
   @override
   Future<Either<Failure, Event>> createEvent({
@@ -90,21 +246,27 @@ class FakeEventRepository implements EventRepository {
 
   @override
   Future<Either<Failure, Event>> updateEvent({
-    required String eventId,
-    String? title,
-    String? description,
-    EventDetails? details,
-    EventSettings? settings,
-  }) async =>
-      const Left(ServerFailure());
+    required Event original,
+    required Event edited,
+  }) async {
+    updateCalls.add((original, edited));
+    if (updateFailure != null) return Left(updateFailure!);
+    return Right(edited);
+  }
 
   @override
-  Future<Either<Failure, void>> cancelEvent(String eventId) async =>
-      const Left(ServerFailure());
+  Future<Either<Failure, void>> cancelEvent(String eventId) async {
+    cancelledEventIds.add(eventId);
+    return cancelFailure != null ? Left(cancelFailure!) : const Right(null);
+  }
 
   @override
-  Future<Either<Failure, Event>> getEvent(String eventId) async =>
-      eventDetail != null ? Right(eventDetail!) : const Left(ServerFailure());
+  Future<Either<Failure, Event>> getEvent(String eventId) async {
+    getEventCalls++;
+    return eventDetail != null
+        ? Right(eventDetail!)
+        : const Left(ServerFailure());
+  }
 
   @override
   Future<Either<Failure, List<Event>>> getMyEvents({
@@ -127,17 +289,32 @@ class FakeEventRepository implements EventRepository {
     required String eventId,
     required RSVPStatus status,
     String? message,
-    int guestsCount = 0,
-  }) async =>
-      const Left(ServerFailure());
+  }) async {
+    rsvpCalls.add((eventId, status, message));
+    if (rsvpResponse != null) return Right(rsvpResponse!);
+    if (rsvpFailure != null) return Left(rsvpFailure!);
+    return Right(RSVP(
+      eventId: eventId,
+      userId: 'usr_2',
+      status: status,
+      message: message,
+      respondedAt: DateTime.utc(2026, 11, 20, 15),
+    ));
+  }
 
   @override
-  Future<Either<Failure, List<RSVP>>> getEventAttendees({
+  Future<Either<Failure, List<Attendee>>> getEventAttendees({
     required String eventId,
     int page = 0,
     int size = 20,
-  }) async =>
-      const Left(ServerFailure());
+  }) async {
+    attendeePageCalls.add(page);
+    await guestsGate?.future;
+    final pages = attendeePages;
+    if (pages != null) return Right(page < pages.length ? pages[page] : const []);
+    if (attendees == null) return Left(attendeesFailure ?? const ServerFailure());
+    return Right(page == 0 ? attendees! : const []);
+  }
 
   @override
   Future<Either<Failure, Invitation>> sendInvitation({
@@ -152,15 +329,16 @@ class FakeEventRepository implements EventRepository {
     required String eventId,
     int page = 0,
     int size = 20,
-  }) async =>
-      const Left(ServerFailure());
-
-  @override
-  Future<Either<Failure, void>> respondToInvitation({
-    required String eventId,
-    required InvitationStatus status,
-  }) async =>
-      const Left(ServerFailure());
+  }) async {
+    invitationPageCalls.add(page);
+    await guestsGate?.future;
+    final pages = invitationPages;
+    if (pages != null) {
+      return Right(page < pages.length ? pages[page] : const []);
+    }
+    if (invitations == null) return const Left(ServerFailure());
+    return Right(page == 0 ? invitations! : const []);
+  }
 
   @override
   Future<Either<Failure, RSVP>> checkIn({
@@ -179,6 +357,9 @@ class FakeEventRemoteDataSource implements EventRemoteDataSource {
   Map<String, dynamic>? capturedDetails;
   Map<String, dynamic>? capturedSettings;
   String? capturedTitle;
+
+  /// Cuerpo enviado a `updateEvent`; `null` si no se llamó.
+  Map<String, dynamic>? capturedPatch;
 
   FakeEventRemoteDataSource({this.createError});
 
@@ -206,12 +387,15 @@ class FakeEventRemoteDataSource implements EventRemoteDataSource {
   @override
   Future<EventModel> updateEvent({
     required String eventId,
-    String? title,
-    String? description,
-    Map<String, dynamic>? details,
-    Map<String, dynamic>? settings,
-  }) =>
-      throw UnimplementedError();
+    required Map<String, dynamic> patch,
+  }) async {
+    capturedPatch = patch;
+    return EventModel.fromJson({
+      'id': eventId,
+      'organizerId': 'usr_1',
+      'title': patch['title'] ?? 'Evento',
+    });
+  }
 
   @override
   Future<void> cancelEvent(String eventId) => throw UnimplementedError();
@@ -230,14 +414,13 @@ class FakeEventRemoteDataSource implements EventRemoteDataSource {
   @override
   Future<RSVPModel> respondToRSVP({
     required String eventId,
-    required String status,
+    required RSVPStatus status,
     String? message,
-    int guestsCount = 0,
   }) =>
       throw UnimplementedError();
 
   @override
-  Future<List<RSVPModel>> getEventAttendees({
+  Future<List<AttendeeModel>> getEventAttendees({
     required String eventId,
     int page = 0,
     int size = 20,
@@ -261,13 +444,6 @@ class FakeEventRemoteDataSource implements EventRemoteDataSource {
       throw UnimplementedError();
 
   @override
-  Future<void> respondToInvitation({
-    required String eventId,
-    required String status,
-  }) =>
-      throw UnimplementedError();
-
-  @override
   Future<RSVPModel> checkIn({
     required String eventId,
     required String qrCode,
@@ -276,6 +452,41 @@ class FakeEventRemoteDataSource implements EventRemoteDataSource {
 
   @override
   Future<String> generateCheckInQR(String eventId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<EventModel>> getInvitedEvents({int page = 0, int size = 20}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<InviteLinkModel> createInviteLink({
+    required String eventId,
+    int? expiresInDays,
+    int? maxUses,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<InviteLinkModel>> listInviteLinks({
+    required String eventId,
+    int page = 0,
+    int size = 20,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> revokeInviteLink({
+    required String eventId,
+    required String linkId,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<InviteLinkPreviewModel> getInviteLinkPreview(String token) =>
+      throw UnimplementedError();
+
+  @override
+  Future<InvitationModel> acceptInviteLink(String token) =>
       throw UnimplementedError();
 }
 

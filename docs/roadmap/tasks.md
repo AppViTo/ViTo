@@ -144,8 +144,8 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 |----|-------|------------|------------------------|
 | T-C11 | Contrato de la Ola 2a (✅ HECHA, #320) | Agente frontend (Alex) | D-08 ✅ con #283 (2026-11-10). Mergeado en #320 (2026-11-20): `openapi.yaml`, fixtures, CONVENTIONS §9, inventario y nota en ADR-016 (T002, T005–T010). Absorbe el RFC #277. |
 | T-F13 | App de la Ola 2a | Agente frontend (Alex) | T-C11 ✅ #320: avanza contra el mock de Prism. Primero la búsqueda en "¿A quién invitamos?" (Bug-F08). |
-| T-B38 | `auth-service` y gateway: búsqueda y datos por lotes | Sesión de Bernardo | T-C11 ✅ #320. `getUsersByIds` (T061–T062) en curso; sigue la búsqueda (T021–T033). |
-| T-B39 | `social-service`: grafo social | Sesión de Bernardo | T003 ✅ #284; T013–T015 y T020 ✅ #286; T-C11 ✅ #320: el resto, T016–T019 en adelante. |
+| T-B38 | `auth-service` y gateway: búsqueda y datos por lotes | Sesión de Bernardo | T-C11 ✅ #320. Código completo en revisión: `getUsersByIds` (#323) y búsqueda, gateway y retiro de `/social/search` (T021–T033). Falta quickstart §2 con la app (T-F13). |
+| T-B39 | `social-service`: grafo social | Sesión de Bernardo | T003 ✅ #284; T013–T015 y T020 ✅ #286; T-C11 ✅ #320. En revisión: base T016–T019 (`UserDirectory` y 503) y US2 T036–T041 (follow idempotente, 204). Sigue US3 (perfil). |
 | T-I30 | `AUTH_SERVICE_URI`, carga y tablero de la Ola 2a | Sesión de Bernardo | T004 ✅ #284; T056–T057 tras T-B39. |
 
 ---
@@ -227,7 +227,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | ✅ HECHA (#278) | — |
 | T-I29 | Excepción de Trivy `CVE-2026-78661` de `mongo-backup` que vence el 2026-12-23 | I | P1 | ✅ HECHA (#289; nueva fecha 2027-02-07) | — |
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | ✅ HECHA (#253) | — |
-| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🟢 READY (contrato en #253; la app ya responde por `/rsvp` desde v0.2.0; falta retirar `respondToInvitation` y el resto de la ola) | — |
+| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🔵 EN CURSO (PR 1 `frontend/t-f12-rsvp`: modelos y RSVP; PR 2 `frontend/t-f12-invite-links`: enlaces e invitaciones en el home; PR 3 `frontend/t-f12-edit-event`: editar; PR 4 `frontend/t-f12-organizer`: invitaciones, cancelar y asistentes; PR 5 `frontend/t-f12-auto-login`: auto-login; falta el quickstart, T064) | — |
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y #273) | — |
 | T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | ✅ HECHA (#262) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
@@ -235,8 +235,8 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🔵 EN CURSO | — |
 | T-C11 | Contrato de la Ola 2a: grafo social y búsqueda de usuarios (spec 004) | C | P0 | ✅ HECHA (#320, 2026-11-20; RFC #321) | — |
 | T-F13 | App de la Ola 2a: búsqueda para invitar, seguir, perfil social y "Mi Gente" | F | P0 | 🟢 READY (T-C11 ✅ #320) | — |
-| T-B38 | `auth-service` y gateway de la Ola 2a: `searchUsers` y `getUsersByIds` | B | P0 | 🔵 EN CURSO (`getUsersByIds`, T061–T062) | — |
-| T-B39 | `social-service` de la Ola 2a: follow idempotente, perfil, seguidores y seguidos | B | P1 | 🟢 READY (T-C11 ✅ #320; T003 ✅ #284; T013–T015 y T020 ✅ #286) | — |
+| T-B38 | `auth-service` y gateway de la Ola 2a: `searchUsers` y `getUsersByIds` | B | P0 | 🔵 EN CURSO (código en revisión: #323 y la búsqueda; falta quickstart §2 con T-F13) | — |
+| T-B39 | `social-service` de la Ola 2a: follow idempotente, perfil, seguidores y seguidos | B | P1 | 🔵 EN CURSO (T016–T019 y T036–T041 en revisión; T003 ✅ #284; T013–T015 y T020 ✅ #286) | — |
 | T-I30 | `AUTH_SERVICE_URI`, escenarios k6 y tablero de la Ola 2a | I | P1 | 🔴 BLOQUEADA por T-B39 (T004 ✅ #284) | — |
 | T-B40 | `chat-service` y `media-service` fuera de `vito_db` (deuda de T-I19) | B/I | P2 | 🔵 EN CURSO (#309 ✅; falta desplegar en el mismo release que T-I19) | — |
 
@@ -244,7 +244,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 T-I11 para la web (lleva la CSP que antes era de T-I18), más T048–T050 de [`specs/001-cd-produccion`](../../specs/001-cd-produccion/tasks.md) (Trivy,
 gitleaks, Dependabot). Las de P1 del triage bloquean la apertura a usuarios reales.
 
-Bloqueadas (no tomar): T-C07 olas 2 y 4–6 (VITO-16; la 2a está en spec), T-F02 (VITO-19), T-B06 (VITO-31), T-B13 (VITO-38), T-B30.
+Bloqueadas (no tomar): T-C07 olas 2b y 4–6 (VITO-16), T-B06 (VITO-31), T-B13 (VITO-38), T-B30.
 Desbloqueadas el 2026-10-24: T-C07 Ola 3 (D-08), T-B07 y T-F08 (T-C06 hecha en #147), y T-I11
 (Pages, dominio, secretos y variables listos en T-I06).
 Reemplazadas por ADR-011: T-I04 (→ T-I08) y T-I05 (Kubernetes → Fase Crecimiento). T-B10 quedó
@@ -287,11 +287,11 @@ depende del contrato.
 | ID | Bug | Prioridad | Estado | Jira |
 |----|-----|-----------|--------|------|
 | Bug-B01 | Las fechas de los eventos se muestran en UTC: un evento de las 8 pm en Bogotá aparece a la 1 am del día siguiente | P0 | ✅ HECHA (#203) | [VITO-85](https://bernardo-mira.atlassian.net/browse/VITO-85) (reportado junto con VITO-82) |
-| Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🟢 READY (contrato en #253 y backend en #264; falta la pantalla de edición, T-F12) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
+| Bug-F07 | El organizador no puede editar su evento (fecha, foto, descripción, lugar) | P0 | 🔵 EN REVISIÓN (app en #328, T-F12 PR 3; se cierra al mergear y desplegar) | [VITO-82](https://bernardo-mira.atlassian.net/browse/VITO-82) |
 | Bug-B02 | Los eventos se crean en `DRAFT` y no hay forma de publicarlos: nunca salen en "Próximos eventos" | P0 | ✅ HECHA (#227) | [VITO-86](https://bernardo-mira.atlassian.net/browse/VITO-86) |
-| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | ✅ aviso HECHO (#246); la búsqueda real, 🟡 RFC [AppViTo/ViTo#277](https://github.com/AppViTo/ViTo/issues/277), que entra en la Ola 2a (spec 004) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
+| Bug-F08 | Al crear un evento, la búsqueda de usuarios para invitar nunca encuentra a nadie | P0 | ✅ aviso HECHO (#246); la búsqueda real: contrato ✅ (#320, RFC #277 cerrado), falta backend (T-B38) y app (T-F13) | [VITO-83](https://bernardo-mira.atlassian.net/browse/VITO-83) |
 | Bug-F10 | El detalle del evento está en inglés ("About", "Date & Time", "Statistics", "Draft", "Private") | P0 | ✅ HECHA (#246) | [VITO-87](https://bernardo-mira.atlassian.net/browse/VITO-87) |
-| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | ✅ aviso HECHO (#246); el enlace real: contrato (#253) y backend (#261) en producción desde v0.2.0, falta la app (T-F12) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
+| Bug-F09 | "Copiar enlace de invitación" y "Enviar por WhatsApp" prometen un enlace que nunca se genera | P0 | ✅ aviso HECHO (#246); el enlace real: contrato (#253) y backend (#261) en producción desde v0.2.0; app 🔵 EN REVISIÓN (#327, T-F12 PR 2) | [VITO-88](https://bernardo-mira.atlassian.net/browse/VITO-88) |
 
 - **Bug-B01, causa:** la app envía bien la hora. `create_event_screen.dart` toma las 20:00
   locales y `EventDetailsModel.toJson` las manda en UTC (`2026-12-10T01:00:00.000Z`), como pide
@@ -476,10 +476,10 @@ depende del contrato.
   type declara `examples` (validador y README actualizados). `listEvents.200.json` pasa a
   `listEvents.mine.200.json`.
 
-### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔵 EN CURSO (Olas 1 y 3 publicadas; 2a aprobada, contrato en T-C11; 2b sin spec) · D-08 aprobada 2026-10-24 (por ola) · O-02, O-30, ADR-016
+### T-C07 · Ramas `contract/ola-N` (1 a 6) — 🔵 EN CURSO (Olas 1, 2a y 3 publicadas; 2b sin spec) · D-08 aprobada 2026-10-24 (por ola) · O-02, O-30, ADR-016
 - **Estado (2026-11-10):**
   - La Ola 2a tiene D-08 aprobada (#283) y spec (`specs/004-ola-2a-social-busqueda`). Su
-    contrato es T-C11 (🟢 READY).
+    contrato es T-C11, ✅ HECHA en #320 (2026-11-20).
   - No necesita T-C05 ni T-B36: la identidad llega por lotes y por REST (`getUsersByIds`), sin
     consumidor nuevo de Kafka.
   - La Ola 2b (check-in/QR: `checkin-service`, `/ws/checkin` y retirar `POST /events/{id}/check-in`
@@ -602,10 +602,11 @@ depende del contrato.
   restaurada, `POST /auth/register` deja de enviar `displayName` (fuera de
   `RegisterRequest`; hallazgo para RFC) y los flujos se verifican contra el mock.
 
-### T-F02 · Retirar `MockApiService` (home, people) — 🔴 BLOQUEADA por T-C11 (people) · P1
+### T-F02 · Retirar `MockApiService` (home, people) — 🟢 READY (T-C11 ✅ #320; la parte de people va en T-F13) · P1
 - Home necesita eventos (`GET /events` → D-03), que ya están en el contrato de la Ola 1 (#253).
 - People necesita la Ola 2a: `searchUsers` en `GET /api/v1/users/search`, cuyo dueño es
-  `auth-service` según el RFC #277 (no `social/search`), y el grafo social. Su contrato es T-C11.
+  `auth-service` según el RFC #277 (no `social/search`), y el grafo social. Su contrato (T-C11)
+  se mergeó en #320; la parte de people la cierra T-F13.
 
 ### T-F03 · Wiring de blocs y rutas — ✅ HECHA (#63) · P1
 - **Qué:** proveer `CheckInBloc` donde se usan sus páginas (o en el `MultiBlocProvider`
@@ -688,7 +689,7 @@ depende del contrato.
   mockeados) que compruebe splash → login sin excepciones.
 - **Cierre:** ningún archivo de test sin casos; el smoke test monta `ViToApp` y navega.
 
-### T-F12 · App de la Ola 1 — 🟢 READY · P0 · Principio IV
+### T-F12 · App de la Ola 1 — 🔵 EN CURSO (los 5 PRs abiertos; falta T064) · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 9 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): modelos y pruebas de contrato,
   RSVP con lista de espera, enlace (copiar, WhatsApp, ruta web `/i/<token>`), editar y
   cancelar evento, invitaciones, lista de asistentes del organizador y contador de confirmados
@@ -697,6 +698,62 @@ depende del contrato.
 - **Prioridad (2026-11-04):** primero el RSVP (T014 parcial, T032 y T033) y quitar
   `invitations/respond` de la app, para el release del viernes 2026-11-06 junto con #259.
   Detalle en la *Asignación del 2026-11-04*.
+- **Plan (2026-11-22):** 5 PRs. (1) T014, T015, T032 y T033: modelos, pruebas de contrato, RSVP
+  y retirar `respondToInvitation`; (2) T041–T044: enlace (cierra Bug-F09); (3) T048–T049:
+  editar (cierra Bug-F07); (4) T052, T055 y T058: invitaciones, cancelar y asistentes;
+  (5) T060, T064 y T065: auto-login y cierre de la ola.
+- **Avance (2026-11-22, PR 1 en `frontend/t-f12-rsvp`):**
+  - `RSVP` según el contrato, sin `id`, `guestsCount` ni QR; `RespondRsvpRequest` solo con
+    `ACCEPTED`, `DECLINED` o `MAYBE`.
+  - Modelos nuevos: `Attendee`, `InviteLink` e `InviteLinkPreview`; `Invitation` con
+    `inviteLinkId`. Pruebas contra los fixtures en `test/contract/rsvp_invite_contract_test.dart`.
+  - Detalle del evento con "Voy", "Tal vez" y "No voy", la respuesta actual, el aviso de lista
+    de espera y botones deshabilitados en eventos cancelados, terminados o que ya empezaron. El
+    organizador no ve los botones.
+  - Límite del contrato: `getEvent` no trae el RSVP de quien consulta, así que la app solo
+    conoce la respuesta después de enviarla en esa visita.
+- **Avance (2026-11-22, PR 2 en `frontend/t-f12-invite-links`, cierra el enlace de Bug-F09):**
+  - T041: las 5 operaciones de enlaces y `scope=invited` en datasource, repositorio y casos de
+    uso, registrados en `get_it`. El repositorio distingue `403`, `404` y `409`.
+  - T042: desde el detalle, el organizador abre "Invitar con un enlace": crea, copia, comparte
+    por WhatsApp y revoca enlaces, con usos, vencimiento y estado. El asistente de creación ya no
+    muestra los botones de enlace provisionales.
+  - T043: ruta `/i/<token>` con vista previa sin sesión, "Inicia sesión o regístrate para
+    unirte", vuelta a la invitación tras el login o el registro, `acceptInviteLink` y mensaje
+    único en `404`. La web pasa a URLs de ruta (`usePathUrlStrategy`); `web/_redirects` ya
+    sirve `index.html` en cualquier ruta.
+  - T044: sección "Invitaciones" en el home con `scope=invited`, sin repetir eventos en
+    "Próximos eventos".
+- **Avance (2026-11-22, PR 3 en `frontend/t-f12-edit-event`, cierra la app de Bug-F07):**
+  - T048: `updateEvent` pasa de `PUT` con el evento completo a `PATCH`
+    (`application/merge-patch+json`) con solo lo que cambió (`eventPatchJson`); sin cambios no
+    llama al backend.
+  - T049: "Editar evento" en el detalle (solo el organizador y con el evento vigente): nombre,
+    descripción, fechas, portada, lugar, dirección, cupo, visibilidad y ocultar la dirección.
+    Los 400 y 409 muestran el mensaje del backend.
+- **Avance (2026-11-22, PR 4 en `frontend/t-f12-organizer`):**
+  - T052: casos de uso `send_invitation` y `list_event_invitations`; pestaña "Invitaciones" en
+    "Ver invitados" con estado, origen (app o enlace) y fechas. Enviar invitaciones desde la app
+    espera a la búsqueda de usuarios (Ola 2a, T-F13).
+  - T055: "Cancelar evento" con confirmación (solo el organizador); el evento queda
+    "Cancelado" y los invitados ya no pueden responder.
+  - T058: pestaña "Asistentes" para el organizador; quien no organiza ve "N personas
+    confirmadas" (`stats.totalAccepted`) en lugar de las estadísticas completas.
+- **Avance (2026-11-22, PR 5 en `frontend/t-f12-auto-login`):**
+  - T060: al abrir la app con un access token guardado, `getCurrentUser` (`GET /auth/me`)
+    confirma la sesión sin rotar el refresh token. Si responde 401 se intenta renovar con el
+    refresh token, y si eso falla se borran los tokens y se va al inicio de sesión. Sin red se
+    conserva la sesión.
+  - T065 (parte de app): Bug-F07 y el enlace de Bug-F09 pasan a 🔵 EN REVISIÓN con sus PRs.
+- **Para cerrar T-F12** (y T-C07 Ola 1, Bug-F07 y Bug-F09):
+  1. Mergear en orden #325 → #327 → #328 → #330 → este PR, cambiando la base de cada uno a
+     `develop` cuando se mergee el anterior.
+  2. T064 con Bernardo: recorrer `specs/003-ola-1-eventos-invitaciones/quickstart.md` contra el
+     stack local y pegar la salida en el PR de cierre.
+  3. Desplegar y comprobar en la web que `https://<app>/i/<token>` abre la invitación.
+  4. Marcar T-F12, Bug-F07 y Bug-F09 como ✅ y comentar el cierre en el RFC #204 (ya cerrado):
+     de ahí quedó en la Ola 1 todo lo de invitaciones y enlaces; `searchUsers` pasó a la Ola
+     2a (#320, T-F13).
 
 ### T-F13 · App de la Ola 2a — 🟢 READY (T-C11 ✅ #320) · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 6 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): modelos y pruebas de contrato,
@@ -1183,14 +1240,14 @@ depende del contrato.
   representativo, ninguna petición colgada más que el timeout del gateway y la decisión del punto 3
   registrada.
 
-### T-B38 · `auth-service` y gateway de la Ola 2a — 🔵 EN CURSO (`getUsersByIds`, T061–T062) · P0 · Principios II, III y IX
+### T-B38 · `auth-service` y gateway de la Ola 2a — 🔵 EN CURSO (código en revisión: #323 y la búsqueda; falta quickstart §2) · P0 · Principios II, III y IX
 - **Qué:** T021–T033 y T061–T062 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): búsqueda por prefijo sin tildes con campos
   normalizados, índices y migración de los usuarios existentes; sin correo, sin privados y sin
   quien busca; `getUsersByIds` para `social-service`; rutas `users-search` (1/s, ráfaga 10) y
   `users` en el gateway; retirar `/social/search`.
 - **Cierre:** quickstart §2 de la spec en verde; se puede liberar sola para cerrar Bug-F08.
 
-### T-B39 · `social-service` de la Ola 2a — 🟢 READY (T-C11 ✅ #320) · P1 · Principios II, IV y VII
+### T-B39 · `social-service` de la Ola 2a — 🔵 EN CURSO (T016–T019 y T036–T041 en revisión) · P1 · Principios II, IV y VII
 - **Qué:** T003, T013–T020, T036–T041, T043–T047, T049–T052, T055 y T058 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): solo el
   grafo (identidad por lotes desde `auth-service`, sin `user_profiles`), follow atómico e
   idempotente con índice único, contadores calculados, paginación en la base, `503` si

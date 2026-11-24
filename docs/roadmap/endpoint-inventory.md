@@ -92,7 +92,7 @@ Columna **Front**: ✔ = el código Flutter ya lo llama (`lib/**/datasources`, `
 | GET | `/api/v1/social/profile/{userId}` | ✔ | ✔ | `CONTRATO (Ola 2a)` (`getSocialProfile`, con `isFollowing` e `isFollowedBy`) | 2a |
 | GET | `/api/v1/social/followers/{userId}` | ✔ | ✔ | `CONTRATO (Ola 2a)` (`listFollowers`, paginado, `size` ≤ 50) | 2a |
 | GET | `/api/v1/social/following/{userId}` | ✔ | ✔ | `CONTRATO (Ola 2a)` (`listFollowing`, paginado, `size` ≤ 50) | 2a |
-| GET | `/api/v1/social/search` | | ✔ | `RETIRAR` (la reemplaza `searchUsers` de `auth-service`, ADR-016; T-B39) | 2a |
+| GET | `/api/v1/social/search` | | ✔ | `RETIRADA` (T033: la reemplaza `searchUsers` de `auth-service`, ADR-016) | 2a |
 | GET | `/api/v1/social/is-following/{userId}` | | ✔ | `FUSIONADA en profile.isFollowing` (se retira en T-B39) | 2a |
 
 ## Media — `media-service` (:8089)

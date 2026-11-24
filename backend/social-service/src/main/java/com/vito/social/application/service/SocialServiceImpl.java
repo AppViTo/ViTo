@@ -6,10 +6,10 @@ import com.vito.social.domain.model.SocialProfile;
 import com.vito.social.domain.port.inbound.SocialService;
 import com.vito.social.domain.port.outbound.EventPublisherPort;
 import com.vito.social.domain.port.outbound.FollowRepository;
+import com.vito.social.domain.port.outbound.UserDirectory;
 import com.vito.social.domain.port.outbound.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,65 +23,50 @@ public class SocialServiceImpl implements SocialService {
     private final FollowRepository followRepository;
     private final UserProfileRepository userProfileRepository;
     private final EventPublisherPort eventPublisher;
+    private final UserDirectory userDirectory;
     
+    /**
+     * T040 (research R5): idempotente. Repetir el follow no es error ni publica evento; el índice
+     * único del par lo hace atómico. Los contadores se calculan al leer (R6): no hay {@code $inc}.
+     */
     @Override
     public void follow(FollowCommand command) {
         String followerId = command.getFollowerId();
         String followingId = command.getFollowingId();
-        
-        log.info("User {} attempting to follow {}", followerId, followingId);
-        
-        // Validate not following yourself
+
         if (followerId.equals(followingId)) {
             throw SocialException.cannotFollowYourself();
         }
-        
-        // Validate not already following
-        if (followRepository.existsByFollowerIdAndFollowingId(followerId, followingId)) {
-            throw SocialException.alreadyFollowing();
+        requireExistingUser(followingId);
+
+        if (followRepository.insertIfAbsent(FollowRelationship.create(followerId, followingId))) {
+            eventPublisher.publishFollowEvent(followerId, followingId);
+            log.info("Follow creado");
         }
-        
-        // Create follow relationship
-        FollowRelationship relationship = FollowRelationship.create(followerId, followingId);
-        followRepository.save(relationship);
-        
-        // Update counters
-        userProfileRepository.incrementFollowingCount(followerId);
-        userProfileRepository.incrementFollowersCount(followingId);
-        
-        // Publish event
-        eventPublisher.publishFollowEvent(followerId, followingId);
-        
-        log.info("User {} successfully followed {}", followerId, followingId);
     }
-    
+
+    /** T040 (research R5): idempotente. Si no lo seguía, no es error ni publica evento. */
     @Override
     public void unfollow(UnfollowCommand command) {
         String followerId = command.getFollowerId();
         String followingId = command.getFollowingId();
-        
-        log.info("User {} attempting to unfollow {}", followerId, followingId);
-        
-        // Validate is following
-        if (!followRepository.existsByFollowerIdAndFollowingId(followerId, followingId)) {
-            throw SocialException.notFollowing();
+
+        requireExistingUser(followingId);
+
+        if (followRepository.deleteIfPresent(followerId, followingId)) {
+            eventPublisher.publishUnfollowEvent(followerId, followingId);
+            log.info("Follow eliminado");
         }
-        
-        // Delete follow relationship
-        FollowRelationship relationship = FollowRelationship.builder()
-                .followerId(followerId)
-                .followingId(followingId)
-                .build();
-        followRepository.delete(relationship);
-        
-        // Update counters
-        userProfileRepository.decrementFollowingCount(followerId);
-        userProfileRepository.decrementFollowersCount(followingId);
-        
-        // Publish event
-        eventPublisher.publishUnfollowEvent(followerId, followingId);
-        
-        log.info("User {} successfully unfollowed {}", followerId, followingId);
+    }
+
+    /**
+     * El destino existe si auth-service lo devuelve (FR-012). Si auth-service no responde, el
+     * adaptador lanza {@code UserDirectoryUnavailableException} y la petición sale con 503.
+     */
+    private void requireExistingUser(String userId) {
+        if (userDirectory.findByIds(List.of(userId)).isEmpty()) {
+            throw SocialException.userNotFound();
+        }
     }
     
     @Override
@@ -133,13 +118,5 @@ public class SocialServiceImpl implements SocialService {
                 .skip((long) page * size)
                 .limit(size)
                 .collect(Collectors.toList());
-    }
-    
-    @Override
-    public List<SocialProfile> searchUsers(String query, int page, int size) {
-        // This would typically use a search service or MongoDB text search
-        // For now, we'll return an empty list
-        log.info("Searching users with query: {}", query);
-        return List.of();
     }
 }

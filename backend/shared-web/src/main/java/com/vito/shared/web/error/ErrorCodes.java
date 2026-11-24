@@ -9,6 +9,8 @@ public final class ErrorCodes {
     public static final String NOT_FOUND = "NOT_FOUND";
     public static final String CONFLICT = "CONFLICT";
     public static final String INTERNAL_ERROR = "INTERNAL_ERROR";
+    /** Una dependencia no respondió a tiempo; va con {@code Retry-After} (fixtures {@code *.503.json}). */
+    public static final String SERVICE_UNAVAILABLE = "SERVICE_UNAVAILABLE";
 
     private ErrorCodes() {
     }
