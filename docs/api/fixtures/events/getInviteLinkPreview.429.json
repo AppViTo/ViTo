@@ -1,6 +1,6 @@
 {
   "error": "RATE_LIMITED",
-  "message": "Has superado el límite de peticiones. Reintenta en 1 segundo",
+  "message": "Has superado el límite de peticiones. Reintenta en 6 segundos",
   "status": 429,
   "timestamp": "2026-10-28T02:10:00Z"
 }
