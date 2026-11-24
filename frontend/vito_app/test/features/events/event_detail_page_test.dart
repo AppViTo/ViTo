@@ -68,8 +68,11 @@ void main() {
     expect(find.text('Invitados'), findsOneWidget);
     expect(find.text('Confirmados'), findsOneWidget);
     expect(find.text('Rechazados'), findsOneWidget);
-    expect(find.text('Tal vez'), findsOneWidget);
-    expect(find.text('Confirmar asistencia'), findsOneWidget);
+    // "Tal vez" aparece en las estadísticas y en los botones de RSVP (T033).
+    expect(find.text('Tal vez'), findsNWidgets(2));
+    expect(find.text('¿Vas a ir?'), findsOneWidget);
+    expect(find.text('Voy'), findsOneWidget);
+    expect(find.text('No voy'), findsOneWidget);
     expect(find.text('Registrar entrada'), findsOneWidget);
     expect(find.text('Mosaico'), findsOneWidget);
     expect(find.text('Iniciar transmisión'), findsOneWidget);

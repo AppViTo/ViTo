@@ -4,6 +4,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../../../core/error/failures.dart';
 import '../entities/event.dart';
+import '../entities/attendee.dart';
 import '../entities/rsvp.dart';
 import '../entities/invitation.dart';
 
@@ -37,14 +38,15 @@ abstract class EventRepository {
     int size = 20,
   });
   
+  /// `status` solo puede ser `accepted`, `declined` o `maybe`. Un `accepted`
+  /// puede volver como `waitlisted` si el cupo está lleno.
   Future<Either<Failure, RSVP>> respondToRSVP({
     required String eventId,
     required RSVPStatus status,
     String? message,
-    int guestsCount = 0,
   });
-  
-  Future<Either<Failure, List<RSVP>>> getEventAttendees({
+
+  Future<Either<Failure, List<Attendee>>> getEventAttendees({
     required String eventId,
     int page = 0,
     int size = 20,
@@ -60,11 +62,6 @@ abstract class EventRepository {
     required String eventId,
     int page = 0,
     int size = 20,
-  });
-  
-  Future<Either<Failure, void>> respondToInvitation({
-    required String eventId,
-    required InvitationStatus status,
   });
   
   Future<Either<Failure, RSVP>> checkIn({

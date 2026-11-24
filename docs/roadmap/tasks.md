@@ -227,7 +227,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-I27 | Excepciones de Trivy de `mongo-backup` que vencen el 2026-11-23: quitarlas o renovarlas | I | P1 | ✅ HECHA (#278) | — |
 | T-I29 | Excepción de Trivy `CVE-2026-78661` de `mongo-backup` que vence el 2026-12-23 | I | P1 | ✅ HECHA (#289; nueva fecha 2027-02-07) | — |
 | T-C10 | Contrato de la Ola 1: eventos, invitaciones, enlaces y RSVP (spec 003) | C | P0 | ✅ HECHA (#253) | — |
-| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🟢 READY (contrato en #253; la app ya responde por `/rsvp` desde v0.2.0; falta retirar `respondToInvitation` y el resto de la ola) | — |
+| T-F12 | App de la Ola 1: RSVP, enlace de invitación, editar y cancelar evento, asistentes | F | P0 | 🔵 EN CURSO (`frontend/t-f12-rsvp`: modelos, RSVP y sin `respondToInvitation`; faltan enlace, editar, invitaciones, cancelar, asistentes y auto-login) | — |
 | T-B34 | `event-service` de la Ola 1: cupo atómico, RSVP, enlaces, editar, cancelar | B | P0 | ✅ HECHA (#258, #259, #261, #264, #265 y #273) | — |
 | T-B35 | `auth-service` y gateway de la Ola 1: claim `name`, `X-User-Name`, ruta pública exacta | B | P0 | ✅ HECHA (#262) | — |
 | T-B36 | Outbox, sobre versionado y AsyncAPI de los eventos Kafka de `event-service` | B | P1 | 🔴 BLOQUEADA por T-C05 | — |
@@ -671,7 +671,7 @@ depende del contrato.
   mockeados) que compruebe splash → login sin excepciones.
 - **Cierre:** ningún archivo de test sin casos; el smoke test monta `ViToApp` y navega.
 
-### T-F12 · App de la Ola 1 — 🟢 READY · P0 · Principio IV
+### T-F12 · App de la Ola 1 — 🔵 EN CURSO (`frontend/t-f12-rsvp`, 1 de 5 PRs) · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 9 de [`specs/003-ola-1-eventos-invitaciones`](../../specs/003-ola-1-eventos-invitaciones/tasks.md): modelos y pruebas de contrato,
   RSVP con lista de espera, enlace (copiar, WhatsApp, ruta web `/i/<token>`), editar y
   cancelar evento, invitaciones, lista de asistentes del organizador y contador de confirmados
@@ -680,6 +680,20 @@ depende del contrato.
 - **Prioridad (2026-11-04):** primero el RSVP (T014 parcial, T032 y T033) y quitar
   `invitations/respond` de la app, para el release del viernes 2026-11-06 junto con #259.
   Detalle en la *Asignación del 2026-11-04*.
+- **Plan (2026-11-22):** 5 PRs. (1) T014, T015, T032 y T033: modelos, pruebas de contrato, RSVP
+  y retirar `respondToInvitation`; (2) T041–T044: enlace (cierra Bug-F09); (3) T048–T049:
+  editar (cierra Bug-F07); (4) T052, T055 y T058: invitaciones, cancelar y asistentes;
+  (5) T060, T064 y T065: auto-login y cierre de la ola.
+- **Avance (2026-11-22, PR 1 en `frontend/t-f12-rsvp`):**
+  - `RSVP` según el contrato, sin `id`, `guestsCount` ni QR; `RespondRsvpRequest` solo con
+    `ACCEPTED`, `DECLINED` o `MAYBE`.
+  - Modelos nuevos: `Attendee`, `InviteLink` e `InviteLinkPreview`; `Invitation` con
+    `inviteLinkId`. Pruebas contra los fixtures en `test/contract/rsvp_invite_contract_test.dart`.
+  - Detalle del evento con "Voy", "Tal vez" y "No voy", la respuesta actual, el aviso de lista
+    de espera y botones deshabilitados en eventos cancelados, terminados o que ya empezaron. El
+    organizador no ve los botones.
+  - Límite del contrato: `getEvent` no trae el RSVP de quien consulta, así que la app solo
+    conoce la respuesta después de enviarla en esa visita.
 
 ### T-F13 · App de la Ola 2a — 🟢 READY (T-C11 ✅ #320) · P0 · Principio IV
 - **Qué:** las tareas `[Alex]` de las fases 2 a 6 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): modelos y pruebas de contrato,

@@ -66,8 +66,8 @@ contrato (T006–T013) esté mergeado.
 
 ### App: modelos y pruebas de contrato (tras T011, dueño Alex)
 
-- [ ] T014 [P] [Alex] Modelos Dart en `APP/features/events/data/models/`: `rsvp_model.dart` (sin `guestsCount`), `invitation_model.dart` (+ `inviteLinkId`), `invite_link_model.dart`, `invite_link_preview_model.dart`, `attendee_model.dart`; `event_model.dart` tolera `stats` reducido. Fechas con `.toLocal()` (Bug-B01)
-- [ ] T015 [Alex] Pruebas de serialización contra los fixtures nuevos en `APP-test/contract/event_contract_test.dart` y `APP-test/contract/auth_contract_test.dart`
+- [X] T014 [P] [Alex] Modelos Dart en `APP/features/events/data/models/`: `rsvp_model.dart` (sin `guestsCount`), `invitation_model.dart` (+ `inviteLinkId`), `invite_link_model.dart`, `invite_link_preview_model.dart`, `attendee_model.dart`; `event_model.dart` tolera `stats` reducido. Fechas con `.toLocal()` (Bug-B01)
+- [X] T015 [Alex] Pruebas de serialización contra los fixtures nuevos en `APP-test/contract/event_contract_test.dart` y `APP-test/contract/auth_contract_test.dart`
 
 ### Backend transversal (tras el merge del contrato, dueño Bernardo)
 
@@ -106,8 +106,8 @@ Va primero porque US1 reutiliza su lógica de confirmación.
 
 - [X] T030 [US3] [Bernardo] Reescribir `respondToRSVP` como upsert sobre `AttendanceService` (T024) en `ES/application/service/EventServiceImpl.java`: entrada `ACCEPTED | DECLINED | MAYBE`, `message` ≤ 280, guarda `displayName`, actualiza la invitación en la misma operación, publica `RSVP_CHANGED`; deja de generar el QR (pasa a `checkin-service` en la Ola 2)
 - [X] T031 [US3] [Bernardo] `POST /api/v1/events/{eventId}/rsvp` en `ES/infrastructure/adapter/inbound/rest/EventController.java`: `200 Rsvp`; borrar `POST /{eventId}/invitations/respond` del controlador, del puerto `EventService` y de `respondToInvitation` (D-01, FR-030)
-- [ ] T032 [P] [US3] [Alex] Caso de uso y repositorio: ajustar `APP/features/events/domain/usecases/respond_rsvp.dart` y `event_repository_impl.dart` a `RespondRsvpRequest`/`Rsvp` (sin `guestsCount`)
-- [ ] T033 [US3] [Alex] UI de RSVP en `APP/features/events/presentation/pages/event_detail_page.dart`: "Voy", "No voy", "Tal vez", estado actual, aviso "Estás en lista de espera" cuando la respuesta es `WAITLISTED`, y botones deshabilitados en eventos cancelados o pasados; textos en español (Bug-F10). Test de bloc en `APP-test/features/events/`
+- [X] T032 [P] [US3] [Alex] Caso de uso y repositorio: ajustar `APP/features/events/domain/usecases/respond_rsvp.dart` y `event_repository_impl.dart` a `RespondRsvpRequest`/`Rsvp` (sin `guestsCount`)
+- [X] T033 [US3] [Alex] UI de RSVP en `APP/features/events/presentation/pages/event_detail_page.dart`: "Voy", "No voy", "Tal vez", estado actual, aviso "Estás en lista de espera" cuando la respuesta es `WAITLISTED`, y botones deshabilitados en eventos cancelados o pasados; textos en español (Bug-F10). Test de bloc en `APP-test/features/events/`
 
 **Checkpoint**: US3 funciona sola contra el backend real y el mock.
 

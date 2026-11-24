@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/error/dio_error_handler.dart';
+import '../../domain/entities/rsvp.dart';
+import '../models/attendee_model.dart';
 import '../models/event_model.dart';
-import '../models/rsvp_model.dart';
 import '../models/invitation_model.dart';
+import '../models/rsvp_model.dart';
 
 abstract class EventRemoteDataSource {
   Future<EventModel> createEvent({
@@ -29,14 +31,16 @@ abstract class EventRemoteDataSource {
   
   Future<List<EventModel>> getUpcomingEvents({int page = 0, int size = 20});
   
+  /// `respondRsvp` (`POST /events/{eventId}/rsvp`): la única forma de
+  /// responder una invitación desde la Ola 1 (D-01).
   Future<RSVPModel> respondToRSVP({
     required String eventId,
-    required String status,
+    required RSVPStatus status,
     String? message,
-    int guestsCount = 0,
   });
-  
-  Future<List<RSVPModel>> getEventAttendees({
+
+  /// `listEventAttendees`: solo el organizador.
+  Future<List<AttendeeModel>> getEventAttendees({
     required String eventId,
     int page = 0,
     int size = 20,
@@ -52,11 +56,6 @@ abstract class EventRemoteDataSource {
     required String eventId,
     int page = 0,
     int size = 20,
-  });
-  
-  Future<void> respondToInvitation({
-    required String eventId,
-    required String status,
   });
   
   Future<RSVPModel> checkIn({
@@ -172,18 +171,13 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   @override
   Future<RSVPModel> respondToRSVP({
     required String eventId,
-    required String status,
+    required RSVPStatus status,
     String? message,
-    int guestsCount = 0,
   }) async {
     try {
       final response = await dio.post(
         '/events/$eventId/rsvp',
-        data: {
-          'status': status,
-          'message': message,
-          'guestsCount': guestsCount,
-        },
+        data: respondRsvpRequestJson(status: status, message: message),
       );
       
       return RSVPModel.fromJson(response.data);
@@ -193,7 +187,7 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
   }
   
   @override
-  Future<List<RSVPModel>> getEventAttendees({
+  Future<List<AttendeeModel>> getEventAttendees({
     required String eventId,
     int page = 0,
     int size = 20,
@@ -203,9 +197,9 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
         '/events/$eventId/attendees',
         queryParameters: {'page': page, 'size': size},
       );
-      
+
       return (response.data as List)
-          .map((json) => RSVPModel.fromJson(json))
+          .map((json) => AttendeeModel.fromJson(json as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       throw _handleError(e);
@@ -248,21 +242,6 @@ class EventRemoteDataSourceImpl implements EventRemoteDataSource {
       return (response.data as List)
           .map((json) => InvitationModel.fromJson(json))
           .toList();
-    } on DioException catch (e) {
-      throw _handleError(e);
-    }
-  }
-  
-  @override
-  Future<void> respondToInvitation({
-    required String eventId,
-    required String status,
-  }) async {
-    try {
-      await dio.post(
-        '/events/$eventId/invitations/respond',
-        data: {'status': status},
-      );
     } on DioException catch (e) {
       throw _handleError(e);
     }

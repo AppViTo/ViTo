@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../core/di/injection_container.dart';
+import '../../features/events/presentation/bloc/event_bloc.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
@@ -51,8 +54,13 @@ class AppRouter {
         return MaterialPageRoute(builder: (_) => const CreateEventScreen());
       case eventDetail:
         final args = settings.arguments as Map<String, dynamic>?;
+        // Un EventBloc por detalle: los estados de otras pantallas (escáner,
+        // crear evento, otro detalle) no llegan a este.
         return MaterialPageRoute(
-          builder: (_) => EventDetailPage(eventId: args?['eventId'] ?? ''),
+          builder: (_) => BlocProvider<EventBloc>(
+            create: (_) => sl<EventBloc>(),
+            child: EventDetailPage(eventId: args?['eventId'] ?? ''),
+          ),
         );
       case qrScanner:
         final args = settings.arguments as Map<String, dynamic>?;

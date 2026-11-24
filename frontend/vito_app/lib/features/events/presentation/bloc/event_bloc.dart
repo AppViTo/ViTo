@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 
+import '../../domain/entities/attendee.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/entities/rsvp.dart';
 import '../../domain/entities/invitation.dart';
@@ -74,21 +75,21 @@ class LoadMyEvents extends EventEvent {}
 
 class LoadUpcomingEvents extends EventEvent {}
 
+/// Responde con `respondRsvp`: `accepted`, `declined` o `maybe`. Aceptar o
+/// rechazar una invitación también pasa por aquí (D-01).
 class RespondToRSVP extends EventEvent {
   final String eventId;
   final RSVPStatus status;
   final String? message;
-  final int guestsCount;
-  
+
   const RespondToRSVP({
     required this.eventId,
     required this.status,
     this.message,
-    this.guestsCount = 0,
   });
-  
+
   @override
-  List<Object?> get props => [eventId, status, message, guestsCount];
+  List<Object?> get props => [eventId, status, message];
 }
 
 class LoadEventAttendees extends EventEvent {
@@ -122,19 +123,6 @@ class LoadEventInvitations extends EventEvent {
   
   @override
   List<Object?> get props => [eventId];
-}
-
-class RespondToInvitation extends EventEvent {
-  final String eventId;
-  final InvitationStatus status;
-  
-  const RespondToInvitation({
-    required this.eventId,
-    required this.status,
-  });
-  
-  @override
-  List<Object?> get props => [eventId, status];
 }
 
 class CheckIn extends EventEvent {
@@ -243,7 +231,7 @@ class RSVPSubmitted extends EventState {
 }
 
 class EventAttendeesLoaded extends EventState {
-  final List<RSVP> attendees;
+  final List<Attendee> attendees;
   
   const EventAttendeesLoaded(this.attendees);
   
@@ -268,8 +256,6 @@ class EventInvitationsLoaded extends EventState {
   @override
   List<Object?> get props => [invitations];
 }
-
-class InvitationResponded extends EventState {}
 
 class CheckInSuccess extends EventState {
   final RSVP rsvp;
@@ -333,7 +319,6 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     on<LoadEventAttendees>(_onLoadEventAttendees);
     on<SendInvitation>(_onSendInvitation);
     on<LoadEventInvitations>(_onLoadEventInvitations);
-    on<RespondToInvitation>(_onRespondToInvitation);
     on<CheckIn>(_onCheckIn);
     on<GenerateCheckInQR>(_onGenerateCheckInQR);
     on<UploadEventCover>(_onUploadEventCover);
@@ -423,7 +408,6 @@ class EventBloc extends Bloc<EventEvent, EventState> {
       eventId: event.eventId,
       status: event.status,
       message: event.message,
-      guestsCount: event.guestsCount,
     );
     
     result.fold(
@@ -466,20 +450,6 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     result.fold(
       (failure) => emit(EventError(failure.message)),
       (invitations) => emit(EventInvitationsLoaded(invitations)),
-    );
-  }
-  
-  Future<void> _onRespondToInvitation(RespondToInvitation event, Emitter<EventState> emit) async {
-    emit(EventLoading());
-    
-    final result = await eventRepository.respondToInvitation(
-      eventId: event.eventId,
-      status: event.status,
-    );
-    
-    result.fold(
-      (failure) => emit(EventError(failure.message)),
-      (_) => emit(InvitationResponded()),
     );
   }
   

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/event.dart';
 import '../../domain/entities/rsvp.dart';
 import '../bloc/event_bloc.dart';
@@ -16,6 +17,15 @@ class EventDetailPage extends StatefulWidget {
 }
 
 class _EventDetailPageState extends State<EventDetailPage> {
+  /// Último detalle cargado. Mientras exista, los estados de otras acciones
+  /// del BLoC (responder, recargar) no reemplazan la página.
+  Event? _event;
+
+  /// Respuesta enviada en esta visita. El contrato no expone el RSVP propio
+  /// al leer el evento, así que solo se conoce después de responder.
+  RSVP? _myRsvp;
+  bool _submittingRsvp = false;
+
   @override
   void initState() {
     super.initState();
@@ -25,8 +35,20 @@ class _EventDetailPageState extends State<EventDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: BlocBuilder<EventBloc, EventState>(
+      body: BlocConsumer<EventBloc, EventState>(
+        // El EventBloc puede ser compartido (raíz de la app, otras pantallas):
+        // solo cuentan los estados de este evento y las acciones de esta
+        // página. Un error ajeno (escáner, check-in) no se muestra aquí.
+        listenWhen: (_, state) =>
+            (state is RSVPSubmitted && state.rsvp.eventId == widget.eventId) ||
+            (state is EventError && _submittingRsvp),
+        listener: _onActionResult,
+        buildWhen: (_, state) =>
+            _isThisEvent(state) ||
+            (_event == null && (state is EventLoading || state is EventError)),
         builder: (context, state) {
+          if (_isThisEvent(state)) _event = (state as EventLoaded).event;
+
           if (state is EventLoading) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
@@ -76,8 +98,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
             );
           }
 
-          if (state is EventLoaded) {
-            final event = state.event;
+          final event = _event;
+          if (event != null) {
             return CustomScrollView(
               slivers: [
                 // App bar with cover image
@@ -212,6 +234,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           const SizedBox(height: 16),
                         ],
 
+                        // RSVP (T033): el organizador no responde a su evento.
+                        if (!_isOrganizer(context, event)) ...[
+                          _buildRsvpSection(context, event),
+                          const SizedBox(height: 16),
+                        ],
+
                         // Action buttons
                         const SizedBox(height: 8),
                         _buildActionButtons(context, event),
@@ -310,20 +338,210 @@ class _EventDetailPageState extends State<EventDetailPage> {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, event) {
+  /// Un `EventLoaded` de otro evento (p. ej. el que se abrió antes con el
+  /// mismo bloc) nunca reemplaza este detalle: si no, "Voy" respondería a
+  /// ese otro evento.
+  bool _isThisEvent(EventState state) =>
+      state is EventLoaded && state.event.id == widget.eventId;
+
+  void _onActionResult(BuildContext context, EventState state) {
+    final messenger = ScaffoldMessenger.of(context);
+    if (state is RSVPSubmitted) {
+      setState(() {
+        _myRsvp = state.rsvp;
+        _submittingRsvp = false;
+      });
+      messenger.showSnackBar(
+        SnackBar(content: Text(_rsvpConfirmation(state.rsvp.status))),
+      );
+      // Recarga el detalle para ver el contador de confirmados actualizado.
+      context.read<EventBloc>().add(LoadEvent(widget.eventId));
+    } else if (state is EventError) {
+      setState(() => _submittingRsvp = false);
+      messenger.showSnackBar(SnackBar(content: Text(state.message)));
+    }
+  }
+
+  /// El detalle puede abrirse sin `AuthBloc` en las pruebas; sin sesión
+  /// conocida no se trata al usuario como organizador.
+  bool _isOrganizer(BuildContext context, Event event) {
+    try {
+      final authState = BlocProvider.of<AuthBloc>(context).state;
+      return authState is AuthAuthenticated &&
+          authState.user.id == event.organizerId;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// `respondRsvp` responde 409 en eventos cancelados, terminados o que ya
+  /// empezaron; la app no ofrece responder en esos casos.
+  bool _acceptsRsvp(Event event) {
+    if (event.status == EventStatus.cancelled ||
+        event.status == EventStatus.completed) {
+      return false;
+    }
+    final start = event.details?.startDate;
+    return start == null || start.isAfter(DateTime.now());
+  }
+
+  Widget _buildRsvpSection(BuildContext context, Event event) {
+    final acceptsRsvp = _acceptsRsvp(event);
+    final current = _myRsvp?.status;
+    final enabled = acceptsRsvp && !_submittingRsvp;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // RSVP Button
-        ElevatedButton.icon(
-          onPressed: () {
-            _showRSVPDialog(context, event.id);
-          },
-          icon: const Icon(Icons.how_to_reg),
-          label: const Text('Confirmar asistencia'),
+        const Text(
+          '¿Vas a ir?',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 8),
+        if (current != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            'Tu respuesta: ${_rsvpLabel(current)}',
+            style: const TextStyle(color: AppColors.textSecondary),
+          ),
+        ],
+        if (_myRsvp?.isWaitlisted == true) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.hourglass_top, color: AppColors.warning),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Estás en lista de espera: el evento no tiene cupo por ahora.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _rsvpButton(
+                context,
+                event,
+                status: RSVPStatus.accepted,
+                label: 'Voy',
+                icon: Icons.check_circle,
+                selected: current == RSVPStatus.accepted ||
+                    current == RSVPStatus.waitlisted,
+                enabled: enabled,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _rsvpButton(
+                context,
+                event,
+                status: RSVPStatus.maybe,
+                label: 'Tal vez',
+                icon: Icons.help_outline,
+                selected: current == RSVPStatus.maybe,
+                enabled: enabled,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _rsvpButton(
+                context,
+                event,
+                status: RSVPStatus.declined,
+                label: 'No voy',
+                icon: Icons.cancel,
+                selected: current == RSVPStatus.declined,
+                enabled: enabled,
+              ),
+            ),
+          ],
+        ),
+        if (!acceptsRsvp) ...[
+          const SizedBox(height: 8),
+          Text(
+            event.status == EventStatus.cancelled
+                ? 'El evento fue cancelado: ya no se puede responder.'
+                : 'El evento ya empezó o terminó: ya no se puede responder.',
+            style: const TextStyle(color: AppColors.textSecondary),
+          ),
+        ],
+      ],
+    );
+  }
 
+  Widget _rsvpButton(
+    BuildContext context,
+    Event event, {
+    required RSVPStatus status,
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required bool enabled,
+  }) {
+    final onPressed = enabled
+        ? () {
+            setState(() => _submittingRsvp = true);
+            context
+                .read<EventBloc>()
+                .add(RespondToRSVP(eventId: event.id, status: status));
+          }
+        : null;
+    final child = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [Icon(icon, size: 18), const SizedBox(width: 4), Text(label)],
+      ),
+    );
+    return selected
+        ? ElevatedButton(onPressed: onPressed, child: child)
+        : OutlinedButton(onPressed: onPressed, child: child);
+  }
+
+  String _rsvpLabel(RSVPStatus status) {
+    switch (status) {
+      case RSVPStatus.accepted:
+        return 'Voy';
+      case RSVPStatus.waitlisted:
+        return 'Voy (en lista de espera)';
+      case RSVPStatus.maybe:
+        return 'Tal vez';
+      case RSVPStatus.declined:
+        return 'No voy';
+      case RSVPStatus.pending:
+        return 'Sin responder';
+    }
+  }
+
+  String _rsvpConfirmation(RSVPStatus status) {
+    switch (status) {
+      case RSVPStatus.accepted:
+        return '¡Listo! Confirmaste que vas';
+      case RSVPStatus.waitlisted:
+        return 'El evento está lleno: quedaste en lista de espera';
+      case RSVPStatus.maybe:
+        return 'Respondiste que tal vez vas';
+      case RSVPStatus.declined:
+        return 'Respondiste que no vas';
+      case RSVPStatus.pending:
+        return 'Respuesta registrada';
+    }
+  }
+
+  Widget _buildActionButtons(BuildContext context, Event event) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         // QR Scanner Button
         OutlinedButton.icon(
           onPressed: () {
@@ -371,53 +589,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
           label: const Text('Iniciar transmisión'),
         ),
       ],
-    );
-  }
-
-  void _showRSVPDialog(BuildContext context, String eventId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar asistencia'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.check_circle, color: AppColors.success),
-              title: const Text('Aceptar'),
-              onTap: () {
-                context.read<EventBloc>().add(RespondToRSVP(
-                  eventId: eventId,
-                  status: RSVPStatus.accepted,
-                ));
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.help_outline, color: AppColors.warning),
-              title: const Text('Tal vez'),
-              onTap: () {
-                context.read<EventBloc>().add(RespondToRSVP(
-                  eventId: eventId,
-                  status: RSVPStatus.maybe,
-                ));
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.cancel, color: AppColors.error),
-              title: const Text('Rechazar'),
-              onTap: () {
-                context.read<EventBloc>().add(RespondToRSVP(
-                  eventId: eventId,
-                  status: RSVPStatus.declined,
-                ));
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
     );
   }
 
