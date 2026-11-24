@@ -156,14 +156,14 @@ indicadores; en su propio perfil, los indicadores en `false` (quickstart §4).
 
 ### Tests for User Story 3
 
-- [ ] T043 [P] [US3] [Bernardo] Prueba primero: `SS-test/infrastructure/adapter/inbound/rest/SocialProfileSerializationTest.java`: el JSON trae `isFollowing` e `isFollowedBy` (no `following` ni `followedBy`, T-B13) y coincide con `getSocialProfile.200.json` y `getSocialProfile.own.200.json`
-- [ ] T044 [P] [US3] [Bernardo] Prueba de controlador contra `getSocialProfile.*` en `SocialControllerContractTest.java`: `200`, propio perfil, `404` (usuario que `auth-service` no devuelve) y `503` (con `auth-service` simulado caído)
+- [X] T043 [P] [US3] [Bernardo] Prueba primero: `SS-test/infrastructure/adapter/inbound/rest/SocialProfileSerializationTest.java`: el JSON trae `isFollowing` e `isFollowedBy` (no `following` ni `followedBy`, T-B13) y coincide con `getSocialProfile.200.json` y `getSocialProfile.own.200.json`
+- [X] T044 [P] [US3] [Bernardo] Prueba de controlador contra `getSocialProfile.*` en `SocialControllerContractTest.java`: `200`, propio perfil, `404` (usuario que `auth-service` no devuelve) y `503` (con `auth-service` simulado caído)
 
 ### Implementation for User Story 3
 
-- [ ] T045 [US3] [Bernardo] `getSocialProfile` en `SocialServiceImpl.java`: identidad con `UserDirectory` (un id), `followersCount = count({followingId})`, `followingCount = count({followerId})`, `isFollowing`/`isFollowedBy` con dos consultas de existencia y `false` en el propio perfil (research R6 y `data-model.md`); `SS/domain/model/SocialProfile.java` sin métodos `increment*`/`decrement*`
-- [ ] T046 [US3] [Bernardo] DTO `SS/infrastructure/adapter/inbound/rest/dto/SocialProfileResponse.java` (`record` o `@JsonProperty("isFollowing")`/`@JsonProperty("isFollowedBy")`) y `SocialController.java` responde el DTO, no el modelo de dominio. T043 y T044 pasan
-- [ ] T047 [US3] [Bernardo] Retirar `GET /api/v1/social/is-following/{userId}` del controlador y del puerto `SocialService`, y el puerto `UserProfileRepository` con `UserProfileMongoAdapter.java`. La colección `user_profiles` no se borra (Principio IX)
+- [X] T045 [US3] [Bernardo] `getSocialProfile` en `SocialServiceImpl.java`: identidad con `UserDirectory` (un id), `followersCount = count({followingId})`, `followingCount = count({followerId})`, `isFollowing`/`isFollowedBy` con dos consultas de existencia y `false` en el propio perfil (research R6 y `data-model.md`); `SS/domain/model/SocialProfile.java` sin métodos `increment*`/`decrement*`
+- [X] T046 [US3] [Bernardo] DTO `SS/infrastructure/adapter/inbound/rest/dto/SocialProfileResponse.java` (`record` o `@JsonProperty("isFollowing")`/`@JsonProperty("isFollowedBy")`) y `SocialController.java` responde el DTO, no el modelo de dominio. T043 y T044 pasan
+- [ ] T047 [US3] [Bernardo] Retirar `GET /api/v1/social/is-following/{userId}` del controlador y del puerto `SocialService`, y el puerto `UserProfileRepository` con `UserProfileMongoAdapter.java`. La colección `user_profiles` no se borra (Principio IX). **Avance:** `is-following` retirada del controlador y del puerto; `UserProfileRepository` sigue mientras las listas lo usen y se retira con US4 (T051)
 - [X] T048 [P] [US3] [Alex] `APP/features/social/presentation/pages/profile_page.dart` y `stats_card.dart` con `getSocialProfile`: nombre, usuario, avatar, contadores, "te sigue", sin botón de seguir en el propio perfil; quitar la llamada a `/social/is-following` del datasource, el repositorio y el bloc; `503` con "No pudimos cargar el perfil, intenta de nuevo"
 
 ---

@@ -3,6 +3,7 @@ package com.vito.social.infrastructure.adapter.inbound.rest;
 import com.vito.social.domain.model.SocialProfile;
 import com.vito.social.domain.port.inbound.SocialService;
 import com.vito.social.domain.exception.SocialException;
+import com.vito.social.infrastructure.adapter.inbound.rest.dto.SocialProfileResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -46,13 +47,14 @@ public class SocialController {
         return ResponseEntity.noContent().build();
     }
     
+    /** T046 (getSocialProfile): responde el DTO del contrato, no el modelo de dominio. */
     @GetMapping("/profile/{userId}")
-    public ResponseEntity<SocialProfile> getProfile(@PathVariable String userId) {
+    public ResponseEntity<SocialProfileResponse> getProfile(@PathVariable String userId) {
         String currentUserId = getCurrentUserId();
         
         SocialProfile profile = socialService.getSocialProfile(userId, currentUserId);
         
-        return ResponseEntity.ok(profile);
+        return ResponseEntity.ok(SocialProfileResponse.from(profile));
     }
     
     @GetMapping("/followers/{userId}")
@@ -79,15 +81,8 @@ public class SocialController {
     
     // GET /search retirada (T033, Ola 2a): la búsqueda es searchUsers de auth-service (ADR-016)
 
-    @GetMapping("/is-following/{userId}")
-    public ResponseEntity<Boolean> isFollowing(@PathVariable String userId) {
-        String currentUserId = getCurrentUserId();
-        
-        boolean isFollowing = socialService.isFollowing(currentUserId, userId);
-        
-        return ResponseEntity.ok(isFollowing);
-    }
-    
+    // GET /is-following retirada (T047, Ola 2a): isFollowing e isFollowedBy van en el perfil
+
     private String getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {

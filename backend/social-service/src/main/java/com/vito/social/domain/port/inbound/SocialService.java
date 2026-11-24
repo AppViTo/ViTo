@@ -14,8 +14,6 @@ public interface SocialService {
     
     void unfollow(UnfollowCommand command);
     
-    boolean isFollowing(String followerId, String followingId);
-    
     SocialProfile getSocialProfile(String userId, String currentUserId);
     
     List<SocialProfile> getFollowers(String userId, int page, int size);

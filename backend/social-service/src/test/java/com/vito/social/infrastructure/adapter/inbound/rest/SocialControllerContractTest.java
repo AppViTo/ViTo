@@ -23,11 +23,14 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.hamcrest.Matchers.endsWith;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -35,7 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * T038 (Ola 2a): {@code followUser} y {@code unfollowUser} contra sus fixtures de
+ * T038 y T044 (Ola 2a): {@code followUser}, {@code unfollowUser} y {@code getSocialProfile} contra sus fixtures de
  * {@code docs/api/fixtures/social/}. Controlador, servicio y handler reales; solo el grafo,
  * auth-service y Kafka son dobles.
  */
@@ -145,6 +148,69 @@ class SocialControllerContractTest {
 
         assertMatchesFixture(mvc.perform(delete("/api/v1/social/follow/" + JOSE)), "unfollowUser.503.json")
                 .andExpect(header().string("Retry-After", "5"));
+    }
+
+    // ── getSocialProfile (T044) ────────────────────────────────────────────────
+
+    @Test
+    void profileOfSomeoneElseMatchesFixture200() throws Exception {
+        JsonNode expected = fixture("getSocialProfile.other.200.json");
+        String caro = expected.get("userId").asText();
+        when(directory.findByIds(List.of(caro))).thenReturn(List.of(new UserSummary(caro,
+                expected.get("username").asText(), expected.get("displayName").asText(),
+                expected.get("avatar").asText())));
+        when(follows.countByFollowingId(caro)).thenReturn(2L);
+        when(follows.countByFollowerId(caro)).thenReturn(1L);
+        when(follows.existsByFollowerIdAndFollowingId(ME, caro)).thenReturn(true);
+        when(follows.existsByFollowerIdAndFollowingId(caro, ME)).thenReturn(true);
+
+        String body = mvc.perform(get("/api/v1/social/profile/" + caro))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        assertEquals(expected, new ObjectMapper().readTree(body));
+    }
+
+    @Test
+    void ownProfileMatchesFixture200() throws Exception {
+        JsonNode expected = fixture("getSocialProfile.own.200.json");
+        when(directory.findByIds(List.of(ME))).thenReturn(List.of(new UserSummary(ME,
+                expected.get("username").asText(), expected.get("displayName").asText(),
+                expected.get("avatar").asText())));
+        when(follows.countByFollowingId(ME)).thenReturn(1L);
+        when(follows.countByFollowerId(ME)).thenReturn(2L);
+
+        String body = mvc.perform(get("/api/v1/social/profile/" + ME))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        JsonNode actual = new ObjectMapper().readTree(body);
+        assertEquals(expected.get("followersCount"), actual.get("followersCount"));
+        assertEquals(expected.get("followingCount"), actual.get("followingCount"));
+        assertFalse(actual.get("isFollowing").asBoolean());
+        assertFalse(actual.get("isFollowedBy").asBoolean());
+    }
+
+    @Test
+    void profileOfAMissingUserMatchesFixture404() throws Exception {
+        when(directory.findByIds(List.of("usr_ghost"))).thenReturn(List.of());
+
+        assertMatchesFixture(mvc.perform(get("/api/v1/social/profile/usr_ghost")), "getSocialProfile.404.json");
+    }
+
+    @Test
+    void profileWithAuthServiceDownMatchesFixture503() throws Exception {
+        when(directory.findByIds(List.of(JOSE))).thenThrow(new UserDirectoryUnavailableException());
+
+        assertMatchesFixture(mvc.perform(get("/api/v1/social/profile/" + JOSE)), "getSocialProfile.503.json")
+                .andExpect(header().string("Retry-After", "5"));
+    }
+
+    /** T047: {@code isFollowing} va dentro del perfil; la ruta suelta nunca estuvo en el contrato. */
+    @Test
+    void isFollowingRouteNoLongerExists() throws Exception {
+        mvc.perform(get("/api/v1/social/is-following/" + JOSE))
+                .andExpect(status().isNotFound());
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ package com.vito.social.application.service;
 import com.vito.social.domain.exception.SocialException;
 import com.vito.social.domain.model.FollowRelationship;
 import com.vito.social.domain.model.SocialProfile;
+import com.vito.social.domain.model.UserSummary;
 import com.vito.social.domain.port.inbound.SocialService;
 import com.vito.social.domain.port.outbound.EventPublisherPort;
 import com.vito.social.domain.port.outbound.FollowRepository;
@@ -69,23 +70,27 @@ public class SocialServiceImpl implements SocialService {
         }
     }
     
-    @Override
-    public boolean isFollowing(String followerId, String followingId) {
-        return followRepository.existsByFollowerIdAndFollowingId(followerId, followingId);
-    }
-    
+    /**
+     * T045 (research R6, data-model.md): identidad de auth-service, contadores con {@code count} y
+     * las dos direcciones del grafo. En el propio perfil los dos booleanos son {@code false}.
+     */
     @Override
     public SocialProfile getSocialProfile(String userId, String currentUserId) {
-        SocialProfile profile = userProfileRepository.findByUserId(userId)
+        UserSummary user = userDirectory.findByIds(List.of(userId)).stream()
+                .findFirst()
                 .orElseThrow(SocialException::userNotFound);
-        
-        // Set follow status
-        if (currentUserId != null && !currentUserId.equals(userId)) {
-            profile.setFollowing(isFollowing(currentUserId, userId));
-            profile.setFollowedBy(isFollowing(userId, currentUserId));
-        }
-        
-        return profile;
+
+        boolean own = userId.equals(currentUserId);
+        return SocialProfile.builder()
+                .userId(user.userId())
+                .username(user.username())
+                .displayName(user.displayName())
+                .avatar(user.avatar())
+                .followersCount(Math.toIntExact(followRepository.countByFollowingId(userId)))
+                .followingCount(Math.toIntExact(followRepository.countByFollowerId(userId)))
+                .isFollowing(!own && followRepository.existsByFollowerIdAndFollowingId(currentUserId, userId))
+                .isFollowedBy(!own && followRepository.existsByFollowerIdAndFollowingId(userId, currentUserId))
+                .build();
     }
     
     @Override

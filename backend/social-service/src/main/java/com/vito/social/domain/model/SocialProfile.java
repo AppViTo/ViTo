@@ -5,6 +5,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Perfil social visto por quien consulta (vista {@code SocialProfile} de data-model.md, Ola 2a).
+ * La identidad viene de auth-service y los contadores se calculan con {@code count} sobre el grafo
+ * (research R6): no se guardan ni se incrementan. {@code bio} solo lo usan aún las listas, que
+ * cambian a {@code UserSummary} en US4.
+ */
 @Data
 @Builder
 @NoArgsConstructor
@@ -28,24 +34,4 @@ public class SocialProfile {
     private boolean isFollowing;
     
     private boolean isFollowedBy;
-    
-    public void incrementFollowers() {
-        this.followersCount++;
-    }
-    
-    public void decrementFollowers() {
-        if (this.followersCount > 0) {
-            this.followersCount--;
-        }
-    }
-    
-    public void incrementFollowing() {
-        this.followingCount++;
-    }
-    
-    public void decrementFollowing() {
-        if (this.followingCount > 0) {
-            this.followingCount--;
-        }
-    }
 }
