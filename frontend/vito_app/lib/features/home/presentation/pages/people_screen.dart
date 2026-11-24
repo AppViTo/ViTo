@@ -21,7 +21,11 @@ class PeopleScreen extends StatefulWidget {
   /// Por defecto, el repositorio registrado en `sl`. Las pruebas pasan otro.
   final SocialRepository? repository;
 
-  const PeopleScreen({super.key, this.repository});
+  /// Cada aviso recarga las listas. La pestaña "Mi Gente" lo usa al volver a
+  /// ella: sigue viva en el `IndexedStack` con los datos de la primera carga.
+  final Listenable? reloadSignal;
+
+  const PeopleScreen({super.key, this.repository, this.reloadSignal});
 
   @override
   State<PeopleScreen> createState() => _PeopleScreenState();
@@ -41,11 +45,34 @@ class _PeopleScreenState extends State<PeopleScreen> {
   bool _searching = false;
   String? _searchError;
 
+  /// Sube para recargar las listas (forma parte de la clave de su cubit).
+  int _listsVersion = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.reloadSignal?.addListener(_reloadLists);
+  }
+
+  @override
+  void didUpdateWidget(covariant PeopleScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.reloadSignal != widget.reloadSignal) {
+      oldWidget.reloadSignal?.removeListener(_reloadLists);
+      widget.reloadSignal?.addListener(_reloadLists);
+    }
+  }
+
   @override
   void dispose() {
+    widget.reloadSignal?.removeListener(_reloadLists);
     _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _reloadLists() {
+    if (mounted) setState(() => _listsVersion++);
   }
 
   @override
@@ -228,7 +255,7 @@ class _PeopleScreenState extends State<PeopleScreen> {
 
     final following = _selectedFilter == PeopleFilter.siguiendo;
     return BlocProvider(
-      key: ValueKey('$myId-$_selectedFilter'),
+      key: ValueKey('$myId-$_selectedFilter-$_listsVersion'),
       create: (_) => FollowListCubit(
         userId: myId,
         kind: following ? FollowListKind.following : FollowListKind.followers,
@@ -241,10 +268,13 @@ class _PeopleScreenState extends State<PeopleScreen> {
     );
   }
 
-  void _openProfile(UserSummary user) {
-    Navigator.of(context).push(MaterialPageRoute(
+  /// Abre el perfil y, al volver, recarga las listas: desde el perfil se
+  /// pudo seguir o dejar de seguir.
+  Future<void> _openProfile(UserSummary user) async {
+    await Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => ProfilePage(userId: user.userId, repository: _repository),
     ));
+    _reloadLists();
   }
 
   Widget _centered(String message) {

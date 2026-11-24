@@ -37,6 +37,10 @@ class UserTile extends StatelessWidget {
   }
 }
 
+/// Elementos antes del final a partir de los cuales se pide la página
+/// siguiente.
+const _loadMoreThreshold = 5;
+
 /// Lista paginada de [FollowListCubit] (T053): pide la página siguiente al
 /// acercarse al final y se detiene con la primera página vacía.
 class FollowListView extends StatelessWidget {
@@ -67,35 +71,38 @@ class FollowListView extends StatelessWidget {
           );
         }
         final showFooter = state.loadingMore || state.error != null;
-        return NotificationListener<ScrollNotification>(
-          onNotification: (notification) {
-            if (notification.metrics.extentAfter < 300) {
-              context.read<FollowListCubit>().loadMore();
+        final cubit = context.read<FollowListCubit>();
+        return ListView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          itemCount: state.items.length + (showFooter ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index < state.items.length) {
+              // ListView.builder construye los elementos al acercarse a ellos:
+              // al construir uno de los últimos se pide la página siguiente.
+              // Así también sigue una primera página que no llena la
+              // pantalla. Tras un error se espera a "Reintentar".
+              if (state.error == null &&
+                  index >= state.items.length - _loadMoreThreshold) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (cubit.canLoadMore) cubit.loadMore();
+                });
+              }
+              final user = state.items[index];
+              return UserTile(user: user, onTap: () => onUserTap(user));
             }
-            return false;
-          },
-          child: ListView.builder(
-            physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: state.items.length + (showFooter ? 1 : 0),
-            itemBuilder: (context, index) {
-              if (index < state.items.length) {
-                final user = state.items[index];
-                return UserTile(user: user, onTap: () => onUserTap(user));
-              }
-              if (state.loadingMore) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(
-                    child: CircularProgressIndicator(color: AppColors.coralNeon),
-                  ),
-                );
-              }
-              return TextButton(
-                onPressed: () => context.read<FollowListCubit>().loadMore(),
-                child: Text('${state.error} · Reintentar'),
+            if (state.loadingMore) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(
+                  child: CircularProgressIndicator(color: AppColors.coralNeon),
+                ),
               );
-            },
-          ),
+            }
+            return TextButton(
+              onPressed: cubit.loadMore,
+              child: Text('${state.error} · Reintentar'),
+            );
+          },
         );
       },
     );

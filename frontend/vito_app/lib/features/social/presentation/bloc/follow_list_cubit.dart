@@ -60,6 +60,9 @@ class FollowListCubit extends Cubit<FollowListState> {
   final SocialRepository repository;
   int _nextPage = 0;
 
+  /// Sube con cada [load]: las respuestas de una carga anterior se ignoran.
+  int _generation = 0;
+
   FollowListCubit({
     required this.userId,
     required this.kind,
@@ -67,23 +70,36 @@ class FollowListCubit extends Cubit<FollowListState> {
   }) : super(const FollowListState());
 
   Future<void> load() async {
+    final generation = ++_generation;
     _nextPage = 0;
     emit(const FollowListState());
-    await _fetch();
+    await _fetch(generation);
   }
 
+  /// Se puede pedir la página siguiente: la primera ya llegó, no hay otra en
+  /// curso, no se llegó al final y la lista no está vacía por un error.
+  bool get canLoadMore =>
+      !isClosed &&
+      !state.loading &&
+      !state.loadingMore &&
+      !state.reachedEnd &&
+      !(state.error != null && state.items.isEmpty);
+
+  /// Página siguiente. Tras un error la pide solo el botón "Reintentar"
+  /// de la lista, no el scroll.
   Future<void> loadMore() async {
-    if (state.loading || state.loadingMore || state.reachedEnd) return;
-    if (state.error != null && state.items.isEmpty) return;
+    if (!canLoadMore) return;
     emit(state.copyWith(loadingMore: true));
-    await _fetch();
+    await _fetch(_generation);
   }
 
-  Future<void> _fetch() async {
+  Future<void> _fetch(int generation) async {
     final page = _nextPage;
     final result = kind == FollowListKind.followers
         ? await repository.getFollowers(userId: userId, page: page, size: pageSize)
         : await repository.getFollowing(userId: userId, page: page, size: pageSize);
+    // La página puede cerrarse (o recargarse) con la petición en curso.
+    if (isClosed || generation != _generation) return;
     result.fold(
       (failure) => emit(state.copyWith(
         loading: false,

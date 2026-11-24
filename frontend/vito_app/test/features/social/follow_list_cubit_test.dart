@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:vito_app/core/error/failures.dart';
@@ -52,6 +54,38 @@ void main() {
 
     expect(cubit.state.items.map((u) => u.userId),
         ['usr_1', 'usr_2', 'usr_3']);
+  });
+
+  test('cerrar el cubit con la carga en curso no emite después de close',
+      () async {
+    final repository = FakeGraphRepository(followerPages: [
+      [person(1)],
+    ])
+      ..gate = Completer<void>();
+    final cubit = cubitFor(repository);
+
+    final loading = cubit.load();
+    await cubit.close();
+    repository.gate!.complete();
+
+    await expectLater(loading, completes);
+    await expectLater(cubit.loadMore(), completes);
+  });
+
+  test('una recarga descarta la respuesta de la carga anterior', () async {
+    final repository = FakeGraphRepository(followerPages: [
+      [person(1)],
+    ])
+      ..gate = Completer<void>();
+    final cubit = cubitFor(repository);
+    addTearDown(cubit.close);
+
+    final first = cubit.load();
+    final second = cubit.load();
+    repository.gate!.complete();
+    await Future.wait([first, second]);
+
+    expect(cubit.state.items.map((u) => u.userId), ['usr_1']);
   });
 
   test('un error en la primera página queda en el estado', () async {

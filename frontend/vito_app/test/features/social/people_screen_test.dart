@@ -9,14 +9,20 @@ import 'package:vito_app/features/social/domain/entities/social_profile.dart';
 import '../events/auth_stub.dart';
 import 'fakes.dart';
 
-Future<void> _pump(WidgetTester tester, FakeGraphRepository repository) async {
+Future<void> _pump(
+  WidgetTester tester,
+  FakeGraphRepository repository, {
+  Listenable? reloadSignal,
+}) async {
   tester.view.physicalSize = const Size(800, 1600);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(
     BlocProvider<AuthBloc>(
       create: (_) => StubAuthBloc('usr_1'),
-      child: MaterialApp(home: PeopleScreen(repository: repository)),
+      child: MaterialApp(
+        home: PeopleScreen(repository: repository, reloadSignal: reloadSignal),
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -124,5 +130,106 @@ void main() {
     expect(repository.calls.last, 'profile usr_2');
     expect(find.text('@persona2'), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Siguiendo'), findsOneWidget);
+  });
+
+  testWidgets('una primera página corta sigue con la siguiente sin scroll',
+      (tester) async {
+    final repository = FakeGraphRepository(followingPages: [
+      [person(2)],
+      [person(3)],
+    ]);
+    await _pump(tester, repository);
+
+    expect(find.text('Persona 3'), findsOneWidget);
+    expect(repository.calls, [
+      'following usr_1 0',
+      'following usr_1 1',
+      'following usr_1 2',
+    ]);
+  });
+
+  testWidgets('tras un error, el scroll no reintenta; lo hace el botón',
+      (tester) async {
+    final repository = FakeGraphRepository(followingPages: [
+      [for (var i = 1; i <= 30; i++) person(i)],
+      [person(31)],
+    ])
+      ..failingPages.add(1);
+    await _pump(tester, repository);
+
+    final list = find.descendant(
+      of: find.byType(ListView),
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(
+      find.textContaining('Reintentar'),
+      400,
+      scrollable: list,
+    );
+    await tester.pumpAndSettle();
+    expect(repository.calls, ['following usr_1 0', 'following usr_1 1']);
+
+    // Más scroll con el error a la vista no pide otra vez.
+    await tester.drag(list, const Offset(0, 300));
+    await tester.pumpAndSettle();
+    await tester.drag(list, const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(repository.calls, ['following usr_1 0', 'following usr_1 1']);
+
+    repository.failingPages.clear();
+    await tester.tap(find.textContaining('Reintentar'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Persona 31'), 400,
+        scrollable: list);
+    await tester.pumpAndSettle();
+    expect(find.text('Persona 31'), findsOneWidget);
+    expect(repository.calls.sublist(2), [
+      'following usr_1 1',
+      'following usr_1 2',
+    ]);
+  });
+
+  testWidgets('al volver de un perfil recarga las listas', (tester) async {
+    final repository = FakeGraphRepository(
+      followingPages: [
+        [person(2)],
+      ],
+      profiles: {
+        'usr_2': const SocialProfile(
+          userId: 'usr_2',
+          username: 'persona2',
+          displayName: 'Persona 2',
+          isFollowing: true,
+        ),
+      },
+    );
+    await _pump(tester, repository);
+    final before =
+        repository.calls.where((c) => c == 'following usr_1 0').length;
+
+    await tester.tap(find.text('Persona 2'));
+    await tester.pumpAndSettle();
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
+    await tester.pumpAndSettle();
+
+    expect(repository.calls.where((c) => c == 'following usr_1 0').length,
+        before + 1);
+  });
+
+  testWidgets('el aviso de la pestaña recarga las listas', (tester) async {
+    final signal = ValueNotifier<int>(0);
+    addTearDown(signal.dispose);
+    final repository = FakeGraphRepository(followingPages: [
+      [person(2)],
+    ]);
+    await _pump(tester, repository, reloadSignal: signal);
+    final before =
+        repository.calls.where((c) => c == 'following usr_1 0').length;
+
+    signal.value++;
+    await tester.pumpAndSettle();
+
+    expect(repository.calls.where((c) => c == 'following usr_1 0').length,
+        before + 1);
   });
 }

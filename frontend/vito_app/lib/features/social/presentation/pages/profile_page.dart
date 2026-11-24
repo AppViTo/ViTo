@@ -255,16 +255,20 @@ class _ProfileViewState extends State<_ProfileView> {
     FollowListKind kind,
     Widget child,
   ) {
-    final repository = context.read<SocialProfileCubit>().repository;
+    final cubit = context.read<SocialProfileCubit>();
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => FollowListPage(
-          userId: profile.userId,
-          kind: kind,
-          repository: repository,
-        ),
-      )),
+      onTap: () async {
+        await Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => FollowListPage(
+            userId: profile.userId,
+            kind: kind,
+            repository: cubit.repository,
+          ),
+        ));
+        // Desde la lista se pudo seguir a alguien: los contadores cambian.
+        if (!cubit.isClosed) cubit.load(silent: true);
+      },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: child,

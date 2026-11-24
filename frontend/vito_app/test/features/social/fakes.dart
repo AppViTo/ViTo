@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dartz/dartz.dart';
 
 import 'package:vito_app/core/error/failures.dart';
@@ -26,6 +28,12 @@ class FakeGraphRepository implements SocialRepository {
   /// Peticiones recibidas, p. ej. `following usr_1 0` o `search caro`.
   final List<String> calls = [];
 
+  /// Páginas de las listas que responden con error mientras estén aquí.
+  final Set<int> failingPages = {};
+
+  /// Si no es `null`, las listas esperan a que se complete antes de responder.
+  Completer<void>? gate;
+
   FakeGraphRepository({
     this.followerPages = const [],
     this.followingPages = const [],
@@ -41,8 +49,12 @@ class FakeGraphRepository implements SocialRepository {
     int page,
   ) async {
     calls.add('$name $userId $page');
+    await gate?.future;
     final failure = listFailure;
     if (failure != null) return Left(failure);
+    if (failingPages.contains(page)) {
+      return const Left(NetworkFailure(message: 'Sin conexión'));
+    }
     return Right(page < pages.length ? pages[page] : const []);
   }
 
