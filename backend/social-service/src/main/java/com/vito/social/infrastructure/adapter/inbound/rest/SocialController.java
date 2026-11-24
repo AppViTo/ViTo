@@ -20,6 +20,7 @@ public class SocialController {
     
     private final SocialService socialService;
     
+    /** T041 (followUser): 204 sin cuerpo, también si ya lo seguía (research R5). */
     @PostMapping("/follow/{userId}")
     public ResponseEntity<Void> follow(@PathVariable String userId) {
         String currentUserId = getCurrentUserId();
@@ -29,9 +30,10 @@ public class SocialController {
                 .followingId(userId)
                 .build());
         
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
     
+    /** T041 (unfollowUser): 204 sin cuerpo, también si no lo seguía (research R5). */
     @DeleteMapping("/follow/{userId}")
     public ResponseEntity<Void> unfollow(@PathVariable String userId) {
         String currentUserId = getCurrentUserId();
