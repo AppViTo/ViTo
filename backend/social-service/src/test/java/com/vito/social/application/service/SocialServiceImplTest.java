@@ -10,8 +10,6 @@ import com.vito.social.domain.port.inbound.SocialService.UnfollowCommand;
 import com.vito.social.domain.port.outbound.EventPublisherPort;
 import com.vito.social.domain.port.outbound.FollowRepository;
 import com.vito.social.domain.port.outbound.UserDirectory;
-import com.vito.social.domain.port.outbound.UserProfileRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -20,7 +18,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,9 +31,6 @@ class SocialServiceImplTest {
     private FollowRepository followRepository;
 
     @Mock
-    private UserProfileRepository userProfileRepository;
-
-    @Mock
     private EventPublisherPort eventPublisher;
 
     @Mock
@@ -44,21 +38,6 @@ class SocialServiceImplTest {
 
     @InjectMocks
     private SocialServiceImpl socialService;
-
-    private SocialProfile testProfile;
-
-    @BeforeEach
-    void setUp() {
-        testProfile = SocialProfile.builder()
-                .userId("user123")
-                .username("testuser")
-                .displayName("Test User")
-                .avatar("https://example.com/avatar.jpg")
-                .bio("Test bio")
-                .followersCount(100)
-                .followingCount(50)
-                .build();
-    }
 
     // ── T037 (research R5): follow y unfollow idempotentes ─────────────────────
 
@@ -85,7 +64,6 @@ class SocialServiceImplTest {
         assertEquals("following123", saved.getValue().getFollowingId());
         assertNotNull(saved.getValue().getCreatedAt());
         verify(eventPublisher).publishFollowEvent("follower123", "following123");
-        verifyNoInteractions(userProfileRepository);
     }
 
     @Test
@@ -95,7 +73,7 @@ class SocialServiceImplTest {
 
         assertDoesNotThrow(() -> socialService.follow(follow("follower123", "following123")));
 
-        verifyNoInteractions(eventPublisher, userProfileRepository);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -137,7 +115,6 @@ class SocialServiceImplTest {
         socialService.unfollow(unfollow("follower123", "following123"));
 
         verify(eventPublisher).publishUnfollowEvent("follower123", "following123");
-        verifyNoInteractions(userProfileRepository);
     }
 
     @Test
@@ -147,7 +124,7 @@ class SocialServiceImplTest {
 
         assertDoesNotThrow(() -> socialService.unfollow(unfollow("follower123", "following123")));
 
-        verifyNoInteractions(eventPublisher, userProfileRepository);
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test
@@ -162,79 +139,105 @@ class SocialServiceImplTest {
         verifyNoInteractions(eventPublisher);
     }
 
+    // ── T045 (research R6): perfil con identidad de auth-service y contadores calculados ──
+
+    private static final UserSummary CARO =
+            new UserSummary("usr_caro", "caro.mz", "Carolina Martínez", "https://cdn.vito.com/caro.jpg");
+
     @Test
-    void getSocialProfile_Success() {
-        // Arrange
-        String userId = "user123";
-        String currentUserId = "currentUser";
+    void profileOfSomeoneElseCombinesIdentityCountsAndBothDirections() {
+        when(userDirectory.findByIds(List.of("usr_caro"))).thenReturn(List.of(CARO));
+        when(followRepository.countByFollowingId("usr_caro")).thenReturn(2L);
+        when(followRepository.countByFollowerId("usr_caro")).thenReturn(1L);
+        when(followRepository.existsByFollowerIdAndFollowingId("usr_ana", "usr_caro")).thenReturn(true);
+        when(followRepository.existsByFollowerIdAndFollowingId("usr_caro", "usr_ana")).thenReturn(false);
 
-        when(userProfileRepository.findByUserId(userId)).thenReturn(Optional.of(testProfile));
-        when(followRepository.existsByFollowerIdAndFollowingId(currentUserId, userId)).thenReturn(true);
-        when(followRepository.existsByFollowerIdAndFollowingId(userId, currentUserId)).thenReturn(false);
+        SocialProfile profile = socialService.getSocialProfile("usr_caro", "usr_ana");
 
-        // Act
-        SocialProfile result = socialService.getSocialProfile(userId, currentUserId);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(userId, result.getUserId());
-        assertTrue(result.isFollowing());
-        assertFalse(result.isFollowedBy());
-
-        verify(userProfileRepository).findByUserId(userId);
-        verify(followRepository).existsByFollowerIdAndFollowingId(currentUserId, userId);
-        verify(followRepository).existsByFollowerIdAndFollowingId(userId, currentUserId);
+        assertEquals("usr_caro", profile.getUserId());
+        assertEquals("caro.mz", profile.getUsername());
+        assertEquals("Carolina Martínez", profile.getDisplayName());
+        assertEquals("https://cdn.vito.com/caro.jpg", profile.getAvatar());
+        assertEquals(2, profile.getFollowersCount());
+        assertEquals(1, profile.getFollowingCount());
+        assertTrue(profile.isFollowing());
+        assertFalse(profile.isFollowedBy());
     }
 
     @Test
-    void getSocialProfile_UserNotFound_ThrowsException() {
-        // Arrange
-        String userId = "nonexistent";
-        String currentUserId = "currentUser";
+    void ownProfileHasBothBooleansFalseWithoutAskingTheGraph() {
+        when(userDirectory.findByIds(List.of("usr_caro"))).thenReturn(List.of(CARO));
+        when(followRepository.countByFollowingId("usr_caro")).thenReturn(0L);
+        when(followRepository.countByFollowerId("usr_caro")).thenReturn(3L);
 
-        when(userProfileRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        SocialProfile profile = socialService.getSocialProfile("usr_caro", "usr_caro");
 
-        // Act & Assert
-        SocialException exception = assertThrows(
-                SocialException.class,
-                () -> socialService.getSocialProfile(userId, currentUserId)
-        );
-        assertEquals("El usuario no existe", exception.getMessage());
-
-        verify(userProfileRepository).findByUserId(userId);
+        assertFalse(profile.isFollowing());
+        assertFalse(profile.isFollowedBy());
+        assertEquals(3, profile.getFollowingCount());
+        verify(followRepository, never()).existsByFollowerIdAndFollowingId(any(), any());
     }
 
     @Test
-    void isFollowing_ReturnsTrue() {
-        // Arrange
-        String followerId = "follower123";
-        String followingId = "following123";
+    void profileWithNullDisplayNameAndAvatarKeepsThemNull() {
+        when(userDirectory.findByIds(List.of("usr_x"))).thenReturn(List.of(new UserSummary("usr_x", "x", null, null)));
 
-        when(followRepository.existsByFollowerIdAndFollowingId(followerId, followingId))
-                .thenReturn(true);
+        SocialProfile profile = socialService.getSocialProfile("usr_x", "usr_ana");
 
-        // Act
-        boolean result = socialService.isFollowing(followerId, followingId);
-
-        // Assert
-        assertTrue(result);
-        verify(followRepository).existsByFollowerIdAndFollowingId(followerId, followingId);
+        assertNull(profile.getDisplayName());
+        assertNull(profile.getAvatar());
     }
 
     @Test
-    void isFollowing_ReturnsFalse() {
-        // Arrange
-        String followerId = "follower123";
-        String followingId = "following123";
+    void profileOfAUserThatAuthServiceDoesNotReturnIs404() {
+        when(userDirectory.findByIds(List.of("ghost"))).thenReturn(List.of());
 
-        when(followRepository.existsByFollowerIdAndFollowingId(followerId, followingId))
-                .thenReturn(false);
+        SocialException ex = assertThrows(SocialException.class,
+                () -> socialService.getSocialProfile("ghost", "usr_ana"));
 
-        // Act
-        boolean result = socialService.isFollowing(followerId, followingId);
+        assertEquals(SocialException.Reason.NOT_FOUND, ex.getReason());
+        assertEquals("El usuario no existe", ex.getMessage());
+        verifyNoInteractions(followRepository);
+    }
 
-        // Assert
-        assertFalse(result);
-        verify(followRepository).existsByFollowerIdAndFollowingId(followerId, followingId);
+    @Test
+    void profileWithAuthServiceDownPropagatesUnavailable() {
+        when(userDirectory.findByIds(List.of("usr_caro"))).thenThrow(new UserDirectoryUnavailableException());
+
+        assertThrows(UserDirectoryUnavailableException.class,
+                () -> socialService.getSocialProfile("usr_caro", "usr_ana"));
+    }
+
+    // ── T052 (research R7): listas paginadas con identidad por lotes ─────────────
+
+    @Test
+    void followersAreOnePageOfIdsResolvedInOneBatchKeepingTheirOrder() {
+        UserSummary luis = new UserSummary("usr_luis", "luis", "Luis", null);
+        when(userDirectory.findByIds(List.of("usr_caro"))).thenReturn(List.of(CARO));
+        when(followRepository.findFollowerIds("usr_caro", 1, 2)).thenReturn(List.of("usr_luis", "usr_jose"));
+        when(userDirectory.findByIds(List.of("usr_luis", "usr_jose"))).thenReturn(List.of(luis, JOSE));
+
+        assertEquals(List.of(luis, JOSE), socialService.getFollowers("usr_caro", 1, 2));
+        verify(userDirectory, times(2)).findByIds(any());
+    }
+
+    @Test
+    void anEmptyPageDoesNotAskAuthServiceForIdentities() {
+        when(userDirectory.findByIds(List.of("usr_caro"))).thenReturn(List.of(CARO));
+        when(followRepository.findFollowingIds("usr_caro", 5, 20)).thenReturn(List.of());
+
+        assertTrue(socialService.getFollowing("usr_caro", 5, 20).isEmpty());
+        verify(userDirectory, times(1)).findByIds(any());
+    }
+
+    @Test
+    void listsOfAUserThatAuthServiceDoesNotReturnAre404() {
+        when(userDirectory.findByIds(List.of("ghost"))).thenReturn(List.of());
+
+        assertEquals(SocialException.Reason.NOT_FOUND,
+                assertThrows(SocialException.class, () -> socialService.getFollowers("ghost", 0, 20)).getReason());
+        assertEquals(SocialException.Reason.NOT_FOUND,
+                assertThrows(SocialException.class, () -> socialService.getFollowing("ghost", 0, 20)).getReason());
+        verifyNoInteractions(followRepository);
     }
 }

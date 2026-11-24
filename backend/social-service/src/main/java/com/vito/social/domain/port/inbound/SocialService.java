@@ -1,6 +1,7 @@
 package com.vito.social.domain.port.inbound;
 
 import com.vito.social.domain.model.SocialProfile;
+import com.vito.social.domain.model.UserSummary;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,13 +15,11 @@ public interface SocialService {
     
     void unfollow(UnfollowCommand command);
     
-    boolean isFollowing(String followerId, String followingId);
-    
     SocialProfile getSocialProfile(String userId, String currentUserId);
     
-    List<SocialProfile> getFollowers(String userId, int page, int size);
+    List<UserSummary> getFollowers(String userId, int page, int size);
     
-    List<SocialProfile> getFollowing(String userId, int page, int size);
+    List<UserSummary> getFollowing(String userId, int page, int size);
     
     @Data
     @Builder

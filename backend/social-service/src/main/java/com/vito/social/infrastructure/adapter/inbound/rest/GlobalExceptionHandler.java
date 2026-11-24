@@ -24,7 +24,7 @@ public class GlobalExceptionHandler extends BaseExceptionHandler {
 
     @ExceptionHandler(SocialException.class)
     public ResponseEntity<ErrorResponse> handleDomainException(SocialException ex) {
-        return domainError(ex.getReason(), ex.getMessage(), null);
+        return domainError(ex.getReason(), ex.getMessage(), ex.getDetails());
     }
 
     /** T019 (FR-012a): sin datos de identidad no hay respuesta a medias; 503 y reintentar. */

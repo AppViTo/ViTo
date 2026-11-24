@@ -156,14 +156,14 @@ indicadores; en su propio perfil, los indicadores en `false` (quickstart §4).
 
 ### Tests for User Story 3
 
-- [ ] T043 [P] [US3] [Bernardo] Prueba primero: `SS-test/infrastructure/adapter/inbound/rest/SocialProfileSerializationTest.java`: el JSON trae `isFollowing` e `isFollowedBy` (no `following` ni `followedBy`, T-B13) y coincide con `getSocialProfile.200.json` y `getSocialProfile.own.200.json`
-- [ ] T044 [P] [US3] [Bernardo] Prueba de controlador contra `getSocialProfile.*` en `SocialControllerContractTest.java`: `200`, propio perfil, `404` (usuario que `auth-service` no devuelve) y `503` (con `auth-service` simulado caído)
+- [X] T043 [P] [US3] [Bernardo] Prueba primero: `SS-test/infrastructure/adapter/inbound/rest/SocialProfileSerializationTest.java`: el JSON trae `isFollowing` e `isFollowedBy` (no `following` ni `followedBy`, T-B13) y coincide con `getSocialProfile.200.json` y `getSocialProfile.own.200.json`
+- [X] T044 [P] [US3] [Bernardo] Prueba de controlador contra `getSocialProfile.*` en `SocialControllerContractTest.java`: `200`, propio perfil, `404` (usuario que `auth-service` no devuelve) y `503` (con `auth-service` simulado caído)
 
 ### Implementation for User Story 3
 
-- [ ] T045 [US3] [Bernardo] `getSocialProfile` en `SocialServiceImpl.java`: identidad con `UserDirectory` (un id), `followersCount = count({followingId})`, `followingCount = count({followerId})`, `isFollowing`/`isFollowedBy` con dos consultas de existencia y `false` en el propio perfil (research R6 y `data-model.md`); `SS/domain/model/SocialProfile.java` sin métodos `increment*`/`decrement*`
-- [ ] T046 [US3] [Bernardo] DTO `SS/infrastructure/adapter/inbound/rest/dto/SocialProfileResponse.java` (`record` o `@JsonProperty("isFollowing")`/`@JsonProperty("isFollowedBy")`) y `SocialController.java` responde el DTO, no el modelo de dominio. T043 y T044 pasan
-- [ ] T047 [US3] [Bernardo] Retirar `GET /api/v1/social/is-following/{userId}` del controlador y del puerto `SocialService`, y el puerto `UserProfileRepository` con `UserProfileMongoAdapter.java`. La colección `user_profiles` no se borra (Principio IX)
+- [X] T045 [US3] [Bernardo] `getSocialProfile` en `SocialServiceImpl.java`: identidad con `UserDirectory` (un id), `followersCount = count({followingId})`, `followingCount = count({followerId})`, `isFollowing`/`isFollowedBy` con dos consultas de existencia y `false` en el propio perfil (research R6 y `data-model.md`); `SS/domain/model/SocialProfile.java` sin métodos `increment*`/`decrement*`
+- [X] T046 [US3] [Bernardo] DTO `SS/infrastructure/adapter/inbound/rest/dto/SocialProfileResponse.java` (`record` o `@JsonProperty("isFollowing")`/`@JsonProperty("isFollowedBy")`) y `SocialController.java` responde el DTO, no el modelo de dominio. T043 y T044 pasan
+- [X] T047 [US3] [Bernardo] Retirar `GET /api/v1/social/is-following/{userId}` del controlador y del puerto `SocialService`, y el puerto `UserProfileRepository` con `UserProfileMongoAdapter.java`. La colección `user_profiles` no se borra (Principio IX). `is-following` se retiró en US3 y `UserProfileRepository` con las listas de US4
 - [X] T048 [P] [US3] [Alex] `APP/features/social/presentation/pages/profile_page.dart` y `stats_card.dart` con `getSocialProfile`: nombre, usuario, avatar, contadores, "te sigue", sin botón de seguir en el propio perfil; quitar la llamada a `/social/is-following` del datasource, el repositorio y el bloc; `503` con "No pudimos cargar el perfil, intenta de nuevo"
 
 ---
@@ -177,13 +177,13 @@ indicadores; en su propio perfil, los indicadores en `false` (quickstart §4).
 
 ### Tests for User Story 4
 
-- [ ] T049 [P] [US4] [Bernardo] Prueba primero: `SS-test/infrastructure/adapter/outbound/persistence/FollowPaginationIntegrationTest.java` con Testcontainers: 500 seguidores con varios `createdAt` iguales → recorrer con `size=50` devuelve cada uno exactamente una vez, del más reciente al más antiguo (SC-005); página más allá del final → vacía
-- [ ] T050 [P] [US4] [Bernardo] Prueba de controlador contra `listFollowers.*` y `listFollowing.*`: `200`, vacío, `400` con `size` de 51 y `page` negativa, `404`, y un id que `UserDirectory` no devuelve se omite de la página
+- [X] T049 [P] [US4] [Bernardo] Prueba primero: `SS-test/infrastructure/adapter/outbound/persistence/FollowPaginationIntegrationTest.java` con Testcontainers: 500 seguidores con varios `createdAt` iguales → recorrer con `size=50` devuelve cada uno exactamente una vez, del más reciente al más antiguo (SC-005); página más allá del final → vacía
+- [X] T050 [P] [US4] [Bernardo] Prueba de controlador contra `listFollowers.*` y `listFollowing.*`: `200`, vacío, `400` con `size` de 51 y `page` negativa, `404`, y un id que `UserDirectory` no devuelve se omite de la página
 
 ### Implementation for User Story 4
 
-- [ ] T051 [US4] [Bernardo] `FollowMongoAdapter.java`: `findFollowerIds(userId, page, size)` y `findFollowingIds(userId, page, size)` con orden `createdAt` y `_id` descendentes y `skip`/`limit` en la base; retirar `findFollowerIdsByFollowingId`/`findFollowingIdsByFollowerId` (traían todo). T049 pasa
-- [ ] T052 [US4] [Bernardo] `getFollowers`/`getFollowing` en `SocialServiceImpl.java`: comprobar el usuario con `UserDirectory` (`404`), una sola llamada `findByIds` por página y orden de las relaciones; validación "`size` de las listas de 1 a 50; `page` ≥ 0" en `SocialController.java`. T050 pasa
+- [X] T051 [US4] [Bernardo] `FollowMongoAdapter.java`: `findFollowerIds(userId, page, size)` y `findFollowingIds(userId, page, size)` con orden `createdAt` y `_id` descendentes y `skip`/`limit` en la base; retirar `findFollowerIdsByFollowingId`/`findFollowingIdsByFollowerId` (traían todo). T049 pasa
+- [X] T052 [US4] [Bernardo] `getFollowers`/`getFollowing` en `SocialServiceImpl.java`: comprobar el usuario con `UserDirectory` (`404`), una sola llamada `findByIds` por página y orden de las relaciones; validación "`size` de las listas de 1 a 50; `page` ≥ 0" en `SocialController.java`. T050 pasa
 - [X] T053 [P] [US4] [Alex] Listas de seguidores y seguidos desde el perfil (`APP/features/social/presentation/pages/`), con paginación infinita que pide hasta recibir una página vacía (una página puede traer menos de `size`)
 - [X] T054 [US4] [Alex] `APP/features/home/presentation/pages/people_screen.dart` ("Mi Gente"): a quién sigues y quién te sigue con `listFollowing`/`listFollowers` del usuario con sesión, búsqueda con `searchUsers` y estados vacíos ("Aún no sigues a nadie"); sin datos falsos (parte social de T-F02)
 
@@ -191,10 +191,10 @@ indicadores; en su propio perfil, los indicadores en `false` (quickstart §4).
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T055 [P] [Bernardo] Prueba de privacidad (SC-006): `SS-test/PrivacyFixturesTest.java` y `AS-test/PrivacyFixturesTest.java` recorren `FX/users/` y `FX/social/` y fallan si aparece `email`, `phone` o un texto con forma de correo
+- [X] T055 [P] [Bernardo] Prueba de privacidad (SC-006): `SS-test/PrivacyFixturesTest.java` y `AS-test/PrivacyFixturesTest.java` recorren `FX/users/` y `FX/social/` y fallan si aparece `email`, `phone` o un texto con forma de correo
 - [ ] T056 [P] [Bernardo] Escenario k6 `backend/load-tests/ola-2a-social.js`: búsqueda (< 1 s p95, SC-003) y perfil y listas (< 300 ms p95), siguiendo `backend/load-tests/ola-1-rsvp.js`. En local vale para corrección; el p95 se mide en un entorno representativo
 - [ ] T057 [P] [Bernardo] Tablero del gateway de T-I13 (`infrastructure/observability/`): `429` de `users-search` y latencia y errores del `RestClient` de `social-service` hacia `auth-service`
-- [ ] T058 [Bernardo] Registrar en `docs/roadmap/tasks.md` la desviación del Principio V de `social-events` (sobre versionado, outbox y `asyncapi.yaml`) junto a T-B36, con dependencia de T-C05 y antes del primer consumidor
+- [X] T058 [Bernardo] Registrar en `docs/roadmap/tasks.md` la desviación del Principio V de `social-events` (sobre versionado, outbox y `asyncapi.yaml`) junto a T-B36, con dependencia de T-C05 y antes del primer consumidor
 - [ ] T059 [Bernardo] y [Alex] Recorrer `quickstart.md` completo contra el stack local y pegar la salida en el PR de cierre de la ola
 - [ ] T060 [Alex] Cerrar en `docs/roadmap/tasks.md` T-C07 Ola 2a, Bug-F08 (VITO-83, tras quickstart §2.9 en producción), la parte social de T-F02 y la parte social de T-B13; cerrar el RFC #277
 
