@@ -1,6 +1,10 @@
 package com.vito.social.infrastructure.adapter.inbound.rest;
 
 import com.vito.social.domain.exception.SocialException;
+import com.vito.social.domain.exception.UserDirectoryUnavailableException;
+import tools.jackson.databind.ObjectMapper;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import com.vito.social.domain.port.inbound.SocialService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -71,6 +76,31 @@ class GlobalExceptionHandlerTest {
 
         assertEnvelope(mvc.perform(get("/api/v1/social/profile/usr_x")), 500, "INTERNAL_ERROR")
                 .andExpect(jsonPath("$.message", not(containsString("mongo://secreto"))));
+    }
+
+    /** T019 (FR-012a, research R2): auth-service caído → 503 con Retry-After y el texto del fixture. */
+    @Test
+    void userDirectoryUnavailableIs503WithRetryAfter() throws Exception {
+        when(service.getSocialProfile(any(), any())).thenThrow(new UserDirectoryUnavailableException());
+
+        assertEnvelope(mvc.perform(get("/api/v1/social/profile/usr_x")), 503, "SERVICE_UNAVAILABLE")
+                .andExpect(header().string("Retry-After", "5"))
+                .andExpect(jsonPath("$.message").value(fixtureMessage("getSocialProfile.503.json")))
+                .andExpect(jsonPath("$.details").doesNotExist());
+    }
+
+    /** T019: un 401 de auth-service (token vencido entre el gateway y aquí) llega como 401. */
+    @Test
+    void expiredSessionAtAuthServiceIs401() throws Exception {
+        when(service.getSocialProfile(any(), any())).thenThrow(SocialException.sessionExpired());
+
+        assertEnvelope(mvc.perform(get("/api/v1/social/profile/usr_x")), 401, "UNAUTHORIZED")
+                .andExpect(jsonPath("$.message").value(fixtureMessage("getSocialProfile.401.json")));
+    }
+
+    private static String fixtureMessage(String fixture) throws Exception {
+        String json = Files.readString(Path.of("..", "..", "docs", "api", "fixtures", "social", fixture));
+        return new ObjectMapper().readTree(json).get("message").asText();
     }
 
     @Test

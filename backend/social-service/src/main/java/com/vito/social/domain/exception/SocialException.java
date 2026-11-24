@@ -26,6 +26,11 @@ public class SocialException extends RuntimeException {
         return new SocialException(Reason.UNAUTHORIZED, "Debes iniciar sesión");
     }
 
+    /** auth-service rechazó el token reenviado: venció entre el gateway y aquí (research R2). */
+    public static SocialException sessionExpired() {
+        return new SocialException(Reason.UNAUTHORIZED, "El token de acceso es inválido o ha expirado");
+    }
+
     public static SocialException cannotFollowYourself() {
         return new SocialException(Reason.INVALID, "No puedes seguirte a ti mismo");
     }
