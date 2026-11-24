@@ -1,15 +1,25 @@
 package com.vito.social.domain.port.outbound;
 
 import com.vito.social.domain.model.FollowRelationship;
-import com.vito.social.domain.model.SocialProfile;
 
 import java.util.List;
 
 public interface FollowRepository {
     
-    FollowRelationship save(FollowRelationship relationship);
-    
-    void delete(FollowRelationship relationship);
+    /**
+     * T039 (research R5): crea la relación si no existe. El índice único del par lo hace atómico
+     * con peticiones simultáneas.
+     *
+     * @return {@code true} si la creó; {@code false} si ya existía (no es error)
+     */
+    boolean insertIfAbsent(FollowRelationship relationship);
+
+    /**
+     * T039 (research R5): borra la relación del par si existe.
+     *
+     * @return {@code true} si borró algo; {@code false} si no existía (no es error)
+     */
+    boolean deleteIfPresent(String followerId, String followingId);
     
     boolean existsByFollowerIdAndFollowingId(String followerId, String followingId);
     

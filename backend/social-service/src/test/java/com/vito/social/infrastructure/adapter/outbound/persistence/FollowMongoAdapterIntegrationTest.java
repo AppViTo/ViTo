@@ -17,8 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * T003 (Ola 2a): el adaptador del grafo contra un MongoDB real. Es la base de las pruebas de
- * concurrencia (T036) y paginación (T049); cuando T039 y T051 cambien el adaptador, estas
- * pruebas se ajustan a la nueva interfaz.
+ * concurrencia (T036) y paginación (T049). Con T039 el follow es {@code insertIfAbsent} y el
+ * unfollow {@code deleteIfPresent}, idempotentes gracias al índice único del par.
  */
 @DataMongoTest
 @Import(FollowMongoAdapter.class)
@@ -35,12 +35,13 @@ class FollowMongoAdapterIntegrationTest extends MongoContainerTest {
     @BeforeEach
     void clean() {
         mongoTemplate.dropCollection(COLLECTION);
+        adapter.ensureIndexes();
     }
 
     @Test
     void savedRelationshipIsFoundAndCountedFromBothSides() {
-        adapter.save(FollowRelationship.create("ana", "jose"));
-        adapter.save(FollowRelationship.create("caro", "jose"));
+        assertTrue(adapter.insertIfAbsent(FollowRelationship.create("ana", "jose")));
+        assertTrue(adapter.insertIfAbsent(FollowRelationship.create("caro", "jose")));
 
         assertTrue(adapter.existsByFollowerIdAndFollowingId("ana", "jose"));
         assertFalse(adapter.existsByFollowerIdAndFollowingId("jose", "ana"));
@@ -52,13 +53,31 @@ class FollowMongoAdapterIntegrationTest extends MongoContainerTest {
 
     @Test
     void deleteRemovesOnlyThatRelationship() {
-        adapter.save(FollowRelationship.create("ana", "jose"));
-        adapter.save(FollowRelationship.create("caro", "jose"));
+        adapter.insertIfAbsent(FollowRelationship.create("ana", "jose"));
+        adapter.insertIfAbsent(FollowRelationship.create("caro", "jose"));
 
-        adapter.delete(FollowRelationship.builder().followerId("ana").followingId("jose").build());
+        assertTrue(adapter.deleteIfPresent("ana", "jose"));
 
         assertFalse(adapter.existsByFollowerIdAndFollowingId("ana", "jose"));
         assertTrue(adapter.existsByFollowerIdAndFollowingId("caro", "jose"));
+        assertEquals(1, mongoTemplate.getCollection(COLLECTION).countDocuments());
+    }
+
+    /** T039 (research R5): repetir el follow no es error ni crea otra relación. */
+    @Test
+    void insertingTheSamePairTwiceKeepsOneRelationship() {
+        assertTrue(adapter.insertIfAbsent(FollowRelationship.create("ana", "jose")));
+        assertFalse(adapter.insertIfAbsent(FollowRelationship.create("ana", "jose")));
+
+        assertEquals(1, mongoTemplate.getCollection(COLLECTION).countDocuments());
+    }
+
+    /** T039 (research R5): dejar de seguir a quien no se sigue no es error ni borra otra cosa. */
+    @Test
+    void deletingAMissingPairChangesNothing() {
+        adapter.insertIfAbsent(FollowRelationship.create("caro", "jose"));
+
+        assertFalse(adapter.deleteIfPresent("ana", "jose"));
         assertEquals(1, mongoTemplate.getCollection(COLLECTION).countDocuments());
     }
 }

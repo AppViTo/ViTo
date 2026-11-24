@@ -135,14 +135,14 @@ a 0 (quickstart §3).
 ### Tests for User Story 2
 
 - [ ] T036 [P] [US2] [Bernardo] Prueba primero: `SS-test/infrastructure/adapter/outbound/persistence/FollowConcurrencyIntegrationTest.java` con Testcontainers: 50 hilos siguen el mismo par → una relación; 1 000 follow y unfollow mezclados sobre los mismos pares → los contadores (`count`) coinciden con las relaciones y ninguno es negativo (SC-004). Debe fallar con el `exists` + `save` actual
-- [ ] T037 [P] [US2] [Bernardo] Prueba primero: `SS-test/application/service/SocialServiceImplTest.java` (reescribir): seguirse a sí mismo → `400`; destino inexistente según `UserDirectory` → `404`; repetir follow o unfollow → sin error y sin evento publicado; un cambio real → un evento
-- [ ] T038 [P] [US2] [Bernardo] Prueba de controlador contra los fixtures `followUser.*` y `unfollowUser.*`: `SS-test/infrastructure/adapter/inbound/rest/SocialControllerContractTest.java` (`204` sin cuerpo, `400`, `404`, `503`)
+- [X] T037 [P] [US2] [Bernardo] Prueba primero: `SS-test/application/service/SocialServiceImplTest.java` (reescribir): seguirse a sí mismo → `400`; destino inexistente según `UserDirectory` → `404`; repetir follow o unfollow → sin error y sin evento publicado; un cambio real → un evento
+- [X] T038 [P] [US2] [Bernardo] Prueba de controlador contra los fixtures `followUser.*` y `unfollowUser.*`: `SS-test/infrastructure/adapter/inbound/rest/SocialControllerContractTest.java` (`204` sin cuerpo, `400`, `404`, `503`)
 
 ### Implementation for User Story 2
 
 - [ ] T039 [US2] [Bernardo] `FollowRepository` en `SS/domain/port/outbound/FollowRepository.java` y `FollowMongoAdapter.java`: `boolean insertIfAbsent(relación)` (insert; `DuplicateKeyException` → `false`) y `boolean deleteIfPresent(followerId, followingId)`; retirar `existsByFollowerIdAndFollowingId` + `save` del flujo. T036 pasa
-- [ ] T040 [US2] [Bernardo] `follow` y `unfollow` en `SS/application/service/SocialServiceImpl.java` según research R5 (validar uno mismo → `400 VALIDATION_ERROR`; destino con `UserDirectory.findByIds([id])` → `404 NOT_FOUND` si no vuelve; publicar solo si la relación cambió), sin `$inc` sobre `user_profiles`. T037 pasa
-- [ ] T041 [US2] [Bernardo] `SocialController.java`: follow y unfollow responden `204` sin cuerpo. T038 pasa
+- [X] T040 [US2] [Bernardo] `follow` y `unfollow` en `SS/application/service/SocialServiceImpl.java` según research R5 (validar uno mismo → `400 VALIDATION_ERROR`; destino con `UserDirectory.findByIds([id])` → `404 NOT_FOUND` si no vuelve; publicar solo si la relación cambió), sin `$inc` sobre `user_profiles`. T037 pasa
+- [X] T041 [US2] [Bernardo] `SocialController.java`: follow y unfollow responden `204` sin cuerpo. T038 pasa
 - [ ] T042 [P] [US2] [Alex] `APP/features/social/data/datasources/social_remote_datasource.dart` y `APP/features/social/presentation/widgets/follow_button.dart`: `204` como éxito, actualización optimista del botón y del contador con reversión si falla
 
 ---

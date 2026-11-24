@@ -1,16 +1,20 @@
 package com.vito.social.application.service;
 
 import com.vito.social.domain.exception.SocialException;
+import com.vito.social.domain.exception.UserDirectoryUnavailableException;
 import com.vito.social.domain.model.FollowRelationship;
 import com.vito.social.domain.model.SocialProfile;
+import com.vito.social.domain.model.UserSummary;
 import com.vito.social.domain.port.inbound.SocialService.FollowCommand;
 import com.vito.social.domain.port.inbound.SocialService.UnfollowCommand;
 import com.vito.social.domain.port.outbound.EventPublisherPort;
 import com.vito.social.domain.port.outbound.FollowRepository;
+import com.vito.social.domain.port.outbound.UserDirectory;
 import com.vito.social.domain.port.outbound.UserProfileRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -35,6 +39,9 @@ class SocialServiceImplTest {
     @Mock
     private EventPublisherPort eventPublisher;
 
+    @Mock
+    private UserDirectory userDirectory;
+
     @InjectMocks
     private SocialServiceImpl socialService;
 
@@ -53,111 +60,106 @@ class SocialServiceImplTest {
                 .build();
     }
 
+    // ── T037 (research R5): follow y unfollow idempotentes ─────────────────────
+
+    private static final UserSummary JOSE = new UserSummary("following123", "jose", "José Pérez", null);
+
+    private static FollowCommand follow(String follower, String following) {
+        return FollowCommand.builder().followerId(follower).followingId(following).build();
+    }
+
+    private static UnfollowCommand unfollow(String follower, String following) {
+        return UnfollowCommand.builder().followerId(follower).followingId(following).build();
+    }
+
     @Test
-    void follow_Success() {
-        // Arrange
-        FollowCommand command = FollowCommand.builder()
-                .followerId("follower123")
-                .followingId("following123")
-                .build();
+    void followCreatesTheRelationshipAndPublishesOneEvent() {
+        when(userDirectory.findByIds(List.of("following123"))).thenReturn(List.of(JOSE));
+        when(followRepository.insertIfAbsent(any(FollowRelationship.class))).thenReturn(true);
 
-        when(followRepository.existsByFollowerIdAndFollowingId("follower123", "following123"))
-                .thenReturn(false);
+        socialService.follow(follow("follower123", "following123"));
 
-        // Act
-        socialService.follow(command);
-
-        // Assert
-        verify(followRepository).existsByFollowerIdAndFollowingId("follower123", "following123");
-        verify(followRepository).save(any(FollowRelationship.class));
-        verify(userProfileRepository).incrementFollowingCount("follower123");
-        verify(userProfileRepository).incrementFollowersCount("following123");
+        ArgumentCaptor<FollowRelationship> saved = ArgumentCaptor.forClass(FollowRelationship.class);
+        verify(followRepository).insertIfAbsent(saved.capture());
+        assertEquals("follower123", saved.getValue().getFollowerId());
+        assertEquals("following123", saved.getValue().getFollowingId());
+        assertNotNull(saved.getValue().getCreatedAt());
         verify(eventPublisher).publishFollowEvent("follower123", "following123");
+        verifyNoInteractions(userProfileRepository);
     }
 
     @Test
-    void follow_CannotFollowYourself_ThrowsException() {
-        // Arrange
-        FollowCommand command = FollowCommand.builder()
-                .followerId("user123")
-                .followingId("user123")
-                .build();
+    void followingAgainIsNotAnErrorAndPublishesNothing() {
+        when(userDirectory.findByIds(List.of("following123"))).thenReturn(List.of(JOSE));
+        when(followRepository.insertIfAbsent(any(FollowRelationship.class))).thenReturn(false);
 
-        // Act & Assert
-        SocialException exception = assertThrows(
-                SocialException.class,
-                () -> socialService.follow(command)
-        );
-        assertEquals("No puedes seguirte a ti mismo", exception.getMessage());
+        assertDoesNotThrow(() -> socialService.follow(follow("follower123", "following123")));
 
-        verify(followRepository, never()).existsByFollowerIdAndFollowingId(any(), any());
-        verify(followRepository, never()).save(any());
+        verifyNoInteractions(eventPublisher, userProfileRepository);
     }
 
     @Test
-    void follow_AlreadyFollowing_ThrowsException() {
-        // Arrange
-        FollowCommand command = FollowCommand.builder()
-                .followerId("follower123")
-                .followingId("following123")
-                .build();
+    void followingYourselfIs400WithoutTouchingTheGraph() {
+        SocialException ex = assertThrows(SocialException.class,
+                () -> socialService.follow(follow("user123", "user123")));
 
-        when(followRepository.existsByFollowerIdAndFollowingId("follower123", "following123"))
-                .thenReturn(true);
-
-        // Act & Assert
-        SocialException exception = assertThrows(
-                SocialException.class,
-                () -> socialService.follow(command)
-        );
-        assertEquals("Ya sigues a este usuario", exception.getMessage());
-
-        verify(followRepository).existsByFollowerIdAndFollowingId("follower123", "following123");
-        verify(followRepository, never()).save(any());
+        assertEquals(SocialException.Reason.INVALID, ex.getReason());
+        assertEquals("No puedes seguirte a ti mismo", ex.getMessage());
+        verifyNoInteractions(followRepository, userDirectory, eventPublisher);
     }
 
     @Test
-    void unfollow_Success() {
-        // Arrange
-        UnfollowCommand command = UnfollowCommand.builder()
-                .followerId("follower123")
-                .followingId("following123")
-                .build();
+    void followingAUserThatAuthServiceDoesNotReturnIs404() {
+        when(userDirectory.findByIds(List.of("ghost"))).thenReturn(List.of());
 
-        when(followRepository.existsByFollowerIdAndFollowingId("follower123", "following123"))
-                .thenReturn(true);
+        SocialException ex = assertThrows(SocialException.class,
+                () -> socialService.follow(follow("follower123", "ghost")));
 
-        // Act
-        socialService.unfollow(command);
+        assertEquals(SocialException.Reason.NOT_FOUND, ex.getReason());
+        verifyNoInteractions(followRepository, eventPublisher);
+    }
 
-        // Assert
-        verify(followRepository).existsByFollowerIdAndFollowingId("follower123", "following123");
-        verify(followRepository).delete(any(FollowRelationship.class));
-        verify(userProfileRepository).decrementFollowingCount("follower123");
-        verify(userProfileRepository).decrementFollowersCount("following123");
+    @Test
+    void followWithAuthServiceDownPropagatesUnavailable() {
+        when(userDirectory.findByIds(List.of("following123"))).thenThrow(new UserDirectoryUnavailableException());
+
+        assertThrows(UserDirectoryUnavailableException.class,
+                () -> socialService.follow(follow("follower123", "following123")));
+
+        verifyNoInteractions(followRepository, eventPublisher);
+    }
+
+    @Test
+    void unfollowRemovesTheRelationshipAndPublishesOneEvent() {
+        when(userDirectory.findByIds(List.of("following123"))).thenReturn(List.of(JOSE));
+        when(followRepository.deleteIfPresent("follower123", "following123")).thenReturn(true);
+
+        socialService.unfollow(unfollow("follower123", "following123"));
+
         verify(eventPublisher).publishUnfollowEvent("follower123", "following123");
+        verifyNoInteractions(userProfileRepository);
     }
 
     @Test
-    void unfollow_NotFollowing_ThrowsException() {
-        // Arrange
-        UnfollowCommand command = UnfollowCommand.builder()
-                .followerId("follower123")
-                .followingId("following123")
-                .build();
+    void unfollowingSomeoneYouDoNotFollowIsNotAnErrorAndPublishesNothing() {
+        when(userDirectory.findByIds(List.of("following123"))).thenReturn(List.of(JOSE));
+        when(followRepository.deleteIfPresent("follower123", "following123")).thenReturn(false);
 
-        when(followRepository.existsByFollowerIdAndFollowingId("follower123", "following123"))
-                .thenReturn(false);
+        assertDoesNotThrow(() -> socialService.unfollow(unfollow("follower123", "following123")));
 
-        // Act & Assert
-        SocialException exception = assertThrows(
-                SocialException.class,
-                () -> socialService.unfollow(command)
-        );
-        assertEquals("No sigues a este usuario", exception.getMessage());
+        verifyNoInteractions(eventPublisher, userProfileRepository);
+    }
 
-        verify(followRepository).existsByFollowerIdAndFollowingId("follower123", "following123");
-        verify(followRepository, never()).delete(any());
+    @Test
+    void unfollowingAUserThatAuthServiceDoesNotReturnIs404() {
+        when(userDirectory.findByIds(List.of("ghost"))).thenReturn(List.of());
+
+        SocialException ex = assertThrows(SocialException.class,
+                () -> socialService.unfollow(unfollow("follower123", "ghost")));
+
+        assertEquals(SocialException.Reason.NOT_FOUND, ex.getReason());
+        verify(followRepository, never()).deleteIfPresent(any(), any());
+        verifyNoInteractions(eventPublisher);
     }
 
     @Test

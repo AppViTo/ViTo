@@ -35,14 +35,6 @@ public class SocialException extends RuntimeException {
         return new SocialException(Reason.INVALID, "No puedes seguirte a ti mismo");
     }
 
-    public static SocialException alreadyFollowing() {
-        return new SocialException(Reason.CONFLICT, "Ya sigues a este usuario");
-    }
-
-    public static SocialException notFollowing() {
-        return new SocialException(Reason.CONFLICT, "No sigues a este usuario");
-    }
-
     public static SocialException userNotFound() {
         return new SocialException(Reason.NOT_FOUND, "El usuario no existe");
     }
