@@ -8,9 +8,11 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/social_profile.dart';
 import '../../domain/repositories/social_repository.dart';
+import '../bloc/follow_list_cubit.dart';
 import '../bloc/social_profile_cubit.dart';
 import '../widgets/follow_button.dart';
 import '../widgets/stats_card.dart';
+import 'follow_list_page.dart';
 
 /// Perfil social (Ola 2a, T048) con `getSocialProfile`: nombre, usuario,
 /// avatar, seguidores, seguidos y "Te sigue". Sin [userId] muestra el propio
@@ -211,9 +213,19 @@ class _ProfileViewState extends State<_ProfileView> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      StatsCard(label: 'Seguidores', value: profile.followersCount),
+                      _openList(
+                        context,
+                        profile,
+                        FollowListKind.followers,
+                        StatsCard(label: 'Seguidores', value: profile.followersCount),
+                      ),
                       Container(width: 1, height: 32, color: AppColors.grey700),
-                      StatsCard(label: 'Siguiendo', value: profile.followingCount),
+                      _openList(
+                        context,
+                        profile,
+                        FollowListKind.following,
+                        StatsCard(label: 'Siguiendo', value: profile.followingCount),
+                      ),
                     ],
                   ),
                 ),
@@ -233,6 +245,34 @@ class _ProfileViewState extends State<_ProfileView> {
           ),
         ),
       ],
+    );
+  }
+
+  /// T053: tocar un contador abre la lista de seguidores o seguidos.
+  Widget _openList(
+    BuildContext context,
+    SocialProfile profile,
+    FollowListKind kind,
+    Widget child,
+  ) {
+    final cubit = context.read<SocialProfileCubit>();
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () async {
+        await Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => FollowListPage(
+            userId: profile.userId,
+            kind: kind,
+            repository: cubit.repository,
+          ),
+        ));
+        // Desde la lista se pudo seguir a alguien: los contadores cambian.
+        if (!cubit.isClosed) cubit.load(silent: true);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: child,
+      ),
     );
   }
 

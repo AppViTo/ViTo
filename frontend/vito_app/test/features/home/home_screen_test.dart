@@ -11,6 +11,7 @@ import 'package:vito_app/features/home/presentation/pages/home_screen.dart';
 import 'package:vito_app/features/home/presentation/pages/people_screen.dart';
 
 import '../events/fakes.dart';
+import '../social/fakes.dart';
 
 class MockAuthBloc extends MockBloc<AuthEvent, AuthState> implements AuthBloc {}
 
@@ -155,17 +156,21 @@ void main() {
     await tester.pumpWidget(
       BlocProvider<AuthBloc>.value(
         value: authBloc,
-        child: const MaterialApp(home: PeopleScreen()),
+        child: MaterialApp(
+          home: PeopleScreen(repository: FakeGraphRepository()),
+        ),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Aún no tienes amigos'), findsOneWidget);
+    // Desde la Ola 2a la pantalla usa el grafo real (T054): sin datos, los
+    // estados vacíos. El detalle está en test/features/social/.
+    expect(find.text('Aún no sigues a nadie'), findsOneWidget);
     expect(find.byIcon(Icons.message_rounded), findsNothing);
 
-    await tester.tap(find.text('Seguidos'));
+    await tester.tap(find.text('Seguidores'));
     await tester.pumpAndSettle();
-    expect(find.text('Aún no sigues a nadie'), findsOneWidget);
+    expect(find.text('Aún nadie te sigue'), findsOneWidget);
   });
 
   testWidgets(

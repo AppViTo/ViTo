@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../../../core/error/exceptions.dart';
 import '../models/social_profile_model.dart';
+import '../models/user_summary_model.dart';
 
 abstract class SocialRemoteDataSource {
   Future<void> follow(String userId);
@@ -10,13 +11,13 @@ abstract class SocialRemoteDataSource {
   
   Future<SocialProfileModel> getProfile(String userId);
   
-  Future<List<SocialProfileModel>> getFollowers({
+  Future<List<UserSummaryModel>> getFollowers({
     required String userId,
     int page = 0,
     int size = 20,
   });
   
-  Future<List<SocialProfileModel>> getFollowing({
+  Future<List<UserSummaryModel>> getFollowing({
     required String userId,
     int page = 0,
     int size = 20,
@@ -57,7 +58,7 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   }
   
   @override
-  Future<List<SocialProfileModel>> getFollowers({
+  Future<List<UserSummaryModel>> getFollowers({
     required String userId,
     int page = 0,
     int size = 20,
@@ -69,7 +70,7 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       );
       
       return (response.data as List)
-          .map((json) => SocialProfileModel.fromJson(json))
+          .map((json) => UserSummaryModel.fromJson(json as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       throw _handleError(e);
@@ -77,7 +78,7 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
   }
   
   @override
-  Future<List<SocialProfileModel>> getFollowing({
+  Future<List<UserSummaryModel>> getFollowing({
     required String userId,
     int page = 0,
     int size = 20,
@@ -89,7 +90,7 @@ class SocialRemoteDataSourceImpl implements SocialRemoteDataSource {
       );
       
       return (response.data as List)
-          .map((json) => SocialProfileModel.fromJson(json))
+          .map((json) => UserSummaryModel.fromJson(json as Map<String, dynamic>))
           .toList();
     } on DioException catch (e) {
       throw _handleError(e);

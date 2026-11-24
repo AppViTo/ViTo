@@ -184,8 +184,8 @@ indicadores; en su propio perfil, los indicadores en `false` (quickstart §4).
 
 - [ ] T051 [US4] [Bernardo] `FollowMongoAdapter.java`: `findFollowerIds(userId, page, size)` y `findFollowingIds(userId, page, size)` con orden `createdAt` y `_id` descendentes y `skip`/`limit` en la base; retirar `findFollowerIdsByFollowingId`/`findFollowingIdsByFollowerId` (traían todo). T049 pasa
 - [ ] T052 [US4] [Bernardo] `getFollowers`/`getFollowing` en `SocialServiceImpl.java`: comprobar el usuario con `UserDirectory` (`404`), una sola llamada `findByIds` por página y orden de las relaciones; validación "`size` de las listas de 1 a 50; `page` ≥ 0" en `SocialController.java`. T050 pasa
-- [ ] T053 [P] [US4] [Alex] Listas de seguidores y seguidos desde el perfil (`APP/features/social/presentation/pages/`), con paginación infinita que pide hasta recibir una página vacía (una página puede traer menos de `size`)
-- [ ] T054 [US4] [Alex] `APP/features/home/presentation/pages/people_screen.dart` ("Mi Gente"): a quién sigues y quién te sigue con `listFollowing`/`listFollowers` del usuario con sesión, búsqueda con `searchUsers` y estados vacíos ("Aún no sigues a nadie"); sin datos falsos (parte social de T-F02)
+- [X] T053 [P] [US4] [Alex] Listas de seguidores y seguidos desde el perfil (`APP/features/social/presentation/pages/`), con paginación infinita que pide hasta recibir una página vacía (una página puede traer menos de `size`)
+- [X] T054 [US4] [Alex] `APP/features/home/presentation/pages/people_screen.dart` ("Mi Gente"): a quién sigues y quién te sigue con `listFollowing`/`listFollowers` del usuario con sesión, búsqueda con `searchUsers` y estados vacíos ("Aún no sigues a nadie"); sin datos falsos (parte social de T-F02)
 
 ---
 

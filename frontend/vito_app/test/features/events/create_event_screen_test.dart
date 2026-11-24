@@ -67,7 +67,7 @@ class _FakeSocialRepository implements SocialRepository {
       const Left(ServerFailure());
 
   @override
-  Future<Either<Failure, List<SocialProfile>>> getFollowers({
+  Future<Either<Failure, List<UserSummary>>> getFollowers({
     required String userId,
     int page = 0,
     int size = 20,
@@ -75,7 +75,7 @@ class _FakeSocialRepository implements SocialRepository {
       const Right([]);
 
   @override
-  Future<Either<Failure, List<SocialProfile>>> getFollowing({
+  Future<Either<Failure, List<UserSummary>>> getFollowing({
     required String userId,
     int page = 0,
     int size = 20,
