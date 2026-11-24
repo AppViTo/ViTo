@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:dartz/dartz.dart';
@@ -95,10 +96,22 @@ class FakeEventRepository implements EventRepository {
   final List<(Event, Event)> updateCalls = [];
 
   /// Organizador: asistentes, invitaciones y cancelar (T052–T058). Una lista
-  /// `null` responde con el fallo correspondiente o `ServerFailure`.
+  /// `null` responde con el fallo correspondiente o `ServerFailure`. La lista
+  /// es la página 0; las siguientes llegan vacías, salvo que se pasen
+  /// [attendeePages] o [invitationPages] (una lista por página).
   final List<Attendee>? attendees;
   final Failure? attendeesFailure;
   final List<Invitation>? invitations;
+  final List<List<Attendee>>? attendeePages;
+  final List<List<Invitation>>? invitationPages;
+
+  /// Páginas pedidas de cada lista, en orden.
+  final List<int> attendeePageCalls = [];
+  final List<int> invitationPageCalls = [];
+
+  /// Si no es `null`, las dos listas esperan a que se complete antes de
+  /// responder (para cerrar la página con la carga en curso).
+  Completer<void>? guestsGate;
   final Failure? cancelFailure;
   final List<String> cancelledEventIds = [];
 
@@ -120,6 +133,9 @@ class FakeEventRepository implements EventRepository {
     this.attendees,
     this.attendeesFailure,
     this.invitations,
+    this.attendeePages,
+    this.invitationPages,
+    this.guestsGate,
     this.cancelFailure,
   });
 
@@ -291,10 +307,14 @@ class FakeEventRepository implements EventRepository {
     required String eventId,
     int page = 0,
     int size = 20,
-  }) async =>
-      attendees != null
-          ? Right(attendees!)
-          : Left(attendeesFailure ?? const ServerFailure());
+  }) async {
+    attendeePageCalls.add(page);
+    await guestsGate?.future;
+    final pages = attendeePages;
+    if (pages != null) return Right(page < pages.length ? pages[page] : const []);
+    if (attendees == null) return Left(attendeesFailure ?? const ServerFailure());
+    return Right(page == 0 ? attendees! : const []);
+  }
 
   @override
   Future<Either<Failure, Invitation>> sendInvitation({
@@ -309,10 +329,16 @@ class FakeEventRepository implements EventRepository {
     required String eventId,
     int page = 0,
     int size = 20,
-  }) async =>
-      invitations != null
-          ? Right(invitations!)
-          : const Left(ServerFailure());
+  }) async {
+    invitationPageCalls.add(page);
+    await guestsGate?.future;
+    final pages = invitationPages;
+    if (pages != null) {
+      return Right(page < pages.length ? pages[page] : const []);
+    }
+    if (invitations == null) return const Left(ServerFailure());
+    return Right(page == 0 ? invitations! : const []);
+  }
 
   @override
   Future<Either<Failure, RSVP>> checkIn({

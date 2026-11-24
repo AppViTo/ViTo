@@ -11,6 +11,7 @@ import '../bloc/event_guests_cubit.dart';
 /// Invitados del evento, solo para su organizador: quién respondió
 /// (`listEventAttendees`, T058) y a quién se invitó, desde la app o por
 /// enlace (`listEventInvitations`, T052). Nunca muestra correo ni teléfono.
+/// Cada lista pide su página siguiente al acercarse al final.
 class EventGuestsPage extends StatefulWidget {
   final String eventTitle;
 
@@ -45,11 +46,15 @@ class _EventGuestsPageState extends State<EventGuestsPage> {
                 list: state.attendees,
                 emptyMessage: 'Aún nadie ha respondido',
                 itemBuilder: _attendeeTile,
+                onLoadMore: () =>
+                    context.read<EventGuestsCubit>().loadMoreAttendees(),
               ),
               _ListSection<Invitation>(
                 list: state.invitations,
                 emptyMessage: 'Aún no has invitado a nadie',
                 itemBuilder: (invitation) => _invitationTile(state, invitation),
+                onLoadMore: () =>
+                    context.read<EventGuestsCubit>().loadMoreInvitations(),
               ),
             ],
           ),
@@ -150,15 +155,21 @@ class _EventGuestsPageState extends State<EventGuestsPage> {
   }
 }
 
+/// Elementos antes del final a partir de los cuales se pide la página
+/// siguiente.
+const _loadMoreThreshold = 10;
+
 class _ListSection<T> extends StatelessWidget {
   final GuestList<T> list;
   final String emptyMessage;
   final Widget Function(T item) itemBuilder;
+  final VoidCallback onLoadMore;
 
   const _ListSection({
     required this.list,
     required this.emptyMessage,
     required this.itemBuilder,
+    required this.onLoadMore,
   });
 
   @override
@@ -167,7 +178,7 @@ class _ListSection<T> extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
     final error = list.error;
-    if (error != null || list.items.isEmpty) {
+    if (list.items.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -187,6 +198,33 @@ class _ListSection<T> extends StatelessWidget {
         ),
       );
     }
-    return ListView(children: [for (final item in list.items) itemBuilder(item)]);
+    final showFooter = list.loadingMore || error != null;
+    return ListView.builder(
+      itemCount: list.items.length + (showFooter ? 1 : 0),
+      itemBuilder: (context, index) {
+        if (index < list.items.length) {
+          // ListView.builder construye los elementos al acercarse a ellos:
+          // al construir uno de los últimos se pide la página siguiente. Así
+          // también sigue una primera página que no llena la pantalla. Tras
+          // un error se espera a "Reintentar" para no repetir el fallo.
+          if (error == null &&
+              list.canLoadMore &&
+              index >= list.items.length - _loadMoreThreshold) {
+            WidgetsBinding.instance.addPostFrameCallback((_) => onLoadMore());
+          }
+          return itemBuilder(list.items[index]);
+        }
+        if (list.loadingMore) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        return TextButton(
+          onPressed: onLoadMore,
+          child: Text('$error · Reintentar'),
+        );
+      },
+    );
   }
 }

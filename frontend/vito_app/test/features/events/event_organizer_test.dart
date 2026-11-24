@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -99,6 +101,27 @@ Future<void> _pumpGuests(
   );
   await tester.pumpAndSettle();
 }
+
+Attendee _attendee(int i) => Attendee(
+      userId: 'usr_$i',
+      displayName: 'Invitado $i',
+      status: RSVPStatus.accepted,
+    );
+
+Invitation _invitation(int i) => Invitation(
+      id: 'inv_$i',
+      eventId: 'evt_1',
+      inviterId: 'usr_1',
+      inviteeId: 'usr_$i',
+      status: InvitationStatus.pending,
+    );
+
+EventGuestsCubit _guestsCubit(FakeEventRepository repository) =>
+    EventGuestsCubit(
+      eventId: 'evt_1',
+      listAttendees: ListEventAttendeesUseCase(repository),
+      listInvitations: ListEventInvitationsUseCase(repository),
+    );
 
 /// T052, T055 y T058: lo que el organizador gestiona desde el detalle y lo
 /// que ven los invitados.
@@ -301,6 +324,127 @@ void main() {
       await tester.tap(find.text('Invitaciones'));
       await tester.pumpAndSettle();
       expect(find.text('Aún no has invitado a nadie'), findsOneWidget);
+    });
+  });
+
+  group('paginación de invitados', () {
+    test('pide páginas hasta recibir una vacía, sin repetidos', () async {
+      final repository = FakeEventRepository(
+        attendeePages: [
+          [_attendee(1), _attendee(2)],
+          [_attendee(2), _attendee(3)],
+          const [],
+        ],
+        invitations: const [],
+      );
+      final cubit = _guestsCubit(repository);
+      addTearDown(cubit.close);
+
+      await cubit.load();
+      expect(repository.attendeePageCalls, [0]);
+      expect(cubit.state.attendees.reachedEnd, isFalse);
+
+      await cubit.loadMoreAttendees();
+      await cubit.loadMoreAttendees();
+
+      expect(
+        cubit.state.attendees.items.map((a) => a.userId),
+        ['usr_1', 'usr_2', 'usr_3'],
+      );
+      expect(cubit.state.attendees.reachedEnd, isTrue);
+
+      // Tras la página vacía no se piden más.
+      await cubit.loadMoreAttendees();
+      expect(repository.attendeePageCalls, [0, 1, 2]);
+    });
+
+    test('las invitaciones se paginan aparte de los asistentes', () async {
+      final repository = FakeEventRepository(
+        attendees: [_attendee(1)],
+        invitationPages: [
+          [_invitation(1), _invitation(2)],
+          [_invitation(2), _invitation(3)],
+          const [],
+        ],
+      );
+      final cubit = _guestsCubit(repository);
+      addTearDown(cubit.close);
+
+      await cubit.load();
+      await cubit.loadMoreInvitations();
+      await cubit.loadMoreInvitations();
+
+      expect(
+        cubit.state.invitations.items.map((i) => i.id),
+        ['inv_1', 'inv_2', 'inv_3'],
+      );
+      expect(cubit.state.invitations.reachedEnd, isTrue);
+      expect(repository.invitationPageCalls, [0, 1, 2]);
+      expect(repository.attendeePageCalls, [0]);
+      expect(cubit.state.attendees.items.single.userId, 'usr_1');
+    });
+
+    test('cerrar el cubit con la carga en curso no emite después de close',
+        () async {
+      final repository = FakeEventRepository(
+        attendees: [_attendee(1)],
+        invitations: [_invitation(1)],
+        guestsGate: Completer<void>(),
+      );
+      final cubit = _guestsCubit(repository);
+
+      final loading = cubit.load();
+      await cubit.close();
+      repository.guestsGate!.complete();
+
+      await expectLater(loading, completes);
+      await expectLater(cubit.loadMoreAttendees(), completes);
+      expect(cubit.isClosed, isTrue);
+    });
+
+    testWidgets('al acercarse al final de la lista pide la página siguiente',
+        (tester) async {
+      final repository = FakeEventRepository(
+        attendeePages: [
+          [for (var i = 1; i <= 30; i++) _attendee(i)],
+          [_attendee(31)],
+          const [],
+        ],
+        invitations: const [],
+      );
+      await _pumpGuests(tester, repository);
+
+      expect(repository.attendeePageCalls, [0]);
+      expect(find.text('Invitado 31'), findsNothing);
+
+      await tester.scrollUntilVisible(
+        find.text('Invitado 31'),
+        300,
+        scrollable: find.descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Invitado 31'), findsOneWidget);
+      expect(repository.attendeePageCalls, [0, 1, 2]);
+    });
+
+    testWidgets('una primera página que no llena la pantalla también sigue',
+        (tester) async {
+      final repository = FakeEventRepository(
+        attendeePages: [
+          [_attendee(1), _attendee(2)],
+          [_attendee(3)],
+          const [],
+        ],
+        invitations: const [],
+      );
+      await _pumpGuests(tester, repository);
+
+      expect(find.text('Invitado 3'), findsOneWidget);
+      expect(repository.attendeePageCalls, [0, 1, 2]);
     });
   });
 }
