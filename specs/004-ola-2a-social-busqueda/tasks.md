@@ -192,8 +192,8 @@ indicadores; en su propio perfil, los indicadores en `false` (quickstart §4).
 ## Phase 7: Polish & Cross-Cutting Concerns
 
 - [X] T055 [P] [Bernardo] Prueba de privacidad (SC-006): `SS-test/PrivacyFixturesTest.java` y `AS-test/PrivacyFixturesTest.java` recorren `FX/users/` y `FX/social/` y fallan si aparece `email`, `phone` o un texto con forma de correo
-- [ ] T056 [P] [Bernardo] Escenario k6 `backend/load-tests/ola-2a-social.js`: búsqueda (< 1 s p95, SC-003) y perfil y listas (< 300 ms p95), siguiendo `backend/load-tests/ola-1-rsvp.js`. En local vale para corrección; el p95 se mide en un entorno representativo
-- [ ] T057 [P] [Bernardo] Tablero del gateway de T-I13 (`infrastructure/observability/`): `429` de `users-search` y latencia y errores del `RestClient` de `social-service` hacia `auth-service`
+- [X] T056 [P] [Bernardo] Escenario k6 `backend/load-tests/ola-2a-social.js`: búsqueda (< 1 s p95, SC-003) y perfil y listas (< 300 ms p95), siguiendo `backend/load-tests/ola-1-rsvp.js`. En local vale para corrección; el p95 se mide en un entorno representativo
+- [X] T057 [P] [Bernardo] Tablero del gateway de T-I13 (`infrastructure/observability/`): `429` de `users-search` y latencia y errores del `RestClient` de `social-service` hacia `auth-service`
 - [X] T058 [Bernardo] Registrar en `docs/roadmap/tasks.md` la desviación del Principio V de `social-events` (sobre versionado, outbox y `asyncapi.yaml`) junto a T-B36, con dependencia de T-C05 y antes del primer consumidor
 - [ ] T059 [Bernardo] y [Alex] Recorrer `quickstart.md` completo contra el stack local y pegar la salida en el PR de cierre de la ola
 - [ ] T060 [Alex] Cerrar en `docs/roadmap/tasks.md` T-C07 Ola 2a, Bug-F08 (VITO-83, tras quickstart §2.9 en producción), la parte social de T-F02 y la parte social de T-B13; cerrar el RFC #277
