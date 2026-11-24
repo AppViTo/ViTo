@@ -35,24 +35,37 @@ class SocialProfileCubit extends Cubit<SocialProfileState> {
   SocialProfileCubit({required this.userId, required this.repository})
       : super(const SocialProfileState());
 
-  Future<void> load() async {
-    emit(const SocialProfileState());
+  /// Carga el perfil. Con [silent], si ya hay uno a la vista se recarga sin
+  /// volver al indicador de carga y, si falla, se queda el que había (p. ej.
+  /// al volver a la pestaña Perfil).
+  Future<void> load({bool silent = false}) async {
+    final current = state.profile;
+    final keep = silent && current != null;
+    if (!keep) emit(const SocialProfileState());
     final result = await repository.getProfile(userId);
+    // La página puede cerrarse con la petición en curso.
+    if (isClosed) return;
     result.fold(
-      (failure) => emit(SocialProfileState(
-        status: SocialProfileStatus.failure,
-        error: failure.message,
-      )),
+      (failure) {
+        if (keep) return;
+        emit(SocialProfileState(
+          status: SocialProfileStatus.failure,
+          error: failure.message,
+        ));
+      },
       (profile) => emit(SocialProfileState(
         status: SocialProfileStatus.loaded,
         profile: profile,
+        followBusy: state.followBusy,
       )),
     );
   }
 
   /// Sigue o deja de seguir con actualización optimista: el botón y el
-  /// contador cambian al instante y se revierten si el backend falla. Follow
-  /// y unfollow son idempotentes (`204`), así que repetirlos no duplica nada.
+  /// contador cambian al instante y se revierten si el backend falla. Tras
+  /// el `204` se recarga el perfil: follow y unfollow son idempotentes, así
+  /// que el contador optimista puede no coincidir con el del backend (p. ej.
+  /// si ya lo seguía desde otro dispositivo).
   Future<void> toggleFollow() async {
     final before = state.profile;
     if (before == null || state.followBusy) return;
@@ -71,16 +84,22 @@ class SocialProfileCubit extends Cubit<SocialProfileState> {
     final result = follow
         ? await repository.follow(userId)
         : await repository.unfollow(userId);
-    result.fold(
-      (failure) => emit(SocialProfileState(
+    if (isClosed) return;
+    if (result.isLeft()) {
+      emit(SocialProfileState(
         status: SocialProfileStatus.loaded,
         profile: before,
-        error: failure.message,
-      )),
-      (_) => emit(SocialProfileState(
-        status: SocialProfileStatus.loaded,
-        profile: optimistic,
-      )),
-    );
+        error: result.fold((failure) => failure.message, (_) => null),
+      ));
+      return;
+    }
+
+    final fresh = await repository.getProfile(userId);
+    if (isClosed) return;
+    emit(SocialProfileState(
+      status: SocialProfileStatus.loaded,
+      // Si la recarga falla, el follow sí se hizo: queda el optimista.
+      profile: fresh.fold((_) => optimistic, (profile) => profile),
+    ));
   }
 }

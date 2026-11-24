@@ -21,7 +21,17 @@ class ProfilePage extends StatelessWidget {
   /// Por defecto, el repositorio registrado en `sl`. Las pruebas pasan otro.
   final SocialRepository? repository;
 
-  const ProfilePage({super.key, this.userId, this.repository});
+  /// Cada aviso recarga el perfil sin volver al indicador de carga. La
+  /// pestaña Perfil lo usa al volver a ella: sigue viva en el `IndexedStack`
+  /// y, si no, mostraría los contadores de la primera carga.
+  final Listenable? reloadSignal;
+
+  const ProfilePage({
+    super.key,
+    this.userId,
+    this.repository,
+    this.reloadSignal,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +52,10 @@ class ProfilePage extends StatelessWidget {
               userId: target,
               repository: repository ?? sl<SocialRepository>(),
             )..load(),
-            child: _ProfileView(isOwn: target == me),
+            child: _ProfileView(
+              isOwn: target == me,
+              reloadSignal: reloadSignal,
+            ),
           );
         },
       ),
@@ -52,8 +65,9 @@ class ProfilePage extends StatelessWidget {
 
 class _ProfileView extends StatefulWidget {
   final bool isOwn;
+  final Listenable? reloadSignal;
 
-  const _ProfileView({required this.isOwn});
+  const _ProfileView({required this.isOwn, this.reloadSignal});
 
   @override
   State<_ProfileView> createState() => _ProfileViewState();
@@ -62,6 +76,29 @@ class _ProfileView extends StatefulWidget {
 class _ProfileViewState extends State<_ProfileView> {
   String? _coverImagePath;
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    widget.reloadSignal?.addListener(_reload);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ProfileView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.reloadSignal != widget.reloadSignal) {
+      oldWidget.reloadSignal?.removeListener(_reload);
+      widget.reloadSignal?.addListener(_reload);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.reloadSignal?.removeListener(_reload);
+    super.dispose();
+  }
+
+  void _reload() => context.read<SocialProfileCubit>().load(silent: true);
 
   Future<void> _pickCoverImage() async {
     final XFile? image = await _picker.pickImage(
@@ -90,6 +127,8 @@ class _ProfileViewState extends State<_ProfileView> {
             return _ErrorView(
               message: state.error ?? 'No pudimos cargar el perfil, intenta de nuevo',
               onRetry: () => context.read<SocialProfileCubit>().load(),
+              // Sin perfil, el propio sigue pudiendo cerrar sesión.
+              footer: widget.isOwn ? const _LogoutButton() : null,
             );
           case SocialProfileStatus.loaded:
             return _buildProfile(context, state.profile!, state.followBusy);
@@ -180,26 +219,7 @@ class _ProfileViewState extends State<_ProfileView> {
                 ),
                 const SizedBox(height: 24),
                 if (widget.isOwn)
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () =>
-                          context.read<AuthBloc>().add(const LogoutRequested()),
-                      icon: const Icon(Icons.logout,
-                          size: 18, color: AppColors.coralNeon),
-                      label: const Text(
-                        'Cerrar sesión',
-                        style: TextStyle(color: AppColors.coralNeon),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.coralNeon),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  )
+                  const _LogoutButton()
                 else
                   FollowButton(
                     isFollowing: profile.isFollowing,
@@ -277,11 +297,38 @@ class _ProfileViewState extends State<_ProfileView> {
   }
 }
 
+class _LogoutButton extends StatelessWidget {
+  const _LogoutButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => context.read<AuthBloc>().add(const LogoutRequested()),
+        icon: const Icon(Icons.logout, size: 18, color: AppColors.coralNeon),
+        label: const Text(
+          'Cerrar sesión',
+          style: TextStyle(color: AppColors.coralNeon),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: AppColors.coralNeon),
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
+  final Widget? footer;
 
-  const _ErrorView({required this.message, required this.onRetry});
+  const _ErrorView({required this.message, required this.onRetry, this.footer});
 
   @override
   Widget build(BuildContext context) {
@@ -302,6 +349,10 @@ class _ErrorView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               ElevatedButton(onPressed: onRetry, child: const Text('Reintentar')),
+              if (footer != null) ...[
+                const SizedBox(height: 24),
+                footer!,
+              ],
             ],
           ),
         ),

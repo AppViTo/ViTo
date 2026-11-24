@@ -11,6 +11,7 @@ import 'package:vito_app/features/social/data/repositories/social_repository_imp
 import 'package:vito_app/features/social/domain/entities/social_profile.dart';
 import 'package:vito_app/features/social/domain/entities/user_summary.dart';
 import 'package:vito_app/features/social/domain/repositories/social_repository.dart';
+import 'package:vito_app/features/social/presentation/bloc/social_profile_cubit.dart';
 import 'package:vito_app/features/social/presentation/pages/profile_page.dart';
 
 import '../events/auth_stub.dart';
@@ -33,25 +34,31 @@ const _me = SocialProfile(
   followingCount: 2,
 );
 
+/// Como el backend: follow y unfollow son idempotentes y cambian el perfil
+/// que devuelve `getProfile` solo si cambia la relación.
 class _FakeSocialRepository implements SocialRepository {
   final Map<String, SocialProfile> profiles;
-  final Failure? profileFailure;
+  Failure? profileFailure;
   final Failure? followFailure;
 
   /// Si se da, follow y unfollow esperan a que se complete (para ver el
   /// estado optimista mientras la petición está en curso).
   Completer<void>? gate;
+
+  /// Si se da, `getProfile` espera a que se complete.
+  Completer<void>? profileGate;
   final List<String> calls = [];
 
   _FakeSocialRepository({
-    this.profiles = const {},
+    Map<String, SocialProfile> profiles = const {},
     this.profileFailure,
     this.followFailure,
-  });
+  }) : profiles = Map.of(profiles);
 
   @override
   Future<Either<Failure, SocialProfile>> getProfile(String userId) async {
     calls.add('profile $userId');
+    await profileGate?.future;
     final failure = profileFailure;
     if (failure != null) return Left(failure);
     return Right(profiles[userId]!);
@@ -61,7 +68,16 @@ class _FakeSocialRepository implements SocialRepository {
     calls.add('$name $userId');
     await gate?.future;
     final failure = followFailure;
-    return failure != null ? Left(failure) : const Right(null);
+    if (failure != null) return Left(failure);
+    final profile = profiles[userId];
+    final follow = name == 'follow';
+    if (profile != null && profile.isFollowing != follow) {
+      profiles[userId] = profile.copyWith(
+        isFollowing: follow,
+        followersCount: profile.followersCount + (follow ? 1 : -1),
+      );
+    }
+    return const Right(null);
   }
 
   @override
@@ -100,6 +116,7 @@ Future<void> _pump(
   WidgetTester tester,
   _FakeSocialRepository repository, {
   String? userId,
+  Listenable? reloadSignal,
 }) async {
   tester.view.physicalSize = const Size(800, 1800);
   tester.view.devicePixelRatio = 1;
@@ -108,7 +125,11 @@ Future<void> _pump(
     BlocProvider<AuthBloc>(
       create: (_) => StubAuthBloc('usr_1'),
       child: MaterialApp(
-        home: ProfilePage(userId: userId, repository: repository),
+        home: ProfilePage(
+          userId: userId,
+          repository: repository,
+          reloadSignal: reloadSignal,
+        ),
       ),
     ),
   );
@@ -163,13 +184,16 @@ void main() {
 
     repository.gate!.complete();
     await tester.pumpAndSettle();
+    // Tras el 204 recarga el perfil.
+    expect(repository.calls.last, 'profile usr_2');
     expect(find.widgetWithText(OutlinedButton, 'Siguiendo'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
 
     // Dejar de seguir vuelve a 2.
     await tester.tap(find.widgetWithText(OutlinedButton, 'Siguiendo'));
     await tester.pumpAndSettle();
-    expect(repository.calls.last, 'unfollow usr_2');
+    expect(repository.calls.sublist(repository.calls.length - 2),
+        ['unfollow usr_2', 'profile usr_2']);
     expect(find.text('Seguir'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
   });
@@ -188,6 +212,112 @@ void main() {
     expect(find.text('No se pudo seguir'), findsOneWidget);
     expect(find.text('Seguir'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
+  });
+
+  testWidgets('tras el 204 se queda con el contador del backend, no con el '
+      'optimista', (tester) async {
+    // Ya lo seguía desde otro dispositivo: el follow es idempotente y el
+    // backend sigue en 2 seguidores.
+    final repository = _FakeSocialRepository(profiles: {
+      'usr_2': _caro.copyWith(isFollowing: false),
+    });
+    await _pump(tester, repository, userId: 'usr_2');
+    repository.profiles['usr_2'] = _caro.copyWith(isFollowing: true);
+
+    await tester.tap(find.text('Seguir'));
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(OutlinedButton, 'Siguiendo'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('3'), findsNothing);
+  });
+
+  testWidgets('si el perfil propio falla, igual se puede cerrar sesión',
+      (tester) async {
+    final repository = _FakeSocialRepository(
+      profileFailure: const ServerFailure(message: profileUnavailableMessage),
+    );
+    await _pump(tester, repository);
+
+    expect(find.text(profileUnavailableMessage), findsOneWidget);
+    expect(find.text('Reintentar'), findsOneWidget);
+    expect(find.text('Cerrar sesión'), findsOneWidget);
+  });
+
+  testWidgets('un perfil ajeno que falla no ofrece cerrar sesión',
+      (tester) async {
+    final repository = _FakeSocialRepository(
+      profileFailure: const ServerFailure(message: profileUnavailableMessage),
+    );
+    await _pump(tester, repository, userId: 'usr_2');
+
+    expect(find.text('Cerrar sesión'), findsNothing);
+  });
+
+  testWidgets('el aviso de recarga trae los contadores nuevos sin spinner',
+      (tester) async {
+    final signal = ValueNotifier<int>(0);
+    addTearDown(signal.dispose);
+    final repository = _FakeSocialRepository(profiles: {'usr_1': _me});
+    await _pump(tester, repository, reloadSignal: signal);
+    expect(find.text('2'), findsOneWidget); // siguiendo
+
+    repository.profiles['usr_1'] = _me.copyWith(followingCount: 5);
+    repository.profileGate = Completer<void>();
+    signal.value++;
+    await tester.pump();
+
+    // Mientras recarga, sigue el perfil a la vista.
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.text('Alex Villa'), findsOneWidget);
+
+    repository.profileGate!.complete();
+    await tester.pumpAndSettle();
+    expect(repository.calls, ['profile usr_1', 'profile usr_1']);
+    expect(find.text('5'), findsOneWidget);
+  });
+
+  testWidgets('si la recarga falla, queda el perfil que había',
+      (tester) async {
+    final signal = ValueNotifier<int>(0);
+    addTearDown(signal.dispose);
+    final repository = _FakeSocialRepository(profiles: {'usr_1': _me});
+    await _pump(tester, repository, reloadSignal: signal);
+
+    repository.profileFailure = const NetworkFailure(message: 'Sin conexión');
+    signal.value++;
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alex Villa'), findsOneWidget);
+    expect(find.text('Reintentar'), findsNothing);
+  });
+
+  group('SocialProfileCubit', () {
+    test('cerrar con la carga en curso no emite después de close', () async {
+      final repository = _FakeSocialRepository(profiles: {'usr_2': _caro})
+        ..profileGate = Completer<void>();
+      final cubit = SocialProfileCubit(userId: 'usr_2', repository: repository);
+
+      final loading = cubit.load();
+      await cubit.close();
+      repository.profileGate!.complete();
+
+      await expectLater(loading, completes);
+    });
+
+    test('cerrar con un follow en curso no emite después de close', () async {
+      final repository = _FakeSocialRepository(profiles: {'usr_2': _caro});
+      final cubit = SocialProfileCubit(userId: 'usr_2', repository: repository);
+      await cubit.load();
+
+      repository.gate = Completer<void>();
+      final following = cubit.toggleFollow();
+      await cubit.close();
+      repository.gate!.complete();
+
+      await expectLater(following, completes);
+      expect(repository.calls, ['profile usr_2', 'follow usr_2']);
+    });
   });
 
   testWidgets('el 503 muestra "No pudimos cargar el perfil" y permite '
