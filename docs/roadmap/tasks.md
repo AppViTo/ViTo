@@ -145,7 +145,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-C11 | Contrato de la Ola 2a (✅ HECHA, #320) | Agente frontend (Alex) | D-08 ✅ con #283 (2026-11-10). Mergeado en #320 (2026-11-20): `openapi.yaml`, fixtures, CONVENTIONS §9, inventario y nota en ADR-016 (T002, T005–T010). Absorbe el RFC #277. |
 | T-F13 | App de la Ola 2a | Agente frontend (Alex) | T-C11 ✅ #320: avanza contra el mock de Prism. Primero la búsqueda en "¿A quién invitamos?" (Bug-F08). |
 | T-B38 | `auth-service` y gateway: búsqueda y datos por lotes | Sesión de Bernardo | T-C11 ✅ #320. Código completo en revisión: `getUsersByIds` (#323) y búsqueda, gateway y retiro de `/social/search` (T021–T033). Falta quickstart §2 con la app (T-F13). |
-| T-B39 | `social-service`: grafo social | Sesión de Bernardo | T003 ✅ #284; T013–T015 y T020 ✅ #286; T-C11 ✅ #320. Base T016–T019 (`UserDirectory` y 503) en revisión; sigue US2 (follow idempotente). |
+| T-B39 | `social-service`: grafo social | Sesión de Bernardo | T003 ✅ #284; T013–T015 y T020 ✅ #286; T-C11 ✅ #320. En revisión: base T016–T019 (`UserDirectory` y 503) y US2 T036–T041 (follow idempotente, 204). Sigue US3 (perfil). |
 | T-I30 | `AUTH_SERVICE_URI`, carga y tablero de la Ola 2a | Sesión de Bernardo | T004 ✅ #284; T056–T057 tras T-B39. |
 
 ---
@@ -236,7 +236,7 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-C11 | Contrato de la Ola 2a: grafo social y búsqueda de usuarios (spec 004) | C | P0 | ✅ HECHA (#320, 2026-11-20; RFC #321) | — |
 | T-F13 | App de la Ola 2a: búsqueda para invitar, seguir, perfil social y "Mi Gente" | F | P0 | 🟢 READY (T-C11 ✅ #320) | — |
 | T-B38 | `auth-service` y gateway de la Ola 2a: `searchUsers` y `getUsersByIds` | B | P0 | 🔵 EN CURSO (código en revisión: #323 y la búsqueda; falta quickstart §2 con T-F13) | — |
-| T-B39 | `social-service` de la Ola 2a: follow idempotente, perfil, seguidores y seguidos | B | P1 | 🔵 EN CURSO (base T016–T019 en revisión; T003 ✅ #284; T013–T015 y T020 ✅ #286) | — |
+| T-B39 | `social-service` de la Ola 2a: follow idempotente, perfil, seguidores y seguidos | B | P1 | 🔵 EN CURSO (T016–T019 y T036–T041 en revisión; T003 ✅ #284; T013–T015 y T020 ✅ #286) | — |
 | T-I30 | `AUTH_SERVICE_URI`, escenarios k6 y tablero de la Ola 2a | I | P1 | 🔴 BLOQUEADA por T-B39 (T004 ✅ #284) | — |
 | T-B40 | `chat-service` y `media-service` fuera de `vito_db` (deuda de T-I19) | B/I | P2 | 🔵 EN CURSO (#309 ✅; falta desplegar en el mismo release que T-I19) | — |
 
@@ -1187,7 +1187,7 @@ depende del contrato.
   `users` en el gateway; retirar `/social/search`.
 - **Cierre:** quickstart §2 de la spec en verde; se puede liberar sola para cerrar Bug-F08.
 
-### T-B39 · `social-service` de la Ola 2a — 🔵 EN CURSO (base T016–T019 en revisión) · P1 · Principios II, IV y VII
+### T-B39 · `social-service` de la Ola 2a — 🔵 EN CURSO (T016–T019 y T036–T041 en revisión) · P1 · Principios II, IV y VII
 - **Qué:** T003, T013–T020, T036–T041, T043–T047, T049–T052, T055 y T058 de [`specs/004-ola-2a-social-busqueda`](../../specs/004-ola-2a-social-busqueda/tasks.md): solo el
   grafo (identidad por lotes desde `auth-service`, sin `user_profiles`), follow atómico e
   idempotente con índice único, contadores calculados, paginación en la base, `503` si
