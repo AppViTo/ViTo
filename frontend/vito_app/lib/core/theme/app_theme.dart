@@ -52,13 +52,15 @@ class AppTheme {
         labelSmall: AppTypography.labelSmall,
       ),
 
-      appBarTheme: const AppBarTheme(
+      // `titleTextStyle` lleva el color explícito: un estilo sin color anula
+      // el `foregroundColor` y el título sale negro sobre el fondo oscuro.
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.grisCarbon,
         foregroundColor: AppColors.blancoHielo,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: AppTypography.h5,
-        iconTheme: IconThemeData(color: AppColors.blancoHielo),
+        titleTextStyle: AppTypography.h5.copyWith(color: AppColors.blancoHielo),
+        iconTheme: const IconThemeData(color: AppColors.blancoHielo),
       ),
 
       cardTheme: CardThemeData(
@@ -281,13 +283,13 @@ class AppTheme {
         labelSmall: AppTypography.labelSmall,
       ),
 
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.surfaceLight,
         foregroundColor: AppColors.grisCarbon,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: AppTypography.h5,
-        iconTheme: IconThemeData(color: AppColors.grisCarbon),
+        titleTextStyle: AppTypography.h5.copyWith(color: AppColors.grisCarbon),
+        iconTheme: const IconThemeData(color: AppColors.grisCarbon),
       ),
 
       cardTheme: CardThemeData(
