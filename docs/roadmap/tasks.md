@@ -144,9 +144,9 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 |----|-------|------------|------------------------|
 | T-C11 | Contrato de la Ola 2a (✅ HECHA, #320) | Agente frontend (Alex) | D-08 ✅ con #283 (2026-11-10). Mergeado en #320 (2026-11-20): `openapi.yaml`, fixtures, CONVENTIONS §9, inventario y nota en ADR-016 (T002, T005–T010). Absorbe el RFC #277. |
 | T-F13 | App de la Ola 2a | Agente frontend (Alex) | T-C11 ✅ #320: avanza contra el mock de Prism. Primero la búsqueda en "¿A quién invitamos?" (Bug-F08). |
-| T-B38 | `auth-service` y gateway: búsqueda y datos por lotes | Sesión de Bernardo | T-C11 ✅ #320. Código completo en revisión: `getUsersByIds` (#323) y búsqueda, gateway y retiro de `/social/search` (T021–T033). Falta quickstart §2 con la app (T-F13). |
-| T-B39 | `social-service`: grafo social | Sesión de Bernardo | T003 ✅ #284; T013–T015 y T020 ✅ #286; T-C11 ✅ #320. Base T016–T019 y US2 ✅ #338. En revisión: US3 perfil (T043–T047), US4 listas (T049–T052), T055 y T058. Falta quickstart (T059) con la app. |
-| T-I30 | `AUTH_SERVICE_URI`, carga y tablero de la Ola 2a | Sesión de Bernardo | T004 ✅ #284; T056–T057 en revisión (en local, corrección verde; falta el p95 en un entorno representativo). |
+| T-B38 | `auth-service` y gateway: búsqueda y datos por lotes | Sesión de Bernardo | T-C11 ✅ #320. Código ✅: `getUsersByIds` (#323) y búsqueda, gateway y retiro de `/social/search` (#337, T021–T033). Quickstart §2.1–2.8 de API ✅ (2026-11-24); falta §2.9 con la app. |
+| T-B39 | `social-service`: grafo social | Sesión de Bernardo | T003 ✅ #284; T013–T015 y T020 ✅ #286; T-C11 ✅ #320. Base T016–T019 y US2 ✅ #338; US3 perfil, US4 listas, T055 y T058 ✅ #340. Quickstart de API (§3–§5, §7) ✅ (2026-11-24); falta la parte de la app de T059. |
+| T-I30 | `AUTH_SERVICE_URI`, carga y tablero de la Ola 2a | Sesión de Bernardo | T004 ✅ #284; T056–T057 ✅ #342 (en local, corrección verde). Falta desplegar `config.alloy`, reimportar `vito-api-red.json` en Grafana Cloud y medir el p95 de perfil y listas en un entorno representativo. |
 
 ---
 
@@ -235,9 +235,9 @@ Ola 2a aprobada por los dos leads (T001 de la spec, con el PR de la spec).
 | T-I28 | `INVITE_LINK_BASE_URL` por entorno y escenarios k6 de la Ola 1 | I | P1 | 🔵 EN CURSO | — |
 | T-C11 | Contrato de la Ola 2a: grafo social y búsqueda de usuarios (spec 004) | C | P0 | ✅ HECHA (#320, 2026-11-20; RFC #321) | — |
 | T-F13 | App de la Ola 2a: búsqueda para invitar, seguir, perfil social y "Mi Gente" | F | P0 | 🔵 EN CURSO (PR 1 `frontend/t-f13-search`: búsqueda para invitar; PR 2 `frontend/t-f13-profile`: seguir y perfil; PR 3 `frontend/t-f13-people`: listas y "Mi Gente"; falta el quickstart, T059) | — |
-| T-B38 | `auth-service` y gateway de la Ola 2a: `searchUsers` y `getUsersByIds` | B | P0 | 🔵 EN CURSO (código en revisión: #323 y la búsqueda; falta quickstart §2 con T-F13) | — |
-| T-B39 | `social-service` de la Ola 2a: follow idempotente, perfil, seguidores y seguidos | B | P1 | 🔵 EN CURSO (base y US2 ✅ #338; US3–US4 en revisión; falta quickstart T059; T003 ✅ #284; T013–T015 y T020 ✅ #286) | — |
-| T-I30 | `AUTH_SERVICE_URI`, escenarios k6 y tablero de la Ola 2a | I | P1 | 🔴 BLOQUEADA por T-B39 (T004 ✅ #284) | — |
+| T-B38 | `auth-service` y gateway de la Ola 2a: `searchUsers` y `getUsersByIds` | B | P0 | 🔵 EN CURSO (código ✅ #323 y #337; quickstart de API ✅; falta §2.9 con la app, T059) | — |
+| T-B39 | `social-service` de la Ola 2a: follow idempotente, perfil, seguidores y seguidos | B | P1 | 🔵 EN CURSO (código ✅: T003 #284, T013–T015 y T020 #286, base y US2 #338, US3–US4 #340; quickstart de API ✅; falta la parte de la app de T059) | — |
+| T-I30 | `AUTH_SERVICE_URI`, escenarios k6 y tablero de la Ola 2a | I | P1 | 🔵 EN CURSO (T004 ✅ #284; T056–T057 ✅ #342; falta desplegar `config.alloy`, reimportar el tablero y el p95 en un entorno representativo) | — |
 | T-B40 | `chat-service` y `media-service` fuera de `vito_db` (deuda de T-I19) | B/I | P2 | 🔵 EN CURSO (#309 ✅; falta desplegar en el mismo release que T-I19) | — |
 
 **Bloquean el primer release** (triage de seguridad, [T051](../../backend/SECURITY_CHECKLIST.md)): T-B17, T-B19, T-I17, T-I18 y
