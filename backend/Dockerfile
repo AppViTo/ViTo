@@ -8,7 +8,7 @@
 # Lo que no entra en la imagen está en Dockerfile.dockerignore (junto a este archivo).
 
 # ── Build ───────────────────────────────────────────────────────
-FROM eclipse-temurin:21.0.13_9-jdk-jammy AS build
+FROM eclipse-temurin:21.0.13.1_2-jdk-jammy AS build
 ARG SERVICE
 RUN test -n "$SERVICE" || (echo "Falta --build-arg SERVICE=<carpeta del servicio>" && exit 1)
 WORKDIR /src
@@ -37,7 +37,7 @@ RUN --mount=type=cache,target=/root/.m2,sharing=locked \
  && cp ${SERVICE}/target/*.jar /app.jar
 
 # ── Runtime ─────────────────────────────────────────────────────
-FROM eclipse-temurin:21.0.13_9-jre-jammy
+FROM eclipse-temurin:21.0.13.1_2-jre-jammy
 
 # upgrade: parches de seguridad de Ubuntu que la imagen base aún no trae (p. ej. apt 2.4.14
 # con un CVE HIGH ya corregido, que corta el Trivy de cd.yml). curl solo para el
