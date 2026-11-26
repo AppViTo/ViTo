@@ -44,7 +44,7 @@ dependencies:
   
   # Video Player
   video_player: ^2.14.1
-  chewie: ^1.17.4
+  chewie: ^1.18.1
   
   # Utils
   intl: ^0.20.3
