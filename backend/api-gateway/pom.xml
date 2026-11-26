@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.9</version>
+        <version>4.0.10</version>
         <relativePath/>
     </parent>
     <groupId>com.vito</groupId>
@@ -16,7 +16,7 @@
     <description>ViTo API Gateway - Spring Cloud Gateway</description>
     <properties>
         <java.version>21</java.version>
-        <spring-cloud.version>2025.1.4</spring-cloud.version>
+        <spring-cloud.version>2025.1.5</spring-cloud.version>
         <resilience4j.version>2.2.0</resilience4j.version>
     </properties>
     <dependencies>
