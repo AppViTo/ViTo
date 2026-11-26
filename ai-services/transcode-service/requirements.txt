@@ -6,21 +6,21 @@ uvicorn[standard]==0.54.0
 python-multipart==0.0.34
 
 # Data Validation
-pydantic==2.14.3
+pydantic==2.14.4
 pydantic-settings==2.16.3
 
 # Kafka
-confluent-kafka==2.16.1
+confluent-kafka==2.16.2
 
 # MongoDB
 motor==3.7.1
-pymongo==4.20.0
+pymongo==4.20.1
 
 # Redis
-redis[hiredis]==8.1.0
+redis[hiredis]==8.2.0
 
 # AWS S3 (MinIO compatible)
-boto3==1.44.4
+boto3==1.44.9
 
 # Image/Video Processing
 Pillow==13.0.0
@@ -28,7 +28,7 @@ Pillow==13.0.0
 
 # Utilities
 python-dotenv==1.2.4
-passlib[bcrypt]==1.7.4
+passlib[bcrypt]==1.9.5
 
 # Monitoring
 prometheus-fastapi-instrumentator==8.1.0
