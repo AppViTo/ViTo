@@ -16,6 +16,11 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Parches de Debian sobre la base: python:3.11-slim trae libzstd1 1.5.7+dfsg-1 con un CVE HIGH
+# ya corregido (CVE-2026-124851) y el Trivy de cd.yml bloquea el release (Principio III)
+RUN apt-get update && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy installed packages from builder
 COPY --from=builder /root/.local /root/.local
 ENV PATH=/root/.local/bin:$PATH
